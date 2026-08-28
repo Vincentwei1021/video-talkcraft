@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>ui-prop-theater · 界面道具剧场</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 演示语境（不属于动效）：一张灰阶"安装器"卡 + 主播小窗，零装饰 —— */
+  #stage { font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; }
+
+  .app-card {
+    position: absolute;
+    left: 180px; top: 96px;
+    width: 600px;
+    padding: 24px 26px 26px;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #1d1d1f;
+  }
+  .app-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #ececef;
+  }
+  .app-icon {
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    background: #ececef;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .app-icon i {
+    width: 12px; height: 12px;
+    border: 2px solid #8a8a8a;
+    border-radius: 3px;
+    display: block;
+  }
+  .app-name { font-size: 17px; font-weight: 700; letter-spacing: 1px; }
+  .app-ver { margin-left: auto; font-size: 13px; color: #8a8a8a; letter-spacing: 1px; }
+
+  /* 状态行：左状态文案 + 完成勾 + 右百分比读数 */
+  .status-row {
+    display: flex;
+    align-items: center;
+    margin-top: 20px;
+  }
+  .status {
+    font-size: 19px;
+    font-weight: 600;
+    letter-spacing: 1px;
+  }
+  .pct {
+    margin-left: auto;
+    font-size: 19px;
+    font-weight: 700;
+    color: #8a8a8a;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* —— 动效本体 —— 进度条：轨道灰阶，填充是唯一的强调色 */
+  .bar-track {
+    position: relative;
+    height: 10px;
+    margin-top: 14px;
+    border-radius: 5px;
+    background: #ececef;
+    overflow: hidden;
+  }
+  .bar-fill {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 0%;                       /* 由 CONFIG.beats 分段跳进 */
+    border-radius: 5px;
+    background: #d8383a;
+  }
+
+  /* —— 动效本体 —— 任务清单：逐项打勾 + 行微亮 */
+  .steps { margin-top: 22px; }
+  .step {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    height: 32px;
+    padding: 0 8px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0);
+  }
+  .box {
+    width: 18px; height: 18px;
+    flex: 0 0 18px;
+    border: 1.6px solid #d2d2d7;
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .box svg { width: 100%; height: 100%; display: block; overflow: visible; }
+  .s-label { font-size: 15px; color: #8a8a8a; letter-spacing: 0.5px; }
+  .s-meta { margin-left: auto; font-size: 13px; color: #b0b0b5; font-variant-numeric: tabular-nums; }
+
+  /* 完成勾（状态行内，宽度固定 → 弹出时不推挤文字） */
+  .done-check {
+    width: 24px; height: 24px;
+    flex: 0 0 24px;
+    margin-left: 10px;
+    opacity: 0;
+  }
+  .done-check svg { width: 100%; height: 100%; display: block; }
+
+  /* 主播 PiP 小窗（演示语境） */
+  .host-pip {
+    position: absolute;
+    left: 24px; bottom: 40px;
+    width: 116px; height: 116px;
+    border: 1px solid #e0e0e0;
+    border-radius: 50%;
+    overflow: hidden;
+    background: #fff;
+  }
+  .host-pip .host-placeholder { border-radius: 50%; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="app-card">
+      <div class="app-head">
+        <div class="app-icon"><i></i></div>
+        <div class="app-name">Studio 安装程序</div>
+        <div class="app-ver">v4.2.1</div>
+      </div>
+
+      <div class="status-row">
+        <span class="status" id="status">正在下载模型包…</span>
+        <span class="done-check" id="doneCheck">
+          <svg viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10.6" fill="none" stroke="#d8383a" stroke-width="1.8"/>
+            <path class="tick-path" d="M6.8 12.4 L10.4 16 L17.2 8.4" fill="none" stroke="#d8383a"
+                  stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <span class="pct" id="pct">0%</span>
+      </div>
+
+      <div class="bar-track"><div class="bar-fill" id="fill"></div></div>
+
+      <div class="steps">
+        <div class="step">
+          <span class="box"><svg viewBox="0 0 20 20"><path class="tick-path"
+            d="M4.4 10.4 L8.2 14.2 L15.6 6.2" fill="none" stroke="#d8383a" stroke-width="2.4"
+            stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span class="s-label">下载模型包</span>
+          <span class="s-meta">1.4 GB</span>
+        </div>
+        <div class="step">
+          <span class="box"><svg viewBox="0 0 20 20"><path class="tick-path"
+            d="M4.4 10.4 L8.2 14.2 L15.6 6.2" fill="none" stroke="#d8383a" stroke-width="2.4"
+            stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span class="s-label">解压到本地目录</span>
+          <span class="s-meta">312 个文件</span>
+        </div>
+        <div class="step">
+          <span class="box"><svg viewBox="0 0 20 20"><path class="tick-path"
+            d="M4.4 10.4 L8.2 14.2 L15.6 6.2" fill="none" stroke="#d8383a" stroke-width="2.4"
+            stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span class="s-label">安装依赖环境</span>
+          <span class="s-meta">18 个包</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="host-pip"><div class="host-placeholder"></div></div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ===== 可摘走的核心动画：节拍表 CONFIG.beats + register 内部 =====
+    // 纪律：界面状态只在节拍点上变，绝不匀速自动播——每个 at 就是一个口播词的时间戳。
+    const CONFIG = {
+      // 节拍表：at = 该状态变化落在语音的第几秒；pct = 进度条跳到的目标值；
+      // status = 同帧要换成的状态文案（省略 = 本拍只跳进度、不换文案）；
+      // tick = 同拍勾掉的清单行序号；done = 收尾拍（完成勾弹出）
+      beats: [
+        { at: 0.55, pct: 17 },
+        { at: 1.50, pct: 43, status: "正在解压文件…",   tick: 0 },
+        { at: 2.35, pct: 71, status: "正在安装依赖…",   tick: 1 },
+        { at: 3.60, pct: 96 },
+        { at: 4.55, pct: 100, status: "安装完成",       tick: 2, done: true },
+      ],
+      initStatus: "正在下载模型包…",   // 起手状态（第一拍前就在屏，不做入场）
+
+      jump: 0.30,        // 单段跳进时长 s：填充从上一段值跳到本段值
+      jumpEase: "power2.out",
+      swapOut: 0.12,     // 旧状态文案上移淡出
+      swapIn: 0.20,      // 新状态文案下方浮入
+      swapLift: 6,       // 换字位移 px
+      tickDelay: 0.16,   // 勾比跳进晚一点点落地（先看见进度跳，再看见勾）
+      tickDraw: 0.20,    // 勾画出时长
+      rowGlow: 0.16,     // 行微亮淡入
+      rowSettle: 0.50,   // 微亮回落到"已完成"底色
+      donePop: 0.26,     // 完成勾弹出
+      glowColor: "#f0f0f2",
+      restColor: "#f7f7f8",
+      accent: "#d8383a",
+    };
+
+    DemoShell.register(({ speed }) => {
+      const fill = document.getElementById("fill");
+      const pctEl = document.getElementById("pct");
+      const statusEl = document.getElementById("status");
+      const doneCheck = document.getElementById("doneCheck");
+      const rows = Array.from(document.querySelectorAll(".step"));
+
+      // —— 重播语义：进度归零、文案回到起手、勾全部收回 ——
+      const resetTick = (path) => {
+        const L = Math.ceil(path.getTotalLength()) + 2;
+        gsap.set(path, { strokeDasharray: L, strokeDashoffset: L });
+        return L;
+      };
+      fill.style.width = "0%";
+      pctEl.textContent = "0%";
+      statusEl.textContent = CONFIG.initStatus;
+      gsap.set(statusEl, { opacity: 1, y: 0, color: "#1d1d1f" });
+      gsap.set(doneCheck, { opacity: 0, scale: 0.4, transformOrigin: "50% 50%" });
+      resetTick(doneCheck.querySelector(".tick-path"));
+      rows.forEach((r) => {
+        gsap.set(r, { backgroundColor: "rgba(255,255,255,0)" });
+        gsap.set(r.querySelector(".box"), { borderColor: "#d2d2d7" });
+        gsap.set(r.querySelector(".s-label"), { color: "#8a8a8a" });
+        resetTick(r.querySelector(".tick-path"));
+      });
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // 进度条 + 百分比读数共用一个代理值：分段跳进，段与段之间画面完全静止
+      const prog = { p: 0 };
+      CONFIG.beats.forEach((b) => {
+        tl.to(prog, {
+          p: b.pct, duration: CONFIG.jump, ease: CONFIG.jumpEase,
+          onUpdate() {
+            fill.style.width = prog.p + "%";
+            pctEl.textContent = Math.round(prog.p) + "%";
+          },
+        }, b.at);
+
+        // 状态文案同帧换：旧的上移淡出 → 换字 → 新的从下方浮入
+        if (b.status) {
+          tl.to(statusEl, { opacity: 0, y: -CONFIG.swapLift, duration: CONFIG.swapOut,
+                            ease: "power2.out" }, b.at)
+            .add(() => { statusEl.textContent = b.status; }, b.at + CONFIG.swapOut)
+            // immediateRender: false 是命门——默认 true 会在建时间线那一刻就把 opacity 打成 0，
+            // 起手状态文案直接消失（第一拍前的画面就空了）
+            .fromTo(statusEl, { opacity: 0, y: CONFIG.swapLift },
+                    { opacity: 1, y: 0, duration: CONFIG.swapIn, ease: "power2.out",
+                      immediateRender: false },
+                    b.at + CONFIG.swapOut);
+          if (b.done) tl.to(statusEl, { color: CONFIG.accent, duration: CONFIG.swapIn }, b.at + CONFIG.swapOut);
+        }
+
+        // 清单逐项打勾：勾 0.2s 画出 + 描边转强调色 + 行微亮后落到"已完成"底色
+        if (b.tick !== undefined) {
+          const row = rows[b.tick];
+          const at = b.at + CONFIG.tickDelay;
+          tl.to(row.querySelector(".tick-path"),
+                { strokeDashoffset: 0, duration: CONFIG.tickDraw, ease: "power2.out" }, at)
+            .to(row.querySelector(".box"), { borderColor: CONFIG.accent, duration: 0.14 }, at)
+            .to(row.querySelector(".s-label"), { color: "#1d1d1f", duration: 0.2 }, at)
+            .to(row, { backgroundColor: CONFIG.glowColor, duration: CONFIG.rowGlow,
+                       ease: "power2.out" }, at)
+            .to(row, { backgroundColor: CONFIG.restColor, duration: CONFIG.rowSettle,
+                       ease: "power2.out" }, at + CONFIG.rowGlow + 0.18);
+        }
+
+        // 收尾拍：完成勾弹出 + 勾线画出（进度停在 100% 的同一拍）
+        if (b.done) {
+          const at = b.at + CONFIG.tickDelay;
+          tl.to(doneCheck, { opacity: 1, scale: 1, duration: CONFIG.donePop,
+                             ease: "back.out(2.2)" }, at)
+            .to(doneCheck.querySelector(".tick-path"),
+                { strokeDashoffset: 0, duration: CONFIG.tickDraw, ease: "power2.out" }, at + 0.08);
+        }
+      });
+    });
+  </script>
+</body>
+</html>

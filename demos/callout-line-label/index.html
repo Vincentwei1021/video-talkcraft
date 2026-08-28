@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>callout-line-label · 标注引出线</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 演示语境（不属于动效）：被标注的产品图占位，白底 + 灰阶线框 —— */
+  .phone {
+    position: absolute;
+    left: 380px; top: 70px;
+    width: 200px; height: 400px;
+    border-radius: 30px;
+    background: #ffffff;
+    border: 2px solid #d8d8dc;
+  }
+  .phone .screen {
+    position: absolute; inset: 10px;
+    border-radius: 22px;
+    background: #f5f5f7;
+    border: 1px solid #ececef;
+  }
+  .phone .cam {
+    position: absolute; left: 20px; top: 22px;
+    width: 44px; height: 44px; border-radius: 12px;
+    background: #ffffff; border: 1px solid #d8d8dc;
+  }
+  .phone .cam::after {
+    content: ""; position: absolute; left: 10px; top: 10px;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: #ececef; border: 1px solid #c8c8cc;
+  }
+  .phone .btn-side {
+    position: absolute; right: -6px; top: 120px;
+    width: 4px; height: 56px; border-radius: 3px; background: #d8d8dc;
+  }
+  #calloutLayer { position: absolute; inset: 0; pointer-events: none; }
+  /* —— 动效本体 —— 文字标签：clip-path 从线端方向展开 */
+  .callout-label {
+    position: absolute;
+    padding: 10px 16px;
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    color: #1d1d1f;
+    border-radius: 8px;
+    font-size: 17px;
+    line-height: 1.45;
+    white-space: nowrap;
+  }
+  .callout-label b { display: block; font-size: 19px; }
+  .callout-label small { color: #8a8a8a; font-size: 14px; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="phone">
+      <div class="screen"></div>
+      <div class="cam"></div>
+      <div class="btn-side"></div>
+    </div>
+    <svg id="calloutLayer" viewBox="0 0 960 540"></svg>
+    <div id="labelZone"></div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // —— 可摘走的核心动画（复制 CONFIG + register 内部即可复用）——
+    const CONFIG = {
+      dotR: 7,             // 圆点半径 px
+      dotIn: 0.2,          // 圆点 pop 时长 s（back.out）
+      lineDraw: 0.4,       // 折线描画时长 s
+      labelIn: 0.25,       // 标签遮罩展开时长 s；文字再滞后 0.1s
+      hold: 1.6,           // 全部标注就位后的停留 s
+      out: 0.5,            // 反向收回总时长 s
+      stagger: 0.8,        // 第二个标注的延迟 s（多标注必须错峰）
+      color: "#d8383a",    // 点/涟漪/线同色的标注色（唯一语义色；白底上保对比，深底可换高亮黄）
+      // 每个 callout：target = 圆点位置；elbow/end = 折线拐点与终点（45° 或水平）；标签贴 end
+      callouts: [
+        {
+          target: { x: 422, y: 114 },                 // 摄像头模组
+          points: [{ x: 380, y: 156 }, { x: 258, y: 156 }],
+          label: { html: "<b>1 英寸大底主摄</b><small>同价位唯一</small>", x: 84, y: 128, from: "right" },
+        },
+        {
+          target: { x: 588, y: 300 },                 // 侧键/边框
+          points: [{ x: 648, y: 240 }, { x: 760, y: 240 }],
+          label: { html: "<b>钛合金中框</b><small>整机减重 19g</small>", x: 772, y: 214, from: "left" },
+        },
+      ],
+    };
+
+    const svgNS = "http://www.w3.org/2000/svg";
+
+    DemoShell.register(({ speed }) => {
+      const layer = document.getElementById("calloutLayer");
+      const labelZone = document.getElementById("labelZone");
+      layer.innerHTML = "";
+      labelZone.innerHTML = "";                       // 重播：全部重建
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      const outAt = 0.6 + CONFIG.stagger + CONFIG.dotIn + CONFIG.lineDraw + CONFIG.labelIn + 0.1 + CONFIG.hold;
+
+      CONFIG.callouts.forEach((c, i) => {
+        const t0 = 0.6 + i * CONFIG.stagger;
+
+        // 1) 圆点 pop + 涟漪
+        const dot = document.createElementNS(svgNS, "circle");
+        dot.setAttribute("cx", c.target.x); dot.setAttribute("cy", c.target.y);
+        dot.setAttribute("r", CONFIG.dotR); dot.setAttribute("fill", CONFIG.color);
+        const ripple = dot.cloneNode();
+        ripple.setAttribute("fill", "none");
+        ripple.setAttribute("stroke", CONFIG.color); ripple.setAttribute("stroke-width", 2);
+        layer.appendChild(ripple); layer.appendChild(dot);
+        gsap.set([dot, ripple], { scale: 0, transformOrigin: "center", opacity: 0 });
+        tl.to(dot, { scale: 1, opacity: 1, duration: CONFIG.dotIn, ease: "back.out(2.2)" }, t0);
+        tl.fromTo(ripple, { scale: 0.4, opacity: 0.9 },
+          { scale: 3.2, opacity: 0, duration: 0.5, ease: "power2.out",
+            immediateRender: false },               // 不加会在 0 帧就把涟漪画出来，剧透第二个标注
+          t0 + 0.05);
+
+        // 2) 折线生长（45°/水平拐点，dashoffset 描画）
+        const d = `M ${c.target.x} ${c.target.y} L ${c.points.map(p => `${p.x} ${p.y}`).join(" L ")}`;
+        const line = document.createElementNS(svgNS, "path");
+        line.setAttribute("d", d);
+        line.setAttribute("fill", "none");
+        line.setAttribute("stroke", CONFIG.color);
+        line.setAttribute("stroke-width", 2.5);
+        layer.appendChild(line);
+        const len = line.getTotalLength();
+        gsap.set(line, { attr: { "stroke-dasharray": len, "stroke-dashoffset": len } });
+        const tLine = t0 + CONFIG.dotIn;              // 圆点亮完线才走：三拍有先后
+        tl.to(line, { attr: { "stroke-dashoffset": 0 }, duration: CONFIG.lineDraw, ease: "power2.out" }, tLine);
+
+        // 3) 标签：clip-path 从线端方向展开，文字滞后 0.1s 淡入
+        const label = document.createElement("div");
+        label.className = "callout-label";
+        label.innerHTML = c.label.html;
+        label.style.left = c.label.x + "px";
+        label.style.top = c.label.y + "px";
+        labelZone.appendChild(label);
+        const closed = c.label.from === "right" ? "inset(0 0 0 100%)" : "inset(0 100% 0 0)";
+        gsap.set(label, { clipPath: closed });
+        gsap.set(label.children, { opacity: 0 });
+        const tLabel = tLine + CONFIG.lineDraw;
+        tl.to(label, { clipPath: "inset(0 0% 0 0%)", duration: CONFIG.labelIn, ease: "power3.out" }, tLabel);
+        tl.to(label.children, { opacity: 1, duration: 0.2, ease: "power1.out" }, tLabel + 0.1);
+
+        // 4) 退场：反向收回（标签先收，线回吸，点熄灭），各段按 CONFIG.out 比例分配
+        const tOut = outAt + i * 0.15;
+        tl.to(label, { clipPath: closed, duration: CONFIG.out * 0.4, ease: "power2.in" }, tOut);
+        tl.to(line, { attr: { "stroke-dashoffset": len }, duration: CONFIG.out * 0.4, ease: "power2.in" }, tOut + CONFIG.out * 0.24);
+        tl.to(dot, { scale: 0, opacity: 0, duration: CONFIG.out * 0.3, ease: "power2.in" }, tOut + CONFIG.out * 0.56);
+      });
+    });
+  </script>
+</body>
+</html>

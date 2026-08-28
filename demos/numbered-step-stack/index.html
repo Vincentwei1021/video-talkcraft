@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>numbered-step-stack · 编号步骤堆入</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* 演示语境（不属于动效）：左侧人物列
+     width 448px 给 427.7px 宽的数字人留 ≥10px 呼吸边（人物不缩小、不截断、整体往中间挪，2026-08-25 定版） */
+  .host-col { position: absolute; left: 0; bottom: 0; width: 448px; height: 100%; }
+
+  /* —— 动效本体 —— 右侧四枚横条（清单，无线、无连接关系） */
+  .stack {
+    position: absolute;
+    right: 62px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 486px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .step-bar {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    height: 66px;
+    padding: 0 22px 0 0;
+    border: 1px solid #e0e0e0;   /* hairline 立层级，不用投影 */
+    border-radius: 12px;
+    background: #ffffff;
+    opacity: 0;
+  }
+  /* 编号方块：唯一带强调色的件，落地时单独 punch 一拍 */
+  .step-no {
+    flex: 0 0 auto;
+    width: 64px; height: 64px;
+    margin: -1px 0 -1px -1px;
+    border-radius: 12px 0 0 12px;
+    background: #2fb344;         /* 唯一强调色（取参考图③绿系） */
+    color: #ffffff;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    font-variant-numeric: tabular-nums;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .step-txt {
+    font-size: 22px;
+    font-weight: 600;
+    line-height: 1.25;
+    color: #1d1d1f;
+    white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="host-col"><div class="host-placeholder"></div></div>
+
+    <div class="stack">
+      <div class="step-bar"><span class="step-no">01</span><span class="step-txt">把手机放到另一个房间</span></div>
+      <div class="step-bar"><span class="step-no">02</span><span class="step-txt">只写今天要交的那一件</span></div>
+      <div class="step-bar"><span class="step-no">03</span><span class="step-txt">计时 25 分钟不许起身</span></div>
+      <div class="step-bar"><span class="step-no">04</span><span class="step-txt">做完立刻记一行结果</span></div>
+    </div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // —— 动效本体（可整段摘走）：四枚横条从右均匀堆入，每枚落地时编号块 punch，最后整组上浮收束 ——
+    const CONFIG = {
+      lead: 0.4,          // 起手静置 s：等口播念到"四步"
+      barIn: 0.24,        // 单枚横条入场耗时 s
+      barStagger: 0.11,   // 错峰 s：**必须均匀**，不均匀读作卡顿
+      barShift: 40,       // 从右侧进入的位移 px
+      punchLag: 0.0,      // 编号块 punch 与该枚落定同帧（落地确认，不是延迟弹跳）
+      punchScale: 1.12,   // 编号块 punch 起始倍数（1.12→1）
+      punchDur: 0.133,    // punch 4 帧 @30fps
+      settleLift: 4,      // 四枚落定后整组上浮 px：宣告"这是一组"
+      settleDur: 0.20,    // 收束耗时 s
+      settleGap: 0.08,    // 末枚落定 → 整组收束 的呼吸 s
+      hold: 1.8,          // 收尾停留 s
+    };
+
+    DemoShell.register(({ speed }) => {
+      const stack = document.querySelector(".stack");
+      const bars = Array.from(document.querySelectorAll(".step-bar"));
+      const nos = bars.map((b) => b.querySelector(".step-no"));
+
+      // 重播语义：全部复位
+      gsap.set(stack, { y: 0 });
+      gsap.set(bars, { opacity: 0, x: CONFIG.barShift });
+      gsap.set(nos, { scale: 1 });
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      bars.forEach((bar, i) => {
+        const at = CONFIG.lead + i * CONFIG.barStagger;
+        // ① 横条从右堆入（错峰严格 0.11s × 4）
+        tl.to(bar, { opacity: 1, x: 0, duration: CONFIG.barIn, ease: "power3.out" }, at)
+          // ② 落定同帧编号块 punch 一拍：这是"落地确认"，4 帧就收，别做成弹跳
+          .fromTo(nos[i],
+            { scale: CONFIG.punchScale },
+            { scale: 1, duration: CONFIG.punchDur, ease: "power2.out" },
+            at + CONFIG.barIn + CONFIG.punchLag);
+      });
+
+      // ③ 四枚都落定后整组轻微上浮收束——把四个动效收成一件事
+      const settleAt = CONFIG.lead + (bars.length - 1) * CONFIG.barStagger
+        + CONFIG.barIn + CONFIG.punchDur + CONFIG.settleGap;
+      tl.to(stack, { y: -CONFIG.settleLift, duration: CONFIG.settleDur, ease: "power2.out" }, settleAt)
+        // ④ hold：四条要读完
+        .to({}, { duration: CONFIG.hold }, settleAt + CONFIG.settleDur);
+    });
+  </script>
+</body>
+</html>

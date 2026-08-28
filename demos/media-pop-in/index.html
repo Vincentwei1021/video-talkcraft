@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>media-pop-in · 素材弹入堆叠</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 演示语境（不属于动效）：主持人占位在左，右侧甩出三张灰阶假截图 —— */
+  .host-wrap { position: absolute; left: 0; top: 0; bottom: 0; width: 46%; overflow: hidden; }
+
+  .evidence { position: absolute; left: 46%; right: 0; top: 0; bottom: 0; }
+  /* —— 动效本体的一部分：白边 + 投影是"实体素材被拍上来"的语义，保留 —— */
+  .shot {
+    position: absolute;
+    border: 8px solid #fff;
+    border-radius: 4px;
+    box-shadow: 0 12px 26px rgba(0, 0, 0, .16);
+    overflow: hidden;
+    opacity: 0;
+  }
+  /* 三张灰阶假截图（纯占位：灰条排版表达"这是一张截图"）：浏览器 / 聊天记录 / 转账单 */
+  .shot-browser { width: 300px; height: 200px; left: 40px; top: 46px; background: #fafafa; }
+  .shot-browser .bar { height: 26px; background: #ececef; display: flex; align-items: center; gap: 5px; padding: 0 8px; }
+  .shot-browser .bar i { width: 8px; height: 8px; border-radius: 50%; background: #c8c8cc; }
+  .shot-browser .h { height: 14px; background: #8a8a8a; margin: 14px 14px 8px; border-radius: 3px; width: 70%; }
+  .shot-browser .l { height: 8px; background: #d2d2d7; margin: 7px 14px; border-radius: 3px; }
+  .shot-browser .l.s { width: 55%; }
+
+  .shot-chat { width: 240px; height: 210px; left: 190px; top: 130px; background: #f5f5f7; }
+  .shot-chat .msg { max-width: 72%; height: 30px; margin: 12px; border-radius: 10px; background: #ffffff; border: 1px solid #e0e0e0; }
+  .shot-chat .msg.me { width: 58%; margin-left: auto; background: #ececef; border-color: #e0e0e0; }
+
+  .shot-pay { width: 250px; height: 170px; left: 90px; top: 270px; background: #fff; }
+  .shot-pay .tick { width: 40px; height: 40px; margin: 20px auto 10px; border-radius: 50%; background: #ececef; }
+  .shot-pay .amt { height: 20px; width: 52%; margin: 0 auto 10px; border-radius: 4px; background: #8a8a8a; }
+  .shot-pay .sub { height: 8px; width: 34%; margin: 0 auto; border-radius: 4px; background: #d2d2d7; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="host-wrap"><div class="host-placeholder"></div></div>
+    <div class="evidence">
+      <div class="shot shot-browser" data-rot="-7">
+        <div class="bar"><i></i><i></i><i></i></div>
+        <div class="h"></div><div class="l"></div><div class="l"></div><div class="l s"></div>
+      </div>
+      <div class="shot shot-chat" data-rot="5">
+        <div class="msg"></div>
+        <div class="msg me"></div>
+        <div class="msg"></div>
+      </div>
+      <div class="shot shot-pay" data-rot="-4">
+        <div class="tick"></div>
+        <div class="amt"></div>
+        <div class="sub"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // —— 可摘走的核心动画：白边素材 back.out 弹入 + 错峰堆叠 ——
+    const CONFIG = {
+      popDur: 0.3,        // 单张弹入时长 s：0.25~0.35，>0.4 拖节奏
+      overshoot: 1.7,     // back.out 回弹力度：越大"拍"得越重
+      fromScale: 0.8,     // 起始缩放：0.8 → 1 是"拍上来"的标准行程
+      stagger: 0.15,      // 张与张间隔 s：100~150ms 才有甩证据的密度感
+      startDelay: 0.45,   // 等主持人说完半句再开甩
+      breathe: 0.008,     // 落位后整组呼吸幅度：0 = 完全静止
+      preTilt: 6,         // 入场时比落位再多歪的度数：落位收正才有"拍"的手感
+    };
+
+    DemoShell.register(({ speed }) => {
+      const shots = gsap.utils.toArray(".shot");
+      const group = document.querySelector(".evidence");
+
+      // 重播语义：全部藏回去
+      gsap.set(group, { scale: 1 });
+      shots.forEach((s) => {
+        gsap.set(s, {
+          opacity: 0,
+          scale: CONFIG.fromScale,
+          rotation: Number(s.dataset.rot) - CONFIG.preTilt,   // 入场时比落位再歪一点，落位收正到 data-rot
+          transformOrigin: "50% 60%",
+        });
+      });
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      shots.forEach((s, i) => {
+        const at = CONFIG.startDelay + i * CONFIG.stagger;
+        // 透明度前半程完成，缩放带 back 回弹整程
+        tl.to(s, { opacity: 1, duration: CONFIG.popDur * 0.5, ease: "power1.out" }, at)
+          .to(s, {
+            scale: 1,
+            rotation: Number(s.dataset.rot),
+            duration: CONFIG.popDur,
+            ease: `back.out(${CONFIG.overshoot})`,
+          }, at);
+      });
+
+      // 全部落位后整组轻微呼吸（可选，幅度极小）
+      const settled = CONFIG.startDelay + (shots.length - 1) * CONFIG.stagger + CONFIG.popDur;
+      tl.to(group, {
+        scale: 1 + CONFIG.breathe,
+        transformOrigin: "50% 50%",
+        duration: 1.6, ease: "sine.inOut",
+        repeat: -1, yoyo: true,
+      }, settled + 0.2);
+    });
+  </script>
+</body>
+</html>

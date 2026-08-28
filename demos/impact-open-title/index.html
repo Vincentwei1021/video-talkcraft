@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>impact-open-title · 冲击开场</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* 演示语境（不属于动效）：主持人（数字人）占右侧一列口播，开场标题落在左侧白区。
+     标题本身是本卡的动效对象，所以这些字保留。 */
+  /* 47% ≈ 452px：给 427.7px 宽的数字人留 ≥10px 呼吸（人物不缩小、不截断、整体往中间挪，2026-08-25 定版） */
+  .host-wrap { position: absolute; right: 0; top: 0; bottom: 0; width: 47%; overflow: hidden; }
+
+  /* —— 动效本体 —— */
+
+  /* 整句：一个 transform 组，"砸"作用在整块上（不是逐字）。
+     origin 取左端——左对齐是构图基线，1.08 的缩放不许把左边缘挪走 */
+  .io-line {
+    position: absolute;
+    left: 78px; top: 214px;
+    font-size: 72px;
+    font-weight: 700;
+    line-height: 1.08;
+    color: #1d1d1f;
+    white-space: nowrap;
+    transform-origin: 0% 50%;
+    will-change: transform, opacity;
+  }
+  /* 末词：唯一会换色 + 单独 punch 的元素。origin 取左端 ⇒ 1.15 倍只往右长，
+     不会压到前一个字（这是"不字压字"的实现口径） */
+  .io-last {
+    display: inline-block;
+    transform-origin: 0% 50%;
+    will-change: transform, color;
+  }
+
+  /* 副题：最后一拍，灰字小号——它是"补充"，不参与砸 */
+  .io-sub {
+    position: absolute;
+    left: 80px; top: 320px;
+    font-size: 25px;
+    font-weight: 400;
+    line-height: 1.4;
+    color: #8a8a8a;
+    white-space: nowrap;
+    will-change: transform, opacity;
+  }
+
+  /* 四角 L 角框：四个独立元素，各自只画两条边（用 border 的两条边成 L）。
+     臂长相等是硬要求——不等长读作"随手放的装饰"而不是取景框 */
+  .io-c {
+    position: absolute;
+    width: 46px; height: 46px;
+    border: 4px solid #e8720c;      /* 本卡唯一强调色（参考图橙系） */
+    z-index: 5;                     /* 取景框压在人物之上——它框的是整个画面，不是画面里的一层 */
+    will-change: transform, opacity;
+  }
+  .io-c.tl { left: 30px;  top: 30px;    border-right: 0; border-bottom: 0; }
+  .io-c.tr { right: 30px; top: 30px;    border-left: 0;  border-bottom: 0; }
+  .io-c.bl { left: 30px;  bottom: 30px; border-right: 0; border-top: 0; }
+  .io-c.br { right: 30px; bottom: 30px; border-left: 0;  border-top: 0; }
+
+  /* 点阵网格：单个元素 + radial-gradient 画圆点阵（5×4）。
+     它是"衬"——opacity 只到 0.5，且比标题慢 */
+  /* 点阵右缘与标题右缘对齐（都在 510）：数字人往中间挪之后 494 会把点阵压到人物头上，
+     整组往左挪 100px 收进左侧白区（内容让人物，2026-08-25 定版） */
+  .io-dots {
+    position: absolute;
+    left: 394px; top: 84px;
+    width: 116px; height: 92px;    /* 5×4 个 24px 网格 */
+    background-image: radial-gradient(circle, #e8720c 3px, transparent 3.5px);
+    background-size: 24px 24px;
+    background-position: 4px 4px;
+    will-change: opacity;
+  }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="host-wrap"><div class="host-placeholder"></div></div>
+
+    <div class="io-dots" id="ioDots"></div>
+    <div class="io-c tl" id="ioTL"></div>
+    <div class="io-c tr" id="ioTR"></div>
+    <div class="io-c bl" id="ioBL"></div>
+    <div class="io-c br" id="ioBR"></div>
+
+    <div class="io-line" id="ioLine">三秒抓住<span class="io-last" id="ioLast">重点</span></div>
+    <div class="io-sub" id="ioSub">接下来这三分钟，只讲清楚一件事</div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ─────────────────────────────────────────────────────────────────────────
+    // 可摘走的核心动画：冲击开场（一屏只砸一次）
+    //   ① 整句一次砸出（scale 1.08→1 + opacity，0.2s power4.out）；
+    //      末词延后 3 帧单独换色（黑→橙）并再 punch 一次（scale 1.15→1，5 帧）
+    //   ② 四角 L 角框**与①同帧**从外向内收 12px + 淡入（0.3s power2.out）
+    //   ③ 点阵网格在②之后错峰淡入 0.4s，opacity 只到 0.5
+    //   ④ 副题最后淡入上浮 8px
+    //   命门：砸只有一次。角框和点阵是**衬**，必须比标题更慢更淡；抢了就散。
+    // ─────────────────────────────────────────────────────────────────────────
+    const CONFIG = {
+      lead: 0.40,          // 起手静置：等口播开口
+      slamDur: 0.20,      // 整句砸出时长 s（power4.out —— 唯一一次"猛"）
+      slamScale: 1.08,    // 整句起始倍数
+      wordDelay: 0.10,    // 末词延后 3 帧（@30fps）才换色 + punch
+      wordPunch: 0.167,   // 末词 punch 时长 s（5 帧）
+      wordScale: 1.15,    // 末词 punch 起始倍数
+      accent: "#e8720c",  // 末词落地色 = 全卡唯一强调色
+      cornerDur: 0.30,    // 角框收入时长 s（比标题慢 ⇒ 它是衬）
+      cornerIn: 12,       // 角框从外侧多少 px 收进来
+      dotsGap: 0.10,      // 角框落定 → 点阵起淡的错峰 s
+      dotsDur: 0.40,      // 点阵淡入时长 s（全卡最慢的一条 ⇒ 最轻）
+      dotsOpacity: 0.50,  // 点阵最终不透明度上限（>0.6 就抢标题）
+      subDur: 0.28,       // 副题淡入时长 s
+      subRise: 8,         // 副题上浮 px
+      hold: 1.60,         // 收尾定格：完整的开场版式就是落点
+    };
+
+    DemoShell.register(({ speed }) => {
+      const line = document.getElementById("ioLine");
+      const last = document.getElementById("ioLast");
+      const sub = document.getElementById("ioSub");
+      const dots = document.getElementById("ioDots");
+      // 四角各自的"外侧方向"：对角单位向量 × cornerIn
+      const corners = [
+        [document.getElementById("ioTL"), -1, -1],
+        [document.getElementById("ioTR"),  1, -1],
+        [document.getElementById("ioBL"), -1,  1],
+        [document.getElementById("ioBR"),  1,  1],
+      ];
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // 初态：全部预置在起手位（先摆好，之后只有 to 在跑）
+      gsap.set(line, { opacity: 0, scale: CONFIG.slamScale });
+      gsap.set(last, { color: "#1d1d1f", scale: 1 });
+      gsap.set(sub, { opacity: 0, y: CONFIG.subRise });
+      gsap.set(dots, { opacity: 0 });
+      corners.forEach(([el, dx, dy]) => {
+        gsap.set(el, { opacity: 0, x: dx * CONFIG.cornerIn, y: dy * CONFIG.cornerIn });
+      });
+
+      // ① 整句砸出
+      tl.to(line, { opacity: 1, scale: 1, duration: CONFIG.slamDur, ease: "power4.out" }, CONFIG.lead);
+
+      // ② 四角 L 角框：与①同帧起，但走得更慢（衬）
+      corners.forEach(([el]) => {
+        tl.to(el, { opacity: 1, x: 0, y: 0, duration: CONFIG.cornerDur, ease: "power2.out" }, CONFIG.lead);
+      });
+
+      // ① 续：末词延后 3 帧换色 + 再 punch 一次
+      const wordAt = CONFIG.lead + CONFIG.slamDur + CONFIG.wordDelay;
+      tl.set(last, { scale: CONFIG.wordScale }, wordAt);
+      tl.to(last, { color: CONFIG.accent, scale: 1, duration: CONFIG.wordPunch, ease: "power3.out" }, wordAt);
+
+      // ③ 点阵网格：角框落定后错峰淡入，只到 0.5
+      const dotsAt = CONFIG.lead + CONFIG.cornerDur + CONFIG.dotsGap;
+      tl.to(dots, { opacity: CONFIG.dotsOpacity, duration: CONFIG.dotsDur, ease: "power1.out" }, dotsAt);
+
+      // ④ 副题最后淡入上浮
+      tl.to(sub, { opacity: 1, y: 0, duration: CONFIG.subDur, ease: "power2.out" }, dotsAt + 0.16);
+
+      tl.to({}, { duration: CONFIG.hold });      // 收尾定格
+    });
+  </script>
+</body>
+</html>

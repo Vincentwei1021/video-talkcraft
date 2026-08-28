@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>slow-pull-reveal · 缓拉全貌</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 演示语境（不属于动效）：一张灰阶线框「数据看板截图」满画幅铺满舞台。
+        起手镜头咬在左上那块 KPI 卡上（局部细节），缓拉后才露出整张看板的规模。
+        排版故意做成"多卡片网格"——拉远的信息增量必须看得见。 —— */
+  .camera {                     /* 相机层：全卡唯一被 transform 的元素 */
+    position: absolute;
+    inset: 0;
+    will-change: transform;
+  }
+  .page { position: absolute; inset: 0; background: #ffffff; color: #1d1d1f; }
+
+  .topbar {
+    height: 44px;
+    display: flex; align-items: center; gap: 14px;
+    padding: 0 26px;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  .topbar .mark { width: 18px; height: 18px; border-radius: 5px; background: #1d1d1f; }
+  .topbar .title { font-size: 13px; font-weight: 600; letter-spacing: 0.5px; }
+  .topbar .seg { margin-left: auto; display: flex; border: 1px solid #d2d2d7; border-radius: 6px; overflow: hidden; }
+  .topbar .seg i { width: 46px; height: 20px; border-right: 1px solid #e0e0e0; }
+  .topbar .seg i:last-child { border-right: 0; }
+  .topbar .seg i.on { background: #ececef; }
+
+  .board { display: flex; height: 496px; }
+  .rail { width: 132px; border-right: 1px solid #e0e0e0; padding: 16px 14px; }
+  .rail .grp { font-size: 9.5px; letter-spacing: 2px; color: #8a8a8a; margin: 0 0 9px 4px; }
+  .rail .item { display: flex; align-items: center; gap: 8px; height: 26px; padding: 0 4px; border-radius: 5px; }
+  .rail .item.on { background: #f2f2f4; }
+  .rail .item i { width: 11px; height: 11px; border-radius: 3px; background: #d2d2d7; }
+  .rail .item.on i { background: #8a8a8a; }
+  .rail .item b { flex: 1; height: 6px; border-radius: 2px; background: #e3e3e6; }
+  .rail .item.on b { background: #c8c8cd; }
+  .rail .sep { height: 1px; background: #ececef; margin: 14px 4px; }
+
+  .canvas { flex: 1; padding: 14px 20px; }
+  .kpis { display: flex; gap: 14px; }
+  .kpi {
+    flex: 1;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 10px 13px;
+  }
+  .kpi .lab { font-size: 10px; letter-spacing: 1.5px; color: #8a8a8a; }
+  .kpi .num { font-size: 22px; font-weight: 700; letter-spacing: -0.8px; margin: 4px 0 3px; }
+  .kpi .sub { font-size: 10px; color: #8a8a8a; }
+  .kpi .spark { height: 17px; margin-top: 7px; display: flex; align-items: flex-end; gap: 3px; }
+  .kpi .spark i { flex: 1; border-radius: 1px; background: #ececef; }
+  .kpi.lead { border-color: #c8c8cd; }
+  .kpi.lead .spark i { background: #d8d8dd; }
+  .kpi.lead .spark i:last-child { background: #8a8a8a; }
+
+  .row2 { display: flex; gap: 14px; margin-top: 12px; }
+  .panel { border: 1px solid #e0e0e0; border-radius: 8px; padding: 11px 13px; }
+  .panel .ptitle { font-size: 10.5px; letter-spacing: 1.5px; color: #8a8a8a; margin-bottom: 9px; }
+  .chart { flex: 1.55; }
+  .chart .plot { position: relative; height: 152px; border-left: 1px solid #ececef; border-bottom: 1px solid #ececef; }
+  .chart .plot .grid { position: absolute; left: 0; right: 0; height: 1px; background: #f4f4f6; }
+  .chart .plot svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .chart .xlab { display: flex; justify-content: space-between; margin-top: 7px; }
+  .chart .xlab i { width: 26px; height: 5px; border-radius: 2px; background: #ececef; }
+
+  .list { flex: 1; }
+  .lrow { display: flex; align-items: center; gap: 9px; height: 24px; }
+  .lrow .rank { font-size: 10px; color: #8a8a8a; width: 12px; }
+  .lrow .nm { flex: 1; height: 6px; border-radius: 2px; background: #e3e3e6; }
+  .lrow .val { width: 42px; height: 6px; border-radius: 2px; background: #ececef; }
+
+  .row3 { display: flex; gap: 14px; margin-top: 12px; }
+  .tile { flex: 1; border: 1px solid #e0e0e0; border-radius: 8px; height: 76px; padding: 10px 12px; }
+  .tile .lab { font-size: 9.5px; letter-spacing: 1.5px; color: #8a8a8a; }
+  .tile .bars { display: flex; align-items: flex-end; gap: 5px; height: 40px; margin-top: 8px; }
+  .tile .bars i { flex: 1; border-radius: 1px 1px 0 0; background: #ececef; }
+  .tile .donut {
+    width: 40px; height: 40px; margin-top: 5px; border-radius: 50%;
+    border: 6px solid #ececef; border-top-color: #8a8a8a; border-right-color: #8a8a8a;
+  }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="camera">
+      <div class="page">
+        <div class="topbar">
+          <div class="mark"></div>
+          <div class="title">增长看板 · 2026 Q3</div>
+          <div class="seg"><i></i><i class="on"></i><i></i></div>
+        </div>
+
+        <div class="board">
+          <div class="rail">
+            <div class="grp">总览</div>
+            <div class="item on"><i></i><b></b></div>
+            <div class="item"><i></i><b></b></div>
+            <div class="item"><i></i><b></b></div>
+            <div class="sep"></div>
+            <div class="grp">明细</div>
+            <div class="item"><i></i><b></b></div>
+            <div class="item"><i></i><b></b></div>
+            <div class="item"><i></i><b></b></div>
+            <div class="item"><i></i><b></b></div>
+            <div class="sep"></div>
+            <div class="grp">配置</div>
+            <div class="item"><i></i><b></b></div>
+            <div class="item"><i></i><b></b></div>
+          </div>
+
+          <div class="canvas">
+            <div class="kpis">
+              <!-- 起手咬住的细节：单个 KPI 卡（缓拉的起点由它的中心反推） -->
+              <div class="kpi lead" id="poi">
+                <div class="lab">日活跃用户</div>
+                <div class="num">1,284,900</div>
+                <div class="sub">较上周 +18.4%</div>
+                <div class="spark"><i style="height:36%"></i><i style="height:48%"></i><i style="height:42%"></i><i style="height:64%"></i><i style="height:58%"></i><i style="height:88%"></i></div>
+              </div>
+              <div class="kpi">
+                <div class="lab">留存率</div>
+                <div class="num">41.7%</div>
+                <div class="sub">较上周 +2.1pt</div>
+                <div class="spark"><i style="height:52%"></i><i style="height:46%"></i><i style="height:60%"></i><i style="height:55%"></i><i style="height:68%"></i><i style="height:72%"></i></div>
+              </div>
+              <div class="kpi">
+                <div class="lab">单客成本</div>
+                <div class="num">¥ 6.35</div>
+                <div class="sub">较上周 -12.0%</div>
+                <div class="spark"><i style="height:78%"></i><i style="height:70%"></i><i style="height:66%"></i><i style="height:52%"></i><i style="height:47%"></i><i style="height:38%"></i></div>
+              </div>
+              <div class="kpi">
+                <div class="lab">付费转化</div>
+                <div class="num">7.92%</div>
+                <div class="sub">较上周 +0.6pt</div>
+                <div class="spark"><i style="height:40%"></i><i style="height:50%"></i><i style="height:47%"></i><i style="height:61%"></i><i style="height:66%"></i><i style="height:74%"></i></div>
+              </div>
+            </div>
+
+            <div class="row2">
+              <div class="panel chart">
+                <div class="ptitle">近 12 周活跃趋势</div>
+                <div class="plot">
+                  <div class="grid" style="top:25%"></div><div class="grid" style="top:50%"></div><div class="grid" style="top:75%"></div>
+                  <svg viewBox="0 0 400 148" preserveAspectRatio="none">
+                    <polyline points="0,124 36,116 72,104 108,110 144,92 180,80 216,84 252,62 288,52 324,44 360,30 396,18"
+                      fill="none" stroke="#8a8a8a" stroke-width="2"/>
+                    <polyline points="0,134 36,131 72,126 108,127 144,120 180,116 216,117 252,110 288,106 324,103 360,98 396,93"
+                      fill="none" stroke="#dcdce0" stroke-width="2" stroke-dasharray="5 4"/>
+                  </svg>
+                </div>
+                <div class="xlab"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+              </div>
+              <div class="panel list">
+                <div class="ptitle">渠道贡献 TOP 8</div>
+                <div class="lrow"><span class="rank">1</span><b class="nm" style="width:88%"></b><span class="val"></span></div>
+                <div class="lrow"><span class="rank">2</span><b class="nm" style="width:76%"></b><span class="val"></span></div>
+                <div class="lrow"><span class="rank">3</span><b class="nm" style="width:70%"></b><span class="val"></span></div>
+                <div class="lrow"><span class="rank">4</span><b class="nm" style="width:62%"></b><span class="val"></span></div>
+                <div class="lrow"><span class="rank">5</span><b class="nm" style="width:55%"></b><span class="val"></span></div>
+                <div class="lrow"><span class="rank">6</span><b class="nm" style="width:48%"></b><span class="val"></span></div>
+                <div class="lrow"><span class="rank">7</span><b class="nm" style="width:40%"></b><span class="val"></span></div>
+                <div class="lrow"><span class="rank">8</span><b class="nm" style="width:33%"></b><span class="val"></span></div>
+              </div>
+            </div>
+
+            <div class="row3">
+              <div class="tile"><div class="lab">分端占比</div><div class="donut"></div></div>
+              <div class="tile"><div class="lab">时段分布</div><div class="bars"><i style="height:30%"></i><i style="height:46%"></i><i style="height:62%"></i><i style="height:88%"></i><i style="height:70%"></i><i style="height:52%"></i><i style="height:36%"></i></div></div>
+              <div class="tile"><div class="lab">地区分布</div><div class="bars"><i style="height:82%"></i><i style="height:64%"></i><i style="height:56%"></i><i style="height:44%"></i><i style="height:38%"></i><i style="height:28%"></i><i style="height:22%"></i></div></div>
+              <div class="tile"><div class="lab">版本分布</div><div class="donut" style="border-top-color:#c8c8cd;border-left-color:#8a8a8a"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // —— 动效本体（可整段摘走）：从局部细节缓拉到全貌的一条拉镜曲线 ——
+    // 命门：起点是"咬在细节上的画幅"（scale 1.26 + 偏移把兴趣点顶到画面中心），
+    // 终点回正为素材原样满画幅（scale 1、零偏移）——观众读到"原来这是一整张看板"。
+    const CONFIG = {
+      zoomFrom: 1.26,    // 起手咬住细节的倍数：1.2~1.35；>1.4 起手已经糊了
+      zoomTo: 1.0,       // 终点＝素材原样满画幅（拉过 1.0 会露出素材外的空白）
+      pullDur: 4.4,      // 主拉时长（demo 秒；实拍取 8~15s，与本段口播等长）
+      holdDur: 1.5,      // hold 期：把余下的一点极缓拉完，正好停在原样
+      endRate: 0.55,     // 主拉末速 / 平均速的比：拉镜比推镜更该"收住"，取 0.5~0.65
+    };
+
+    // 运镜专用 ease（本库通用）：匀速 + 一点前载减速。
+    // 起速 = 平均速，末速 = r × 平均速（**非零** ⇒ hold 期能无缝续走，镜头不停死）。
+    const camEase = (r) => (p) => p + (1 - r) * p * p * (1 - p);
+
+    DemoShell.register(({ speed }) => {
+      const cam = document.querySelector(".camera");
+      const stage = document.getElementById("stage");
+      const poi = document.querySelector("#poi");
+
+      // 起手偏移运行时反推：origin 固定在舞台中心，兴趣点相对中心的偏移 d 取负即可把它顶到画心
+      // （d 用未缩放的设计坐标量，缩放由 scale 统一承担，所以位移量与 z 无关）。
+      const sr = stage.getBoundingClientRect();
+      const pr = poi.getBoundingClientRect();
+      const sc = sr.width / stage.offsetWidth;              // 外壳缩放系数，换算回设计坐标
+      const dx = (pr.left + pr.width / 2 - sr.left) / sc - stage.offsetWidth / 2;
+      const dy = (pr.top + pr.height / 2 - sr.top) / sc - stage.offsetHeight / 2;
+      const z = CONFIG.zoomFrom;
+
+      // 重播语义：回到"咬住细节"的起手画幅
+      gsap.set(cam, { transformOrigin: "50% 50%", scale: z, x: -dx, y: -dy });
+
+      // 主拉只走全程的 k，余下留给 hold 期按主拉末速匀速续走 ⇒ 速度连续、看不出段落切换
+      const total = z - CONFIG.zoomTo;                        // 起手到原样要拉掉的总量
+      const rate = total / CONFIG.pullDur * CONFIG.endRate;   // 主拉末速（每秒拉掉多少 scale）
+      const k = 1 - (rate * CONFIG.holdDur) / total;
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // 主拉：极缓减速拉远——画幅回正与缩放同步走，兴趣点被"放回它在全貌里的位置"
+      tl.to(cam, {
+        scale: z - total * k, x: -dx * (1 - k), y: -dy * (1 - k),
+        duration: CONFIG.pullDur, ease: camEase(CONFIG.endRate),
+      })
+      // hold 期：匀速拉完最后一点，停在素材原样满画幅——相机永不静止
+      .to(cam, {
+        scale: CONFIG.zoomTo, x: 0, y: 0,
+        duration: CONFIG.holdDur, ease: "none",
+      });
+    });
+  </script>
+</body>
+</html>

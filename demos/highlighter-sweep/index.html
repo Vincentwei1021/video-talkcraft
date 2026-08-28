@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>highlighter-sweep · 荧光笔高亮扫过</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* 演示语境（不属于动效）：一段引用文字。白底 + 黑字 + 灰阶，零风格化 */
+  .quote-card {
+    position: absolute;
+    left: 50%;
+    top: 46%;
+    transform: translate(-50%, -50%);
+    width: 640px;
+    padding: 34px 42px 30px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    color: #1d1d1f;
+  }
+  .quote-card .doc-head {
+    font-size: 13px;
+    letter-spacing: 3px;
+    color: #8a8a8a;
+    border-bottom: 1px solid #ececec;
+    padding-bottom: 10px;
+    margin-bottom: 18px;
+  }
+  .quote-line {
+    font-size: 21px;
+    line-height: 1.9;
+    font-weight: 500;
+  }
+  /* —— 动效本体 —— 荧光色块（语义色，属于动效） */
+  .quote-line .hl-wrap {
+    position: relative;
+    display: inline-block;
+    font-weight: 700;
+  }
+  .quote-line .hl-block {
+    position: absolute;
+    left: -6px;
+    right: -8px;
+    top: 2px;
+    bottom: 0;
+    background: #FFE949;
+    opacity: 0.6;
+    mix-blend-mode: multiply;         /* 命门：色块不许盖字 */
+    border-radius: 12px 5px 10px 4px / 7px 12px 5px 10px;  /* 不规则圆角模拟笔触 */
+    transform: scaleX(0);
+    transform-origin: left center;
+  }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="quote-card">
+      <div class="doc-head">《2024 年度宏观经济报告》 · 第 42 页</div>
+      <div class="quote-line dim">过去三年，居民部门的储蓄率持续攀升，</div>
+      <div class="quote-line dim">消费意愿始终徘徊在低位。报告指出，</div>
+      <div class="quote-line key"><span class="hl-wrap"><span class="hl-block"></span>真正拖住消费的不是没钱，而是对未来的不确定感</span>。</div>
+      <div class="quote-line dim">这一判断与多家机构的调研结论一致，</div>
+      <div class="quote-line dim">政策端的回应也在陆续落地。</div>
+    </div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // —— 动效本体（可整段摘走）：扫过 + 压暗 + 浮起 三个动作一个时序 ——
+    const CONFIG = {
+      startDelay: 0.7,   // 静置一拍，等口播念到关键句
+      sweep: 0.6,        // 荧光块扫过耗时 s：0.4~0.8 匹配朗读语速，太快像 bug
+      dimTo: 0.4,        // 其余段落压暗到的透明度：不压暗=强调失效
+      liftScale: 1.03,   // 扫完整句轻微浮起倍数
+    };
+
+    DemoShell.register(({ speed }) => {
+      const block = document.querySelector(".hl-block");
+      const dims = document.querySelectorAll(".quote-line.dim");
+      const key = document.querySelector(".quote-line.key");
+
+      gsap.set(block, { scaleX: 0 });
+      gsap.set(dims, { opacity: 1 });
+      gsap.set(key, { scale: 1, y: 0 });
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // 荧光笔从左到右扫过关键句；同帧其余文字压暗——视线被押着走
+      tl.to(block, { scaleX: 1, duration: CONFIG.sweep, ease: "power2.inOut" }, CONFIG.startDelay)
+        .to(dims, { opacity: CONFIG.dimTo, duration: 0.45, ease: "power2.out" }, CONFIG.startDelay)
+        // 扫完：整句轻微放大浮起，强调落定
+        .to(key, { scale: CONFIG.liftScale, y: -2, duration: 0.3, ease: "power2.out",
+                   transformOrigin: "left center" }, CONFIG.startDelay + CONFIG.sweep);
+    });
+  </script>
+</body>
+</html>

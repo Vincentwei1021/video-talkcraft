@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>particle-weld-transition · 粒子溶接转场</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  #stage { overflow: hidden; }
+  /* 镜头层做成超出画幅 14%（inset 对称 ⇒ 画面中心不变），交叠期两镜同时缩放时不漏白边。
+     Remotion 里等价于场景自己的 AbsoluteFill 铺满 */
+  .shot {
+    position: absolute; inset: -14%; display: flex;
+    align-items: center; justify-content: center;
+    will-change: transform, filter, opacity;
+  }
+  /* 镜头里只有式名大字——这是给人认式子用的标签，不是台词字幕。
+     它同时是"被碎解 / 被溶接"的主体，粒子的生成包围盒就是它 */
+  .shot .big { font-size: 76px; font-weight: 800; color: #8a8a8a;
+    letter-spacing: 3px; white-space: nowrap; }
+  .s1 { background: #ffffff; }
+  .s2 { background: #f1f1f4; }
+
+  /* 粒子层：出场散开一组、入场聚拢一组，两组同 seed = 同一批粒子。
+     层级在镜头之上 ⇒ 粒子跨过切点，边界被"物质"盖住 */
+  #weld { position: absolute; inset: 0; pointer-events: none; z-index: 5; }
+  #weld i { position: absolute; display: block; border-radius: 2px;
+    background: #1d1d1f; opacity: 0; will-change: transform, opacity; }
+
+  .tag { position: absolute; left: 24px; top: 20px; font-size: 17px; color: #8a8a8a;
+    border: 1px solid #e0e0e0; border-radius: 999px; padding: 4px 14px; opacity: 0; z-index: 7; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="shot s1"><div class="big">粒子溶接</div></div>
+    <div class="shot s2"><div class="big">同批粒子成形</div></div>
+    <div id="weld"></div>
+    <div class="tag" id="tag">主体碎成粒子上飘 → 同 seed 的同一批粒子在新镜位置收拢成形</div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ─────────────────────────────────────────────────────────────────────────
+    // 可摘走的核心动画：粒子溶接转场 —— A（慢推）→ 粒子溶接 → B（慢推）
+    // 一式 = 出场主体碎成粒子向上漂散 + 入场侧同 seed 的一批粒子同方向（仍向上）
+    //        在新镜主体位置收拢成形。物质连续性 = 观众读到"同一批粒子跨过了边界"。
+    // Remotion 版：template/motion-systems/transitions.tsx
+    //   出场 <Shatter> 包主体 + <ParticleDrift seed={7}/>；入场侧同 seed 再放一次（at 取负）
+    // ─────────────────────────────────────────────────────────────────────────
+    const CONFIG = {
+      hold: 0.80,      // 出场镜停留：相机永不静止（慢推）
+      holdEnd: 0.90,   // 入场镜收尾停留
+      weld: {
+        out: 0.60,       // 出场碎解时长
+        cutLead: 0.12,   // 切点提前量：粒子已经飞起来了才换场
+        overlap: 0.50,   // 交叠（像素淡化）时长 ≈ 15 帧 @30fps
+        gather: 0.70,    // 入场粒子收拢时长
+        count: 18,       // 每组粒子数
+        rise: 200,       // 上升位移 px（换尺寸按屏高比例缩放）
+        sway: 46,        // 横向漂移幅度 px
+        seed: 7,         // 两组粒子必须同 seed —— 换了就不是"同一批粒子"
+      },
+    };
+
+    // 确定性伪随机：出场组和入场组用同一个 seed 生成，才能读作"同一批粒子"（不用 Math.random）
+    const rnd = (s) => { const x = Math.sin(s * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+
+    DemoShell.register(({ speed }) => {
+      const S = [...document.querySelectorAll(".shot")];   // A, B
+      const weld = document.getElementById("weld");
+      const tag = document.getElementById("tag");
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // ── 初始状态：B 的起手景别略大，随粒子聚拢收到 1.0 ──
+      gsap.set(S, { opacity: 0, x: 0, y: 0, rotate: 0, scale: 1, filter: "blur(0px)" });
+      gsap.set(S.map((s) => s.querySelector(".big")), { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" });
+      gsap.set(S[0], { opacity: 1 });
+      gsap.set(S[1], { scale: 1.02 });
+      gsap.set(tag, { opacity: 0 });
+
+      // 粒子：主体（式名大字）包围盒 → 出场组散开、入场组聚拢
+      const HOME = { x: 480, y: 268, w: 340, h: 74 };   // 舞台坐标 960×540
+      weld.innerHTML = "";
+      const makeParticles = () => Array.from({ length: CONFIG.weld.count }, (_, i) => {
+        const r = (k) => rnd(CONFIG.weld.seed * 1000 + i * 7 + k);
+        const size = 5 + r(4) * 7;
+        const el = document.createElement("i");
+        el.style.width = el.style.height = size + "px";
+        el.style.left = (HOME.x - HOME.w / 2 + r(1) * HOME.w) + "px";
+        el.style.top = (HOME.y - HOME.h / 2 + r(2) * HOME.h) + "px";
+        weld.appendChild(el);
+        return { el, r, delay: r(3) * 0.26 };
+      });
+      const pOut = makeParticles();     // 出场侧
+      const pIn = makeParticles();      // 入场侧（同 seed ⇒ 同尺寸同落点 = 同一批）
+      gsap.set([...pOut, ...pIn].map((p) => p.el), { x: 0, y: 0, opacity: 0 });
+
+      // 镜头 hold 期：相机永不静止的慢推/慢漂
+      const hold = (el, at, dur, o = {}) =>
+        tl.to(el, { scale: (o.from ?? 1) + (o.push ?? 0.05), x: o.drift ?? 0,
+                    duration: dur, ease: "sine.inOut" }, at);
+
+      // ── 粒子溶接：主体碎成粒子向上漂散 → 同 seed 的一批粒子同方向（仍向上）
+      //    在入场镜头的主体位置收拢成形 ──
+      const particleWeld = (out, inn, at) => {
+        const W = CONFIG.weld;
+        const cut = at + W.out - W.cutLead;
+        const outBig = out.querySelector(".big"), inBig = inn.querySelector(".big");
+        // 出场：主体轻升 + 失焦 + 淡出（碎解的"壳"），粒子错峰飞散
+        tl.to(outBig, { opacity: 0, y: -14, scale: 1.03, filter: "blur(3px)",
+                        duration: W.out * 0.8, ease: "power2.in" }, at);
+        pOut.forEach(({ el, r, delay }) => {
+          tl.to(el, { opacity: 0.4 + r(5) * 0.45, duration: 0.12 }, at + delay);
+          tl.to(el, { y: -W.rise * (0.55 + r(6) * 0.6), x: (r(7) - 0.5) * 2 * W.sway,
+                      duration: W.out + 0.35, ease: "power2.out" }, at + delay);
+          tl.to(el, { opacity: 0, duration: 0.30 }, at + delay + W.out * 0.55);
+        });
+        // 镜头 tile 交叠换场（粒子在上层跨过切点，边界被"物质"盖住了）
+        tl.to(out, { opacity: 0, duration: W.overlap, ease: "power1.inOut" }, cut);
+        tl.to(inn, { opacity: 1, scale: 1.0, duration: W.overlap, ease: "power1.inOut" }, cut);
+        gsap.set(inBig, { opacity: 0, scale: 0.94, y: 16 });
+        // 入场：同一批粒子从下方继续上升（同方向），收拢回主体位置
+        pIn.forEach(({ el, r, delay }) => {
+          const d2 = cut - 0.06 + r(8) * 0.20;   // 落在 lead 里：切点前后就位
+          tl.set(el, { y: W.rise * (0.5 + r(6) * 0.5), x: (r(7) - 0.5) * 2 * W.sway }, d2);
+          tl.to(el, { opacity: 0.4 + r(5) * 0.45, duration: 0.12 }, d2);
+          tl.to(el, { y: 0, x: 0, duration: W.gather, ease: "power2.out" }, d2);
+          tl.to(el, { opacity: 0, duration: 0.24 }, d2 + W.gather - 0.20);
+        });
+        // 主体在粒子聚拢的末段成形
+        tl.to(inBig, { opacity: 1, scale: 1, y: 0, duration: 0.42, ease: "power2.out" },
+              cut + W.gather - 0.30);
+        return cut + W.gather;
+      };
+
+      // ───────────── 排片：A → 粒子溶接 → B ─────────────
+      let t = 0;
+      tl.to(tag, { opacity: 1, duration: 0.3 }, 0);
+
+      hold(S[0], t, CONFIG.hold, { from: 0.99, push: 0.03 });       t += CONFIG.hold;
+      t = particleWeld(S[0], S[1], t);
+      hold(S[1], t, CONFIG.holdEnd, { push: 0.04 });
+    });
+  </script>
+</body>
+</html>

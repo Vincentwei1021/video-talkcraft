@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>color-slam-beat-card · 纯色硬切节拍卡</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 演示语境（不属于动效）：白底口播场景，主持人占位 —— */
+  .scene-host { position: absolute; inset: 0; background: #ffffff; }
+
+  /* —— 动效本体 —— 满屏纯色节拍卡。
+        底色是本卡的语义色：跳变本身就是节拍器，所以"高饱和一片一色"必须保留。
+        初始态交给 JS 的 gsap.set（visibility:hidden），保证硬切是真的一帧切换。 */
+  .slam-card {
+    position: absolute;
+    inset: 0;
+    visibility: hidden;
+    will-change: transform;
+  }
+  .slam-inner { position: absolute; inset: 0; }
+
+  /* 左栏文字组竖向居中：行数变化不会挤到小字戳 */
+  .slam-text {
+    position: absolute;
+    left: 62px;
+    top: 0;
+    bottom: 0;
+    width: 452px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .slam-title {
+    font-size: 62px;
+    font-weight: 800;
+    line-height: 1.18;
+    letter-spacing: 1px;
+    /* 初始色 = 同色系淡色（"显影"态），由 JS 从 CONFIG.cards[i].tint 写入 */
+  }
+  .slam-sub {
+    margin-top: 26px;
+    padding-left: 4px;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 5px;
+    color: rgba(255, 255, 255, 0.78);
+  }
+
+  /* 素材卡：白边 + 深投影是"实体素材被拍上来"的语义（属于动效本体） */
+  .slam-shot {
+    position: absolute;
+    left: 528px;
+    top: 96px;
+    width: 372px;
+    height: 348px;
+    background: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 26px 52px rgba(0, 0, 0, 0.30);
+    overflow: hidden;
+  }
+  /* 假截图内容（演示语境）：最低限度灰阶线框 */
+  .shot-bar {
+    height: 32px;
+    background: #f0f0f2;
+    border-bottom: 1px solid #e4e4e7;
+    display: flex; align-items: center; gap: 6px;
+    padding: 0 12px;
+  }
+  .shot-bar i { width: 9px; height: 9px; border-radius: 50%; background: #cdcdd2; }
+  .shot-body { padding: 22px 24px; }
+  .shot-h { height: 18px; width: 72%; border-radius: 4px; background: #8a8a8a; }
+  .shot-l { height: 10px; border-radius: 4px; background: #d9d9de; margin-top: 14px; }
+  .shot-l.s { width: 58%; }
+  .shot-l.m { width: 84%; }
+
+  .shot-bars {
+    display: flex; align-items: flex-end; gap: 26px;
+    height: 156px; margin-top: 26px;
+    border-bottom: 1px solid #e4e4e7;
+  }
+  .shot-bars i { flex: 1; height: var(--h); border-radius: 4px 4px 0 0; background: #d9d9de; }
+  .shot-bars i.hot { background: #1d1d1f; }
+  .shot-cap { margin-top: 12px; font-size: 12px; color: #8a8a8a; letter-spacing: 1px; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <!-- 口播场景（一直在纯色卡下层，硬切进出时露出） -->
+    <div class="scene-host">
+      <div class="host-placeholder"></div>
+    </div>
+
+    <!-- 纯色节拍卡 01 —— 切出用硬切 -->
+    <div class="slam-card slam-1">
+      <div class="slam-inner">
+        <div class="slam-text">
+          <div class="slam-title">不是不会用<br>是没想清楚</div>
+          <div class="slam-sub">01 · 最常见的卡点</div>
+        </div>
+        <div class="slam-shot">
+          <div class="shot-bar"><i></i><i></i><i></i></div>
+          <div class="shot-body">
+            <div class="shot-h"></div>
+            <div class="shot-l m"></div>
+            <div class="shot-l"></div>
+            <div class="shot-l s"></div>
+            <div class="shot-l m"></div>
+            <div class="shot-l"></div>
+            <div class="shot-l s"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 纯色节拍卡 02 —— 切出用色块整体上移让位 -->
+    <div class="slam-card slam-2">
+      <div class="slam-inner">
+        <div class="slam-text">
+          <div class="slam-title">先定输出<br>再挑工具</div>
+          <div class="slam-sub">02 · 顺序反了就白干</div>
+        </div>
+        <div class="slam-shot">
+          <div class="shot-bar"><i></i><i></i><i></i></div>
+          <div class="shot-body">
+            <div class="shot-h"></div>
+            <div class="shot-bars">
+              <i style="--h:46px"></i><i style="--h:74px"></i><i style="--h:98px"></i><i class="hot" style="--h:142px"></i>
+            </div>
+            <div class="shot-cap">四周内的交付量变化</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // —— 可摘走的核心动画：硬切纯色底当节拍器 + 卡上元素错峰入场 ——
+    const CONFIG = {
+      // 底色 = 本卡唯一的颜色接口。必须高饱和、**一片一色**；tint 是同色系淡色（大字"显影"起点）
+      cards: [
+        { bg: "#1B3CF5", tint: "#8A9BFF" },
+        { bg: "#FF3B1F", tint: "#FFAE9E" },
+      ],
+      hostHold: 0.9,     // 口播先讲一句再硬切（真实由语音落点决定）
+      developAt: 0.18,   // 硬切后多久大字从"显影"淡色变实：0 就没有显影这一拍
+      developDur: 0.22,  // 变实耗时 s
+      subDelay: 0.12,    // 小字戳比大字变实再晚一点
+      shotDelay: 0.45,   // 大字 → 素材卡的错峰 0.2~0.5s：0 则一坨糊上来
+      shotDur: 0.42,     // 素材卡升入耗时 s
+      shotRise: 56,      // 素材卡从下方升入的距离 px
+      shotBlur: 10,      // 模糊飞入起始模糊 px：0 = 只升不飞
+      hold: 1.6,         // 停留 s（真实 1.5~5s 随口播；demo 压短）
+      driftPx: 8,        // 停留期整组极缓漂移量 px：0 = 静置
+      liftOut: 0.34,     // "色块整体上移让位"切出耗时 s
+      gapBetween: 0.6,   // 两张卡之间回口播的间隔（仅 demo 示范节奏）
+    };
+
+    // 让时间轴严格贴墙钟：无头截图/录屏卡顿也不会拖歪硬切帧（实机可去掉）
+    gsap.ticker.lagSmoothing(0);
+
+    // 一张纯色节拍卡的完整节拍；exit: "cut"（硬切回）| "lift"（色块上移让位）
+    function slamBeat(tl, el, spec, at, exit) {
+      const inner = el.querySelector(".slam-inner");
+      const title = el.querySelector(".slam-title");
+      const sub   = el.querySelector(".slam-sub");
+      const shot  = el.querySelector(".slam-shot");
+
+      // ① 切入：一帧硬切满屏纯色，零过渡零擦除。大字同帧就在，但还是同色系淡色的"显影"态
+      tl.set(el, { background: spec.bg, autoAlpha: 1, yPercent: 0 }, at);
+      tl.set(inner, { y: 0 }, at);
+      tl.set(title, { color: spec.tint }, at);
+      tl.set([sub, shot], { autoAlpha: 0 }, at);
+
+      // ② 大字变实（显影 → 实色），小字戳跟一拍
+      tl.to(title, { color: "#ffffff", duration: CONFIG.developDur, ease: "power2.out" },
+            at + CONFIG.developAt);
+      tl.to(sub, { autoAlpha: 1, duration: 0.24, ease: "power2.out" },
+            at + CONFIG.developAt + CONFIG.subDelay);
+
+      // ③ 素材卡带投影升入 + 模糊飞入（与大字错峰 0.2~0.5s）
+      tl.fromTo(shot,
+        { autoAlpha: 0, y: CONFIG.shotRise, filter: "blur(" + CONFIG.shotBlur + "px)" },
+        { autoAlpha: 1, y: 0, filter: "blur(0px)", duration: CONFIG.shotDur, ease: "power3.out" },
+        at + CONFIG.shotDelay);
+
+      // ④ 停留期：元素不再做动作，只有整组极缓线性漂移（防"视频卡帧"读法）
+      const settled = at + CONFIG.shotDelay + CONFIG.shotDur;
+      tl.to(inner, { y: -CONFIG.driftPx, duration: CONFIG.hold, ease: "none" }, settled);
+
+      // ⑤ 切出：硬切（零补间，节奏全靠跳变）或色块整体上移让位
+      const out = settled + CONFIG.hold;
+      if (exit === "lift") {
+        tl.to(el, { yPercent: -100, duration: CONFIG.liftOut, ease: "power3.out" }, out);
+        tl.set(el, { autoAlpha: 0 }, out + CONFIG.liftOut);
+        return out + CONFIG.liftOut;
+      }
+      tl.set(el, { autoAlpha: 0 }, out);
+      return out;
+    }
+
+    DemoShell.register(({ speed }) => {
+      const cards = gsap.utils.toArray(".slam-card");
+
+      // 重播语义：两张卡全部收回幕后
+      gsap.set(cards, { autoAlpha: 0, yPercent: 0 });
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // 卡 01：硬切进 → 停留 → 硬切回口播
+      const end1 = slamBeat(tl, cards[0], CONFIG.cards[0], CONFIG.hostHold, "cut");
+      // 卡 02：换一个高饱和底色（一片一色）→ 停留 → 色块整体上移让位
+      slamBeat(tl, cards[1], CONFIG.cards[1], end1 + CONFIG.gapBetween, "lift");
+    });
+  </script>
+</body>
+</html>

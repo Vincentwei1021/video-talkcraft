@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>converging-arrows · 双箭头聚焦</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* 演示语境（不属于动效）：主持人占右一列，左侧是口播正在念的一句话。
+     字是被箭头夹住的对象（不是动效本体），黑字灰阶排版。 */
+  /* 47% ≈ 452px：数字人视频渲染宽 427.7px（88%×540 高、540:600 纵横比），
+     容器要给足这个宽度人物才能整体站进画里（人物不缩小、不截断，2026-08-25 定版） */
+  .host-wrap { position: absolute; right: 0; top: 0; bottom: 0; width: 47%; overflow: hidden; }
+
+  .say {
+    position: absolute;
+    left: 118px; top: 50%;
+    transform: translateY(-50%);
+    color: #1d1d1f;
+    text-align: left;
+  }
+  .say-line { font-size: 32px; line-height: 1.9; font-weight: 400; white-space: nowrap; }
+  .say-line.lead { color: #8a8a8a; }
+  /* 被夹住的关键词：单独 inline-block（换色只作用在它自己身上，不带动整行）。
+     换色由动画做（黑 → 强调色），静态时是黑字 —— 落差的前半拍必须平淡。
+     不做缩放（用户 2026-08-25 定版：字不放大缩小，变色就行） */
+  .say-line .focus {
+    display: inline-block;
+    font-size: 40px; font-weight: 600;
+    will-change: color;
+  }
+
+  /* 箭头层（动效本体）盖在文字之上 */
+  #arrowLayer { position: absolute; inset: 0; pointer-events: none; }
+  #arrowLayer path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <!-- 排版留白是本卡的前提：箭头要从对角**空白处**画进来。
+         上一行故意写短，右上方那片空白就是右上箭头的跑道 -->
+    <div class="say">
+      <div class="say-line lead">今天只要你</div>
+      <div class="say-line">记住<span class="focus" data-arrow="key">这 3 点</span>就够了</div>
+    </div>
+    <div class="host-wrap"><div class="host-placeholder"></div></div>
+    <svg id="arrowLayer" viewBox="0 0 960 540"></svg>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ─────────────────────────────────────────────────────────────────────────
+    // 可摘走的核心动画：双箭头聚焦（两支手绘箭头从对角画向关键词，词后换色）
+    //   ① 命门①：箭头**先到、词后变**。两支箭尖都到位的那一帧关键词才换成强调色；
+    //      同时发生读作"词把箭头撞出来"，聚焦关系反了。
+    //      关键词**不做缩放**（用户 2026-08-25 定版：变色就够，放大缩小多余）
+    //   ② 命门②：箭尖要留白（离词 14~18px）。戳到字上就成了"划掉"不是"指向"
+    //   ③ 两支错峰只有 0.06s —— 几乎同时，制造"夹住"感。错峰放大到 0.2s 以上
+    //      读作"两支箭依次飞来"，夹击的同时性就没了
+    //   ④ 手绘感：杆是带弧度的三次贝塞尔（bow）+ 起笔粗收笔细（三层 stroke 共用一个笔尖），
+    //      两支的弧向相反、长度不等；箭头须先杆后头两笔笔顺
+    //   ⑤ 画完干净静置：不做 line boil / 定格抖动（design-language.md §4 用户定版）
+    //   ★ 坐标不写死：绑定 data-arrow 目标，箭尖从目标盒子边角算，改文案自动跟随
+    // ─────────────────────────────────────────────────────────────────────────
+    const CONFIG = {
+      startDelay: 0.42,     // 起手静置：等口播念到"记住"
+      color: "#e8720c",     // 唯一语义色（橙，取自参考图②）
+      tiers: [{ w: 4.8, frac: 0.16 }, { w: 3.8, frac: 0.46 }, { w: 2.8, frac: 1 }],
+      shaft: 0.26,          // 画杆耗时 s
+      shaftEase: "power3.out",
+      headDur: 0.11,        // 箭头须：收笔快扫，>0.25s 箭头会"迟到"
+      tipGap: 16,           // 命门②：箭尖离关键词盒子多远 px（14~18）
+      arrows: [
+        { // 右上来的那支：尖指关键词右上角
+          at: 0,     corner: "topRight",
+          fromDX: 176, fromDY: -132,        // 起笔点相对箭尖的位移（画外方向）
+          bow: 24,                          // 杆的弧度（正 = 向外凸）
+          headLen: 21, headSpread: 27,
+        },
+        { // 左下来的那支：错峰 0.06s，更短，弧向相反
+          at: 0.06,  corner: "bottomLeft",
+          fromDX: -124, fromDY: 104,
+          bow: -20,
+          headLen: 18, headSpread: 25,
+        },
+      ],
+      colorDur: 0.1,        // 关键词换色时长 s：命门①的落点（硬切，不做颜色渐变）
+      hold: 1.6,            // 收尾定格：箭头保留在屏上，观众看清"夹住的是这三个字"
+    };
+
+    const svgNS = "http://www.w3.org/2000/svg";
+    const n = (v) => Math.round(v * 100) / 100;
+
+    // ① 量目标：DOM 元素换算到 SVG viewBox（960×540 设计坐标）
+    function boxOf(el) {
+      const stage = document.getElementById("stage");
+      const sr = stage.getBoundingClientRect();
+      const k = sr.width / 960;
+      const r = el.getBoundingClientRect();
+      const b = { x: (r.left - sr.left) / k, y: (r.top - sr.top) / k, w: r.width / k, h: r.height / k };
+      b.cx = b.x + b.w / 2; b.cy = b.y + b.h / 2; b.right = b.x + b.w; b.bottom = b.y + b.h;
+      return b;
+    }
+
+    // ② 一支箭头：杆（带弧度的三次贝塞尔）+ 头（两根须，按杆末端切线算，永远朝目标）
+    function arrowPaths(box, o, tipGap) {
+      // 箭尖落在目标盒子外的对角方向上，离盒子 tipGap（命门②：留白，不戳字）
+      const g = tipGap / Math.SQRT2;
+      const tip = {
+        topRight:   [box.right + g, box.y - g],
+        bottomLeft: [box.x - g,     box.bottom + g],
+        topLeft:    [box.x - g,     box.y - g],
+        bottomRight:[box.right + g, box.bottom + g],
+      }[o.corner];
+      const s = [tip[0] + o.fromDX, tip[1] + o.fromDY];
+      // 弧度：两个控制点垂直于弦方向偏 bow —— 直线杆读作 UI 引线，不是手画的箭头
+      const dx = tip[0] - s[0], dy = tip[1] - s[1], L = Math.hypot(dx, dy) || 1;
+      const nx = -dy / L, ny = dx / L;                        // 弦的法向
+      const c1 = [s[0] + dx * 0.3 + nx * o.bow, s[1] + dy * 0.3 + ny * o.bow];
+      const c2 = [s[0] + dx * 0.68 + nx * o.bow * 0.55, s[1] + dy * 0.68 + ny * o.bow * 0.55];
+      const shaft = `M ${n(s[0])} ${n(s[1])} C ${n(c1[0])} ${n(c1[1])} ${n(c2[0])} ${n(c2[1])} ${n(tip[0])} ${n(tip[1])}`;
+      // 末端切线（c2→tip）反向 ±headSpread 就是两根须；两须长度略不等 = 手作感
+      const ang = Math.atan2(tip[1] - c2[1], tip[0] - c2[0]) + Math.PI;
+      const barb = (dev, len) => [n(tip[0] + Math.cos(ang + dev * Math.PI / 180) * len),
+                                  n(tip[1] + Math.sin(ang + dev * Math.PI / 180) * len)];
+      const b1 = barb(o.headSpread, o.headLen), b2 = barb(-o.headSpread - 5, o.headLen - 2.5);
+      return [shaft, `M ${b1[0]} ${b1[1]} L ${n(tip[0])} ${n(tip[1])} L ${b2[0]} ${b2[1]}`];
+    }
+
+    // ③ 起笔粗收笔细的一笔：同一 d 叠 N 层线宽，共用一个弧长笔尖（三层绝不互相超车）
+    function inkStroke(layer, d, color, tiers) {
+      const layers = tiers.map((t) => {
+        const p = document.createElementNS(svgNS, "path");
+        p.setAttribute("d", d);
+        p.setAttribute("stroke", color);
+        p.setAttribute("stroke-width", t.w);
+        layer.appendChild(p);
+        const L = p.getTotalLength(), span = L * t.frac;
+        p.setAttribute("stroke-dasharray", `${n(span)} ${n(L + 4)}`);
+        p.setAttribute("stroke-dashoffset", n(span));
+        return { p, span, L };
+      });
+      const total = layers[layers.length - 1].L;
+      return (progress) => {
+        const drawn = progress * total;
+        layers.forEach((l) => l.p.setAttribute("stroke-dashoffset", n(Math.max(0, l.span - drawn))));
+      };
+    }
+
+    DemoShell.register(({ speed }) => {
+      const layer = document.getElementById("arrowLayer");
+      layer.innerHTML = "";                          // 重播：清掉上次的箭头
+      const word = document.querySelector('[data-arrow="key"]');
+      // 复位：关键词起手是平淡的黑字（落差的前半拍必须平淡）
+      gsap.set(word, { color: "#1d1d1f" });
+      const box = boxOf(word);
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      let allTipsAt = 0;
+      CONFIG.arrows.forEach((a) => {
+        const [shaftD, headD] = arrowPaths(box, a, CONFIG.tipGap);
+        const setShaft = inkStroke(layer, shaftD, CONFIG.color, CONFIG.tiers);
+        // 头用单一线宽（收笔端，两根须不需要粗细变化）
+        const setHead = inkStroke(layer, headD, CONFIG.color, [{ w: CONFIG.tiers[1].w, frac: 1 }]);
+        setShaft(0); setHead(0);
+
+        const at = CONFIG.startDelay + a.at;
+        const s1 = { v: 0 }, s2 = { v: 0 };
+        tl.to(s1, { v: 1, duration: CONFIG.shaft, ease: CONFIG.shaftEase,
+                    onUpdate: () => setShaft(s1.v) }, at)
+          // 先杆后头的两笔笔顺（头在杆到位那一刻接上）
+          .to(s2, { v: 1, duration: CONFIG.headDur, ease: "power2.out",
+                    onUpdate: () => setHead(s2.v) }, at + CONFIG.shaft);
+        allTipsAt = Math.max(allTipsAt, at + CONFIG.shaft + CONFIG.headDur);
+      });
+
+      // 命门①：两支箭尖都到位那一帧，关键词才换成强调色（不缩放）
+      tl.to(word, { color: CONFIG.color, duration: CONFIG.colorDur, ease: "none" }, allTipsAt)
+        .to({}, { duration: CONFIG.hold }, allTipsAt + CONFIG.colorDur);
+    });
+  </script>
+</body>
+</html>

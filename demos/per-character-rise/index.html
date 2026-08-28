@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>per-character-rise · 逐字升起</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* 演示语境（不属于动效）：这是一张**纯文字卡**（2026-08-25 用户定版）——不放主持人。
+     整屏交给这一句，人物占位会把注意力从"一股气顶上来"这个动作上分走。
+     句子本身是本卡的动效对象（字幕花字类），所以这些字保留。 */
+
+  /* 动效本体所在的行：整句在舞台正中（整屏都是文字的，不再给人物让列）。
+     nowrap 是硬要求——每个字是独立 inline-block，
+     不锁 nowrap 时浏览器会在任意两字之间换行（升起过程中行高一变整句会跳）。 */
+  .pcr-line {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+  }
+  .pcr-text {
+    font-size: 72px;              /* 纯文字整屏：从"让开人物一列"的 54px 放大到 72px
+                                     （本卡起始下沉恒为字号 44%，见 CONFIG.rise） */
+    font-weight: 600;
+    line-height: 1.25;
+    color: #171717;               /* 源码墨色，不是纯黑 */
+    letter-spacing: -0.05em;      /* 源码值：整句略收紧 */
+  }
+  /* 每个字：唯一被 transform 的元素。transform-origin 50% 55% 抄源码
+     （重心略偏下，升起收尾时字不往上飘）。
+     本卡刻意不做模糊——升起是纯位移 + 淡入，糊了就变成 soft-blur-in。 */
+  .pcr-char {
+    display: inline-block;
+    white-space: pre;
+    backface-visibility: hidden;
+    transform-origin: 50% 55%;
+    will-change: transform, opacity;
+  }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="pcr-line"><span class="pcr-text" id="pcrText"></span></div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ─────────────────────────────────────────────────────────────────────────
+    // 可摘走的核心动画：逐字升起（remocn PerCharacterRise 忠实搬运，30fps → 秒）
+    //   每个汉字从自己位置下方 24px 升到位：位移 0.33s、淡入 0.70s，
+    //   逐字错峰 1 帧（0.033s）—— 错峰极小，整句读作"一股气顶上来"而不是一个个蹦。
+    //   位移与淡入用两条不同的缓动（源码就是两条），这是它比普通上滑淡入更"有骨头"的原因。
+    // ─────────────────────────────────────────────────────────────────────────
+    const CONFIG = {
+      lead: 0.30,        // 起手静置：等口播开口（本库约定，源码从第 0 帧就开始）
+      dur: 0.70,         // 淡入时长 s（源码 charDurationFrames 21 ÷ 30）
+      travel: 0.3333,    // 位移时长 s（源码 charTravelFrames 10 ÷ 30）= dur 的 48%
+      stagger: 0.0333,   // 逐字错峰 s（源码 staggerFrames 1 ÷ 30）
+      rise: 32,          // 起始下沉 px（比例恒为字号 44%；本 demo 72px ⇒ 32，与源码 @72px 同值）
+      hold: 1.20,        // 收尾定格：立住的整句就是落点
+      text: "先想清楚，再动手",   // 一句口播判断，6~10 字
+    };
+
+    // GSAP core 不带 CustomEase：自己解 cubic-bezier 的 x(t)=p 再取 y(t)。
+    // 这个解算器是通用的，别的 demo 可直接抄走。
+    function cubicBezier(x1, y1, x2, y2) {
+      const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx;
+      const cy = 3 * y1, by = 3 * (y2 - y1) - cy, ay = 1 - cy - by;
+      return function (p) {
+        let t = p;
+        for (let i = 0; i < 8; i++) {
+          const e = ((ax * t + bx) * t + cx) * t - p;
+          if (Math.abs(e) < 1e-6) break;
+          const d = (3 * ax * t + 2 * bx) * t + cx;
+          if (Math.abs(d) < 1e-6) break;
+          t -= e / d;
+        }
+        t = Math.max(0, Math.min(1, t));
+        return ((ay * t + by) * t + cy) * t;
+      };
+    }
+    const FADE_EASE   = cubicBezier(0.2, 0.8, 0.2, 1);      // 淡入：起手快、尾段长缓收
+    const TRAVEL_EASE = cubicBezier(0.2, 0.8, 0.6, 0.85);   // 位移：冲一下就滑到位（源码专用曲线）
+
+    DemoShell.register(({ speed }) => {
+      const host = document.getElementById("pcrText");
+      host.innerHTML = "";                        // 重播：整句从头重建
+
+      // Array.from 按码点切字：中文即逐汉字（标点也算一个字，跟着升起是对的）
+      const els = Array.from(CONFIG.text).map((ch) => {
+        const el = document.createElement("span");
+        el.className = "pcr-char";
+        el.textContent = ch;
+        host.appendChild(el);
+        return el;
+      });
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // 初态：全部预置在"下沉起手位"（先摆好，之后只有 to 在跑）
+      gsap.set(els, { opacity: 0, y: CONFIG.rise });
+
+      els.forEach((el, i) => {
+        const at = CONFIG.lead + i * CONFIG.stagger;
+        // 轨① 淡入：走满 dur（比位移长一倍，位移先停、淡入后停）
+        tl.to(el, { opacity: 1, duration: CONFIG.dur, ease: FADE_EASE }, at);
+        // 轨② 升起位移：只占前 travel，另一条缓动
+        tl.to(el, { y: 0, duration: CONFIG.travel, ease: TRAVEL_EASE }, at);
+      });
+
+      tl.to({}, { duration: CONFIG.hold });       // 收尾定格
+    });
+  </script>
+</body>
+</html>

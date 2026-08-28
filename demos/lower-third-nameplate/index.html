@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>lower-third-nameplate · 人名条展示牌</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 口播语境：真人出镜访谈画面，左下打人名条 —— */
+
+  /* 人名条：横向色条 + 姓名 + 头衔 */
+  .lt {
+    position: absolute;
+    left: 56px; bottom: 64px;
+  }
+  .lt .name {
+    font-size: 42px;
+    font-weight: 800;
+    color: #1d1d1f;
+    line-height: 1.15;
+    letter-spacing: 2px;
+  }
+  /* 色条 = 动效本体（scaleX 展开的那根）。中性墨色；复用时这里换品牌色 */
+  .lt .bar {
+    height: 7px;
+    width: 100%;
+    background: #1d1d1f;
+    border-radius: 2px;
+    margin: 10px 0 10px;
+    transform-origin: left center;
+  }
+  .lt .title {
+    font-size: 19px;
+    color: #8a8a8a;
+    letter-spacing: 1.5px;
+  }
+
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="host-placeholder"></div>
+
+    <div class="lt">
+      <div class="name">王砚秋</div>
+      <div class="bar"></div>
+      <div class="title">半导体行业分析师 · 从业 14 年</div>
+    </div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // —— 可摘走的核心动画：色条展开 → 姓名揭示 → 头衔跟进 → 反向收回 ——
+    const CONFIG = {
+      barDur: 0.3,       // 色条 scaleX 展开时长 s
+      nameDur: 0.25,     // 姓名 clip-path 揭示时长 s
+      titleLag: 0.15,    // 头衔相对姓名的延迟 s：同时出 = 层次塌
+      hold: 2.0,         // 停留 s（实拍建议 3~5s，demo 压短）
+      outDur: 0.3,       // 出场时长 s：反向收回，不是淡出
+    };
+
+    const HIDE = "inset(0% 100% 0% 0%)";   // 从左揭示用的初始 clip
+    const SHOW = "inset(0% 0% 0% 0%)";
+
+    DemoShell.register(({ speed }) => {
+      const bar = document.querySelector(".lt .bar");
+      const name = document.querySelector(".lt .name");
+      const title = document.querySelector(".lt .title");
+
+      // 重播语义：全部复位
+      gsap.set(bar, { scaleX: 0 });
+      gsap.set([name, title], { clipPath: HIDE, x: 0, opacity: 1 });
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // —— 入场：三段接力 ——
+      tl.to(bar, { scaleX: 1, duration: CONFIG.barDur, ease: "power4.out" }, 0.4)
+        .to(name, { clipPath: SHOW, duration: CONFIG.nameDur, ease: "power2.out" }, 0.4 + CONFIG.barDur * 0.7)
+        .to(title, { clipPath: SHOW, duration: CONFIG.nameDur, ease: "power2.out" },
+            0.4 + CONFIG.barDur * 0.7 + CONFIG.titleLag);
+
+      // —— 出场：反向——文字先收、色条后收 ——
+      const outAt = 0.4 + CONFIG.barDur + CONFIG.hold;
+      tl.to(title, { clipPath: HIDE, duration: CONFIG.outDur * 0.7, ease: "power2.in" }, outAt)
+        .to(name, { clipPath: HIDE, duration: CONFIG.outDur * 0.7, ease: "power2.in" }, outAt + 0.08)
+        .to(bar, { scaleX: 0, duration: CONFIG.outDur, ease: "power4.in" }, outAt + 0.16);
+    });
+  </script>
+</body>
+</html>

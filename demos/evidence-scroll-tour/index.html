@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>evidence-scroll-tour · 证据长页慢滚</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 演示语境（不属于动效）：一份 3 屏多高的灰阶假合同，装在极简文档窗口里 —— */
+  .doc-window {
+    position: absolute;
+    left: 50%;
+    top: 62px;
+    transform: translateX(-50%);
+    width: 620px;
+    height: 404px;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    background: #ffffff;
+    overflow: hidden;
+  }
+  .doc-titlebar {
+    height: 34px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 12px;
+    border-bottom: 1px solid #ececec;
+    font-size: 12px;
+    color: #8a8a8a;
+  }
+  .doc-titlebar i { width: 9px; height: 9px; border-radius: 50%; background: #d2d2d7; }
+  .doc-titlebar .fname { margin-left: 8px; letter-spacing: 1px; }
+  .doc-viewport {
+    position: relative;
+    height: 369px;            /* 404 - 34 - 1px 边线 */
+    overflow: hidden;
+  }
+  /* 长页：页面 y 位移是全卡唯一持续运动的属性 */
+  .doc-page {
+    position: absolute;
+    left: 0; right: 0; top: 0;
+    padding: 26px 36px 34px;
+    will-change: transform;
+    color: #1d1d1f;
+  }
+  .doc-page h1 { font-size: 21px; font-weight: 700; text-align: center; margin-bottom: 8px; }
+  .doc-page .meta { font-size: 12px; color: #8a8a8a; text-align: center; margin-bottom: 14px; }
+  .doc-page .rule { height: 1px; background: #ececec; margin: 0 0 16px; }
+  .doc-page h2 { font-size: 14.5px; font-weight: 700; margin: 18px 0 10px; }
+  .doc-page .bar { height: 9px; border-radius: 3px; background: #e3e3e6; margin: 12px 0; }
+  .doc-page .bar.lt { background: #ececef; }
+  .doc-page .w92 { width: 92%; } .doc-page .w85 { width: 85%; }
+  .doc-page .w78 { width: 78%; } .doc-page .w66 { width: 66%; }
+  .doc-page .w52 { width: 52%; } .doc-page .w40 { width: 40%; }
+  .doc-page .clause { font-size: 13.5px; line-height: 1.7; margin: 12px 0; }
+  .doc-page .sign { display: flex; gap: 60px; margin-top: 26px; }
+  .doc-page .sign > div { flex: 1; }
+
+  /* —— 动效本体相关：预置红框标注（semantic 红），随页滚动、不现场画 —— */
+  .mark-wrap { position: relative; display: inline-block; font-weight: 700; }
+  .mark-box {
+    position: absolute;
+    left: -9px; right: -9px; top: -4px; bottom: -3px;
+    border: 2.5px solid #e53935;
+    border-radius: 7px 4px 8px 5px / 5px 8px 4px 7px;   /* 不规则圆角：手标感，不是文本选区 */
+    pointer-events: none;
+  }
+
+  /* —— 演示语境：角标主持人 —— */
+  .host-badge {
+    position: absolute;
+    left: 28px; bottom: 26px;
+    width: 100px; height: 100px;
+    border-radius: 50%;
+    border: 1px solid #e0e0e0;
+    overflow: hidden;
+    background: #fff;
+  }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="doc-window">
+      <div class="doc-titlebar"><i></i><i></i><i></i><span class="fname">个人借款服务协议（2024 修订版）.pdf</span></div>
+      <div class="doc-viewport">
+        <div class="doc-page">
+          <h1>个人借款服务协议</h1>
+          <div class="meta">合同编号：2024-XJD-1107 · 甲方：某消费金融有限公司</div>
+          <div class="rule"></div>
+
+          <h2>第一条　借款金额与期限</h2>
+          <div class="bar w92"></div><div class="bar w85"></div><div class="bar lt w78"></div>
+          <div class="bar w92"></div><div class="bar lt w66"></div><div class="bar w85"></div>
+          <div class="bar lt w52"></div><div class="bar w78"></div>
+
+          <h2>第二条　利息与综合费用</h2>
+          <div class="bar w92"></div><div class="bar lt w85"></div>
+          <div class="clause"><span class="mark-wrap"><span class="mark-box"></span>综合年化费率以签约页面实际展示为准</span>，并可能包含服务费。</div>
+          <div class="bar w85"></div><div class="bar lt w78"></div><div class="bar w66"></div><div class="bar lt w40"></div>
+
+          <h2>第三条　逾期与违约责任</h2>
+          <div class="bar w92"></div><div class="bar lt w85"></div><div class="bar w78"></div><div class="bar lt w66"></div>
+          <div class="clause"><span class="mark-wrap"><span class="mark-box" id="stop-box"></span>逾期费率按日 1%，且不设累计上限</span>，自逾期之日起计收。</div>
+          <div class="bar w85"></div><div class="bar lt w52"></div><div class="bar w66"></div>
+
+          <h2>第四条　个人信息授权</h2>
+          <div class="bar w92"></div><div class="bar lt w85"></div><div class="bar w78"></div>
+          <div class="bar lt w92"></div><div class="bar w66"></div><div class="bar lt w52"></div><div class="bar w85"></div>
+
+          <h2>第五条　争议解决</h2>
+          <div class="bar w92"></div><div class="bar lt w78"></div><div class="bar w85"></div>
+          <div class="bar lt w66"></div><div class="bar w40"></div>
+
+          <div class="sign">
+            <div><div class="bar w66"></div><div class="bar lt w40"></div></div>
+            <div><div class="bar w66"></div><div class="bar lt w40"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="host-badge"><div class="host-placeholder"></div></div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // —— 动效本体（可整段摘走）：一条速度曲线（缓入→匀速→减速停→再启动→滚完）+ 停留防死呼吸 ——
+    const CONFIG = {
+      scrollSpeed: 130,  // 匀速滚速 px/s（≈10% 页高/s）：快了读不到小标题，慢了拖节奏
+      stopHold: 1.5,     // 关键条目停留时长 s，对齐"你看这一条"的台词
+      stopAlign: 0.5,    // 目标条目停在视口高度的比例位置（0.5 = 垂直中线）
+      decelDist: 90,     // 减速提前量 px：太短像急刹（程序 seek 感）
+      accelDist: 45,     // 起滚/再启动的加速距离 px：0 会瞬间满速，读作跳变
+      breathScale: 1.03, // 停留期红框呼吸幅度：连续缓动防死，不是随机抖
+      startDelay: 0.6,   // 起滚前静置一拍，等口播开场
+    };
+
+    DemoShell.register(({ speed }) => {
+      const viewport = document.querySelector(".doc-viewport");
+      const page = document.querySelector(".doc-page");
+      const stopBox = document.querySelector("#stop-box");
+
+      // 重播语义：回到页首
+      gsap.set(page, { y: 0 });
+      gsap.set(stopBox, { scale: 1 });
+
+      // 运行时测量停点：让红框中心停在视口 stopAlign 位置（换文案不用改数字）
+      const vh = viewport.clientHeight;
+      const maxScroll = Math.max(0, page.offsetHeight - vh);
+      const pr = page.getBoundingClientRect();
+      const br = stopBox.getBoundingClientRect();
+      const sc = pr.width / page.offsetWidth;   // 外壳缩放系数，换算回设计坐标
+      let stopY = (br.top - pr.top) / sc + stopBox.offsetHeight / 2 - vh * CONFIG.stopAlign;
+      stopY = Math.max(0, Math.min(stopY, maxScroll));
+
+      // 分段时长：加/减速段按 2*距离/速度（保证与匀速段速度连续，无阶跃）
+      const v = CONFIG.scrollSpeed;
+      const tAccel = (2 * CONFIG.accelDist) / v;
+      const tDecel = (2 * CONFIG.decelDist) / v;
+      const u1 = Math.max(0, stopY - CONFIG.decelDist - CONFIG.accelDist);
+      const u2 = Math.max(0, maxScroll - CONFIG.decelDist - stopY - CONFIG.accelDist);
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // 缓入起滚 → 匀速巡览（页面是唯一动元素，预置红框随页走）
+      tl.to(page, { y: -CONFIG.accelDist, duration: tAccel, ease: "power2.in" }, CONFIG.startDelay)
+        .to(page, { y: -(stopY - CONFIG.decelDist), duration: u1 / v, ease: "none" })
+        // 讲到关键条目：提前减速，红框停在视口中线
+        .to(page, { y: -stopY, duration: tDecel, ease: "power2.out" })
+        // 停留 1~2s：红框一次完整呼吸防死（连续缓动，不是抖动）
+        .to(stopBox, {
+          scale: CONFIG.breathScale, duration: CONFIG.stopHold / 2,
+          ease: "sine.inOut", yoyo: true, repeat: 1, transformOrigin: "50% 50%",
+        })
+        // 再启动：加速回匀速，滚完剩余页面自然收尾
+        .to(page, { y: -(stopY + CONFIG.accelDist), duration: tAccel, ease: "power2.in" })
+        .to(page, { y: -(maxScroll - CONFIG.decelDist), duration: u2 / v, ease: "none" })
+        .to(page, { y: -maxScroll, duration: tDecel, ease: "power2.out" });
+    });
+  </script>
+</body>
+</html>

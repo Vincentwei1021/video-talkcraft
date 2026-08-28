@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>focus-dim-spotlight · 聚焦压暗切换</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* 焦点色：本卡唯一语义色（发光描边）。迁移时只换这一个 token */
+  :root { --focus: #ffb020; }
+
+  /* —— 演示语境（不属于动效）：一张灰阶数据表卡 + 角标主持人 —— */
+  .doc-eyebrow {
+    position: absolute;
+    left: 130px; top: 96px;
+    font-size: 13px;
+    letter-spacing: 3px;
+    color: #8a8a8a;
+  }
+  .table-card {
+    position: absolute;
+    left: 130px; top: 128px;
+    width: 700px;
+    padding: 10px 0 4px;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #1d1d1f;
+  }
+  .trow {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr 0.85fr 0.85fr;
+    align-items: center;
+    padding: 15px 26px;
+  }
+  .trow > span + span { text-align: right; font-variant-numeric: tabular-nums; }
+  .trow.head {
+    font-size: 12.5px;
+    letter-spacing: 2px;
+    color: #8a8a8a;
+    padding: 4px 26px 12px;
+  }
+  .trow.data { font-size: 19px; border-top: 1px solid #f0f0f0; }
+  .trow.data > span:first-child { font-weight: 600; }
+  .card-foot {
+    padding: 12px 26px 8px;
+    font-size: 12px;
+    color: #8a8a8a;
+    border-top: 1px solid #f0f0f0;
+  }
+  .host-badge {
+    position: absolute;
+    left: 30px; bottom: 28px;
+    width: 96px; height: 96px;
+    border-radius: 50%;
+    border: 1px solid #e0e0e0;
+    overflow: hidden;
+    background: #fff;
+  }
+
+  /* —— 动效本体 ——
+     压暗蒙层：一个"聚光窗口"元素，靠超大 spread 的 box-shadow 把窗口以外的整屏压暗。
+     移动/缩放这个窗口 = 焦点跳转，窗口外的暗度由 --dim 决定（#stage 已 overflow:hidden，
+     9999px 的投影会被裁掉）。 */
+  .spot {
+    position: absolute;
+    left: 0; top: 0;
+    border-radius: 8px;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.40);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 5;
+    will-change: transform, width, height;
+  }
+  /* 发光描边：圆角框圈住目标，0.95→1 撑开亮起 */
+  .ring {
+    position: absolute;
+    left: 0; top: 0;
+    border: 2.5px solid var(--focus);
+    border-radius: 8px;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 6;
+    will-change: transform, width, height;
+  }
+  /* 辉光：单独一层，只脉动它的 opacity（连续缓动，不是抖动） */
+  .ring-glow {
+    position: absolute;
+    inset: -1px;
+    border-radius: 9px;
+    box-shadow: 0 0 20px 3px rgba(255, 176, 32, 0.55);
+    pointer-events: none;
+  }
+
+  /* —— 演示注记：压在蒙层之上（注记层不被压暗） —— */
+  .ch-label {
+    position: absolute;
+    right: 130px; top: 96px;
+    font-size: 12.5px;
+    letter-spacing: 1.5px;
+    color: #8a8a8a;
+    text-align: right;
+    z-index: 7;
+    opacity: 0;
+  }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="doc-eyebrow">2024 财年 · 分部门经营数据</div>
+
+    <div class="table-card">
+      <div class="trow head">
+        <span>业务板块</span><span>营收</span><span>同比</span><span>毛利率</span>
+      </div>
+      <div class="trow data"><span>云与 AI</span><span>412</span><span>+38%</span><span>61%</span></div>
+      <div class="trow data"><span>智能硬件</span><span>268</span><span>+9%</span><span>24%</span></div>
+      <div class="trow data"><span>广告营销</span><span>191</span><span>−6%</span><span>72%</span></div>
+      <div class="trow data"><span>金融科技</span><span>87</span><span>+21%</span><span>48%</span></div>
+      <div class="card-foot">数据来源：公司 2024 财年年报 · 单位：亿元人民币</div>
+    </div>
+
+    <div class="host-badge"><div class="host-placeholder"></div></div>
+
+    <!-- 动效本体：一个聚光窗口 + 一个发光描边框 -->
+    <div class="spot"></div>
+    <div class="ring"><div class="ring-glow"></div></div>
+
+    <div class="ch-label ch-a">通道③　发光描边 + 其余压暗</div>
+    <div class="ch-label ch-b">通道①　整屏压暗（无描边）</div>
+
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // —— 动效本体（可整段摘走）：一个聚光窗口在目标间跳转 + 目标上的发光描边 ——
+    const CONFIG = {
+      startDelay: 0.45,   // 起手静置一拍，等口播念到第一个目标
+      dimTo: 0.40,        // 非目标区暗度（0.40 = 压暗 40%）；白底 0.35~0.45，深底减半
+      dimIn: 0.30,        // 蒙层缓入时长 s：<0.15 像切黑闪，>0.5 焦点来得比语音晚
+      ringIn: 0.30,       // 描边亮起时长 s（与蒙层同帧起）
+      ringFrom: 0.95,     // 描边"撑开"的起始倍数：1.0 则读作贴上去的静态框
+      jump: 0.20,         // 焦点跳转到下一目标的时长 s：焦点是滑过去的，不是切过去的
+      hold: 1.00,         // 每个目标停留 s（对齐这一行的台词）
+      firstHold: 1.25,    // 第一个目标多停一拍（观众要先认出整张表）
+      glowHalf: 1.60,     // 辉光脉动半周期 s：连续缓动防死，不是闪烁
+      glowFrom: 0.35,     // 辉光脉动下限透明度
+      focusInsetX: 12,    // 焦点窗口相对目标行左右内缩 px（别压到卡片边框）
+      focusPadY: 3,       // 焦点窗口上下外扩 px
+      cardPad: 6,         // 通道①：窗口撑到整张卡时的外扩 px
+      morph: 0.45,        // 行级焦点 → 整卡焦点的形变时长 s
+      wideHold: 1.50,     // 整卡聚焦停留 s
+      restore: 0.40,      // 讲完整体恢复（蒙层退场）时长 s
+    };
+
+    DemoShell.register(({ speed }) => {
+      const stage = document.getElementById("stage");
+      const spot = document.querySelector(".spot");
+      const ring = document.querySelector(".ring");
+      const glow = document.querySelector(".ring-glow");
+      const rows = [...document.querySelectorAll(".trow.data")];
+      const card = document.querySelector(".table-card");
+      const chA = document.querySelector(".ch-a");
+      const chB = document.querySelector(".ch-b");
+
+      // 目标矩形运行时测量（抵消外壳缩放）：换目标只需换选择器，不用改坐标
+      const rectIn = (el) => {
+        const sr = stage.getBoundingClientRect();
+        const sc = sr.width / stage.offsetWidth;
+        const r = el.getBoundingClientRect();
+        return { x: (r.left - sr.left) / sc, y: (r.top - sr.top) / sc,
+                 w: r.width / sc, h: r.height / sc };
+      };
+      const focusBox = (el, insetX, padY) => {
+        const r = rectIn(el);
+        return { x: r.x + insetX, y: r.y - padY, w: r.w - insetX * 2, h: r.h + padY * 2 };
+      };
+
+      const targets = rows.map((r) => focusBox(r, CONFIG.focusInsetX, CONFIG.focusPadY));
+      const wide = focusBox(card, -CONFIG.cardPad, CONFIG.cardPad);
+      const geo = (b) => ({ x: b.x, y: b.y, width: b.w, height: b.h });
+
+      // 重播语义：全部复位到第一个目标、蒙层与描边归零
+      spot.style.boxShadow = `0 0 0 9999px rgba(0, 0, 0, ${CONFIG.dimTo})`;
+      gsap.set(spot, { ...geo(targets[0]), opacity: 0 });
+      gsap.set(ring, { ...geo(targets[0]), opacity: 0, scale: CONFIG.ringFrom,
+                       transformOrigin: "50% 50%" });
+      gsap.set(glow, { opacity: CONFIG.glowFrom });
+      gsap.set([chA, chB], { opacity: 0 });
+
+      // 时间轴排布：先算出各拍时刻，再挂动作（换目标数量不用改代码）
+      const at = [];
+      let t = CONFIG.startDelay;
+      at.push(t);
+      t += CONFIG.dimIn + CONFIG.firstHold;
+      for (let i = 1; i < targets.length; i++) {
+        at.push(t);
+        t += CONFIG.jump + CONFIG.hold;
+      }
+      const tWide = t;
+      const tRestore = tWide + CONFIG.morph + CONFIG.wideHold;
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // ① 焦点建立：非目标区压暗缓入，同帧描边亮起并 0.95→1 撑开
+      tl.to(spot, { opacity: 1, duration: CONFIG.dimIn, ease: "power2.out" }, at[0])
+        .to(ring, { opacity: 1, scale: 1, duration: CONFIG.ringIn, ease: "power3.out" }, at[0]);
+
+      // 辉光微脉动：连续 sine 呼吸，覆盖描边在场的全程（防死，不做闪烁/抖动）
+      const glowLife = tWide - (at[0] + CONFIG.ringIn);
+      tl.to(glow, {
+        opacity: 1, duration: CONFIG.glowHalf, ease: "sine.inOut",
+        yoyo: true, repeat: Math.max(1, Math.ceil(glowLife / CONFIG.glowHalf)),
+      }, at[0] + CONFIG.ringIn);
+
+      // ② 焦点跳转：窗口与描边同步滑到下一行（0.2s），压暗关系自动跟着换
+      for (let i = 1; i < targets.length; i++) {
+        tl.to([spot, ring], {
+          ...geo(targets[i]), duration: CONFIG.jump, ease: "power2.out",
+        }, at[i]);
+      }
+
+      // ③ 切到纯压暗通道：描边退场，窗口撑到整张卡——焦点从"行"放大到"版面"
+      tl.to(ring, { opacity: 0, duration: 0.25, ease: "power2.out" }, tWide)
+        .to(spot, { ...geo(wide), duration: CONFIG.morph, ease: "power2.out" }, tWide);
+
+      // ④ 讲完整体恢复：蒙层退场，画面回到未干预状态
+      tl.to(spot, { opacity: 0, duration: CONFIG.restore, ease: "power2.out" }, tRestore);
+
+      // —— 演示注记（不属于动效）：标出当前用的是哪条通道 ——
+      tl.to(chA, { opacity: 1, duration: 0.3, ease: "power2.out" }, at[0])
+        .to(chA, { opacity: 0, duration: 0.2, ease: "power2.out" }, tWide)
+        .to(chB, { opacity: 1, duration: 0.3, ease: "power2.out" }, tWide + 0.12)
+        .to(chB, { opacity: 0, duration: 0.3, ease: "power2.out" }, tRestore);
+    });
+  </script>
+</body>
+</html>

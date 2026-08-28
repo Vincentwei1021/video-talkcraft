@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>number-slab-pop · 数字弹出</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 演示语境（不属于动效）：主持人占位在右，左侧色块 + 说明行；白底零装饰 —— */
+  /* 47% ≈ 452px：给 427.7px 宽的数字人留 ≥10px 呼吸（人物不缩小、不截断、整体往中间挪，2026-08-25 定版） */
+  .host-wrap {
+    position: absolute;
+    right: 0; top: 0; bottom: 0;
+    width: 47%;
+    overflow: hidden;
+  }
+  .slab-block {
+    position: absolute;
+    left: 108px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  /* —— 动效本体 a：实色块（先落） —— */
+  .slab {
+    display: inline-block;
+    padding: 26px 40px 30px;
+    border-radius: 28px;
+    background: #0066cc;                 /* 唯一语义强调色（蓝），只上在色块上 */
+    opacity: 0;
+  }
+  /* —— 动效本体 b：巨大数字（块落定后一次弹出） —— */
+  .num-row {
+    display: flex;
+    align-items: baseline;
+    white-space: nowrap;                 /* 整数/小数/单位必须同行 */
+    font-variant-numeric: tabular-nums;  /* 命门：数字不跳宽 */
+    color: #ffffff;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    transform-origin: 50% 60%;           /* 重心略偏下：弹出时不往上飘 */
+  }
+  .num-row .int { font-size: 96px; }
+  /* 小数与单位从一开始就占位（只动 opacity 不动 display）——
+     否则它们淡入那一帧整行宽度会变，整数被推着挪一下 */
+  .num-row .dec { font-size: 96px; opacity: 0; }
+  .num-row .pct { font-size: 52px; margin-left: 6px; opacity: 0; }
+
+  /* —— 动效本体 c：说明行（最后淡入上浮） —— */
+  .slab-cap {
+    margin-top: 22px;
+    margin-left: 6px;
+    font-size: 20px;
+    font-weight: 400;
+    color: #8a8a8a;
+    letter-spacing: 2px;
+    opacity: 0;
+  }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="slab-block">
+      <div class="slab">
+        <div class="num-row">
+          <span class="int">23</span><span class="dec">.6</span><span class="pct">%</span>
+        </div>
+      </div>
+      <div class="slab-cap">较去年增长</div>
+    </div>
+    <div class="host-wrap"><div class="host-placeholder"></div></div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ===== 可摘走的核心动画：CONFIG + register 内部 =====
+    // 语义：这是「结论感」的数字——一次弹出就到位，不给过程。
+    //       块先落、数字后弹（同时进读作一张 PNG 整块飞进来）；小数是精度补充，延后单独淡入。
+    const CONFIG = {
+      lead: 0.30,        // 起手静置 s：等口播念到
+      slabDrop: 20,      // 色块起始上移 px（从上方落下）
+      slabScale: 0.94,   // 色块起始缩放
+      slabDur: 0.24,     // 色块落定 s
+      slabEase: "power3.out",
+      numScale: 0.72,    // 数字起始缩放
+      numDur: 0.28,      // 数字弹出 s
+      numEase: "back.out(1.7)",   // 唯一允许 back 的地方：一次弹出的"结论"手感
+      decLag: 0.20,      // 小数 + 单位相对数字弹出起点的延后 s（≈6 帧 @30fps）
+      decIn: 0.18,       // 小数淡入 s
+      capRise: 6,        // 说明行上浮 px
+      capIn: 0.24,       // 说明行淡入 s
+      hold: 1.80,        // 收尾定格 s
+    };
+
+    DemoShell.register(({ speed }) => {
+      const slab = document.querySelector(".slab");
+      const numRow = document.querySelector(".num-row");
+      const dec = document.querySelector(".num-row .dec");
+      const pct = document.querySelector(".num-row .pct");
+      const cap = document.querySelector(".slab-cap");
+
+      // —— 重播语义：三层全部归零 ——
+      gsap.set(slab, { opacity: 0, y: -CONFIG.slabDrop, scale: CONFIG.slabScale,
+                       transformOrigin: "50% 50%" });
+      gsap.set(numRow, { opacity: 0, scale: CONFIG.numScale });
+      gsap.set([dec, pct], { opacity: 0 });
+      gsap.set(cap, { opacity: 0, y: CONFIG.capRise });
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // ① 色块先落到位（数字此刻还不在场）
+      tl.to(slab, { opacity: 1, y: 0, scale: 1, duration: CONFIG.slabDur,
+                    ease: CONFIG.slabEase }, CONFIG.lead);
+
+      // ② 块落定后数字整体弹出
+      const numAt = CONFIG.lead + CONFIG.slabDur;
+      tl.to(numRow, { opacity: 1, scale: 1, duration: CONFIG.numDur, ease: CONFIG.numEase },
+            numAt);
+
+      // ②b 小数 + 单位延后单独淡入（整数先立住，精度是补充）
+      tl.to([dec, pct], { opacity: 1, duration: CONFIG.decIn, ease: "power2.out" },
+            numAt + CONFIG.decLag);
+
+      // ③ 说明行最后淡入上浮
+      const capAt = numAt + CONFIG.decLag + CONFIG.decIn;
+      tl.to(cap, { opacity: 1, y: 0, duration: CONFIG.capIn, ease: "power2.out" }, capAt);
+
+      // ④ 收尾 hold：结论停在屏上让观众读完
+      tl.to({}, { duration: CONFIG.hold }, capAt + CONFIG.capIn);
+    });
+  </script>
+</body>
+</html>

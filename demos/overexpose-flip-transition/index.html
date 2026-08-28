@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>overexpose-flip-transition · 过曝翻页转场</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  #stage { overflow: hidden; }
+  /* 相机会推到 1.5x：镜头层做成超出画幅 14%（inset 对称 ⇒ 画面中心不变），
+     推近/沉降时不漏白边。Remotion 里等价于场景自己的 AbsoluteFill 铺满 */
+  .shot {
+    position: absolute; inset: -14%; display: flex;
+    align-items: center; justify-content: center;
+    will-change: transform, filter, opacity;
+  }
+  /* 镜头里只有式名大字——这是给人认式子用的标签，不是台词字幕 */
+  .shot .big { font-size: 76px; font-weight: 800; color: #8a8a8a;
+    letter-spacing: 3px; white-space: nowrap; }
+  .s1 { background: #ffffff; }
+  .s2 { background: #f1f1f4; }
+
+  /* 转场重音层：白底上白色过曝会被完全吞掉（实测），改成"暗压闪"——全场压暗一拍。
+     深底工程把底色换回白色径向过曝即可，包络不动 */
+  .flash { position: absolute; inset: 0; pointer-events: none; opacity: 0; z-index: 6;
+    background: radial-gradient(ellipse at 50% 46%, rgba(20,20,24,1) 0%, rgba(20,20,24,.55) 45%, rgba(20,20,24,.2) 80%); }
+
+  .tag { position: absolute; left: 24px; top: 20px; font-size: 17px; color: #8a8a8a;
+    border: 1px solid #e0e0e0; border-radius: 999px; padding: 4px 14px; opacity: 0; z-index: 7; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="shot s1"><div class="big">过曝翻页</div></div>
+    <div class="shot s2"><div class="big">从亮心拉出</div></div>
+    <div class="flash" id="flash"></div>
+    <div class="tag" id="tag">推到 1.5x + 重音冲顶 · 包络以切点为锚（升 0.26s / 落 0.42s）</div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ─────────────────────────────────────────────────────────────────────────
+    // 可摘走的核心动画：过曝翻页转场 —— A（慢推）→ 过曝翻页 → B（慢推）
+    // 一式 = 出场推向证据物到 1.5x + 重音层冲顶 + 入场 from 1.30 从亮心拉出。
+    // Remotion 版：template/motion-systems/transitions.tsx
+    //   blowoutOut(tEnd) + settleIn(leadSec,{from:1.3}) + <Overexpose at={...}/>
+    // ─────────────────────────────────────────────────────────────────────────
+    const CONFIG = {
+      hold: 0.80,      // 出场镜停留：相机永不静止（慢推）
+      holdEnd: 0.90,   // 入场镜收尾停留
+      blow: {
+        out: 0.55,       // 出场推时长
+        cutLead: 0.10,   // 切点提前量
+        overlap: 0.40,   // 交叠（像素淡化）时长 ≈ 12 帧 @30fps
+        settle: 0.55,    // 入场沉降时长
+        outScale: 1.50,  // 推到 1.5x = "推进证据物"，比推穿更狠
+        outBlur: 4,      // 出场失焦比推穿轻（亮心要看得清）
+        inScale: 1.30,   // 入场起手景别（从亮心里被拉出来）
+        inBlur: 6,
+        // 重音层不对称包络：白底暗压 6~10%；深底改白色径向过曝 0.42~0.55
+        peak: 0.10, rise: 0.26, fall: 0.42,
+      },
+    };
+
+    DemoShell.register(({ speed }) => {
+      const S = [...document.querySelectorAll(".shot")];   // A, B
+      const flash = document.getElementById("flash");
+      const tag = document.getElementById("tag");
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // ── 初始状态：B 的"入场起手式"由过曝翻页这一式决定（from 1.30 + 失焦）──
+      gsap.set(S, { opacity: 0, x: 0, y: 0, rotate: 0, scale: 1, filter: "blur(0px)" });
+      gsap.set(S.map((s) => s.querySelector(".big")), { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" });
+      gsap.set(S[0], { opacity: 1 });
+      gsap.set(S[1], { scale: CONFIG.blow.inScale, filter: `blur(${CONFIG.blow.inBlur}px)` });
+      gsap.set(flash, { opacity: 0 });
+      gsap.set(tag, { opacity: 0 });
+
+      // 镜头 hold 期：相机永不静止的慢推/慢漂
+      const hold = (el, at, dur, o = {}) =>
+        tl.to(el, { scale: (o.from ?? 1) + (o.push ?? 0.05), x: o.drift ?? 0,
+                    duration: dur, ease: "sine.inOut" }, at);
+
+      // ── 过曝翻页：推到 1.5x（"推进证据物"）+ 重音层冲顶 → 入场 from 1.3 从亮心拉出 ──
+      const blowout = (out, inn, at) => {
+        const B = CONFIG.blow;
+        const cut = at + B.out - B.cutLead;
+        tl.to(out, { scale: B.outScale, x: 0, filter: `blur(${B.outBlur}px)`,
+                     duration: B.out, ease: "power2.in" }, at);
+        // 重音的不对称包络必须以切点为锚：切前 rise 升到峰值、切后 fall 回落。
+        // 若让升段被回落段截断，峰值远达不到设定值（白底上 3% 的压暗等于没有重音——实测踩过）
+        tl.to(flash, { opacity: B.peak, duration: B.rise, ease: "power2.in" }, cut - B.rise);
+        tl.to(flash, { opacity: 0, duration: B.fall, ease: "power2.out" }, cut);
+        tl.to(out, { opacity: 0, duration: B.overlap, ease: "power1.inOut" }, cut);
+        tl.to(inn, { opacity: 1, duration: B.overlap, ease: "power1.inOut" }, cut);
+        tl.to(inn, { scale: 1.03, filter: "blur(0px)", duration: B.settle, ease: "power2.out" }, cut);
+        return cut + B.settle;
+      };
+
+      // ───────────── 排片：A → 过曝翻页 → B ─────────────
+      let t = 0;
+      tl.to(tag, { opacity: 1, duration: 0.3 }, 0);
+
+      hold(S[0], t, CONFIG.hold);                                  t += CONFIG.hold;
+      t = blowout(S[0], S[1], t);
+      hold(S[1], t, CONFIG.holdEnd, { from: 1.03, push: 0.04 });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>slow-push-in · 缓推特写</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 演示语境（不属于动效）：一张灰阶线框「文章页截图」，满画幅铺满舞台。
+        导航条 + 大标题 + 图表插图 + 正文灰条 + 引文块 + 右侧相关阅读栏。
+        细节密度是刻意的：缓推的"推进感"靠细节被放大读出来。 —— */
+  .camera {                     /* 相机层：全卡唯一被 transform 的元素 */
+    position: absolute;
+    inset: 0;
+    will-change: transform;
+  }
+  .page { position: absolute; inset: 0; background: #ffffff; color: #1d1d1f; }
+
+  .nav {
+    height: 46px;
+    display: flex; align-items: center; gap: 22px;
+    padding: 0 40px;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  .nav .logo { width: 74px; height: 13px; border-radius: 3px; background: #1d1d1f; }
+  .nav .links { display: flex; gap: 18px; margin-left: 10px; }
+  .nav .links i { width: 40px; height: 8px; border-radius: 2px; background: #e0e0e0; }
+  .nav .links i.on { background: #8a8a8a; }
+  .nav .btn { margin-left: auto; width: 66px; height: 22px; border-radius: 11px; border: 1px solid #d2d2d7; }
+
+  .wrap { padding: 22px 40px 0; }
+  .kicker { font-size: 11px; letter-spacing: 3px; color: #8a8a8a; margin-bottom: 9px; }
+  .page h1 { font-size: 27px; font-weight: 700; line-height: 1.32; letter-spacing: -0.5px; }
+  .byline { font-size: 11.5px; color: #8a8a8a; margin: 9px 0 16px; }
+  .byline em { font-style: normal; color: #1d1d1f; }
+
+  .cols { display: flex; gap: 30px; }
+  .main { width: 552px; }
+  .side { flex: 1; }
+
+  /* 插图：微型灰阶柱图——给缓推提供"越推越清"的细节 */
+  .figure {
+    height: 116px;
+    border: 1px solid #e0e0e0;
+    border-radius: 5px;
+    display: flex; align-items: flex-end; gap: 13px;
+    padding: 0 18px 14px;
+  }
+  .figure b { width: 34px; border-radius: 2px 2px 0 0; background: #ececef; }
+  .figure b.hi { background: #8a8a8a; }
+  .cap { font-size: 10.5px; color: #8a8a8a; margin: 7px 0 14px; }
+
+  .bar { height: 7px; border-radius: 2px; background: #e3e3e6; margin: 8px 0; }
+  .bar.lt { background: #ececef; }
+  .w96 { width: 96%; } .w88 { width: 88%; } .w80 { width: 80%; }
+  .w72 { width: 72%; } .w58 { width: 58%; } .w44 { width: 44%; }
+
+  /* 兴趣点：引文块——相机推进的落点（运行时读它的中心当 transform-origin） */
+  .quote {
+    margin: 16px 0;
+    padding: 12px 16px;
+    border-left: 3px solid #1d1d1f;
+    font-size: 14.5px;
+    font-weight: 600;
+    line-height: 1.62;
+  }
+  .quote span { font-size: 10.5px; font-weight: 400; color: #8a8a8a; display: block; margin-top: 6px; }
+
+  .side .s-title { font-size: 11px; letter-spacing: 2px; color: #8a8a8a; margin-bottom: 12px; }
+  .s-item { display: flex; gap: 10px; margin-bottom: 14px; }
+  .s-item .thumb { width: 58px; height: 40px; flex: 0 0 auto; border-radius: 4px; background: #ececef; }
+  .s-item .lines { flex: 1; padding-top: 3px; }
+  .s-item .lines i { display: block; height: 6px; border-radius: 2px; background: #e3e3e6; margin-bottom: 6px; }
+  .s-item .lines i.short { width: 56%; background: #ececef; }
+  .side .stat { border-top: 1px solid #e0e0e0; padding-top: 12px; display: flex; gap: 18px; }
+  .side .stat div b { display: block; font-size: 19px; font-weight: 700; }
+  .side .stat div span { font-size: 10px; color: #8a8a8a; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="camera">
+      <div class="page">
+        <div class="nav">
+          <div class="logo"></div>
+          <div class="links"><i class="on"></i><i></i><i></i><i></i></div>
+          <div class="btn"></div>
+        </div>
+
+        <div class="wrap">
+          <div class="kicker">深度报道 · 模型能力</div>
+          <h1>推理时算力，正在重写模型能力的分水岭</h1>
+          <div class="byline">本刊记者 <em>林越</em> · 2026 年 8 月 12 日 · 全文约 6800 字</div>
+
+          <div class="cols">
+            <div class="main">
+              <div class="figure">
+                <b style="height:38px"></b><b style="height:52px"></b><b style="height:47px"></b>
+                <b style="height:69px"></b><b style="height:61px"></b><b class="hi" style="height:88px"></b>
+              </div>
+              <div class="cap">图 1　三代模型在同一推理基准上的得分（灰=基线，深=本代）</div>
+
+              <div class="bar w96"></div><div class="bar lt w88"></div><div class="bar w80"></div>
+              <div class="bar lt w72"></div>
+
+              <div class="quote" id="poi">
+                同等参数规模下，把算力从训练挪到推理，正确率提升接近三倍。
+                <span>—— 摘自实验组第三次复现记录</span>
+              </div>
+
+              <div class="bar w88"></div><div class="bar lt w96"></div><div class="bar w58"></div>
+              <div class="bar lt w80"></div><div class="bar w44"></div>
+            </div>
+
+            <div class="side">
+              <div class="s-title">相关阅读</div>
+              <div class="s-item"><div class="thumb"></div><div class="lines"><i></i><i></i><i class="short"></i></div></div>
+              <div class="s-item"><div class="thumb"></div><div class="lines"><i></i><i></i><i class="short"></i></div></div>
+              <div class="s-item"><div class="thumb"></div><div class="lines"><i></i><i></i><i class="short"></i></div></div>
+              <div class="stat">
+                <div><b>3.1×</b><span>推理正确率</span></div>
+                <div><b>-42%</b><span>单次成本</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // —— 动效本体（可整段摘走）：静态页面上的一条推镜曲线，推向兴趣点、且永不停死 ——
+    const CONFIG = {
+      zoomFrom: 1.0,     // 起始缩放（1 = 素材原样满画幅）
+      zoomTo: 1.10,      // 主推终点：1.08~1.15，超过 1.2 截图开始发虚
+      pushDur: 4.2,      // 主推时长（demo 秒；实拍取 8~15s，与本段口播等长）
+      holdDur: 1.6,      // hold 期时长（讲述停在这一页上的那几秒）
+      endRate: 0.6,      // 主推末速 / 平均速的比：1=全程匀速，0.6=极缓减速"到位"感；<0.35 像撒手
+      driftX: -13,       // 焦点微移：主推期间横向漂移 px（负=画面往左让，兴趣点往右侧居中）
+      driftY: -7,        // 纵向漂移 px
+    };
+
+    // 运镜专用 ease（本库通用）：匀速 + 一点前载减速。
+    // 起速 = 平均速（接得上前一段匀速），末速 = r × 平均速（**非零** ⇒ hold 期能无缝续走）。
+    // 这是"缓推不能用 power2"的技术答案：power2.out 末速为 0，镜头会停死。
+    const camEase = (r) => (p) => p + (1 - r) * p * p * (1 - p);
+
+    DemoShell.register(({ speed }) => {
+      const cam = document.querySelector(".camera");
+      const stage = document.getElementById("stage");
+      const poi = document.querySelector("#poi");
+
+      // 运行时读兴趣点中心当 transform-origin：换兴趣点只需把 id 挂到别的元素上
+      const sr = stage.getBoundingClientRect();
+      const pr = poi.getBoundingClientRect();
+      const sc = sr.width / stage.offsetWidth;              // 外壳缩放系数，换算回设计坐标
+      const ox = (pr.left + pr.width / 2 - sr.left) / sc;
+      const oy = (pr.top + pr.height / 2 - sr.top) / sc;
+
+      // 重播语义：回到未推进的原始画幅
+      gsap.set(cam, { transformOrigin: ox + "px " + oy + "px", scale: CONFIG.zoomFrom, x: 0, y: 0 });
+
+      // hold 期沿用主推的末速继续推（速度连续 ⇒ 看不出"段落切换"）
+      const rate = (CONFIG.zoomTo - CONFIG.zoomFrom) / CONFIG.pushDur * CONFIG.endRate;
+      const holdZoom = CONFIG.zoomTo + rate * CONFIG.holdDur;
+      const kd = 1 + (holdZoom - CONFIG.zoomTo) / (CONFIG.zoomTo - CONFIG.zoomFrom);  // 漂移同比延长
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // 主推：极缓减速推进 + 焦点微移（兴趣点原地不动，其余内容绕着它长大＝镜头在往它走）
+      tl.to(cam, {
+        scale: CONFIG.zoomTo, x: CONFIG.driftX, y: CONFIG.driftY,
+        duration: CONFIG.pushDur, ease: camEase(CONFIG.endRate),
+      })
+      // hold 期：匀速续推，绝不停在某一帧上
+      .to(cam, {
+        scale: holdZoom, x: CONFIG.driftX * kd, y: CONFIG.driftY * kd,
+        duration: CONFIG.holdDur, ease: "none",
+      });
+    });
+  </script>
+</body>
+</html>

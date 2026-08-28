@@ -1,0 +1,185 @@
+/* 口播动效卡库 · demo 统一外壳
+   所有 demo 页面引用本文件，保证画廊里观感一致。
+   舞台设计尺寸：统一 960×540（动效与画幅无关——画幅是应用工程的容器属性）。 */
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  background: #101014;
+  color: #e8e8ec;
+  font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", -apple-system, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  overflow: hidden;
+}
+
+.stage-wrap {
+  flex: 0 0 auto;
+  overflow: visible;
+  position: relative;   /* HUD 控制条的定位容器 */
+}
+
+/* 缩放层：只有外壳会碰它的 transform，demo 动画请只作用于 #stage 及其内部 */
+.stage-scaler {
+  transform-origin: top left;
+}
+
+/* 舞台：demo 的全部内容画在这里面，坐标按设计尺寸写死，外层统一缩放。
+   中性化契约（demo-spec）：默认白底——动效剥离风格，方便复用到任何风格上；
+   动效语义上需要非白底时（过曝/纸面等）在 demo 页内覆写并在卡片"动效范围"里说明。 */
+#stage {
+  position: relative;
+  width: 960px;
+  height: 540px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #1d1d1f;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.55);
+  flex-shrink: 0;
+}
+
+
+/* 控制条（HUD）：叠在视频画面内底部，悬停显示——播放/暂停 · 重播 · 进度 · 倍速 · 全屏 */
+.demo-hud {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 26px 14px 10px;
+  font-size: 13px;
+  color: #e6e6ee;
+  user-select: none;
+  background: linear-gradient(to top, rgba(8, 8, 12, 0.72), rgba(8, 8, 12, 0));
+  border-radius: 0 0 10px 10px;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+  pointer-events: none;
+}
+.stage-wrap:hover .demo-hud,
+.demo-hud:focus-within { opacity: 1; pointer-events: auto; }
+
+.demo-hud .demo-title {
+  font-weight: 600;
+  color: #f2f2f6;
+  margin-right: 4px;
+  font-size: 12.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 34%;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+
+.demo-hud button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: #f2f2f6;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+/* 图标按钮：统一固定方盒 + 统一 SVG 尺寸（字形按钮的字体度量差异会让大小不齐） */
+.demo-hud button.ico {
+  width: 30px;
+  height: 28px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+.demo-hud button.ico svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+  fill: #f2f2f6;
+  stroke: #f2f2f6;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
+}
+.demo-hud button.spd {
+  font-size: 12px;
+  line-height: 1;
+  height: 28px;
+  padding: 0 8px;
+  color: #c9c9d6;
+  flex: 0 0 auto;
+}
+.demo-hud button:hover { background: rgba(255, 255, 255, 0.16); }
+.demo-hud button.active { color: #b9b9ff; background: rgba(106, 106, 255, 0.22); }
+
+/* 进度条（HUD 内）：占满剩余宽度，点击可 seek */
+.demo-progress {
+  flex: 1;
+  min-width: 60px;
+  height: 14px;              /* 命中区加高，视觉条走伪元素 */
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+.demo-progress-fill {
+  height: 4px;
+  width: 0;
+  border-radius: 2px;
+  background: #8a8aff;
+  box-shadow: 0 0 6px rgba(120, 120, 255, 0.55);
+  position: relative;
+}
+.demo-progress {
+  background:
+    linear-gradient(to bottom, transparent 5px, rgba(255, 255, 255, 0.28) 5px,
+      rgba(255, 255, 255, 0.28) 9px, transparent 9px);
+}
+
+/* demo 内常用的口播场景占位元素 —— 可直接使用 */
+
+/* 真人出镜占位（主持人）——demo-shell.js 自动往里注入数字人 alpha 视频（_lib/dh-host.webm）。
+   视频加载失败时退回灰阶剪影兜底。数字人是演示语境素材，不属于任何卡的动效本体。 */
+.host-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: #ffffff;
+}
+.host-placeholder::after {
+  content: "";
+  width: 42%;
+  height: 78%;
+  background: radial-gradient(ellipse 46% 26% at 50% 13%, #e3e3e6 60%, transparent 61%),
+              radial-gradient(ellipse 50% 62% at 50% 84%, #ececef 60%, transparent 61%);
+}
+video.dh-host {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 88%;
+  width: auto;
+  /* 人物不许被左右画框截断、不许贴边（2026-08-25 用户定版）：
+     修法是**把人物整体往画面中间挪**（调容器/视频的定位），不是缩小人物；
+     挪进来之后人物也不能压住其他内容（文字/卡片/图表），空间不够时调整版面。
+     刻意特写/裁剪的容器标 data-crop-ok 豁免。 */
+  pointer-events: none;
+}
+.host-placeholder.dh-live::after { display: none; }
+
+/* 字幕安全区 */
+.caption-zone {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 6%;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}

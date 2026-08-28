@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>soft-blur-in · 柔焦淡入</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* 演示语境（不属于动效）：这是一张**纯文字卡**（2026-08-25 用户定版）——不放主持人。
+     本卡的动效对象就是这一句字，整屏交给它；人物占位只会把注意力从"对焦"这个动作上分走。
+     句子本身是本卡的动效对象（字幕花字类），所以这些字保留。 */
+
+  /* 动效本体：整句在舞台正中（整屏都是文字的，不再给人物让列）。nowrap 是硬要求——
+     每个字是独立 inline-block，不锁 nowrap 时浏览器会在任意两字之间换行。 */
+  .sb-line {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+  }
+  .sb-text {
+    font-size: 72px;              /* 纯文字整屏：从"让开人物一列"的 54px 放大到 72px
+                                     （本卡模糊量恒为字号 1/6、下沉恒为 22%，见 CONFIG） */
+    font-weight: 600;
+    line-height: 1.25;
+    color: #171717;               /* 源码墨色，不是纯黑 */
+    letter-spacing: -0.05em;      /* 源码值：整句略收紧，柔焦解开后读作"一整块" */
+  }
+  /* 每个字：唯一被 transform / filter 的元素。transform-origin 50% 55% 抄源码
+     （重心略偏下，解糊时字不往上飘） */
+  .sb-char {
+    display: inline-block;
+    white-space: pre;
+    backface-visibility: hidden;
+    transform-origin: 50% 55%;
+    will-change: transform, filter, opacity;
+  }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="sb-line"><span class="sb-text" id="sbText"></span></div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ─────────────────────────────────────────────────────────────────────────
+    // 可摘走的核心动画：柔焦淡入（remocn SoftBlurIn 忠实搬运，30fps → 秒）
+    //   一句话被"对焦"出来：blur 9px → 0 + opacity 0 → 1 走满 0.9s，
+    //   同时 y +12px → 0 只占前 0.3s（位移先停、解糊后停 —— 柔性的来源）。
+    //   逐字错峰只有 1 帧（0.033s）：几乎是整块，但留下一道极浅的左→右扫过感。
+    // ─────────────────────────────────────────────────────────────────────────
+    const CONFIG = {
+      lead: 0.30,        // 起手静置：等口播开口（本库约定，源码从第 0 帧就开始）
+      dur: 0.90,         // 解糊 + 淡入时长 s（源码 charDurationFrames 27 ÷ 30）
+      travel: 0.30,      // y 位移时长 s（源码 charTravelFrames 9 ÷ 30）= dur 的 33%
+      stagger: 0.0333,   // 逐字错峰 s（源码 staggerFrames 1 ÷ 30）
+      blur: 12,          // 起始模糊 px（比例恒为字号 1/6；本 demo 72px ⇒ 12，与源码 @72px 同值）
+      rise: 16,          // 起始下沉 px（≈字号 22%；72px ⇒ 16，与源码 @72px 同值）
+      hold: 1.20,        // 收尾定格：清晰的整句就是落点
+      text: "答案往往没那么复杂",   // 一句口播结论，7~11 字
+    };
+
+    // cubic-bezier(0.22,1,0.36,1)（easeOutQuint 家族）—— GSAP core 不带 CustomEase，
+    // 自己解 x(t)=p 再取 y(t)。这个解算器是通用的，别的 demo 可直接抄走。
+    function cubicBezier(x1, y1, x2, y2) {
+      const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx;
+      const cy = 3 * y1, by = 3 * (y2 - y1) - cy, ay = 1 - cy - by;
+      return function (p) {
+        let t = p;
+        for (let i = 0; i < 8; i++) {
+          const e = ((ax * t + bx) * t + cx) * t - p;
+          if (Math.abs(e) < 1e-6) break;
+          const d = (3 * ax * t + 2 * bx) * t + cx;
+          if (Math.abs(d) < 1e-6) break;
+          t -= e / d;
+        }
+        t = Math.max(0, Math.min(1, t));
+        return ((ay * t + by) * t + cy) * t;
+      };
+    }
+    const EASE = cubicBezier(0.22, 1, 0.36, 1);   // 全卡一条缓动：位移与解糊同族
+
+    DemoShell.register(({ speed }) => {
+      const host = document.getElementById("sbText");
+      host.innerHTML = "";                        // 重播：整句从头重建
+
+      // Array.from 按码点切字：中文即逐汉字（emoji/代理对也不会被切坏）
+      const els = Array.from(CONFIG.text).map((ch) => {
+        const el = document.createElement("span");
+        el.className = "sb-char";
+        el.textContent = ch;
+        host.appendChild(el);
+        return el;
+      });
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // 初态：全部预置在"柔焦起手位"（先摆好，之后只有 to 在跑）
+      gsap.set(els, { opacity: 0, y: CONFIG.rise, filter: `blur(${CONFIG.blur}px)` });
+
+      els.forEach((el, i) => {
+        const at = CONFIG.lead + i * CONFIG.stagger;
+        // 轨① 解糊 + 淡入：走满 dur（本卡的主轨，"柔"全在这条 0.9s 上）
+        tl.to(el, {
+          opacity: 1, filter: "blur(0px)",
+          duration: CONFIG.dur, ease: EASE,
+        }, at);
+        // 轨② 位移：只占前 travel。位移先停、解糊后停 —— 位移与解糊同停会读作"整块被推上来"
+        tl.to(el, { y: 0, duration: CONFIG.travel, ease: EASE }, at);
+      });
+
+      tl.to({}, { duration: CONFIG.hold });       // 收尾定格
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>slab-punch-title · 重点放大</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* 演示语境（不属于动效）：主持人（数字人）占右侧一列口播，标题两行落在左侧白区。
+     标题本身是本卡的动效对象，所以这些字保留。 */
+  /* 47% ≈ 452px：给 427.7px 宽的数字人留 ≥10px 呼吸（人物不缩小、不截断、整体往中间挪，2026-08-25 定版） */
+  .host-wrap { position: absolute; right: 0; top: 0; bottom: 0; width: 47%; overflow: hidden; }
+
+  .sp-title {
+    position: absolute;
+    left: 72px; top: 50%;
+    transform: translateY(-50%);
+  }
+
+  /* 第一行：白底黑字，整块硬现。transform-origin 取左端——左对齐是这个构图的基线，
+     4% 的缩放不许把左边缘挪走（"无位移"的实现口径） */
+  .sp-l1 {
+    font-size: 84px;
+    font-weight: 700;
+    line-height: 1.06;
+    color: #1d1d1f;
+    white-space: nowrap;
+    transform-origin: 0% 50%;
+    will-change: transform, opacity;
+  }
+
+  /* 第二行：斜切色块 + 白字。
+     -2.5° 的斜切是**静态形状属性**（写在 CSS 上，GSAP 全程不碰它），
+     所以外层 .sp-l2 负责倾斜，内层 bg / 字各自被动画驱动，两者互不干扰。
+     margin-left 抵掉色块的内边距 ⇒ 落定后第二行的**字**与第一行的字左端对齐（不是块对齐）。 */
+  .sp-l2 {
+    margin-top: 14px;
+    margin-left: -22px;
+    transform: rotate(-2.5deg);
+    transform-origin: 0% 50%;
+  }
+  .sp-slab {
+    position: relative;
+    display: inline-block;
+    padding: 10px 22px 12px;      /* 块比字大一圈：上下 ~11px、左右 22px */
+  }
+  .sp-slab-bg {                    /* 唯一被 scaleX 的元素，从中心撑开 */
+    position: absolute;
+    inset: 0;
+    background: #e0452c;           /* 本卡唯一强调色（参考图红系） */
+    border-radius: 4px;
+    transform-origin: 50% 50%;
+    will-change: transform;
+  }
+  .sp-l2-t {
+    position: relative;            /* 压在 bg 之上 */
+    display: inline-block;
+    font-size: 84px;
+    font-weight: 700;
+    line-height: 1.06;
+    color: #ffffff;
+    white-space: nowrap;
+    transform-origin: 50% 50%;
+    will-change: transform, opacity;
+  }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="host-wrap"><div class="host-placeholder"></div></div>
+    <div class="sp-title">
+      <div class="sp-l1" id="spL1">找到</div>
+      <div class="sp-l2">
+        <span class="sp-slab">
+          <span class="sp-slab-bg" id="spBg"></span>
+          <span class="sp-l2-t" id="spL2">关键点</span>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ─────────────────────────────────────────────────────────────────────────
+    // 可摘走的核心动画：重点放大（块先到、字后落）
+    //   ① 第一行整块硬现：scale 1.04→1 + opacity，0.18s power3.out，无位移
+    //   ② 第二行的色块从**中心** scaleX 0→1 撑开 0.22s power3.out
+    //   ③ 块撑到位那一帧白字才 opacity 0→1 + scale 1.12→1 落定（punch 5 帧）
+    //   命门：块必须先到位、字后落。反了就读作"字被块追上"。
+    //         -2.5° 斜切是静态 CSS 属性，不参与任何时间线。
+    // ─────────────────────────────────────────────────────────────────────────
+    const CONFIG = {
+      lead: 0.40,        // 起手静置：等口播念到"找到"
+      l1Dur: 0.18,      // 第一行硬现时长 s
+      l1Scale: 1.04,    // 第一行起始倍数（>1.08 就读作弹窗，不再是"硬现"）
+      slabDur: 0.22,    // 色块中心撑开时长 s
+      gap: 0.07,        // 第一行落定 → 色块起撑的间隔 s（两行之间的呼吸）
+      punchDur: 0.167,  // 白字 punch 时长 s（5 帧 @30fps）
+      punchScale: 1.12, // 白字 punch 起始倍数
+      hold: 1.60,       // 收尾定格：块 + 字的成品就是落点
+    };
+
+    DemoShell.register(({ speed }) => {
+      const l1 = document.getElementById("spL1");
+      const bg = document.getElementById("spBg");
+      const l2 = document.getElementById("spL2");
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // 初态：全部预置在起手位（先摆好，之后只有 to 在跑）
+      gsap.set(l1, { opacity: 0, scale: CONFIG.l1Scale });
+      gsap.set(bg, { scaleX: 0 });
+      gsap.set(l2, { opacity: 0, scale: CONFIG.punchScale });
+
+      // ① 第一行硬现
+      tl.to(l1, { opacity: 1, scale: 1, duration: CONFIG.l1Dur, ease: "power3.out" }, CONFIG.lead);
+
+      // ② 色块从中心撑开
+      const slabAt = CONFIG.lead + CONFIG.l1Dur + CONFIG.gap;
+      tl.to(bg, { scaleX: 1, duration: CONFIG.slabDur, ease: "power3.out" }, slabAt);
+
+      // ③ 块到位那一帧白字落定（punch）——opacity 是硬切（0 帧），不做淡入
+      const punchAt = slabAt + CONFIG.slabDur;
+      tl.set(l2, { opacity: 1 }, punchAt);
+      tl.to(l2, { scale: 1, duration: CONFIG.punchDur, ease: "power3.out" }, punchAt);
+
+      tl.to({}, { duration: CONFIG.hold });   // 收尾定格
+    });
+  </script>
+</body>
+</html>

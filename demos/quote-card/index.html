@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>quote-card · 金句大字卡</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 动效本体 —— 底板整屏盖住人物（遮蔽动作）+ 逐行错峰弹入。
+     例外底色：底板必须与舞台白底有明度反差，否则"盖住人物"这个动作不可见——
+     故用灰阶深底（无色相），理由见卡片「动效范围·底色要求」。 */
+  .quote-panel {
+    position: absolute;
+    inset: 0;
+    background: #1d1d1f;            /* 底板要够实，别让文字和人物打架 */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 26px;
+    padding: 0 28px;
+    opacity: 0;
+  }
+  .quote-line {
+    font-size: 42px;
+    font-weight: 800;
+    line-height: 1.25;
+    color: #ffffff;
+    letter-spacing: 2px;
+    white-space: nowrap;
+    opacity: 0;
+  }
+  .quote-line .kw {                 /* 行内关键词：换色 + 1.2x，不再加字级动画（静态高亮） */
+    color: #ffd23e;
+    font-size: 1.2em;
+  }
+  .quote-src {
+    margin-top: 10px;
+    font-size: 16px;
+    color: #8a8a8a;
+    letter-spacing: 4px;
+    opacity: 0;
+  }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="host-placeholder"></div>
+    <div class="quote-panel">
+      <div class="quote-line">赚钱这件事</div>
+      <div class="quote-line">从来不靠<span class="kw">努力</span></div>
+      <div class="quote-line">靠的是<span class="kw">认知</span></div>
+      <div class="quote-line">和你敢不敢选</div>
+      <div class="quote-src">—— 口播金句 · 第 47 期</div>
+    </div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // —— 可摘走的核心动画（复制 CONFIG + register 内部即可复用）——
+    const CONFIG = {
+      panelIn: 0.25,     // 底色板淡入耗时 s：盖住人物的仪式感
+      panelDim: 1,       // 底板不透明度：低于 0.9 文字会和人物打架
+      lineIn: 0.4,       // 单行弹入耗时 s（y 30→0 + opacity，power3.out）
+      lineStagger: 0.15, // 行间错峰 120~180ms：同时出=没有"逐句砸"的语感
+      lineRise: 30,      // 行入场位移 px
+      hold: 2,           // 全卡停留 s（真实口播 2~4s，随语速）
+      out: 0.3,          // 出场整卡下滑淡出耗时 s
+      outDrop: 40,       // 出场下滑距离 px
+    };
+
+    DemoShell.register(({ speed }) => {
+      const panel = document.querySelector(".quote-panel");
+      const lines = document.querySelectorAll(".quote-line");
+      const src = document.querySelector(".quote-src");
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // 重播语义：每次从头重建状态
+      gsap.set(panel, { opacity: 0, y: 0 });
+      gsap.set(lines, { opacity: 0, y: CONFIG.lineRise });
+      gsap.set(src, { opacity: 0 });
+
+      tl.to(panel, { opacity: CONFIG.panelDim, duration: CONFIG.panelIn, ease: "power2.out" }, 0.15)
+        // 逐行错峰弹入：整行动，行内不再加字级动画
+        .to(lines, {
+          opacity: 1, y: 0,
+          duration: CONFIG.lineIn, ease: "power3.out",
+          stagger: CONFIG.lineStagger,
+        }, ">-0.05")
+        .to(src, { opacity: 1, duration: 0.3, ease: "power2.out" }, ">-0.1")
+        // hold 后整卡下滑淡出，回到人物
+        .to(panel, {
+          opacity: 0, y: CONFIG.outDrop,
+          duration: CONFIG.out, ease: "power2.in",
+        }, `+=${CONFIG.hold}`);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>bar-chart-growth · 柱状增长</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 演示语境（不属于动效）：主持人占位在右，左侧一组柱；白底零装饰、无网格无坐标轴 —— */
+  /* 47% ≈ 452px：给 427.7px 宽的数字人留 ≥10px 呼吸（人物不缩小、不截断、整体往中间挪，2026-08-25 定版） */
+  .host-wrap {
+    position: absolute;
+    right: 0; top: 0; bottom: 0;
+    width: 47%;
+    overflow: hidden;
+  }
+  .panel {
+    position: absolute;
+    left: 96px;
+    top: 0; bottom: 0;
+    width: 420px;      /* = .chart 宽：盒子右缘 516，不伸进数字人那一列 */
+  }
+  .panel .title {
+    position: absolute;
+    left: 0;
+    top: 96px;
+    font-size: 34px;
+    font-weight: 600;
+    color: #1d1d1f;
+    letter-spacing: 1px;
+    opacity: 0;
+  }
+
+  /* —— 动效本体 —— 柱组 + 基线 + 结论 chip —— */
+  .chart {
+    position: absolute;
+    left: 0;
+    bottom: 96px;
+    width: 420px;
+    height: 240px;             /* = CONFIG 的量程高度：柱高按百分比换算 */
+  }
+  .baseline {
+    position: absolute;
+    left: 0; right: 0; bottom: -1px;
+    height: 2px;
+    background: #d2d2d7;
+    transform-origin: 0% 50%;  /* 从左画出 */
+    transform: scaleX(0);
+  }
+  .bars {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+  }
+  .bar {
+    width: 44px;
+    background: #e8720c;                 /* 唯一语义强调色（橙），只上在柱体上 */
+    border-radius: 4px 4px 0 0;
+    transform-origin: 50% 100%;          /* 命门：只用 scaleY，改 height 每帧重排 */
+    transform: scaleY(0);
+  }
+  .xlabels {
+    position: absolute;
+    left: 0; right: 0;
+    bottom: -30px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: #8a8a8a;
+  }
+  .xlabels span { width: 44px; text-align: center; }
+  /* 结论 chip：坐在最高柱顶上方的留白里（JS 按柱高算 bottom，绝不压柱顶） */
+  .grow-chip {
+    position: absolute;
+    right: 0;
+    padding: 8px 16px;
+    border-radius: 12px;
+    background: #e8720c;
+    color: #ffffff;
+    font-size: 22px;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 1px;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    opacity: 0;
+  }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="panel">
+      <div class="title">数据说话</div>
+      <div class="chart">
+        <div class="grow-chip">增长 42%</div>
+        <div class="bars">
+          <div class="bar" data-v="16"></div>
+          <div class="bar" data-v="23"></div>
+          <div class="bar" data-v="30"></div>
+          <div class="bar" data-v="41"></div>
+          <div class="bar" data-v="52"></div>
+          <div class="bar" data-v="66"></div>
+          <div class="bar" data-v="84"></div>
+        </div>
+        <div class="baseline"></div>
+        <div class="xlabels">
+          <span>1月</span><span>2月</span><span>3月</span>
+          <span>4月</span><span>5月</span><span>6月</span><span>7月</span>
+        </div>
+      </div>
+    </div>
+    <div class="host-wrap"><div class="host-placeholder"></div></div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ===== 可摘走的核心动画：CONFIG + register 内部 =====
+    // 语义：七根柱是"一串"不是七个动效 —— 错峰要密（0.06s），整组读作一次连续升起；
+    //       结论 chip 只在最后一根到顶那一帧弹出（数据讲完才允许下结论）。
+    const CONFIG = {
+      lead: 0.3,          // 起手静置 s
+      titleIn: 0.2,       // 标题淡入 s
+      baseAt: 0.42,       // 基线开画时刻 s
+      baseDur: 0.24,      // 基线 scaleX 0→1 s：先立地面再长柱
+      barsAt: 0.62,       // 第一根柱起点 s
+      barStagger: 0.06,   // 柱间错峰 s：本卡命门，>0.1 就散成"七个动效"
+      barGrow: 0.28,      // 单柱 scaleY 0→1 s
+      barEase: "power3.out",
+      maxVal: 100,        // 量程：全程固定，中途缩放对比就是骗人
+      chipGap: 18,        // chip 底边距最高柱顶的留白 px：不许压柱顶
+      chipPop: 0.2,       // chip 弹出 s
+      chipScale: 0.8,     // chip 起始缩放
+      hold: 1.8,          // 收尾定格 s
+    };
+
+    DemoShell.register(({ speed }) => {
+      const title = document.querySelector(".panel .title");
+      const base = document.querySelector(".baseline");
+      const bars = [...document.querySelectorAll(".bar")];
+      const chip = document.querySelector(".grow-chip");
+      const chart = document.querySelector(".chart");
+
+      // —— 重播语义：柱高按数据重算、全部归零 ——
+      const chartH = chart.offsetHeight;
+      let maxH = 0;
+      bars.forEach((b) => {
+        const h = (parseFloat(b.dataset.v) / CONFIG.maxVal) * chartH;
+        b.style.height = h + "px";
+        maxH = Math.max(maxH, h);
+        gsap.set(b, { scaleY: 0 });
+      });
+      // chip 落位由最高柱算出——换数据自动跟着抬高，永远压不到柱顶
+      chip.style.bottom = (maxH + CONFIG.chipGap) + "px";
+      gsap.set(title, { opacity: 0 });
+      gsap.set(base, { scaleX: 0 });
+      gsap.set(chip, { opacity: 0, scale: CONFIG.chipScale, transformOrigin: "100% 50%" });
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // ① 标题淡入
+      tl.to(title, { opacity: 1, duration: CONFIG.titleIn, ease: "power2.out" }, CONFIG.lead);
+      // ② 基线从左画出（先有地面，柱子才有"从地里长出来"的语义）
+      tl.to(base, { scaleX: 1, duration: CONFIG.baseDur, ease: "power2.out" }, CONFIG.baseAt);
+
+      // ③ 七根柱逐根升起，错峰密到读作一次连续动作
+      bars.forEach((b, i) => {
+        tl.to(b, { scaleY: 1, duration: CONFIG.barGrow, ease: CONFIG.barEase },
+              CONFIG.barsAt + i * CONFIG.barStagger);
+      });
+
+      // ④ 最后一根到顶那一帧：结论 chip 弹出
+      const lastTop = CONFIG.barsAt + (bars.length - 1) * CONFIG.barStagger + CONFIG.barGrow;
+      tl.to(chip, { opacity: 1, scale: 1, duration: CONFIG.chipPop, ease: "back.out(1.4)" },
+            lastTop);
+
+      // ⑤ 收尾 hold
+      tl.to({}, { duration: CONFIG.hold }, lastTop + CONFIG.chipPop);
+    });
+  </script>
+</body>
+</html>

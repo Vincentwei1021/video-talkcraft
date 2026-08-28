@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>cursor-locked-zoom · 光标锁定跟拍</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* 相机层：铺满舞台的世界坐标层，是全卡唯一被 transform 的元素。
+     transform-origin: 0 0 —— 反解公式 tx = W/2 − zoom·cursorX 的前提就是原点在左上角，
+     换成默认的 center 那条式子整个不成立（移植时最容易漏的一行）。 */
+  .camera {
+    position: absolute;
+    left: 0; top: 0;
+    width: 960px; height: 540px;
+    transform-origin: 0 0;
+  }
+
+  /* —— 演示语境（不属于动效）：一扇灰阶终端窗 760×384。
+        终端本体深底："命令行"这层语义靠深底成立；舞台仍是白底。
+        窗宽必须让整条命令在 zoom=1 时**完整可读**——收尾那一拍给的就是"全貌"，
+        全貌里命令还被窗口裁掉半截，这一拍就白收了。 —— */
+  .term {
+    position: absolute;
+    left: 100px; top: 78px;
+    width: 760px; height: 384px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #17171a;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 16px 44px rgba(0, 0, 0, 0.18);
+  }
+  .chrome {
+    height: 40px;
+    flex: 0 0 40px;
+    display: flex; align-items: center; gap: 8px;
+    padding: 0 16px;
+    background: #212126;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  }
+  /* 三交通灯：灰阶（这张卡没有语义色，颜色全留给素材本身） */
+  .chrome i { width: 11px; height: 11px; border-radius: 50%; background: #4b4b55; }
+  .chrome .path {
+    flex: 1; text-align: center;
+    font-size: 13px; color: #8b8b95; letter-spacing: 0.2px;
+    margin-right: 41px;    /* 三灯占宽，抵掉才是真居中 */
+  }
+
+  /* 内容区：等宽字体是硬前提——光标 x 靠"字符数 × 字宽"算出来，
+     比例字体下每个字符宽度不同，这个反解会越打越偏。 */
+  .body {
+    flex: 1;
+    padding: 20px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 20px;
+  }
+  .line {
+    height: 32px;          /* 行高固定：光标 y 靠"行序 × 行高"算出来 */
+    display: flex; align-items: center;
+    white-space: pre;
+    color: #f2f2f4;
+  }
+  .line.old { color: #6f6f78; }              /* 上文（已有的会话记录），压暗不抢戏 */
+  .line.out { color: #9b9ba3; }
+  .line .pr { color: #6f6f78; }
+  .line .gap { width: 8px; flex: 0 0 8px; }  /* 提示符与命令之间的固定间隙 */
+  /* 竖条光标：跟拍的锚点。打字时实心不闪，停下后才 2Hz 闪——
+     实心＝"正在输出"，闪烁＝"在等下一步"，这是终端唯一的状态语言。 */
+  .line .cur {
+    display: inline-block;
+    width: 2px;
+    height: 24px;
+    margin-left: 1px;
+    background: #f2f2f4;
+  }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="camera">
+      <div class="term">
+        <div class="chrome">
+          <i></i><i></i><i></i>
+          <span class="path">~/code/koubo-demo</span>
+        </div>
+        <div class="body">
+          <div class="line old"><span class="pr">$</span><span class="gap"></span>ls shots/</div>
+          <div class="line out">raw.mov   logo.png   notes.md</div>
+          <div class="line">
+            <span class="pr">$</span><span class="gap"></span><span class="txt" id="txt"></span><span class="cur" id="cur"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ===== 可摘走的核心：CONFIG + apply()（一条反解公式 + 一道边界钳制就是全部） =====
+    // 三条决策构成"镜头锁在光标上"，缺一条就退化成"放大的终端在播打字"：
+    //  ① 镜头被打字驱动，不是独立关键帧：cursorX = 文本起点 + 已揭示字符数 × 字宽，
+    //     tx = W/2 − zoom·cursorX ⇒ 光标恒在画面正中，命令从右侧"喂"进来
+    //  ② transform-origin: 0 0 —— 反解式子成立的前提
+    //  ③ 打完 0.8s inOut 把 zoom 拉回 1 收在全景居中：先看细节再给全貌，不收尾等于没讲完
+    const CONFIG = {
+      cmd: "ffmpeg -i raw.mov -vf scale=1080:-2 -crf 18 out.mp4",
+      zoom: 2.65,        // 跟拍焦距：2.6~2.8。<2 起不到"小屏也看得清"的作用；>3.2 字重被放大到发虚
+      rate: 15,          // 打字速率 char/s（人在敲命令，比日志输出慢一个量级）
+      leadIn: 0.45,      // 起手静置：镜头先锁在行首等口播开口
+      holdEnd: 0.75,     // 打完停留：让人读完整条命令（此时光标开始闪）
+      pullDur: 0.80,     // 拉回全景时长：0.8s inOut——两端都要收，这是"结束"不是"运镜"
+      tail: 0.60,
+      fontSize: 20,      // 与 CSS .body 的 font-size 必须一致（字宽由它算）
+      charW: 0.6,        // 等宽字体字宽系数：fontSize × 0.6（Menlo / SFMono 实测值）
+      lineH: 32,         // 与 CSS .line 的 height 一致
+      cmdRow: 2,         // 被跟拍的命令在第几行（0 起算）——上面两行是已有的会话记录
+      cursorHz: 2,       // 停下后光标闪烁频率
+      // 终端窗在世界坐标里的位置与内边距（既用来推算锚点，也当相机的可视边界）
+      winL: 100, winT: 78, winW: 760, winH: 384, pad: 20, chromeH: 40, prGap: 8,
+    };
+
+    DemoShell.register(({ speed }) => {
+      const W = 960, H = 540;
+      const cam = document.querySelector(".camera");
+      const txt = document.getElementById("txt");
+      const cur = document.getElementById("cur");
+      const C = CONFIG;
+      const N = C.cmd.length;
+
+      // —— 几何：光标锚点的世界坐标 ——
+      const charW = C.fontSize * C.charW;
+      // 文本起点 = 窗左 + 内边距 + 提示符宽（1 字符）+ 间隙
+      const textX = C.winL + C.pad + charW + C.prGap;
+      // 锚点 y = 窗顶 + 窗栏 + 内边距 + 行序 × 行高 + 半行高（多行跟拍就是把 cmdRow 换成浮点行号）
+      const cursorY = C.winT + C.chromeH + C.pad + C.cmdRow * C.lineH + C.lineH / 2;
+      // 相机可视边界：素材（终端窗）的四边
+      const bx0 = C.winL, bx1 = C.winL + C.winW;
+      const by0 = C.winT, by1 = C.winT + C.winH;
+
+      const st = { revealed: 0, zoom: C.zoom };
+
+      function apply() {
+        const n = Math.floor(st.revealed);
+        if (txt.textContent.length !== n) txt.textContent = C.cmd.slice(0, n);
+
+        const z = st.zoom;
+        // ① 反解：相机中心＝光标锚点 ⇒ 光标恒在画面正中
+        let cx = textX + n * charW;
+        let cy = cursorY;
+        // ② 边界钳制：把可视世界矩形关在素材四边之内。
+        //    纯反解在行首/行尾会把画幅推出素材外——原版是深色背景所以看不出，
+        //    白底舞台上就是大片空舞台。素材比可视区还小时退化为居中。
+        const hw = W / (2 * z), hh = H / (2 * z);
+        cx = bx1 - bx0 > 2 * hw ? Math.min(Math.max(cx, bx0 + hw), bx1 - hw) : (bx0 + bx1) / 2;
+        cy = by1 - by0 > 2 * hh ? Math.min(Math.max(cy, by0 + hh), by1 - hh) : (by0 + by1) / 2;
+
+        gsap.set(cam, { x: W / 2 - z * cx, y: H / 2 - z * cy, scale: z });
+      }
+
+      // 光标：打字中实心不闪；打完才 2Hz 闪（收尾段唯一还在动的东西）
+      function blink(t) {
+        cur.style.opacity = st.revealed < N ? 1 : (Math.floor(t * C.cursorHz) % 2 === 0 ? 1 : 0);
+      }
+
+      // 重播语义：命令收回空、镜头回到锁定行首的姿态
+      st.revealed = 0; st.zoom = C.zoom;
+      apply();
+      cur.style.opacity = 1;
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // 打字段：线性揭示（人敲键盘是匀速的；加缓动会读作"机器在渐快渐慢"）。
+      // 镜头没有自己的 tween —— 它每帧被 revealed 算出来，这就是"被打字驱动"。
+      tl.to(st, {
+        revealed: N, duration: N / C.rate, ease: "none",
+        onUpdate: () => { apply(); blink(tl.time()); },
+      }, C.leadIn);
+
+      // 打完停留：画面静止，光标开始闪
+      tl.to({}, { duration: C.holdEnd, onUpdate: () => blink(tl.time()) });
+
+      // ③ 收尾：只 tween zoom → 1。位移与重新构图由钳制自动跟出来
+      //    （z 变小 ⇒ 可视矩形变大 ⇒ 钳制范围收窄 ⇒ 中心连续滑回素材正中，
+      //     z=1 时素材比画幅小、钳制退化为居中 ⇒ 恰好落在全景居中，无需另一条位移 tween）
+      tl.to(st, {
+        zoom: 1, duration: C.pullDur, ease: "power2.inOut",
+        onUpdate: () => { apply(); blink(tl.time()); },
+      });
+
+      tl.to({}, { duration: C.tail, onUpdate: () => blink(tl.time()) });
+    });
+  </script>
+</body>
+</html>

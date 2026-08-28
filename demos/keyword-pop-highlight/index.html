@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>keyword-pop-highlight · 关键词弹出强调</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* 演示语境（不属于动效）：主持人剪影 + 底部字幕。白底 + 黑字，零风格化 */
+  .caption {
+    font-size: 34px;
+    font-weight: 600;
+    color: #1d1d1f;
+    letter-spacing: 1px;
+    white-space: nowrap;
+  }
+  /* —— 动效本体 —— 关键词 + 色块底（色块红/词黄是语义高亮对，只用在动效本体上） */
+  .caption .kw {
+    display: inline-block;
+    position: relative;
+    margin: 0 .36em;          /* 留出 1.15 倍定格 + skew 的溢出，否则色块压到相邻字 */
+    padding: .04em .18em;
+    font-weight: 800;
+    color: #ffd23e;
+    transform-origin: 50% 80%;
+  }
+  .caption .kw::before {         /* 色块底 */
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: #b33131;
+    border-radius: .14em;
+    z-index: -1;
+    transform: skewX(-6deg);
+  }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="host-placeholder"></div>
+    <div class="caption-zone">
+      <div class="caption">
+        这家公司一年烧掉<span class="kw">300个亿</span>，还在疯狂扩张
+      </div>
+    </div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // —— 可摘走的核心动画（复制 CONFIG + register 内部即可复用）——
+    const CONFIG = {
+      popScale: 1.65,     // 关键词最大放大倍数：>1.9 读作搞笑向，<1.3 强调不足
+      popIn: 0.18,        // 弹出耗时 s：快才有"砸出来"的劲
+      settle: 0.22,       // 回落到 1.15 的耗时
+      restScale: 1.15,    // 定格倍数：关键词比正文略大
+      shakePx: 7,         // 弹出瞬间整屏微震幅度 px
+      delay: 0.55,        // 正文先读一拍，关键词晚半句出现
+    };
+
+    DemoShell.register(({ speed }) => {
+      const kw = document.querySelector(".kw");
+      const stage = document.getElementById("stage");
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      gsap.set(kw, { scale: 0, opacity: 0, rotate: -8 });
+
+      tl.to(kw, {
+          scale: CONFIG.popScale, opacity: 1, rotate: 2,
+          duration: CONFIG.popIn, ease: "power4.out", delay: CONFIG.delay,
+        })
+        // 弹出的冲击帧：整个画面 ±shakePx 左右抖 3 个来回（0.04s/次）
+        .to(stage, {
+          keyframes: { x: [0, CONFIG.shakePx, -CONFIG.shakePx, CONFIG.shakePx, -CONFIG.shakePx, CONFIG.shakePx, 0] },
+          duration: 0.24, ease: "none",
+        }, "<")
+        .set(stage, { x: 0 })
+        .to(kw, {
+          scale: CONFIG.restScale, rotate: 0,
+          duration: CONFIG.settle, ease: "back.out(2.5)",
+        });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>pullback-cool-transition · 后拉冷却转场</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  #stage { overflow: hidden; }
+  /* 入场从 scale 0.90 起步（全片唯一 scale<1）：镜头层做成超出画幅 14%
+     （inset 对称 ⇒ 画面中心不变），后拉时不漏白边。Remotion 里等价于场景自己的 AbsoluteFill 铺满 */
+  .shot {
+    position: absolute; inset: -14%; display: flex;
+    align-items: center; justify-content: center;
+    will-change: transform, filter, opacity;
+  }
+  /* 镜头里只有式名大字——这是给人认式子用的标签，不是台词字幕 */
+  .shot .big { font-size: 76px; font-weight: 800; color: #8a8a8a;
+    letter-spacing: 3px; white-space: nowrap; }
+  .s1 { background: #ffffff; }
+  .s2 { background: #f1f1f4; }
+
+  .tag { position: absolute; left: 24px; top: 20px; font-size: 17px; color: #8a8a8a;
+    border: 1px solid #e0e0e0; border-radius: 999px; padding: 4px 14px; opacity: 0; z-index: 7; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="shot s1"><div class="big">后拉冷却</div></div>
+    <div class="shot s2"><div class="big">呼吸落定</div></div>
+    <div class="tag" id="tag">出场内容沉暗（相机收住）→ 入场从 0.90 后拉 · 全片最慢的一式</div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ─────────────────────────────────────────────────────────────────────────
+    // 可摘走的核心动画：后拉冷却转场 —— A（慢漂）→ 后拉冷却 → B（慢推）
+    // 一式 = 出场"内容沉暗"（相机几乎不动，靠内容褪灰失焦交出画面）
+    //        + 入场全片唯一 scale<1 起步的后拉，节奏最慢。
+    // Remotion 版：template/motion-systems/transitions.tsx
+    //   出场侧内容沉入近黑（场景内做）+ pullBackIn(leadSec)；色温在 env.tsx ACTS 表转冷
+    // ─────────────────────────────────────────────────────────────────────────
+    const CONFIG = {
+      hold: 0.80,      // 出场镜停留：相机永不静止（慢漂）
+      holdEnd: 0.90,   // 入场镜收尾停留
+      pull: {
+        out: 0.50,       // 出场沉暗时长
+        cutLead: 0.05,   // 切点提前量（本式最小，交接靠"暗"而不是"快"）
+        overlap: 0.55,   // 交叠（像素淡化）时长 ≈ 16 帧 @30fps，本式交叠最长
+        settle: 0.90,    // 入场后拉时长：全片最慢
+        outDim: 0.18,    // 出场内容褪到多暗（白底=褪灰；深底工程沉入近黑）
+        outBlur: 2,      // 出场内容失焦
+        inScale: 0.90,   // 入场起手景别：全片唯一 <1
+        inBlur: 4,
+        inSettle: 0.99,  // 后拉落点：停在 0.99 而不是 1.0，留给 hold 继续推
+      },
+    };
+
+    DemoShell.register(({ speed }) => {
+      const S = [...document.querySelectorAll(".shot")];   // A, B
+      const tag = document.getElementById("tag");
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // ── 初始状态：B 从 scale<1 起步（全片唯一的后拉起手式）──
+      gsap.set(S, { opacity: 0, x: 0, y: 0, rotate: 0, scale: 1, filter: "blur(0px)" });
+      gsap.set(S.map((s) => s.querySelector(".big")), { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" });
+      gsap.set(S[0], { opacity: 1 });
+      gsap.set(S[1], { scale: CONFIG.pull.inScale, filter: `blur(${CONFIG.pull.inBlur}px)` });
+      gsap.set(tag, { opacity: 0 });
+
+      // 镜头 hold 期：相机永不静止的慢推/慢漂
+      const hold = (el, at, dur, o = {}) =>
+        tl.to(el, { scale: (o.from ?? 1) + (o.push ?? 0.05), x: o.drift ?? 0,
+                    duration: dur, ease: "sine.inOut" }, at);
+
+      // ── 后拉冷却：出场"内容沉暗"（相机几乎不动，深底工程是沉入近黑，白底这里是褪灰失焦）
+      //    入场是全片唯一 scale<1 起步的后拉，节奏最慢 ──
+      const pullBack = (out, inn, at) => {
+        const P = CONFIG.pull;
+        const cut = at + P.out - P.cutLead;
+        const outBig = out.querySelector(".big");
+        tl.to(outBig, { opacity: P.outDim, filter: `blur(${P.outBlur}px)`,
+                        duration: P.out, ease: "sine.in" }, at);
+        tl.to(out, { scale: 1.0, duration: P.out, ease: "sine.out" }, at);   // 相机收住（不推不拉）
+        tl.to(out, { opacity: 0, duration: P.overlap, ease: "sine.inOut" }, cut);
+        tl.to(inn, { opacity: 1, duration: P.overlap, ease: "sine.inOut" }, cut);
+        tl.to(inn, { scale: P.inSettle, filter: "blur(0px)", duration: P.settle, ease: "power2.out" }, cut);
+        return cut + P.settle;
+      };
+
+      // ───────────── 排片：A → 后拉冷却 → B ─────────────
+      let t = 0;
+      tl.to(tag, { opacity: 1, duration: 0.3 }, 0);
+
+      hold(S[0], t, CONFIG.hold, { push: 0.03, drift: 10 });        t += CONFIG.hold;
+      t = pullBack(S[0], S[1], t);
+      hold(S[1], t, CONFIG.holdEnd, { from: 0.99, push: 0.03 });
+    });
+  </script>
+</body>
+</html>

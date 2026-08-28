@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>pip-zoom-box · 画中画放大</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 层级：底层全景（z1） → 箭头（z4） → 画中画变换组（z5）——
+     中性化：白底、零装饰。指示蓝 #0066cc 是本卡唯一强调色（"框住这里"的信号），
+     只上在取景描边与箭头上；落位白边卡走白 + 唯一投影（design-language §3 证据素材专用）。 */
+
+  /* 底层全景（演示语境）：人物占左侧，右侧留白给画中画定居 */
+  .pz-scene {
+    position: absolute;
+    left: 0; top: 0;
+    width: 960px; height: 540px;        /* 与舞台等尺寸——框内副本才能与框外像素一致 */
+    background: #ffffff;
+    z-index: 1;
+  }
+  .pz-scene .host-col {                 /* 人物列：占左 55%，人物落在这列中央 */
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 55%;
+    overflow: hidden;
+  }
+
+  /* —— 动效本体 —— 画中画变换组：框（几何）+ 框内画面副本（反向补偿）+ 两层边饰 —— */
+  .pz-shell {                           /* 变换组：left/top/width/height 由 setPip 单点写入 */
+    position: absolute;
+    z-index: 5;
+    will-change: left, top, width, height;
+  }
+  .pz-win {                             /* 取景窗：唯一做 overflow hidden 的元素 */
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    background: #ffffff;
+  }
+  .pz-win .pz-scene { z-index: 0; }     /* 框内的画面副本（与底层同结构、同像素） */
+
+  /* 边饰两层：起手细描边（取景框）→ 落位白边卡（证据素材）。
+     两者都只有 box-shadow、不占布局，几何跟着 shell 走，永不错位。 */
+  .pz-hair, .pz-card { position: absolute; inset: 0; pointer-events: none; }
+  .pz-hair { box-shadow: 0 0 0 1.5px #0066cc; }
+  .pz-card {
+    opacity: 0;
+    box-shadow: 0 0 0 8px #ffffff,               /* 白边卡 */
+                0 12px 60px rgba(0, 0, 0, 0.22); /* 全系统唯一投影：只给证据素材 */
+  }
+
+  /* 指向箭头：从人物指向定居后的画中画（单向，不是回指出处的连接线） */
+  #pz-arrow { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 4; pointer-events: none; }
+  #pz-arrow path { fill: none; stroke: #0066cc; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <!-- 底层全景 -->
+    <div class="pz-scene" data-crop-ok>
+      <div class="host-col"><div class="host-placeholder"></div></div>
+    </div>
+
+    <svg id="pz-arrow" viewBox="0 0 960 540">
+      <path id="pz-shaft" d="M 540 270 L 598 270"/>
+      <path id="pz-head" d="M 585 260 L 598 270 L 585 280"/>
+    </svg>
+
+    <!-- 画中画变换组 -->
+    <div class="pz-shell">
+      <div class="pz-win">
+        <div class="pz-scene" data-crop-ok>
+          <div class="host-col"><div class="host-placeholder"></div></div>
+        </div>
+      </div>
+      <div class="pz-hair"></div>
+      <div class="pz-card"></div>
+    </div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ——————————————————————————————————————————————————————————
+    // 可摘走的核心动画：画中画放大（取景框浮现 → 框带内容平移放大到侧边定居 → 箭头指出）
+    // 关键工程点：框的几何与框内画面的补偿由**同一个进度 t 单点写入**（setPip）——
+    // 拆成两条 tween 一定会因缓动不同步而"内容从框里滑出去"，读作空框飞过。
+    // t=0 时框内画面与框外严格连续（zoom=1，副本偏移正好抵消框位移）；
+    // t=1 时框内是同一画面的 zoom 倍放大，且脸部锚点锁在框心。
+    // ——————————————————————————————————————————————————————————
+    const CONFIG = {
+      zoom: 2.2,          // 放大倍数：2~2.5 是"看清脸/看清细节"的档；>3 数字人分辨率兜不住，<1.8 读不出放大
+      boxW: 280,          // 定居后取景窗宽 px（不含 8px 白边）
+      boxH: 280,          // 定居后取景窗高 px：与宽相等 = 方框（参考图的画中画是方的）
+      targetX: 764,       // 定居中心 X（舞台坐标）：留出右边距 56px
+      targetY: 270,       // 定居中心 Y：垂直居中
+      faceX: 0.275,       // 脸部锚点 / 舞台宽——**换人物素材必须重校这两个值**
+      faceY: 0.315,       // 脸部锚点 / 舞台高（校准法：把 t 锁在 0，看细框是否正好框住脸）
+      radius0: 4,         // 取景框圆角 px（框小，圆角要小）
+      radius1: 10,        // 定居后圆角 px
+      startDelay: 0.40,   // 起手静置：等口播念到"注意看这里"
+      showDur: 0.20,      // 取景框浮现耗时 s（scale 0.9→1 + 淡入）
+      aimHold: 0.15,      // 浮现后停一拍再飞——"先框住，再拿走"，少了这拍读作框自己飞过来
+      flyDur: 0.50,       // 平移放大耗时 s（power2.inOut：起收都要缓，相机曲线）
+      arrowAt: 0.05,      // 箭头相对落位的延迟 s
+      arrowDur: 0.18,     // 箭杆划出耗时 s
+      hold: 1.80,         // 定居后 hold s：全程静置（"定居"语义，不做扫视/呼吸）
+    };
+
+    const lerp = (a, b, t) => a + (b - a) * t;
+    let syncTimer = null;
+
+    DemoShell.register(({ speed }) => {
+      const stage = document.getElementById("stage");
+      const shell = document.querySelector(".pz-shell");
+      const win = document.querySelector(".pz-win");
+      const inner = win.querySelector(".pz-scene");
+      const hair = document.querySelector(".pz-hair");
+      const card = document.querySelector(".pz-card");
+      const shaft = document.getElementById("pz-shaft");
+      const head = document.getElementById("pz-head");
+
+      const SW = stage.offsetWidth, SH = stage.offsetHeight;
+      const fx = SW * CONFIG.faceX, fy = SH * CONFIG.faceY;
+      const w0 = CONFIG.boxW / CONFIG.zoom, h0 = CONFIG.boxH / CONFIG.zoom;
+
+      // t: 0 = 贴在脸上的取景框（框内 1:1，与框外连续） 1 = 右侧定居的放大画中画
+      const setPip = (t) => {
+        const zoom = lerp(1, CONFIG.zoom, t);
+        const w = lerp(w0, CONFIG.boxW, t);
+        const h = lerp(h0, CONFIG.boxH, t);
+        const cx = lerp(fx, CONFIG.targetX, t);
+        const cy = lerp(fy, CONFIG.targetY, t);
+        const r = lerp(CONFIG.radius0, CONFIG.radius1, t);
+        Object.assign(shell.style, {
+          left: (cx - w / 2).toFixed(2) + "px",
+          top: (cy - h / 2).toFixed(2) + "px",
+          width: w.toFixed(2) + "px",
+          height: h.toFixed(2) + "px",
+        });
+        win.style.borderRadius = r.toFixed(2) + "px";
+        hair.style.borderRadius = r.toFixed(2) + "px";
+        card.style.borderRadius = r.toFixed(2) + "px";
+        // 反向补偿：副本自身放大 zoom 倍，偏移让"脸部锚点"恒落在框心 —— 画面本身永不变形
+        gsap.set(inner, {
+          transformOrigin: "0 0",
+          scale: zoom,
+          x: w / 2 - zoom * fx,
+          y: h / 2 - zoom * fy,
+        });
+      };
+
+      // 两层人物视频对齐（演示语境的工程细节，不属于动效）：
+      // 外壳给每个 .host-placeholder 注入独立 video，起播漂移会让框内外嘴形不一致
+      const vids = () => Array.from(document.querySelectorAll("video.dh-host"));
+      const align = () => {
+        const v = vids();
+        if (v.length < 2) return;
+        if (Math.abs(v[1].currentTime - v[0].currentTime) > 0.08) v[1].currentTime = v[0].currentTime;
+      };
+      align();
+      if (syncTimer) clearInterval(syncTimer);
+      syncTimer = setInterval(align, 900);
+
+      // 重播语义：全部复位
+      setPip(0);
+      gsap.set(shell, { opacity: 0, scale: 0.9, transformOrigin: "50% 50%" });
+      gsap.set(hair, { opacity: 1 });
+      gsap.set(card, { opacity: 0 });
+      const shaftLen = shaft.getTotalLength(), headLen = head.getTotalLength();
+      gsap.set(shaft, { attr: { "stroke-dasharray": shaftLen, "stroke-dashoffset": shaftLen } });
+      gsap.set(head, { attr: { "stroke-dasharray": headLen, "stroke-dashoffset": headLen } });
+
+      const p = { t: 0 };
+      const tFly = CONFIG.startDelay + CONFIG.showDur + CONFIG.aimHold;
+      const tLand = tFly + CONFIG.flyDur;
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // ① 取景框在脸部浮现——"框住这里"。scale 作用在整个变换组上（框与内容一起），
+      //    这是"框和内容是一件事"的第一次声明
+      tl.to(shell, { opacity: 1, scale: 1, duration: CONFIG.showDur, ease: "power2.out" },
+            CONFIG.startDelay)
+        // ② 框带着内容平移放大到右侧定居（几何单点写入，框内画面全程锁在脸上）
+        .to(p, { t: 1, duration: CONFIG.flyDur, ease: "power2.inOut",
+                 onUpdate: () => setPip(p.t) }, tFly)
+        // ③ 交接边饰：细取景描边在后半程退场，白边卡 + 唯一投影在落位那一刻立住
+        .to(hair, { opacity: 0, duration: 0.22, ease: "power1.in" }, tFly + CONFIG.flyDur * 0.6)
+        .to(card, { opacity: 1, duration: 0.18, ease: "power2.out" }, tLand - 0.06)
+        // ④ 箭头：落位后才从人物一侧划向画中画（单向指示，箭尖离框留 18px 不戳到）
+        .to(shaft, { attr: { "stroke-dashoffset": 0 }, duration: CONFIG.arrowDur, ease: "power2.out" },
+            tLand + CONFIG.arrowAt)
+        .to(head, { attr: { "stroke-dashoffset": 0 }, duration: 0.1, ease: "power2.out" },
+            tLand + CONFIG.arrowAt + CONFIG.arrowDur * 0.7);
+
+      // ⑤ 定居期：完全静置（与 magnifier-detail 的"镜内扫视"分工不同——这张是定居不是巡视）
+      tl.to({}, { duration: CONFIG.hold });
+    });
+  </script>
+</body>
+</html>

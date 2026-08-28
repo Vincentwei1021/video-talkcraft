@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>number-counter · 数字滚动计数</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 演示语境（不属于动效）：主持人占位在左，右侧数据区；白底 + 灰阶分栏线 —— */
+  /* 47% ≈ 452px：数字人视频渲染宽 427.7px，容器要给足这个宽度人物才能整体站进画里，
+     左右各留 ≥10px 呼吸边（人物不缩小、不截断，整体往中间挪，2026-08-25 定版） */
+  .host-wrap {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 47%;
+    overflow: hidden;
+  }
+  /* 数据区跟着人物往右收（分栏线贴人物容器右缘），内边距收到 24px 给大数值留够横向空间 */
+  .data-panel {
+    position: absolute;
+    left: 47%; right: 0; top: 0; bottom: 0;
+    border-left: 1px solid #e0e0e0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 24px;
+    gap: 44px;
+  }
+  .metric .label {
+    font-size: 17px;
+    color: #8a8a8a;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+  }
+  /* 模式 a：tween 大数字 */
+  .big-num {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    white-space: nowrap;            /* 大数值 + 涨跌一行放下，换行会把箭头挤到下一行 */
+    font-variant-numeric: tabular-nums;
+  }
+  .big-num .value {
+    font-size: 48px;
+    font-weight: 800;
+    color: #1d1d1f;
+    letter-spacing: 1px;
+    transform-origin: 0% 80%;
+  }
+  /* 涨跌色（语义色，属于动效的"落定奖励"） */
+  .big-num .delta {
+    font-size: 24px;
+    font-weight: 700;
+    color: #d8383a;
+    opacity: 0;
+    white-space: nowrap;
+  }
+  /* 模式 b：odometer 滚轮 */
+  .odometer {
+    display: flex;
+    align-items: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .odometer .digit {
+    width: 42px; height: 64px;
+    overflow: hidden;               /* 命门：滚轮必须被窗口裁切 */
+    position: relative;
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    margin-right: 6px;
+  }
+  .odometer .reel {
+    position: absolute;
+    left: 0; right: 0; top: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .odometer .reel span {
+    height: 64px;
+    line-height: 64px;
+    text-align: center;
+    font-size: 44px;
+    font-weight: 800;
+    color: #1d1d1f;
+  }
+  .odometer .comma {
+    font-size: 44px; font-weight: 800; color: #1d1d1f;
+    margin-right: 6px; align-self: flex-end; line-height: 60px;
+  }
+  .odometer .unit { font-size: 20px; color: #8a8a8a; margin-left: 10px; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="host-wrap"><div class="host-placeholder"></div></div>
+    <div class="data-panel">
+      <div class="metric">
+        <div class="label">2024 全年营销费用</div>
+        <div class="big-num">
+          <span class="value">¥0</span>
+          <span class="delta">↑ 45%</span>
+        </div>
+      </div>
+      <div class="metric">
+        <div class="label">平均每天烧掉（万元）</div>
+        <div class="odometer" id="odo"><span class="unit">万 / 天</span></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // —— 可摘走的核心动画：a) tween 计数 + 落定弹一拍   b) odometer 逐位滚轮 ——
+    const CONFIG = {
+      target: 3000000000,  // 模式 a 目标值
+      countDur: 1.3,       // 计数时长 s：1~1.5 先快后慢；>2s 观众已经听完这句了
+      landScale: 1.08,     // 落定瞬间的放大一拍
+      odoTarget: "8219",   // 模式 b 目标值（字符串，保留位数）
+      odoBase: 1.0,        // 最高位滚动时长 s
+      odoStagger: 0.22,    // 每往低一位多滚的时长：高位先停低位后停
+      odoDelay: 0.5,       // 模式 b 相对模式 a 的起始延迟 s
+      spins: 2,            // 低位额外整圈数，营造"滚轮"感
+      digitH: 64,          // 滚轮行高 px：必须与 .digit/.reel span 的高度一致
+    };
+
+    const fmt = (n) => "¥" + Math.floor(n).toLocaleString("en-US");
+
+    // 构建 odometer DOM：每位一个 0-9 滚轮（重播时重建）
+    function buildOdometer(el, numStr) {
+      el.querySelectorAll(".digit, .comma").forEach((d) => d.remove());
+      const unit = el.querySelector(".unit");
+      const groups = Number(numStr).toLocaleString("en-US").split("");
+      groups.forEach((ch) => {
+        if (ch === ",") {
+          const c = document.createElement("span");
+          c.className = "comma"; c.textContent = ",";
+          el.insertBefore(c, unit);
+          return;
+        }
+        const digit = document.createElement("div");
+        digit.className = "digit";
+        const reel = document.createElement("div");
+        reel.className = "reel";
+        for (let k = 0; k <= (CONFIG.spins + 1) * 10; k++) {
+          const s = document.createElement("span");
+          s.textContent = k % 10;
+          reel.appendChild(s);
+        }
+        digit.appendChild(reel);
+        el.insertBefore(digit, unit);
+        digit.dataset.n = ch;
+      });
+    }
+
+    DemoShell.register(({ speed }) => {
+      const valueEl = document.querySelector(".big-num .value");
+      const deltaEl = document.querySelector(".big-num .delta");
+      const odo = document.getElementById("odo");
+
+      // 重播语义：数值归零、DOM 重建
+      valueEl.textContent = fmt(0);
+      gsap.set(valueEl, { scale: 1 });
+      gsap.set(deltaEl, { opacity: 0, y: 6 });
+      buildOdometer(odo, CONFIG.odoTarget);
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // 模式 a：0 → 目标，easeOut 先快后慢，千分位实时格式化
+      const counter = { v: 0 };
+      tl.to(counter, {
+        v: CONFIG.target,
+        duration: CONFIG.countDur,
+        ease: "power3.out",
+        onUpdate: () => { valueEl.textContent = fmt(counter.v); },
+      }, 0.3);
+      // 落定瞬间：轻放大一拍 + 涨跌箭头淡入
+      tl.to(valueEl, { scale: CONFIG.landScale, duration: 0.09, ease: "power2.out" })
+        .to(valueEl, { scale: 1, duration: 0.18, ease: "back.out(3)" })
+        .to(deltaEl, { opacity: 1, y: 0, duration: 0.25, ease: "power2.out" }, "<");
+
+      // 模式 b：逐位滚轮，高位先停、低位后停
+      const digits = odo.querySelectorAll(".digit");
+      digits.forEach((digit, i) => {
+        const reel = digit.querySelector(".reel");
+        const n = Number(digit.dataset.n);
+        // 低位多滚整圈（必须是整 10 的倍数，否则落错数字）
+        const extraSpins = Math.round(CONFIG.spins * i / Math.max(digits.length - 1, 1));
+        const steps = extraSpins * 10 + n;
+        gsap.set(reel, { y: 0 });
+        tl.to(reel, {
+          y: -steps * CONFIG.digitH,
+          duration: CONFIG.odoBase + i * CONFIG.odoStagger,
+          ease: "power3.out",
+        }, 0.3 + CONFIG.odoDelay);
+      });
+    });
+  </script>
+</body>
+</html>

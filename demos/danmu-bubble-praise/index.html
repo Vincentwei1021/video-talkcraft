@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>danmu-bubble-praise · 弹幕气泡</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 演示语境（不属于动效）：主持人占位铺满舞台，气泡绕在人物两侧 —— */
+  .host-full { position: absolute; inset: 0; z-index: 1; }
+
+  /* —— 动效本体 —— 四枚评论气泡。
+     只有一枚带强调色（红 #e0452c），其余走灰阶实色（不叠 opacity，design-language §1 红线）。
+     气泡 = 纯圆角胶囊，无尾巴三角（用户 2026-08-25 定版）、无描边、无投影。 */
+  .db-b {
+    position: absolute;
+    z-index: 3;
+    padding: 11px 20px;
+    border-radius: 999px;              /* 单行评论 = 胶囊，一屏只用这一档圆角 */
+    font-size: 21px;
+    font-weight: 600;
+    line-height: 1.25;
+    white-space: nowrap;
+    background: var(--fill);
+    color: var(--ink);
+    opacity: 0;                        /* 初态：JS 会重置，这里防首帧闪 */
+  }
+  /* side-l / side-r 只决定**进场方向**（从最近的边缘外侧推入），不再画尾巴三角 */
+
+  /* 四枚的落位与配色：一枚强调红，三枚灰阶（深/中/浅三级实色，靠明度分层） */
+  #b1 { left: 96px;  top: 92px;  --fill: #e8e8ec; --ink: #1d1d1f; }
+  #b2 { left: 700px; top: 158px; --fill: #e0452c; --ink: #ffffff; }   /* 唯一强调色 */
+  #b3 { left: 62px;  top: 296px; --fill: #f2f2f4; --ink: #6e6e73; }
+  #b4 { left: 686px; top: 372px; --fill: #e8e8ec; --ink: #545458; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="host-full"><div class="host-placeholder"></div></div>
+
+    <div class="db-b side-l" id="b1">说得太对了</div>
+    <div class="db-b side-r" id="b2">干货满满 👍</div>
+    <div class="db-b side-l" id="b3">收藏了</div>
+    <div class="db-b side-r" id="b4">已经在用了</div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ——————————————————————————————————————————————————————————
+    // 可摘走的核心动画：弹幕气泡（进—停—走，四枚进出交叠成"评论在滚"）
+    // 命门：每枚的"停留"必须短到让第 3 枚进场时第 1 枚正在走 —— 交叠是本卡的全部语义。
+    // ——————————————————————————————————————————————————————————
+    const CONFIG = {
+      startDelay: 0.40,   // 起手静置：等口播念到"评论都在说"
+      stagger: 0.55,      // 枚与枚的进场错峰 s：本卡第一命门（配合 hold 决定交叠量）
+      inDur: 0.30,        // 单枚进场耗时 s（power3.out）
+      hold: 0.75,         // 单枚在屏停留 s：+inDur 后必须 ≤ 2×stagger，否则四枚挤成一墙
+      outDur: 0.40,       // 单枚飘走耗时 s（power1.in，出场比入场轻）
+      inX: 26,            // 进场横向位移 px（各自从最近的边缘外侧推入，左侧 −、右侧 +）
+      inScale: 0.88,      // 进场起始缩放
+      outY: -18,          // 飘走上移 px（弹幕是往上滚出去的）
+      tailHold: 0.45,     // 末枚走后留白：读作"这一波评论过去了"
+      tilt: [-1.5, 1.5, 1.2, -1.8],   // 各枚的静态倾斜（贴歪感靠形状，全程不抖）
+    };
+
+    DemoShell.register(({ speed }) => {
+      const bubbles = ["#b1", "#b2", "#b3", "#b4"].map((s) => document.querySelector(s));
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      bubbles.forEach((b, i) => {
+        const dir = b.classList.contains("side-l") ? -1 : 1;   // 从最近的边缘外侧进
+        // 重播语义：每枚回到画外初态（rotation 是静态属性，设一次不再动）
+        gsap.set(b, {
+          opacity: 0, x: dir * CONFIG.inX, y: 0,
+          scale: CONFIG.inScale, rotation: CONFIG.tilt[i],
+          transformOrigin: "50% 50%",
+        });
+
+        const tIn = CONFIG.startDelay + i * CONFIG.stagger;
+        const tOut = tIn + CONFIG.inDur + CONFIG.hold;
+
+        // 进：飘入落定
+        tl.to(b, { opacity: 1, x: 0, scale: 1,
+                   duration: CONFIG.inDur, ease: "power3.out" }, tIn)
+        // 走：上移淡出（出场永远比入场轻——只走 opacity + y，不再动 scale）
+          .to(b, { opacity: 0, y: CONFIG.outY,
+                   duration: CONFIG.outDur, ease: "power1.in" }, tOut);
+      });
+
+      // 末枚走完后的留白（时间线要有明确终点，外壳据此算总时长与循环）
+      tl.to({}, { duration: CONFIG.tailHold });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>line-chart-story-draw · 折线分段推演</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 演示语境（不属于动效）：灰阶坐标系 + 主播小窗，零装饰 —— */
+  #chart {
+    position: absolute;
+    inset: 0;
+    display: block;
+    font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  }
+  .chart-title {
+    position: absolute;
+    left: 56px;
+    top: 30px;
+    font-size: 21px;
+    font-weight: 700;
+    color: #1d1d1f;
+    letter-spacing: 2px;
+  }
+  .chart-sub {
+    position: absolute;
+    left: 56px;
+    top: 62px;
+    font-size: 13px;
+    color: #8a8a8a;
+    letter-spacing: 1px;
+  }
+  /* 主播 PiP 小窗（真人出镜画中画占位） */
+  .host-pip {
+    position: absolute;
+    left: 22px; bottom: 34px;
+    width: 118px; height: 118px;
+    border: 1px solid #e0e0e0;
+    border-radius: 50%;
+    overflow: hidden;
+    background: #fff;
+    z-index: 6;
+  }
+  .host-pip .host-placeholder { border-radius: 50%; }
+  /* —— 动效本体 —— 线端 / 段末标签层：绝对定位，位置由 CONFIG 点位表给出 */
+  #labels { position: absolute; inset: 0; pointer-events: none; z-index: 5; }
+  #labels .lbl {
+    position: absolute;
+    left: 0; top: 0;
+    white-space: nowrap;
+    font-size: 17px;
+    font-weight: 800;
+    line-height: 1;
+    padding: 4px 10px;
+    background: #ffffff;
+    border: 1.5px solid currentColor;
+    border-radius: 6px;
+    opacity: 0;
+  }
+  /* 端点数值标签：跟着线端一起往右移，数字随高度实时变 */
+  #labels .tip-chip {
+    position: absolute;
+    left: 0; top: 0;
+    padding: 4px 10px;
+    background: #ffffff;
+    border: 1.5px solid #d8383a;
+    border-radius: 6px;
+    color: #d8383a;
+    font-size: 17px;
+    font-weight: 800;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    opacity: 0;
+  }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="chart-title">指数点位 · 五年推演</div>
+    <div class="chart-sub">历史已发生 ｜ 右侧为假设</div>
+
+    <svg id="chart" viewBox="0 0 960 540">
+      <defs id="defs">
+        <!-- 标注弧线箭头（两种语义色各一个） -->
+        <marker id="arrow-hot" viewBox="0 0 10 10" refX="9" refY="5"
+                markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse">
+          <path d="M 0,1 L 9,5 L 0,9 Z" fill="#d8383a"/>
+        </marker>
+        <marker id="arrow-dark" viewBox="0 0 10 10" refX="9" refY="5"
+                markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse">
+          <path d="M 0,1 L 9,5 L 0,9 Z" fill="#1d1d1f"/>
+        </marker>
+      </defs>
+
+      <!-- 演示语境：网格 / 今天分界 / 轴 / 刻度（全部静态灰阶） -->
+      <g id="grid">
+        <path d="M 200,325 H 880 M 200,254 H 880 M 200,183 H 880 M 200,112 H 880"
+              stroke="#ececef" stroke-width="1" fill="none"/>
+        <path d="M 480,112 V 396" stroke="#d8d8dc" stroke-width="1.2" stroke-dasharray="4 6" fill="none"/>
+        <path d="M 200,100 V 396 H 884" stroke="#c8c8cc" stroke-width="1.6" fill="none"/>
+        <g fill="#8a8a8a" font-size="13" text-anchor="end">
+          <text x="188" y="401">3000</text>
+          <text x="188" y="330">3400</text>
+          <text x="188" y="259">3800</text>
+          <text x="188" y="188">4200</text>
+          <text x="188" y="117">4600</text>
+        </g>
+        <g fill="#8a8a8a" font-size="13" text-anchor="middle">
+          <text x="256" y="418">2020</text>
+          <text x="368" y="418">2022</text>
+          <text x="480" y="418">今年</text>
+          <text x="648" y="418">+3 年</text>
+          <text x="816" y="418">+5 年</text>
+        </g>
+      </g>
+
+      <!-- 动效本体全部画在这层（每次重播清空重建） -->
+      <g id="draw"></g>
+    </svg>
+
+    <div id="labels"></div>
+
+    <!-- 演示语境：主播小窗 -->
+    <div class="host-pip"><div class="host-placeholder"></div></div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ===== 可摘走的核心动画：CONFIG（点位表 + 每段时长 + 标签文案）+ register 内部 =====
+    const CONFIG = {
+      // —— 点位表（stage 像素坐标，x 向右 = 时间轴；改这里就换数据 —— 折线全部为直段） ——
+      pivot: [480, 278],                  // 拐点：历史与推演的分界，所有新线段都从这里岔出
+      history: [[200, 354], [256, 338], [312, 350], [368, 310], [424, 324], [480, 278]],
+
+      // 主推演实线：逐段生长，语音讲到哪段才长哪段
+      segments: [
+        { pts: [[480, 278], [536, 268], [592, 262], [648, 248]], dur: 0.6,
+          label: { text: "▲5%", color: "#d8383a", x: 666, y: 268,
+                   arc: { from: [676, 266], c: [660, 264], to: [654, 254], marker: "arrow-hot" } } },
+        { pts: [[648, 248], [704, 234], [760, 216], [816, 198]], dur: 0.6, label: null },
+      ],
+
+      // 对比虚线：从同一拐点以不同斜率岔出的第二种未来（涨幅正好是主线的两倍）
+      alt: { pts: [[480, 278], [560, 240], [648, 196], [736, 152], [816, 118]], dur: 0.7,
+             dash: "9 7",
+             label: { text: "涨幅×2", color: "#1d1d1f", x: 826, y: 78 } },
+
+      // 拐点标注：文字 + 弧线箭头，在生长之前弹出（"讲到假设"的那一拍）
+      annot: { text: "这里买入", color: "#d8383a", x: 392, y: 342,
+               arc: { from: [468, 338], c: [480, 314], to: [477, 289], marker: "arrow-hot" } },
+
+      // 区间罩显：竖向半透明色带逐个淡入罩住相关区间
+      bands: [
+        { x: 312, w: 112, text: "历史同期" },
+        { x: 648, w: 200, text: "推演分歧" },
+      ],
+      bandTop: 112, bandBottom: 396,
+
+      // —— 节奏 ——
+      hold0: 0.6,        // 历史线静置一拍等语音（历史段一开始就在场，不生长）
+      annotPop: 0.25,    // 标注/标签弹出时长
+      annotHold: 0.35,   // 标注落定后再开始生长的停顿
+      segGap: 0.35,      // 段间停顿：语音逐段触发的关键
+      altGap: 0.4,       // 实线讲完 → 虚线岔出前的停顿
+      bandFade: 0.3,     // 单条色带淡入时长
+      bandStagger: 0.3,  // 色带之间错峰
+      growEase: "power2.out",
+
+      // —— 端点数值标签（跟随线端） ——
+      chipDx: 12, chipDy: -30,
+      scale: { yBase: 396, vBase: 3000, yStep: 71, vStep: 400 },  // y→数值的线性映射
+
+      // —— 语义色（全灰阶 + 单一强调红） ——
+      histColor: "#a8a8ad",
+      hotColor: "#d8383a",
+      altColor: "#1d1d1f",
+      bandColor: "rgba(216, 56, 58, 0.07)",
+    };
+
+    const NS = "http://www.w3.org/2000/svg";
+    const mk = (tag, attrs) => {
+      const el = document.createElementNS(NS, tag);
+      for (const k in attrs) el.setAttribute(k, attrs[k]);
+      return el;
+    };
+    const toPath = (pts) => pts.map((p, i) => (i ? "L" : "M") + p[0] + "," + p[1]).join(" ");
+    const valueAt = (y) => CONFIG.scale.vBase +
+      ((CONFIG.scale.yBase - y) / CONFIG.scale.yStep) * CONFIG.scale.vStep;
+    const fmt = (v) => String(Math.round(v)).replace(/\B(?=(\d{3})+$)/g, ",");
+
+    DemoShell.register(({ speed }) => {
+      const defs = document.getElementById("defs");
+      const draw = document.getElementById("draw");
+      const labels = document.getElementById("labels");
+
+      // —— 重播语义：整层清空重建 ——
+      defs.querySelectorAll("mask").forEach((m) => m.remove());
+      draw.textContent = "";
+      labels.textContent = "";
+
+      // 1) 区间色带（在最底层，罩在线下方）
+      const bandEls = CONFIG.bands.map((b) => {
+        const g = mk("g", { opacity: 0 });
+        g.appendChild(mk("rect", {
+          x: b.x, y: CONFIG.bandTop, width: b.w,
+          height: CONFIG.bandBottom - CONFIG.bandTop, fill: CONFIG.bandColor,
+        }));
+        const t = mk("text", {
+          x: b.x + b.w / 2, y: CONFIG.bandBottom - 16,
+          fill: "#8a8a8a", "font-size": 13, "text-anchor": "middle",
+        });
+        t.textContent = b.text;
+        g.appendChild(t);
+        draw.appendChild(g);
+        return g;
+      });
+
+      // 2) 历史段：一开始就在场（本卡的前提——不生长）
+      draw.appendChild(mk("path", {
+        d: toPath(CONFIG.history), fill: "none", stroke: CONFIG.histColor,
+        "stroke-width": 2.6, "stroke-linejoin": "round", "stroke-linecap": "butt",
+      }));
+
+      // 3) 主推演实线：每段一条独立 path，用 stroke-dashoffset 从拐点向右生长
+      const segPaths = CONFIG.segments.map((s) => {
+        const p = mk("path", {
+          d: toPath(s.pts), fill: "none", stroke: CONFIG.hotColor,
+          "stroke-width": 3.4, "stroke-linejoin": "round", "stroke-linecap": "butt",
+        });
+        draw.appendChild(p);
+        return p;
+      });
+
+      // 4) 对比虚线：虚线笔画无法直接用 dashoffset 生长 → 套一层实心 mask，动 mask 的 dashoffset
+      const maskPath = mk("path", {
+        d: toPath(CONFIG.alt.pts), fill: "none", stroke: "#fff",
+        "stroke-width": 16, "stroke-linecap": "butt", "stroke-linejoin": "round",
+      });
+      const mask = mk("mask", { id: "alt-reveal", maskUnits: "userSpaceOnUse", x: 0, y: 0, width: 960, height: 540 });
+      mask.appendChild(maskPath);
+      defs.appendChild(mask);
+      const altPath = mk("path", {
+        d: toPath(CONFIG.alt.pts), fill: "none", stroke: CONFIG.altColor,
+        "stroke-width": 2.6, "stroke-dasharray": CONFIG.alt.dash,
+        "stroke-linejoin": "round", mask: "url(#alt-reveal)",
+      });
+      draw.appendChild(altPath);
+
+      // 5) 弧线箭头（每条包一个 g，整组弹出）
+      const arcOf = (spec) => {
+        if (!spec) return null;
+        // visibility 而非只靠 opacity：Chromium 下 marker 箭头不吃父级 group 的 opacity，
+        // 只用 opacity:0 会漏出一个箭头小点
+        const g = mk("g", { opacity: 0, visibility: "hidden" });
+        g.appendChild(mk("path", {
+          d: `M ${spec.from[0]},${spec.from[1]} Q ${spec.c[0]},${spec.c[1]} ${spec.to[0]},${spec.to[1]}`,
+          fill: "none", stroke: spec.marker === "arrow-dark" ? CONFIG.altColor : CONFIG.hotColor,
+          "stroke-width": 1.8, "marker-end": `url(#${spec.marker})`,
+        }));
+        draw.appendChild(g);
+        return g;
+      };
+
+      // 6) 拐点：小圆点 + 一圈涟漪（"就是这里"的落点）
+      const halo = mk("circle", { cx: CONFIG.pivot[0], cy: CONFIG.pivot[1], r: 6,
+        fill: "none", stroke: CONFIG.hotColor, "stroke-width": 2, opacity: 0 });
+      const dot = mk("circle", { cx: CONFIG.pivot[0], cy: CONFIG.pivot[1], r: 5.5,
+        fill: "#fff", stroke: CONFIG.hotColor, "stroke-width": 3 });
+      const altEnd = CONFIG.alt.pts[CONFIG.alt.pts.length - 1];
+      const altDot = mk("circle", { cx: altEnd[0], cy: altEnd[1], r: 5,
+        fill: "#fff", stroke: CONFIG.altColor, "stroke-width": 2.6 });
+      draw.append(halo, dot, altDot);
+
+      // 7) 标签（HTML，位置来自点位表）
+      const lblOf = (spec) => {
+        const d = document.createElement("div");
+        d.className = "lbl";
+        d.textContent = spec.text;
+        d.style.color = spec.color;
+        // 基准位置走 left/top（transform 留给 GSAP 做 pop 的 scale/y，不能混用）
+        d.style.left = spec.x + "px";
+        d.style.top = spec.y + "px";
+        labels.appendChild(d);
+        return d;
+      };
+      const annotLbl = lblOf(CONFIG.annot);
+      const annotArc = arcOf(CONFIG.annot.arc);
+      const segLbls = CONFIG.segments.map((s) => (s.label ? lblOf(s.label) : null));
+      const segArcs = CONFIG.segments.map((s) => (s.label ? arcOf(s.label.arc) : null));
+      const altLbl = lblOf(CONFIG.alt.label);
+
+      const chip = document.createElement("div");
+      chip.className = "tip-chip";
+      chip.textContent = fmt(valueAt(CONFIG.pivot[1]));
+      labels.appendChild(chip);
+
+      // ===== 时序：历史在场 → 标注弹出 → 逐段生长（标签跟随/段末弹出）→ 虚线岔出 → 区间罩显 =====
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      gsap.set([annotLbl, ...segLbls.filter(Boolean), altLbl],
+               { opacity: 0, scale: 0.7, y: 6, transformOrigin: "50% 100%" });
+      gsap.set(altDot, { opacity: 0, scale: 0.3, svgOrigin: `${altEnd[0]} ${altEnd[1]}` });
+      gsap.set(dot, { scale: 0, svgOrigin: `${CONFIG.pivot[0]} ${CONFIG.pivot[1]}` });
+      gsap.set(chip, { opacity: 0, x: CONFIG.pivot[0] + CONFIG.chipDx, y: CONFIG.pivot[1] + CONFIG.chipDy });
+
+      // 标签弹出（0.25s，back.out）——注意 y/scale 走 CSS transform，位置用 left/top 之外的 translate 打底
+      const popLabel = (lbl, arc, at, origin) => {
+        if (lbl) tl.to(lbl, { opacity: 1, scale: 1, y: 0, duration: CONFIG.annotPop,
+                              ease: "back.out(2)" }, at);
+        if (arc) tl.set(arc, { visibility: "visible" }, at)
+                   .to(arc, { opacity: 1, duration: CONFIG.annotPop * 0.8, ease: "power2.out" }, at)
+                   .fromTo(arc, { scale: 0.55 }, { scale: 1, duration: CONFIG.annotPop,
+                                                   ease: "power3.out", svgOrigin: origin }, at);
+      };
+
+      // 一段折线从拐点向右 stroke 生长；端点数值标签贴着线端走
+      const growSeg = (path, dur, at, withChip) => {
+        const L = path.getTotalLength();
+        // dasharray 与 dashoffset 必须同为整数：GSAP 会把 dashoffset 取整而 dasharray 保留小数，
+        // 两者差出的亚像素会在段首漏出一小截笔画
+        const dashL = Math.ceil(L) + 2;
+        gsap.set(path, { strokeDasharray: dashL, strokeDashoffset: dashL });
+        tl.to(path, { strokeDashoffset: 0, duration: dur, ease: CONFIG.growEase }, at);
+        if (!withChip) return;
+        const prog = { p: 0 };
+        tl.to(prog, {
+          p: 1, duration: dur, ease: CONFIG.growEase,
+          onUpdate() {
+            const pt = path.getPointAtLength(prog.p * L);
+            gsap.set(chip, { x: pt.x + CONFIG.chipDx, y: pt.y + CONFIG.chipDy });
+            chip.textContent = fmt(valueAt(pt.y));
+          },
+        }, at);
+      };
+
+      let t = CONFIG.hold0;
+
+      // 拐点亮起 + "这里买入" 标注弹出
+      tl.to(dot, { scale: 1, duration: 0.22, ease: "back.out(2.4)" }, t)
+        .fromTo(halo, { scale: 0.5, opacity: 0.9 },
+                      { scale: 3.2, opacity: 0, duration: 0.5, ease: "power2.out",
+                        svgOrigin: `${CONFIG.pivot[0]} ${CONFIG.pivot[1]}` }, t);
+      popLabel(annotLbl, annotArc, t, `${CONFIG.annot.arc.to[0]} ${CONFIG.annot.arc.to[1]}`);
+      t += CONFIG.annotPop + CONFIG.annotHold;
+
+      // 逐段生长：语音讲到哪段长哪段，段完成时该段的标签弹出
+      tl.to(chip, { opacity: 1, duration: 0.2, ease: "power2.out" }, t);
+      CONFIG.segments.forEach((s, i) => {
+        growSeg(segPaths[i], s.dur, t, true);
+        if (segLbls[i]) {
+          popLabel(segLbls[i], segArcs[i], t + s.dur,
+                   `${s.label.arc.to[0]} ${s.label.arc.to[1]}`);
+        }
+        t += s.dur + CONFIG.segGap;
+      });
+      t += CONFIG.altGap - CONFIG.segGap;
+
+      // 对比虚线从同一拐点岔出第二种未来，端点挂 ×2
+      const maskL = Math.ceil(maskPath.getTotalLength()) + 2;   // 同上：整数长度，避免亚像素漏笔
+      gsap.set(maskPath, { strokeDasharray: maskL, strokeDashoffset: maskL });
+      tl.to(maskPath, { strokeDashoffset: 0, duration: CONFIG.alt.dur, ease: CONFIG.growEase }, t);
+      tl.to(altDot, { opacity: 1, scale: 1, duration: 0.22, ease: "back.out(2.4)" }, t + CONFIG.alt.dur - 0.05);
+      popLabel(altLbl, null, t + CONFIG.alt.dur, null);
+      t += CONFIG.alt.dur + CONFIG.segGap;
+
+      // 区间罩显：竖向色带逐个淡入罩住相关区间
+      bandEls.forEach((g, i) => {
+        tl.to(g, { opacity: 1, duration: CONFIG.bandFade, ease: "power2.out" },
+              t + i * CONFIG.bandStagger);
+      });
+    });
+  </script>
+</body>
+</html>

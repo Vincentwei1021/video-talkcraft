@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>glass-code-walk · 玻璃代码走读</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 源码原始视觉（2026-08-25 用户定版：放弃改编，按 remocn 源码原样实现）——
+        视觉 1:1 照抄 registry/remocn/glass-code-block/index.tsx + glass-code-walk/index.tsx：
+          glassColor rgba(10,10,10,0.6) / backdropFilter blur(16px) / radius 16(内 15)
+          1px 渐变描边 linear-gradient(180deg, rgba(255,255,255,.18) 0%, rgba(255,255,255,0) 100%)
+          boxShadow 0 50px 120px rgba(0,0,0,.55) / inset 0 1px 0 rgba(255,255,255,.06)
+          chrome 40px + 三交通灯真色 opacity .6 + 标题 #a1a1aa 12px letterSpacing .02em
+          行号槽 28px #3f3f46；token 色 code #e4e4e7 / comment #52525b /
+          string #86efac / keyword #c4b5fd / number #fcd34d
+        舞台底：源码 previewBackdrop 是照片 /bg.jpg（暖褐 → 墨绿的暗调）。demo 禁外网资源，
+        用 CSS 渐变复刻那张图的色调分布（左上暖褐 #ba7f5a、右下近黑 #0a0e0f）——
+        玻璃背后必须有可糊的东西，这是"玻璃"读得出来的唯一证据。
+        这是**产品/源码皮 = 内容本身**的例外，不受白舞台中性化约束。 —— */
+
+  /* 舞台底：复刻源码 previewBackdrop（/bg.jpg）的色调。玻璃拟态需要背景有内容可折射。 */
+  #stage {
+    background:
+      radial-gradient(ellipse 55% 45% at 18% 12%, rgba(186, 127, 90, 0.95) 0%, rgba(129, 94, 69, 0.5) 45%, transparent 72%),
+      radial-gradient(ellipse 45% 40% at 8% 42%, rgba(147, 95, 64, 0.75) 0%, transparent 68%),
+      radial-gradient(ellipse 60% 55% at 88% 78%, rgba(9, 20, 22, 0.9) 0%, transparent 70%),
+      linear-gradient(135deg, #6d4c37 0%, #2a2019 34%, #131a1b 62%, #0a0e0f 100%);
+  }
+
+  /* 相机层：铺满舞台的世界坐标层，全卡唯一被 transform 的元素。
+     transform-origin: 0 0 —— 反解 tx = W/2 − zoom·cx 的前提（换成默认 center 那条式子不成立）。 */
+  .camera {
+    position: absolute;
+    left: 0; top: 0;
+    width: 960px; height: 540px;
+    transform-origin: 0 0;
+  }
+
+  /* 1px 渐变描边（源码那圈 microborder）*/
+  .ring {
+    position: absolute;
+    left: 180px; top: 50px;
+    width: 600px; height: 440px;
+    padding: 1px;
+    border-radius: 16px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0) 100%);
+    box-shadow: 0 50px 120px rgba(0, 0, 0, 0.55);
+  }
+  /* 玻璃块：源码 glassColor rgba(10,10,10,0.6) + blur(16px) */
+  .block {
+    width: 100%; height: 100%;
+    border-radius: 15px;
+    background: rgba(10, 10, 10, 0.6);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .chrome {
+    flex: 0 0 40px;
+    display: flex; align-items: center; gap: 8px;
+    padding: 0 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  /* 三交通灯：源码 Light 用 macOS 真色 + opacity .6 */
+  .chrome i { width: 12px; height: 12px; border-radius: 50%; display: block; opacity: 0.6; }
+  .chrome .l1 { background: #ff5f57; }
+  .chrome .l2 { background: #febc2e; }
+  .chrome .l3 { background: #28c840; }
+  .chrome .name {
+    flex: 1; text-align: center;
+    font-size: 12px; letter-spacing: 0.02em;
+    color: #a1a1aa;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    margin-right: 44px;   /* 抵掉三灯 + gap 占宽才是真居中 */
+  }
+
+  .body {
+    position: relative;
+    flex: 1;
+    padding: 20px 24px;   /* 源码 padding: "20px 24px" */
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    /* 字号由**块宽**反推，不是审美选择：块宽 600 是 zoom 1.68 下的下限（960/1.68 ≈ 571 + 余量），
+       可用文本宽 = 600 − 2×24 padding − 28 行号槽 = 524px。源码最长行 49 字符，
+       等宽字符宽 ≈ 0.6em ⇒ 49 × 0.6 × fs ≤ 524 ⇒ fs ≤ 17.8。取 17px。
+       （源码是 880 宽 @18px；本卡块窄了 280px，字号必须跟着收，否则行尾溢出块外。） */
+    font-size: 17px;
+  }
+  /* 行必须是 block 而不是 flex：flex 容器会丢掉纯空白的匿名子项
+     ⇒ token 之间的空格与行首缩进全部消失（"export function" 会挤成 "exportfunction"）。 */
+  .line {
+    position: relative;
+    height: 26px;              /* = round(fontSize × 1.55)，源码 lineHeight 1.55 */
+    line-height: 26px;
+    margin-bottom: 4px;        /* 源码 gap: 4 */
+    white-space: pre;
+    color: #e4e4e7;            /* 源码 TOKEN_COLORS.code */
+    z-index: 1;
+  }
+  .line.blank { height: 14px; line-height: 14px; }  /* 源码空行 = fontSize × 0.8 */
+  /* 行号槽：源码 width 28 / color #3f3f46 / padStart(2, " ") */
+  .line .ln { display: inline-block; width: 28px; color: #3f3f46; }
+  /* 源码 TOKEN_COLORS 五色，1:1 */
+  .k { color: #c4b5fd; }   /* keyword */
+  .s { color: #86efac; }   /* string */
+  .n { color: #fcd34d; }   /* number */
+  .c { color: #52525b; }   /* comment */
+
+  /* 走读高亮带：当前行的"读到这儿了"。位置与相机同源——都由 linePosition 算出来，
+     所以它在相邻行之间是滑过去的，不是一格一格跳。 */
+  .band {
+    position: absolute;
+    left: 8px; right: 8px;
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.06);
+    box-shadow: inset 3px 0 0 rgba(255, 255, 255, 0.7);
+    opacity: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="camera">
+      <div class="ring">
+        <div class="block">
+          <div class="chrome">
+            <i class="l1"></i><i class="l2"></i><i class="l3"></i>
+            <span class="name">scene.tsx</span>
+          </div>
+          <div class="body">
+            <div class="band"></div>
+            <!-- 行由 CONFIG.code 生成（见下方 tokenize） -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ===== 可摘走的核心：CONFIG + trackedRow() + apply() =====
+    // 三条决策构成"走读"，缺一条就退化成"代码块在播淡入动画"：
+    //  ① linePosition 是**浮点行号**，相机与高亮带同源于它 ⇒ 行间是滑过去的，不是跳格
+    //  ② 每行"停一下再滑走"（dwell + stepDur），不是匀速传送带 —— 人读代码是停顿式的
+    //  ③ 读完拉回 zoom=1 收全景 ⇒ 观众拿回整体结构；不收这一拍等于没讲完
+    const CONFIG = {
+      // 源码 DEFAULT_CODE（registry/remocn/glass-code-walk/index.tsx），1:1
+      code: [
+        'import { AbsoluteFill } from "remotion";',
+        'import { Typewriter } from "@/components/remocn";',
+        '',
+        'export function Intro() {',
+        '  return (',
+        '    <AbsoluteFill>',
+        '      <Typewriter text="Ship it" />',
+        '    </AbsoluteFill>',
+        '  );',
+        '}',
+      ].join("\n"),
+      zoom: 1.68,        // 走读焦距：1.5~1.8。整行必须完整在画幅内（这是"走读"与 deep-zoom 的分界）
+      lineIn: 0.08,      // 逐行入场间隔
+      leadIn: 0.32,      // 块弹入后到逐行入场
+      pushDur: 0.55,     // 全景 → 走读焦距的推近
+      dwell: 0.32,       // 每行停留（读这一行的时间）
+      stepDur: 0.26,     // 行间滑动耗时（inOut：两端都收，一次"跳行"是有始有终的事件）
+      holdEnd: 0.30,     // 最后一行读完的停留
+      pullDur: 0.85,     // 拉回全景（同时解除压暗，回到读整体）
+      tail: 0.50,
+      dimFloor: 0.30,    // 非当前行的压暗底（0=只剩一行可见，太狠；>0.55 看不出在走读）
+      // 代码块在世界坐标里的四边（既推行心，也当相机的钳制边界）
+      blkL: 180, blkT: 50, blkW: 600, blkH: 440,
+    };
+
+    // 极简正则分词：不是真高亮器，只给眼睛几个锚点（顺序要紧：整行注释 → 字符串 → 数字 → 关键字）
+    // 源码 glass-code-block 的 KEYWORDS 集合与正则，1:1
+    const KEYWORDS = new Set(["import","from","export","function","const","let","var",
+      "return","if","else","for","while","new","class","extends","default","true","false","null","undefined"]);
+    function tokenize(line) {
+      if (line.trimStart().startsWith("//")) return [["c", line]];
+      const out = [];
+      const re = /("[^"]*"|'[^']*'|`[^`]*`|\b\d+\b|\b[A-Za-z_$][\w$]*\b|[^\w"'`]+)/g;
+      let m;
+      while ((m = re.exec(line)) !== null) {
+        const t = m[0], f = t[0];
+        if (f === '"' || f === "'" || f === "`") out.push(["s", t]);
+        else if (/^\d+$/.test(t)) out.push(["n", t]);
+        else if (KEYWORDS.has(t)) out.push(["k", t]);
+        else out.push(["", t]);
+      }
+      return out;
+    }
+    function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
+
+    DemoShell.register(({ speed }) => {
+      const W = 960, H = 540;
+      const C = CONFIG;
+      const cam = document.querySelector(".camera");
+      const ring = document.querySelector(".ring");
+      const body = document.querySelector(".body");
+      const band = document.querySelector(".band");
+
+      // —— 建行（每次重播重建，replay 语义干净）——
+      body.querySelectorAll(".line").forEach((n) => n.remove());
+      const raw = C.code.split("\n");
+      const rows = raw.map((line, i) => {
+        const el = document.createElement("div");
+        el.className = "line" + (line.trim() === "" ? " blank" : "");
+        // 行号槽（源码 String(index+1).padStart(2, " ")）——空行也占号
+        const ln = '<span class="ln">' + String(i + 1).padStart(2, " ") + "</span>";
+        el.innerHTML = ln + tokenize(line)
+          .map(([k, t]) => (k ? '<span class="' + k + '">' + esc(t) + "</span>" : esc(t)))
+          .join("");
+        body.appendChild(el);
+        return el;
+      });
+      // 走读只停在有内容的行上（空行是排版，不是一句话）
+      const stops = raw.map((l, i) => (l.trim() === "" ? -1 : i)).filter((i) => i >= 0);
+
+      // —— 几何：行心的世界坐标（从 DOM 量，换字号/换行数不用改数字）——
+      const bodyTop = C.blkT + 1 + body.offsetTop;       // +1 = .ring 的 1px 描边
+      const rowTop = rows.map((r) => r.offsetTop);
+      const rowH = rows.map((r) => r.offsetHeight);
+      const centers = rows.map((_, i) => bodyTop + rowTop[i] + rowH[i] / 2);
+
+      const st = { linePos: stops[0], zoom: 1, dimAmt: 0 };
+
+      // 浮点行号 → 行心 y（在相邻行之间线性插值：走读第 2 行到第 4 行时它是 2.0 → 4.0）
+      function trackedRow(p) {
+        const lo = Math.max(0, Math.min(rows.length - 1, Math.floor(p)));
+        const hi = Math.min(rows.length - 1, lo + 1);
+        const f = p - lo;
+        return {
+          y: centers[lo] + (centers[hi] - centers[lo]) * f,
+          top: rowTop[lo] + (rowTop[hi] - rowTop[lo]) * f,
+          h: rowH[lo] + (rowH[hi] - rowH[lo]) * f,
+        };
+      }
+
+      function apply() {
+        const tr = trackedRow(st.linePos);
+        const z = st.zoom;
+
+        // ① 反解：把锚点搬到画面正中。x 恒取块心 —— 读代码是**整行读**，横向不跟字符
+        let cx = C.blkL + C.blkW / 2;
+        let cy = tr.y;
+        // ② 边界钳制：可视世界矩形关在代码块四边内。素材比可视区小时退化为居中
+        //    （源码纯反解在首/末行会把画幅推出块外；本卡补这一段，收尾的位移也靠它自动跟出）
+        const hw = W / (2 * z), hh = H / (2 * z);
+        const x0 = C.blkL, x1 = C.blkL + C.blkW, y0 = C.blkT, y1 = C.blkT + C.blkH;
+        cx = x1 - x0 > 2 * hw ? Math.min(Math.max(cx, x0 + hw), x1 - hw) : (x0 + x1) / 2;
+        cy = y1 - y0 > 2 * hh ? Math.min(Math.max(cy, y0 + hh), y1 - hh) : (y0 + y1) / 2;
+        gsap.set(cam, { x: W / 2 - z * cx, y: H / 2 - z * cy, scale: z });
+
+        // ③ 高亮带与相机同源：同一个 linePos 推出来，所以两者不可能失步
+        band.style.top = (tr.top - 4) + "px";
+        band.style.height = (tr.h + 8) + "px";
+        band.style.opacity = st.dimAmt;
+
+        // 压暗：离当前行越远越暗（连续量 ⇒ 带子滑到两行之间时两行同时半亮，读作"正在挪"）
+        rows.forEach((r, i) => {
+          const near = Math.max(0, 1 - Math.abs(i - st.linePos));
+          const lvl = C.dimFloor + (1 - C.dimFloor) * near;
+          r.style.opacity = 1 - st.dimAmt * (1 - lvl);
+        });
+      }
+
+      // —— 重播语义：全景、无压暗、行全部收回 ——
+      st.linePos = stops[0]; st.zoom = 1; st.dimAmt = 0;
+      apply();
+      gsap.set(ring, { opacity: 0, y: 16, scale: 0.965, transformOrigin: "50% 50%" });
+      gsap.set(rows, { opacity: 0, y: 6 });
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // 1. 玻璃块弹入（位移先动、淡入独立窗——remocn 全系入场的写法）
+      tl.to(ring, { y: 0, scale: 1, duration: 0.55, ease: "back.out(1.3)" }, 0)
+        .to(ring, { opacity: 1, duration: 0.34, ease: "power2.out" }, 0.06);
+
+      // 2. 逐行入场：y 6→0 + 淡入，行距 0.08s（源码 staggerFrames 10 帧 ≈ 0.33s，本卡收紧）
+      rows.forEach((r, i) => {
+        tl.to(r, { opacity: 1, y: 0, duration: 0.26, ease: "power2.out" }, C.leadIn + i * C.lineIn);
+      });
+      const afterIn = C.leadIn + (rows.length - 1) * C.lineIn + 0.26;
+
+      // 3. 推近到走读焦距，同时压暗其余行 + 带子显形（锁在第一句）
+      const pushAt = afterIn + 0.10;
+      tl.to(st, {
+        zoom: C.zoom, dimAmt: 1, duration: C.pushDur, ease: "power2.inOut",
+        onUpdate: apply,
+      }, pushAt);
+
+      // 4. 走读：每行停一下（dwell）再滑到下一行（stepDur, inOut）。
+      //    带子与相机都由 linePos 现算 —— 只有一条时间轴在推进，不可能失步。
+      let t = pushAt + C.pushDur + C.dwell;
+      for (let k = 1; k < stops.length; k++) {
+        tl.to(st, {
+          linePos: stops[k], duration: C.stepDur, ease: "power2.inOut", onUpdate: apply,
+        }, t);
+        t += C.stepDur + C.dwell;
+      }
+
+      // 5. 收尾：拉回 zoom=1 并解除压暗 ⇒ 观众从"读这一行"回到"读整体结构"。
+      //    位移不用另排 tween：z 变小 ⇒ 可视矩形变大 ⇒ 钳制把中心挤回块正中
+      const pullAt = t - C.dwell + C.holdEnd;
+      tl.to(st, {
+        zoom: 1, dimAmt: 0, duration: C.pullDur, ease: "power2.inOut", onUpdate: apply,
+      }, pullAt);
+
+      tl.to({}, { duration: C.tail }, pullAt + C.pullDur);
+    });
+  </script>
+</body>
+</html>

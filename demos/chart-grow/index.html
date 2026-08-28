@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>chart-grow · 图表生长</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 演示语境（不属于动效）：图表底，白底 + 灰阶坐标系 —— */
+  .chart-wrap {
+    position: absolute;
+    left: 120px;
+    right: 120px;
+    top: 108px;
+    bottom: 92px;
+  }
+  .chart-title {
+    position: absolute;
+    top: 62px;
+    left: 120px;
+    font-size: 22px;
+    font-weight: 700;
+    color: #1d1d1f;
+    letter-spacing: 2px;
+    opacity: 0;
+  }
+  .axis-x, .axis-y {
+    position: absolute;
+    background: #c8c8cc;
+    opacity: 0;
+  }
+  .axis-x { left: 0; right: 0; bottom: 0; height: 2px; }
+  .axis-y { left: 0; top: 0; bottom: 0; width: 2px; }
+  .gridline {
+    position: absolute;
+    left: 2px;
+    right: 0;
+    height: 1px;
+    background: #ececef;
+    opacity: 0;
+  }
+  .bars {
+    position: absolute;
+    left: 30px;
+    right: 10px;
+    top: 0;
+    bottom: 2px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-around;
+  }
+  .bar-col {
+    width: 76px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    height: 100%;
+    justify-content: flex-end;
+  }
+  /* —— 动效本体 —— 普通柱走灰阶，关键柱用语义高亮色（层级色是本卡语义的一部分） */
+  .bar {
+    width: 100%;
+    background: #d2d2d7;
+    border-radius: 5px 5px 0 0;
+    transform-origin: 50% 100%;   /* 从地面长出来 */
+    transform: scaleY(0);
+  }
+  .bar-col.hot .bar { background: #d8383a; }
+  .bar-val {
+    position: absolute;
+    bottom: calc(var(--h) + 10px);
+    font-size: 20px;
+    font-weight: 800;
+    color: #1d1d1f;
+    opacity: 0;
+  }
+  .bar-col.hot .bar-val { color: #d8383a; font-size: 24px; }
+  .bar-year {
+    position: absolute;
+    bottom: -30px;
+    font-size: 15px;
+    color: #8a8a8a;
+  }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="chart-title">年营收（亿元）</div>
+    <div class="chart-wrap">
+      <div class="gridline" style="bottom:25%"></div>
+      <div class="gridline" style="bottom:50%"></div>
+      <div class="gridline" style="bottom:75%"></div>
+      <div class="axis-y"></div>
+      <div class="axis-x"></div>
+      <div class="bars">
+        <div class="bar-col" data-v="12"><div class="bar"></div><div class="bar-val">12</div><div class="bar-year">2020</div></div>
+        <div class="bar-col" data-v="18"><div class="bar"></div><div class="bar-val">18</div><div class="bar-year">2021</div></div>
+        <div class="bar-col" data-v="27"><div class="bar"></div><div class="bar-val">27</div><div class="bar-year">2022</div></div>
+        <div class="bar-col" data-v="45"><div class="bar"></div><div class="bar-val">45</div><div class="bar-year">2023</div></div>
+        <div class="bar-col hot" data-v="86"><div class="bar"></div><div class="bar-val">86</div><div class="bar-year">2024</div></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // —— 可摘走的核心动画（复制 CONFIG + register 内部即可复用）——
+    const CONFIG = {
+      axisIn: 0.3,      // 轴+网格淡入耗时 s：先立坐标系再长柱子
+      barGrow: 0.5,     // 单柱 scaleY 0→1 耗时 s（origin bottom）
+      barStagger: 0.13, // 柱间错峰 100~150ms："逐项列举"的语感
+      maxVal: 100,      // y 轴满量程：全程固定，中途缩放会让对比失真
+      labelPopAt: 0.72, // 柱顶数字在柱子长到多少进度时 pop（0~1）
+      punchScale: 1.03, // 最高柱到顶时整图轻 punch 幅度
+    };
+
+    DemoShell.register(({ speed }) => {
+      const cols = [...document.querySelectorAll(".bar-col")];
+      const wrap = document.querySelector(".chart-wrap");
+      const axisEls = document.querySelectorAll(".axis-x, .axis-y, .gridline");
+      const title = document.querySelector(".chart-title");
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // 重播语义：清零重建
+      gsap.set(axisEls, { opacity: 0 });
+      gsap.set(title, { opacity: 0 });
+      gsap.set(wrap, { scale: 1 });
+      cols.forEach((col) => {
+        const h = (parseFloat(col.dataset.v) / CONFIG.maxVal) * 100;
+        col.style.setProperty("--h", h + "%");
+        col.querySelector(".bar").style.height = h + "%";
+        gsap.set(col.querySelector(".bar"), { scaleY: 0 });
+        gsap.set(col.querySelector(".bar-val"), { opacity: 0, scale: 0.4 });
+      });
+
+      tl.to([title, ...axisEls], { opacity: 1, duration: CONFIG.axisIn, ease: "power2.out" }, 0.2);
+
+      // 柱子逐根长出，柱顶数字在该柱快到顶时弹出
+      cols.forEach((col, i) => {
+        const at = 0.55 + i * CONFIG.barStagger;
+        tl.to(col.querySelector(".bar"), {
+          scaleY: 1, duration: CONFIG.barGrow, ease: "power3.out",
+        }, at);
+        tl.to(col.querySelector(".bar-val"), {
+          opacity: 1, scale: 1, duration: 0.25, ease: "back.out(2)",
+        }, at + CONFIG.barGrow * CONFIG.labelPopAt);
+      });
+
+      // 最高的那根（高亮柱）到顶：整图轻 punch 一拍
+      const lastTop = 0.55 + (cols.length - 1) * CONFIG.barStagger + CONFIG.barGrow;
+      tl.to(wrap, { scale: CONFIG.punchScale, duration: 0.08, ease: "power2.out" }, lastTop)
+        .to(wrap, { scale: 1, duration: 0.22, ease: "back.out(3)" });
+    });
+  </script>
+</body>
+</html>

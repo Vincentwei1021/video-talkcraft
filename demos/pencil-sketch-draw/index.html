@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>pencil-sketch-draw · 铅笔手绘揭示</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* 白底（中性化契约）：纸色属于风格不属于动效，复用者自己铺纸 */
+  .paper-note {
+    position: absolute; left: 50%; top: 44%; transform: translate(-50%, -50%);
+    width: 640px; height: 380px;
+  }
+  /* 被"画出来"的卡片标签（动效本体的收尾，不是旁白字幕） */
+  .sketch-label {
+    position: absolute; left: 50%; bottom: 84px; transform: translateX(-50%);
+    font-size: 26px; color: #1d1d1f; font-weight: 600; letter-spacing: 2px; opacity: 0;
+  }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="paper-note">
+      <svg id="sk" viewBox="0 0 640 380" style="overflow:visible; width:100%; height:100%"></svg>
+    </div>
+    <div class="sketch-label" id="label">Harness = 整辆车</div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // —— 可摘走的核心动画 ——
+    // 三笔：卡片框 → 车身轮廓 → 下划线。每笔 = dashoffset 描画 + 铅笔骑在路径笔尖。
+    // 画完的线保持干净静置（不做 line boil / 定格抖动——用户偏好，见 design-language.md §4）。
+    const CONFIG = {
+      strokes: [
+        { d: "M 40 30 L 600 30 Q 616 30 616 46 L 616 334 Q 616 350 600 350 L 40 350 Q 24 350 24 334 L 24 46 Q 24 30 40 30", dur: 1.1, width: 4 },
+        { d: "M 140 250 L 200 250 Q 230 180 300 175 L 380 172 Q 450 172 480 245 L 520 250 L 520 285 L 150 288 L 140 250", dur: 1.3, width: 5 },
+        { d: "M 200 316 L 460 320", dur: 0.45, width: 6 },
+      ],
+      stroke: "#1d1d1f",   // 笔迹墨色（迁移时换成自己的线色）
+      easePow: "power2.inOut", // 起笔快收笔缓
+      pencil: {
+        scale: 0.5,    // 素材原生 640px 高 → 手+笔约占 960×540 舞台的 59%
+        tilt: 42,      // 握笔角：笔身自笔尖向右上倾 42°（≈ 素材自然角，手落在笔迹右上方）
+        follow: 5,     // 转弯跟随幅度（度）：手腕只跟一点点，合成角始终落在 +37°~+47°
+        lift: 26,      // 画完沿笔身轴向抬离的距离
+      },
+    };
+
+    // —— 手握铅笔素材（绿幕实拍抠像，透明 PNG）——
+    // 素材是"一只右手握笔"的照片，不是矢量模型，所以要把它对齐到与旧 SVG 铅笔相同的局部坐标契约：
+    // 石墨尖 = 局部原点 (0,0)，笔身朝 −Y 生长。对齐靠两个从最终 PNG 量出来的常量：
+    //   tipX/tipY —— 石墨尖在图片像素坐标里的位置（把 image 平移过去，尖端就压在原点上）
+    //   axisDeg  —— 笔轴（尖 → 橡皮头）与竖直向上的夹角，顺时针为正（内层反向 rotate 掉它）
+    // 校准完成后，外层 placePencil 的逻辑与矢量铅笔时代完全一致。
+    const ASSET = {
+      href: "hand-pencil.png",
+      w: 817, h: 640,   // PNG 原生尺寸
+      tipX: 1, tipY: 552, // 石墨尖像素坐标（PIL 取左下深色石墨簇的轴向极值点）
+      axisDeg: 44.24,   // 笔杆黄色像素做 PCA 主轴，指向橡皮头一侧后取与 −Y 的夹角
+    };
+
+    const svg = document.getElementById("sk");
+    const NS = "http://www.w3.org/2000/svg";
+
+    // 外层 <g>：给 placePencil 写 transform（translate 到笔尖落点 + 握笔角 + 缩放）
+    // 内层 <g>：固定 rotate(−axisDeg)，把素材里斜着的笔轴掰正到局部 −Y
+    // <image>：负偏移把 tip 像素挪到局部原点，于是旋转中心 = 笔尖
+    function makePencil() {
+      const g = document.createElementNS(NS, "g");
+      g.setAttribute("opacity", "0");
+      g.innerHTML =
+        `<g transform="rotate(${-ASSET.axisDeg})">` +
+        `<image href="${ASSET.href}" x="${-ASSET.tipX}" y="${-ASSET.tipY}"` +
+        ` width="${ASSET.w}" height="${ASSET.h}"/></g>`;
+      return g;
+    }
+
+    // 笔尖精确落在生长点上：translate 到 getPointAtLength 的点，笔尖就是局部 (0,0)，零偏移。
+    // 笔身角 = 固定握笔角 +42° + 跟随项（行进方向切线的竖直分量，手腕只跟一点点）。
+    function placePencil(pencil, path, len, p, extra = 0) {
+      const at = Math.max(0.001, Math.min(len, len * p));
+      const pt = path.getPointAtLength(at);
+      // 切线：用前一点做差分，得到单位方向向量
+      const back = path.getPointAtLength(Math.max(0, at - 2.5));
+      const vx = pt.x - back.x, vy = pt.y - back.y;
+      const m = Math.hypot(vx, vy) || 1;
+      const { tilt, follow, scale } = CONFIG.pencil;
+      const ang = tilt + follow * (vy / m);
+      // 抬笔沿笔身轴向（局部 -Y 经 ang 旋转后的世界方向），笔才像被"提起来"而不是平移
+      const r = (ang * Math.PI) / 180;
+      const ox = extra * Math.sin(r), oy = -extra * Math.cos(r);
+      pencil.setAttribute(
+        "transform",
+        `translate(${pt.x + ox} ${pt.y + oy}) rotate(${ang}) scale(${scale})`
+      );
+    }
+
+    DemoShell.register(({ speed }) => {
+      svg.innerHTML = "";
+      const label = document.getElementById("label");
+      gsap.set(label, { opacity: 0, y: 8 });
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      CONFIG.strokes.forEach((s, i) => {
+        const wrap = document.createElementNS(NS, "g");
+        const path = document.createElementNS(NS, "path");
+        path.setAttribute("d", s.d);
+        path.setAttribute("fill", "none");
+        path.setAttribute("stroke", CONFIG.stroke);
+        path.setAttribute("stroke-width", s.width);
+        path.setAttribute("stroke-linecap", "round");
+        path.setAttribute("stroke-linejoin", "round");
+        wrap.appendChild(path);
+        svg.appendChild(wrap);
+        const len = path.getTotalLength();
+        path.style.strokeDasharray = len;
+        path.style.strokeDashoffset = len;
+
+        const pencil = makePencil();
+        svg.appendChild(pencil);
+
+        // 起笔前先把笔摆到路径起点，避免第一帧闪现在错位置
+        placePencil(pencil, path, len, 0);
+
+        const state = { p: 0 };
+        const lifted = { d: 0 };
+        tl.set(pencil, { opacity: 1 }, i === 0 ? 0.3 : ">")
+          .to(state, {
+            p: 1, duration: s.dur, ease: CONFIG.easePow,
+            onUpdate() {
+              // 笔尖必须真的骑在路径上：逐帧取 getPointAtLength
+              path.style.strokeDashoffset = len * (1 - state.p);
+              placePencil(pencil, path, len, state.p);
+            },
+          }, "<")
+          // 画完：铅笔沿笔身轴向抬离并淡出
+          .to(lifted, {
+            d: CONFIG.pencil.lift, duration: 0.25, ease: "power2.out",
+            onUpdate() { placePencil(pencil, path, len, 1, lifted.d); },
+          })
+          .to(pencil, { opacity: 0, duration: 0.25 }, "<");
+      });
+
+      tl.to(label, { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" }, "-=0.2");
+    });
+  </script>
+</body>
+</html>

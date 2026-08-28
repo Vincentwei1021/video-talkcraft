@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>hand-drawn-ellipse · 手绘圈重点</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* 演示语境（不属于动效）：主持人占右一列，左侧是口播正在念的一句话。
+     字是被圈的对象（不是动效本体），只用黑字灰阶排版，不换色。 */
+  /* 47% ≈ 452px：给 427.7px 宽的数字人留 ≥10px 呼吸（人物不缩小、不截断、整体往中间挪，2026-08-25 定版） */
+  .host-wrap { position: absolute; right: 0; top: 0; bottom: 0; width: 47%; overflow: hidden; }
+
+  .say {
+    position: absolute;
+    /* right 收到 410 ⇒ 文字盒右缘落在 550，不伸进数字人那一列（人物可视像素从 573 起） */
+    left: 100px; right: 410px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #1d1d1f;
+  }
+  /* 行距要给圈留地方：圈的上下沿会外扩 padY，行距太密圈会咬到上一行 */
+  .say-line { font-size: 28px; line-height: 2.4; font-weight: 400; white-space: nowrap; }
+  .say-line.lead { color: #8a8a8a; }
+  /* 被圈的短语单独成一个 inline-block —— punch 要作用在它自己身上，不能带动整行 */
+  .say-line .ring-word {
+    display: inline-block;
+    font-weight: 600;
+    will-change: transform;
+  }
+
+  /* 圈层（动效本体）盖在文字之上 */
+  #inkLayer { position: absolute; inset: 0; pointer-events: none; }
+  #inkLayer path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="say">
+      <div class="say-line lead">要求可以再高一点，但对自己</div>
+      <div class="say-line"><span class="ring-word" data-ink="key">更松弛一点</span></div>
+    </div>
+    <div class="host-wrap"><div class="host-placeholder"></div></div>
+    <svg id="inkLayer" viewBox="0 0 960 540"></svg>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ─────────────────────────────────────────────────────────────────────────
+    // 可摘走的核心动画：手绘圈重点（一笔画 1.08 圈的歪椭圆 + 圈完才 punch）
+    //   ① 不是完美椭圆 —— 命门①：长短轴比 3.4:1、整体倾斜 -3.5°、半径带确定性正弦起伏，
+    //      逆时针一笔画到 **1.08 圈**：尾巴过头 8% 与起笔交叉。闭合成完美椭圆一眼是矢量图形
+    //   ② **单条 path、恒定线宽**（3.2px，linecap round）：手作感只做在形状上，
+    //      不模拟笔压 —— 多层叠描/粗细渐变实测线宽忽粗忽细，比匀速线更难看
+    //   ③ 圈到位**之后**被圈短语才 punch scale 1.06→1 —— 命门②：同时发生读作"字被圈撞了一下"
+    //   ④ 画完干净静置：不做 line boil / 定格抖动（design-language.md §4 用户定版）
+    //   ★ 坐标不写死：绑定 data-ink 目标，运行时量「墨迹盒」算圈心与半径，改文案自动跟随
+    // ─────────────────────────────────────────────────────────────────────────
+    const CONFIG = {
+      startDelay: 0.42,     // 起手静置：等口播念到这个短语
+      color: "#e8720c",     // 唯一语义色（橙，取自参考图③）
+      draw: 0.50,           // 画圈耗时 s：<0.3 看不出笔顺、>0.8 观众在等
+      ease: "power2.out",   // 起笔快收笔缓 —— 换 none（匀速）一眼假
+      width: 3.2,           // 恒定线宽 px（3~3.5）：全程一个值，不做笔压粗细变化
+      // 圈几何：pad 是墨迹盒外扩量。横向 pad 要比直觉大一档 —— 椭圆在字高处腰已收窄，
+      // padX 太小圈的左右腰会切进首末字
+      padX: 26, padY: 15,
+      turns: 1.08,          // 命门①：>1 才有过头交叉；=1 是矢量椭圆
+      startAngle: -145,     // 起笔角度 deg（0=右、顺时针为正）：-145 ≈ 左上角起笔
+      dir: -1,              // -1 = 逆时针（右手习惯的画圈方向）
+      grow: 0.055,          // 每绕一圈半径外扩比例：让尾巴落在起笔外侧而不是压住它
+      wobble: 3.4, tilt: -3.5, seed: 2.3,   // 半径起伏 ±3.4% / 整体倾角 / 形状种子
+      punchGap: 0.06,       // 圈画完到 punch 之间的呼吸（命门②：必须 >0）
+      punchScale: 1.06,     // punch 幅度：>1.12 读作弹跳不是重音
+      punchDur: 0.22,
+      hold: 1.8,            // 收尾定格：圈住的短语就是落点
+    };
+
+    const svgNS = "http://www.w3.org/2000/svg";
+    const measureCtx = document.createElement("canvas").getContext("2d");
+    const n = (v) => Math.round(v * 100) / 100;
+    // 确定性"手抖"：不用 Math.random，保证每次重播/每帧渲染形状一致
+    const wob = (a, amp, seed) => amp * (0.62 * Math.sin(a * 3.7 + seed) + 0.38 * Math.sin(a * 9.1 + seed * 2.3));
+
+    // ① 量目标：DOM 元素换算到 SVG viewBox（960×540 设计坐标）
+    function boxOf(el) {
+      const stage = document.getElementById("stage");
+      const sr = stage.getBoundingClientRect();
+      const k = sr.width / 960;
+      const r = el.getBoundingClientRect();
+      const b = { x: (r.left - sr.left) / k, y: (r.top - sr.top) / k, w: r.width / k, h: r.height / k };
+      b.cx = b.x + b.w / 2; b.cy = b.y + b.h / 2; b.right = b.x + b.w;
+      return b;
+    }
+    // 文字「墨迹盒」：行盒上下带字体留白，照行盒画圈会整体偏高
+    function inkBoxOf(el) {
+      const b = boxOf(el);
+      const cs = getComputedStyle(el);
+      const px = parseFloat(cs.fontSize);
+      measureCtx.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+      const m = measureCtx.measureText(el.textContent.trim());
+      const has = m.fontBoundingBoxAscent > 0 && m.actualBoundingBoxAscent > 0;
+      const baseline = b.y + (has ? m.fontBoundingBoxAscent : px * 0.88);
+      const top = baseline - (has ? m.actualBoundingBoxAscent : px * 0.74);
+      const bottom = baseline + (has ? m.actualBoundingBoxDescent : px * 0.06);
+      return { x: b.x, y: top, w: b.w, h: bottom - top, cx: b.cx, cy: (top + bottom) / 2 };
+    }
+
+    // ② 采样点串成平滑 path（Catmull-Rom → 三次贝塞尔）
+    function smooth(pts) {
+      let d = `M ${n(pts[0][0])} ${n(pts[0][1])}`;
+      for (let i = 0; i < pts.length - 1; i++) {
+        const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+        d += ` C ${n(p1[0] + (p2[0] - p0[0]) / 6)} ${n(p1[1] + (p2[1] - p0[1]) / 6)}` +
+             ` ${n(p2[0] - (p3[0] - p1[0]) / 6)} ${n(p2[1] - (p3[1] - p1[1]) / 6)}` +
+             ` ${n(p2[0])} ${n(p2[1])}`;
+      }
+      return d;
+    }
+
+    // ③ 歪椭圆：圈心 = 墨迹中心，半径 = 半宽/半高 + pad，绕 turns 圈且逐圈外扩
+    function ellipsePath(box, o) {
+      const rx = box.w / 2 + o.padX, ry = box.h / 2 + o.padY;
+      const a0 = o.startAngle * Math.PI / 180;
+      const sweep = Math.PI * 2 * o.turns * o.dir;
+      const tilt = o.tilt * Math.PI / 180;
+      const steps = Math.max(30, Math.round(34 * o.turns));
+      const pts = [];
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps, a = a0 + sweep * t;
+        const r = (1 + o.grow * t) * (1 + wob(a, o.wobble, o.seed) / 100);
+        const x = Math.cos(a) * rx * r, y = Math.sin(a) * ry * r;
+        pts.push([box.cx + x * Math.cos(tilt) - y * Math.sin(tilt),
+                  box.cy + x * Math.sin(tilt) + y * Math.cos(tilt)]);
+      }
+      return smooth(pts);
+    }
+
+    // ④ 一笔：单条 path、恒定线宽，dasharray 描画（笔宽全程不变 —— 不模拟笔压）
+    function inkStroke(layer, d, color, width) {
+      const p = document.createElementNS(svgNS, "path");
+      p.setAttribute("d", d);
+      p.setAttribute("stroke", color);
+      p.setAttribute("stroke-width", width);
+      layer.appendChild(p);
+      const L = p.getTotalLength();
+      p.setAttribute("stroke-dasharray", `${n(L)} ${n(L + 4)}`);
+      p.setAttribute("stroke-dashoffset", n(L));
+      return (progress) => {
+        p.setAttribute("stroke-dashoffset", n(Math.max(0, L * (1 - progress))));
+      };
+    }
+
+    DemoShell.register(({ speed }) => {
+      const layer = document.getElementById("inkLayer");
+      layer.innerHTML = "";                        // 重播：清掉上次的墨迹
+      const word = document.querySelector('[data-ink="key"]');
+      gsap.set(word, { scale: 1, transformOrigin: "50% 55%" });
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      const set = inkStroke(layer, ellipsePath(inkBoxOf(word), CONFIG), CONFIG.color, CONFIG.width);
+      set(0);
+
+      const st = { v: 0 };
+      tl.to(st, { v: 1, duration: CONFIG.draw, ease: CONFIG.ease, onUpdate: () => set(st.v) },
+            CONFIG.startDelay)
+        // 命门②：圈到位**之后**（+punchGap）短语才 punch 一拍
+        .fromTo(word, { scale: CONFIG.punchScale },
+                { scale: 1, duration: CONFIG.punchDur, ease: "power3.out" },
+                CONFIG.startDelay + CONFIG.draw + CONFIG.punchGap)
+        .to({}, { duration: CONFIG.hold });
+    });
+  </script>
+</body>
+</html>

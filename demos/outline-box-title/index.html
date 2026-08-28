@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>outline-box-title · 描边框标题</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 口播语境：主持人在右，左侧"核心观点 / 在这里"——
+     前半句被一个"机器画出来"的圆角描边框框选，后半句坐在实心 chip 上。
+     中性化：白底、墨字；唯一语义色 = 紫 #7A5AF8，只上在描边框 / chip / chevron 上 */
+  :root { --acc: #7A5AF8; }
+
+  /* 448px 给 427.7px 宽的数字人留 ≥10px 呼吸边（人物不缩小、不截断、整体往中间挪，2026-08-25 定版） */
+  .ob-host { position: absolute; right: 0; top: 0; bottom: 0; width: 448px; }
+
+  .ob-group { position: absolute; left: 96px; top: 168px; }
+
+  /* 第一行：文字 + 包住它的 SVG 描边框（框是绝对定位的独立层，尺寸写死成常量） */
+  .ob-row1 { position: relative; width: 356px; height: 104px; }
+  .ob-row1 .txt {
+    position: absolute; left: 30px; top: 22px;
+    font-size: 56px; font-weight: 700; line-height: 1;
+    color: #1d1d1f; letter-spacing: 2px; white-space: nowrap;
+  }
+  #obBox { position: absolute; left: 0; top: 0; width: 356px; height: 104px; overflow: visible; }
+  #obBox path {
+    fill: none; stroke: var(--acc); stroke-width: 4;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
+
+  /* 第二行：实心 chip（scaleX 展开）+ chip 内白字 */
+  .ob-row2 { position: relative; margin-top: 22px; height: 66px; width: 260px; }
+  .ob-chip {
+    position: absolute; inset: 0;
+    background: var(--acc);
+    border-radius: 12px;                /* 小件圆角（design-language §3） */
+    transform-origin: left center;
+  }
+  .ob-chip-txt {
+    position: absolute; left: 26px; top: 13px;
+    font-size: 40px; font-weight: 700; line-height: 1;
+    color: #ffffff; letter-spacing: 2px; white-space: nowrap;
+  }
+
+  /* 三枚 chevron：依次点亮的"往下看"提示 */
+  .ob-chevs { position: absolute; left: 96px; top: 386px; display: flex; gap: 10px; }
+  .ob-chev { width: 26px; height: 34px; }
+  .ob-chev path {
+    fill: none; stroke: var(--acc); stroke-width: 5;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="ob-host"><div class="host-placeholder"></div></div>
+
+    <div class="ob-group">
+      <div class="ob-row1">
+        <div class="txt">核心观点</div>
+        <!-- 描边框：从左上顺时针一圈的圆角矩形路径（起点在上边中偏左，一笔精确闭合） -->
+        <svg id="obBox" viewBox="0 0 356 104">
+          <path id="obBoxPath"
+            d="M 34 2 H 342 A 14 14 0 0 1 354 16 V 88 A 14 14 0 0 1 342 102
+               H 14 A 14 14 0 0 1 2 88 V 16 A 14 14 0 0 1 14 2 Z" />
+        </svg>
+      </div>
+
+      <div class="ob-row2">
+        <div class="ob-chip"></div>
+        <div class="ob-chip-txt">在这里</div>
+      </div>
+    </div>
+
+    <div class="ob-chevs">
+      <svg class="ob-chev" viewBox="0 0 26 34"><path d="M 7 5 L 19 17 L 7 29" /></svg>
+      <svg class="ob-chev" viewBox="0 0 26 34"><path d="M 7 5 L 19 17 L 7 29" /></svg>
+      <svg class="ob-chev" viewBox="0 0 26 34"><path d="M 7 5 L 19 17 L 7 29" /></svg>
+    </div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ─────────────────────────────────────────────────────────────────────
+    // 可摘走的核心动画：描边框标题（框选 → chip 展开 → chevron 点亮）
+    //   ① 描边框沿路径画出：dashoffset 一圈，**power2.inOut**（近匀速）——
+    //      这是"机器画的框选"，和 hand-drawn-ellipse 的手绘椭圆是两种语言：
+    //      不过头、精确闭合、匀速。
+    //   ② 框闭合后实心 chip 从 origin left scaleX 0→1 展开，chip 内白字滞后淡入。
+    //   ③ 三枚 chevron 依次点亮（opacity 0.25→1 + x+4→0，错峰 0.08s）。
+    //   ④ hold：画完静置（不做 line boil / 定格抖动）。
+    // ─────────────────────────────────────────────────────────────────────
+    const CONFIG = {
+      lead: 0.4,          // 起手静置 s
+      boxDur: 0.42,       // 描边框画一圈的时长 s（power2.inOut = 机器感）
+      chipDur: 0.2,       // chip scaleX 展开时长 s
+      chipGap: 0.04,      // chip 相对框闭合的延迟 s（几乎接上，别留空拍）
+      chipTxtLag: 0.1,    // chip 内白字相对 chip 的滞后 s
+      chevDur: 0.16,      // 单枚 chevron 点亮时长 s
+      chevStagger: 0.08,  // chevron 之间的错峰 s
+      chevDim: 0.25,      // chevron 起始 opacity（不是 0——它们本来"在那儿"，只是暗）
+      chevSlide: 4,       // chevron 点亮时的 x 位移 px
+      hold: 1.6,          // 收尾停留 s
+    };
+
+    DemoShell.register(({ speed }) => {
+      const box = document.getElementById("obBoxPath");
+      const chip = document.querySelector(".ob-chip");
+      const chipTxt = document.querySelector(".ob-chip-txt");
+      const chevs = [...document.querySelectorAll(".ob-chev")];
+      const len = box.getTotalLength();
+
+      // 重播语义：全部复位
+      gsap.set(box, { attr: { "stroke-dasharray": len, "stroke-dashoffset": len } });
+      gsap.set(chip, { scaleX: 0 });
+      gsap.set(chipTxt, { opacity: 0 });
+      gsap.set(chevs, { opacity: CONFIG.chevDim, x: CONFIG.chevSlide });
+
+      const t = gsap.timeline();
+      t.timeScale(speed);
+
+      const t0 = CONFIG.lead;
+      // ① 框选：一笔画一圈，近匀速
+      t.to(box, { attr: { "stroke-dashoffset": 0 }, duration: CONFIG.boxDur, ease: "power2.inOut" }, t0);
+
+      // ② chip 展开 + 白字滞后
+      const chipAt = t0 + CONFIG.boxDur + CONFIG.chipGap;
+      t.to(chip, { scaleX: 1, duration: CONFIG.chipDur, ease: "power3.out" }, chipAt)
+       .to(chipTxt, { opacity: 1, duration: 0.16, ease: "power1.out" }, chipAt + CONFIG.chipTxtLag);
+
+      // ③ chevron 依次点亮
+      const chevAt = chipAt + CONFIG.chipDur + 0.06;
+      chevs.forEach((c, i) => {
+        t.to(c, { opacity: 1, x: 0, duration: CONFIG.chevDur, ease: "power2.out" },
+             chevAt + i * CONFIG.chevStagger);
+      });
+
+      // ④ 收尾静置
+      t.to({}, { duration: CONFIG.hold },
+           chevAt + 2 * CONFIG.chevStagger + CONFIG.chevDur);
+    });
+  </script>
+</body>
+</html>

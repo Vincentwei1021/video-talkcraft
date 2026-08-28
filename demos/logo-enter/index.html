@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>logo-enter · Logo 登场</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* 演示语境（不属于动效）：整幕只有品牌标 —— 收尾/片头的落幕画面。
+     ★ logo 是灰阶几何占位标（CSS/SVG 画）：应用时替换成自己的 logo。 */
+  .lockup {
+    position: absolute;
+    left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    gap: 26px;
+  }
+  /* 圆牌：源码的 badge 规格（直径 118 + 5px 描环 + 深投影）换算到本库白底：
+     深底上的白环靠亮度分层，白底上要改成浅灰环 + 轻投影，否则环消失、投影糊成脏斑 */
+  .badge {
+    width: 118px; height: 118px;
+    border-radius: 50%;
+    border: 5px solid #ececef;
+    background: #f5f5f7;
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.10);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0;
+  }
+  .badge svg { width: 52%; height: 52%; display: block; }   /* 源码 diameter × 0.52 */
+
+  /* 字标：两档字重（品牌名重 + 副行轻），全灰阶 */
+  .wordmark { overflow: hidden; }
+  .wordmark .brand {
+    font-size: 46px; font-weight: 800; letter-spacing: 2px;
+    color: #1d1d1f; line-height: 1.15; white-space: nowrap;
+    opacity: 0;
+  }
+  .wordmark .tag {
+    font-size: 17px; font-weight: 500; letter-spacing: 6px;
+    color: #8a8a8a; margin-top: 8px; white-space: nowrap;
+    opacity: 0;
+  }
+  /* 描环：叠在圆牌之上的一圈，用 dashoffset 描出来（收尾那一拍的"合拢"） */
+  .ring {
+    position: absolute;
+    left: 50%; top: 50%;
+    width: 128px; height: 128px;
+    transform: translate(-50%, -50%) rotate(-90deg);   /* 12 点起笔 */
+    pointer-events: none;
+  }
+  .ring circle { fill: none; stroke: #1d1d1f; stroke-width: 2; }
+  .badge-wrap { position: relative; display: flex; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="lockup">
+      <div class="badge-wrap">
+        <div class="badge">
+          <!-- 灰阶几何占位标（三角 + 方 + 圆的组合）：应用时整段替换成自己的 logo -->
+          <svg viewBox="0 0 100 100">
+            <path d="M50 8 L92 78 L8 78 Z" fill="#1d1d1f"/>
+            <circle cx="50" cy="62" r="17" fill="#f5f5f7"/>
+          </svg>
+        </div>
+        <svg class="ring" viewBox="0 0 128 128">
+          <circle cx="64" cy="64" r="62"/>
+        </svg>
+      </div>
+      <div class="wordmark">
+        <div class="brand">知远研究所</div>
+        <div class="tag">每周一期 · 独立商业观察</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ─────────────────────────────────────────────────────────────────────────
+    // 可摘走的核心动画：Logo 登场（三拍收尾）
+    //   源码 logo-enter 的编排是"一串圆牌 spring 错峰弹入"，单个圆牌的三件事同一条 spring 驱动：
+    //     opacity 0→1 · scale 0.5→1 · translateY 22px→0
+    //   spring(damping 13, stiffness 130, mass 0.8) @30fps ≈ 0.60s 落定、过冲约 4%
+    //   —— GSAP 无 spring，用 back.out(1.1) 等价（过冲量对齐，不是随手挑的弹跳）
+    //   本卡把"一串同级圆牌"换成品牌收尾的标准编排（源码 stagger 7 帧 = 0.233s 沿用为拍距）：
+    //     ① 圆牌弹入（spring 等价，唯一带过冲的一拍）
+    //     ② 字标从圆牌一侧推出：clip 揭开 + x 位移，两档字重错峰 0.233s
+    //     ③ 描环合拢一圈收尾（dashoffset 全长→0），画完静置
+    //   收尾必须克制：全片唯一不许抢戏的一拍，所以只有第①拍有过冲，②③都是纯缓出
+    // ─────────────────────────────────────────────────────────────────────────
+    const CONFIG = {
+      lead: 0.35,          // 起手静置：等口播说到"我是…"
+      badgeDur: 0.60,      // 圆牌弹入时长 s（源码 spring 落定 ≈18 帧 ÷30）
+      badgeFrom: 0.5,      // 起始缩放（源码 interpolate(s,[0,1],[0.5,1])）
+      badgeRise: 22,       // 起始下沉 px（源码 offset 22→0）
+      badgeEase: "back.out(1.1)",   // spring(13/130/0.8) 的过冲等价物（约 +4%）
+      stagger: 0.233,      // 拍距 s（源码 stagger 7 帧 ÷30）
+      wordDur: 0.45,       // 字标推出时长
+      wordShift: 20,       // 字标横向推出距离 px
+      ringDur: 0.70,       // 描环合拢时长
+      hold: 1.30,          // 收尾定格：落定的 lockup 就是终帧
+    };
+
+    DemoShell.register(({ speed }) => {
+      const badge = document.querySelector(".badge");
+      const brand = document.querySelector(".brand");
+      const tag = document.querySelector(".tag");
+      const ring = document.querySelector(".ring circle");
+      const C = CONFIG;
+
+      // 初态（重播语义：每次从头摆好，之后只有 to 在跑）
+      gsap.set(badge, { opacity: 0, scale: C.badgeFrom, y: C.badgeRise });
+      gsap.set([brand, tag], { opacity: 0, x: -C.wordShift });
+      // 描环的 dash 长度取周长 + 3px：恰等于周长时首尾在起笔点留一道亚像素白缝
+      //   （1080p 下一眼可见）。多给 3px 让末端压过起笔点，缝就没了
+      const len = ring.getTotalLength() + 3;
+      gsap.set(ring, { attr: { "stroke-dasharray": len, "stroke-dashoffset": len } });
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // ① 圆牌：三件事同一条曲线（等价于源码的同一个 spring 值驱动三个属性）
+      tl.to(badge, { opacity: 1, scale: 1, y: 0,
+                     duration: C.badgeDur, ease: C.badgeEase }, C.lead);
+
+      // ② 字标：从圆牌一侧推出，两档字重错峰一拍。纯缓出——不给字加过冲（会抢圆牌那一拍）
+      tl.to(brand, { opacity: 1, x: 0, duration: C.wordDur, ease: "power3.out" },
+            C.lead + C.stagger)
+        .to(tag, { opacity: 1, x: 0, duration: C.wordDur, ease: "power3.out" },
+            C.lead + C.stagger * 2);
+
+      // ③ 描环合拢：起笔快、收笔缓（合拢那一下要"停住"，不是匀速转完）
+      tl.to(ring, { attr: { "stroke-dashoffset": 0 },
+                    duration: C.ringDur, ease: "power2.inOut" },
+            C.lead + C.stagger);
+
+      tl.to({}, { duration: C.hold });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>line-by-line-slide · 逐行滑入</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* 演示语境（不属于动效）：这是一张**纯文字卡**（2026-08-25 用户定版）——不放主持人。
+     整屏交给这一叠要点，人物占位会把注意力从"一行一行滑进来"这个动作上分走。
+     这些行本身是本卡的动效对象（字幕花字类），所以字保留。 */
+
+  /* 动效本体所在的块：整叠在舞台正中，但**行与行仍是左对齐**（源码 textAlign:left——
+     逐行滑入靠共享左端才读作"一叠"，居中对齐会让每行的左端各自不同，滑入方向感散掉）。
+     纯文字整屏后左端不再由人物列决定：外层 flex 把整叠居中，内层文本块收缩到内容宽度
+     并保持左对齐 —— 视觉上居中、机制上仍是一条共享左端。 */
+  .lbl-block {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .lbl-text {
+    display: inline-block;        /* 收缩到最长行的宽度，共享左端由此成立 */
+    text-align: left;
+    font-size: 60px;              /* 纯文字整屏：从"让开人物一列"的 46px 放大到 60px
+                                     （本卡横向位移恒为字号 78%，见 CONFIG.distance） */
+    font-weight: 600;
+    line-height: 1.35;            /* 源码 1.1 是拉丁字母值；中文字面高，1.1 会让行与行粘住 */
+    color: #171717;               /* 源码墨色，不是纯黑 */
+    letter-spacing: -0.03em;      /* 源码值 */
+  }
+  /* 每一行：唯一被 transform 的元素（block + 左端为轴，位移只走横向） */
+  .lbl-row {
+    display: block;
+    transform-origin: 0% 50%;
+    white-space: nowrap;
+    will-change: transform, opacity;
+  }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="lbl-block"><span class="lbl-text" id="lblText"></span></div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ─────────────────────────────────────────────────────────────────────────
+    // 可摘走的核心动画：逐行滑入（remocn LineByLineSlide 忠实搬运，30fps → 秒）
+    //   入场：每行从左侧 36px 外滑到位，位移 0.47s、淡入 0.90s（位移先停、淡入后停），
+    //         行间错峰 0.133s（=4 帧，恰好读作"一行一行"而不是整块）。
+    //   出场：整叠从同一侧穿出去——淡出 0.60s 立刻起，横向位移延迟 0.27s 才动、
+    //         往右 +36px（进从左、出向右 = 穿过式，不是倒放），出场错峰只有入场的一半（0.067s）。
+    //   入场缓动是缓出（0.22,1,0.36,1）、出场缓动是缓入（0.64,0,0.78,0）——一进一出方向相反。
+    // ─────────────────────────────────────────────────────────────────────────
+    const CONFIG = {
+      lead: 0.30,          // 起手静置：等口播开口（本库约定，源码从第 0 帧就开始）
+      enterDur: 0.90,      // 每行淡入时长 s（源码 enterDur 27 ÷ 30）
+      enterTravel: 0.4667, // 每行位移时长 s（源码 enterTravel 14 ÷ 30）= enterDur 的 52%
+      enterStagger: 0.1333,// 入场行间错峰 s（源码 enterStagger 4 ÷ 30）
+      hold: 1.40,          // 全叠读完的停留 s（源码里由 durationInFrames 反推 exitStart，
+                           //   本库 demo 无固定总长，改成显式 hold，时序等价）
+      exitDur: 0.60,       // 每行淡出时长 s（源码 exitDur 18 ÷ 30）
+      exitDelay: 0.2667,   // 淡出起 → 横向位移起的延迟 s（源码 exitTravelFrom 8 ÷ 30）
+      exitStagger: 0.0667, // 出场行间错峰 s（源码 exitStagger 2 ÷ 30）= 入场的一半
+      distance: 47,        // 横向位移量 px（比例恒为字号 78%；本 demo 60px ⇒ 47）：入场 −47 → 0，出场 0 → +47
+      // 3~4 行中文要点。行数上限 4：再多则首行早已淡出、"一叠"这个整体读不出来
+      lines: ["第一，把问题写下来", "第二，只留一个变量", "第三，跑最小实验"],
+    };
+
+    // GSAP core 不带 CustomEase：自己解 cubic-bezier 的 x(t)=p 再取 y(t)。
+    // 这个解算器是通用的，别的 demo 可直接抄走。
+    function cubicBezier(x1, y1, x2, y2) {
+      const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx;
+      const cy = 3 * y1, by = 3 * (y2 - y1) - cy, ay = 1 - cy - by;
+      return function (p) {
+        let t = p;
+        for (let i = 0; i < 8; i++) {
+          const e = ((ax * t + bx) * t + cx) * t - p;
+          if (Math.abs(e) < 1e-6) break;
+          const d = (3 * ax * t + 2 * bx) * t + cx;
+          if (Math.abs(d) < 1e-6) break;
+          t -= e / d;
+        }
+        t = Math.max(0, Math.min(1, t));
+        return ((ay * t + by) * t + cy) * t;
+      };
+    }
+    const ENTER_EASE = cubicBezier(0.22, 1, 0.36, 1);    // 缓出：冲进来再长距离缓收
+    const EXIT_EASE  = cubicBezier(0.64, 0, 0.78, 0);    // 缓入：先粘住再加速甩走
+
+    DemoShell.register(({ speed }) => {
+      const host = document.getElementById("lblText");
+      host.innerHTML = "";                        // 重播：整叠从头重建
+
+      const els = CONFIG.lines.map((line) => {
+        const el = document.createElement("span");
+        el.className = "lbl-row";
+        el.textContent = line;
+        host.appendChild(el);
+        return el;
+      });
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // 初态：每行预置在左侧起手位（先摆好，之后只有 to 在跑）
+      gsap.set(els, { opacity: 0, x: -CONFIG.distance });
+
+      // 源码的 exitStart = max(enterEnd, 总长 − exitDur − 错峰)：出场永远不早于入场结束。
+      // 这里显式排在"最后一行入场结束 + hold"之后，两种写法在时序上等价。
+      const enterEnd = CONFIG.lead + CONFIG.enterDur + (els.length - 1) * CONFIG.enterStagger;
+      const exitStart = enterEnd + CONFIG.hold;
+
+      els.forEach((el, i) => {
+        const at = CONFIG.lead + i * CONFIG.enterStagger;
+        // 入场轨① 淡入：走满 enterDur
+        tl.to(el, { opacity: 1, duration: CONFIG.enterDur, ease: ENTER_EASE }, at);
+        // 入场轨② 位移：只占前 enterTravel（位移先停、淡入后停）
+        tl.to(el, { x: 0, duration: CONFIG.enterTravel, ease: ENTER_EASE }, at);
+
+        const out = exitStart + i * CONFIG.exitStagger;
+        // 出场轨① 淡出：立刻起，走满 exitDur
+        tl.to(el, { opacity: 0, duration: CONFIG.exitDur, ease: EXIT_EASE }, out);
+        // 出场轨② 位移：延迟 exitDelay 才动，往右 +distance（跟淡出同时收尾）
+        tl.to(el, {
+          x: CONFIG.distance,
+          duration: CONFIG.exitDur - CONFIG.exitDelay,
+          ease: EXIT_EASE,
+        }, out + CONFIG.exitDelay);
+      });
+    });
+  </script>
+</body>
+</html>

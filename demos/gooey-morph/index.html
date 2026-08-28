@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>gooey-morph · 图块拼入</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* 2026-08-26 用户定版：本卡从「粘液融字」改成**只用原来的前半部分**——
+     俄罗斯方块式 L 形路径把 n 张图拼成一条，拼完即落点。
+     去掉的是后半段 goo 融字（高斯糊 → alpha 阈值收紧 → 湍流位移那三段管线）：
+     那套管线的用途是"色块换形成字"，而现在方块本身就是要展示的内容（图），
+     把图糊掉再收紧只会让图看不清。于是滤镜整套删掉，留下真正值钱的入场机制。 */
+
+  /* 演示语境（不属于动效）：主持人占左一列，图在右侧白区拼起来。
+     47% ≈ 452px：数字人视频渲染宽 427.7px，容器要给足这个宽度人物才能整体站进画里，
+     左右各留 ≥10px 呼吸边（人物不缩小、不截断，整体往中间挪，2026-08-25 定版） */
+  .host-wrap { position: absolute; left: 0; top: 0; bottom: 0; width: 47%; overflow: hidden; }
+
+  /* 图区：人物右侧净白区（宽 509px）。overflow hidden 让图从区外飞进来时不越到人物身上 */
+  .gm-zone {
+    position: absolute;
+    left: 47%; right: 0; top: 0; bottom: 0;
+    overflow: hidden;
+  }
+
+  /* 单张图：白边 + 投影 = "一张实体照片被拼上来"的语义（与 media-pop-in 同一套物质约定）。
+     内容是灰阶假图（占位不属于动效）——山 + 日的极简剪影，一眼读作"这是张图"而不是色块 */
+  .gm-pic {
+    position: absolute;
+    left: 0; top: 0;
+    background: #e9e9ec;
+    border: 4px solid #fff;
+    border-radius: 3px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, .14);
+    overflow: hidden;
+    will-change: transform;
+  }
+  .gm-pic .sun {
+    position: absolute;
+    border-radius: 50%;
+    background: #c9c9ce;
+  }
+  /* 两座山用两个旋转的方块切出斜边——纯 CSS，不引外部素材 */
+  .gm-pic .hill {
+    position: absolute;
+    background: #b4b4bb;
+    transform: rotate(45deg);
+    border-radius: 4px;
+  }
+  .gm-pic .hill.far { background: #cbcbd1; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="host-wrap"><div class="host-placeholder"></div></div>
+    <div class="gm-zone" id="gmZone"></div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ─────────────────────────────────────────────────────────────────────────
+    // 可摘走的核心动画：n 张图俄罗斯方块式拼成一条
+    //   ① 落位按张数自动算：一条横排、整体居中于图区 —— 改 count 就换张数
+    //   ② 每张走 L 形路径：**先横向滑到自己的列，再纵向落进行位**
+    //      （两轴同时走就是斜线飞入，那是普通 fly-in；L 形才读作"方块被吸到位"）
+    //   ③ 起飞时刻故意不按左右顺序 —— 顺序依次到位读作程序循环
+    //   ④ 缓动 cubic-bezier(0.88,0.14,0.12,0.86)：极陡的中段（起手慢、中间猛、收尾稳）
+    // ─────────────────────────────────────────────────────────────────────────
+    const CONFIG = {
+      // —— 张数与尺寸 ——
+      // count 是唯一的"几张图"入口：entryFrom / entryAt 不够长时自动循环取用，
+      // 所以 3 张、5 张、6 张都直接改这一个数字（>6 张单张就小到看不清内容了）
+      count: 4,
+      picW: 106,             // 单张宽的**上限** px：整条装不下时按图区自动等比收窄（见 layout()）
+      picAspect: 0.755,      // 高/宽（4:3 略扁，读作照片而不是方块）——宽收窄时高跟着收
+      gap: 5,                // 张间缝 px：小缝才读作"拼成一条"，>20 就是几张各自摆着
+      sideMargin: 34,        // 整条两侧至少留的余白 px：这条保证末张不会被图区 overflow 切掉
+
+      // —— L 形入场 ——
+      travel: 1.0,           // 单张行程 s：前半程走 x、后半程走 y
+      // 起手位（相对自己落位的 px 偏移）：**x 一律为正 = 全部从图区右外侧进场**。
+      // 不许给负 x —— 图区左边紧挨着人物，从左飞入会横穿人物身上（且被 overflow 切）。
+      // 竖向偏移 ±150 以上才看得出"落进行位"这一下；一半从上、一半从下，避免四张同轨
+      entryFrom: [[300, 190], [430, -180], [360, -195], [500, 175]],
+      entryAt: [0.267, 0, 0.133, 0.433],   // 各张起飞时刻 s（故意不按左右顺序）
+      hold: 1.4,             // 收尾定格：拼好的一条就是本卡的落点
+    };
+
+    // cubic-bezier 解算（GSAP core 不带 CustomEase）：先解 x(t)=p 再取 y(t)
+    function cubicBezier(x1, y1, x2, y2) {
+      const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx;
+      const cy = 3 * y1, by = 3 * (y2 - y1) - cy, ay = 1 - cy - by;
+      return function (p) {
+        let t = p;
+        for (let i = 0; i < 8; i++) {                 // 牛顿迭代：误差 < 1e-5，够用
+          const e = ((ax * t + bx) * t + cx) * t - p;
+          if (Math.abs(e) < 1e-6) break;
+          const d = (3 * ax * t + 2 * bx) * t + cx;
+          if (Math.abs(d) < 1e-6) break;
+          t -= e / d;
+        }
+        t = Math.max(0, Math.min(1, t));
+        return ((ay * t + by) * t + cy) * t;
+      };
+    }
+    const TRAVEL_EASE = cubicBezier(0.88, 0.14, 0.12, 0.86);
+
+    DemoShell.register(({ speed }) => {
+      const C = CONFIG;
+      const zone = document.getElementById("gmZone");
+      zone.innerHTML = "";                             // 重播：整条从头重建
+
+      const zoneW = zone.offsetWidth, zoneH = zone.offsetHeight;
+      // 单张宽：以 picW 为上限，装不下就按图区可用宽等比收窄——
+      // 于是 count 是真正唯一的"几张图"入口，改成 6 张也不会有一张被切掉
+      const avail = zoneW - C.sideMargin * 2 - C.gap * (C.count - 1);
+      const picW = Math.min(C.picW, Math.floor(avail / C.count));
+      const picH = Math.round(picW * C.picAspect);
+      // 落位：一条横排，整体居中于图区（张数变了自动重算，不用手改坐标）
+      const stripW = C.count * picW + (C.count - 1) * C.gap;
+      const restY = (zoneH - picH) / 2;
+      const rest = [];
+      for (let i = 0; i < C.count; i++) {
+        rest.push([(zoneW - stripW) / 2 + i * (picW + C.gap), restY]);
+      }
+
+      // 建 DOM：每张图 = 白边卡 + 灰阶假图内容（日 + 远近两座山）
+      const pics = rest.map(() => {
+        const el = document.createElement("div");
+        el.className = "gm-pic";
+        el.style.width = picW + "px";
+        el.style.height = picH + "px";
+        const d = picW;                                // 内容尺寸随张宽等比，换尺寸不用改
+        el.innerHTML =
+          `<div class="sun" style="width:${d * 0.16}px;height:${d * 0.16}px;` +
+          `right:${d * 0.16}px;top:${d * 0.13}px"></div>` +
+          `<div class="hill far" style="width:${d * 0.5}px;height:${d * 0.5}px;` +
+          `left:${d * 0.42}px;top:${d * 0.42}px"></div>` +
+          `<div class="hill" style="width:${d * 0.56}px;height:${d * 0.56}px;` +
+          `left:${d * 0.04}px;top:${d * 0.46}px"></div>`;
+        zone.appendChild(el);
+        return el;
+      });
+
+      // 初态：全部预置在自己的 L 形起手位（先摆好，之后只有求值在跑）
+      const from = rest.map((r, i) => {
+        const off = C.entryFrom[i % C.entryFrom.length];
+        return [r[0] + off[0], r[1] + off[1]];
+      });
+      const startAt = rest.map((r, i) => C.entryAt[i % C.entryAt.length]);
+
+      // 逐帧求值：位置是 t 的纯函数（seek / 重播 / 慢放全部一致）
+      function frameAt(t) {
+        pics.forEach((el, i) => {
+          const s = from[i], e = rest[i];
+          const local = t - startAt[i];
+          const p = Math.max(0, Math.min(1, local / C.travel));
+          const k = TRAVEL_EASE(p);
+          // L 形：前半程只走 x（k<0.5），后半程只走 y —— 拐点就是"到了自己的列"
+          const kx = Math.min(1, k * 2);
+          const ky = Math.max(0, k * 2 - 1);
+          const x = s[0] + (e[0] - s[0]) * kx;
+          const y = s[1] + (e[1] - s[1]) * ky;
+          el.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0)`;
+        });
+      }
+
+      const lastIn = Math.max(...startAt) + C.travel;
+      const total = lastIn + C.hold;
+
+      const clock = { t: 0 };
+      frameAt(0);
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+      // 一条线性虚拟时钟 tween 驱动全部求值（与 Remotion 的 useCurrentFrame 同构）
+      tl.to(clock, { t: total, duration: total, ease: "none",
+                     onUpdate: () => frameAt(clock.t) });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>ui-flow-theater · 界面流程剧场</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 演示语境（不属于动效）：一套灰阶假「输出设置」面板。
+        开关 / 分段选择 / 滑杆 / 保存按钮各一，全部 CSS 画，零拟真质感。
+        右下角一张成功 toast。控件的**坐标不写在这里**——光标要用同一批坐标，
+        所以落点在 JS 里用 P(el) 运行时反算成命名常量（见 POS）。 —— */
+  #stage { font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; }
+
+  .panel {
+    position: absolute;
+    left: 150px; top: 84px;
+    width: 660px;
+    padding: 26px 30px 24px;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    background: #ffffff;
+    color: #1d1d1f;
+    z-index: 1;
+  }
+
+  /* 区块：入场错峰的最小单位（每个 .blk 各自 blur-in） */
+  .blk { position: relative; }
+
+  .p-title { font-size: 20px; font-weight: 700; letter-spacing: 1px; }
+  .p-sub { margin-top: 5px; font-size: 12.5px; color: #8a8a8a; letter-spacing: .5px; }
+
+  .p-div { height: 1px; background: #ececef; margin: 16px 0 4px; }
+
+  .row {
+    height: 58px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .r-txt b { display: block; font-size: 15px; font-weight: 600; }
+  .r-txt span { display: block; margin-top: 3px; font-size: 12px; color: #8a8a8a; }
+
+  /* 右列所有控件同宽同右边线（220px）——界面看起来是"一套"而不是拼的 */
+  .ctl { width: 220px; flex: 0 0 220px; display: flex; align-items: center; justify-content: flex-end; }
+
+  /* —— 动效目标 1：开关（轨 46×26 / 滑块 20，行程 = 46-20-3*2 = 20px）—— */
+  .tg-track {
+    position: relative;
+    width: 46px; height: 26px;
+    border: 1.5px solid #c8c8cd;
+    border-radius: 13px;
+    background: #ffffff;
+  }
+  .tg-knob {
+    position: absolute; left: 2px; top: 2px;
+    width: 19px; height: 19px;
+    border-radius: 50%;
+    background: #b0b0b5;
+  }
+
+  /* —— 动效目标 2：分段选择（指示器在段间滑动，只动 x）—— */
+  .seg {
+    position: relative;
+    width: 220px; height: 34px;
+    padding: 3px;
+    border: 1px solid #e0e0e0;
+    border-radius: 9px;
+    background: #f7f7f8;
+    display: flex;
+  }
+  .seg-ind {
+    position: absolute; left: 3px; top: 3px;
+    width: 70.6px; height: 26px;      /* = (220 - 2 - 6) / 3 */
+    border-radius: 7px;
+    background: #1d1d1f;
+  }
+  .seg i {
+    position: relative; z-index: 1;
+    flex: 1;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12.5px; font-style: normal; color: #8a8a8a;
+  }
+  .seg i.on { color: #ffffff; }
+
+  /* —— 动效目标 3：滑杆（轨 168 + 读数 44，合计 220）—— */
+  .sld { display: flex; align-items: center; gap: 8px; }
+  .sld-track {
+    position: relative;
+    width: 168px; height: 5px;
+    border-radius: 3px;
+    background: #ececef;
+  }
+  .sld-fill {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: 28%;                        /* 由动效驱动 */
+    border-radius: 3px;
+    background: #1d1d1f;
+  }
+  .sld-thumb {
+    position: absolute; top: 50%;
+    left: 28%;                         /* 由动效驱动（与 fill 共用同一个代理值） */
+    width: 16px; height: 16px;
+    margin: -8px 0 0 -8px;
+    border-radius: 50%;
+    border: 1.5px solid #c8c8cd;
+    background: #ffffff;
+  }
+  .sld-val {
+    width: 44px;
+    text-align: right;
+    font-size: 12.5px; color: #8a8a8a;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* —— 动效目标 4：保存按钮（label ↔ 勾 全部常驻只驱动 opacity，宽度由 label 撑住不跳框）—— */
+  .foot { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-top: 14px; }
+  .btn-ghost {
+    padding: 0 16px; height: 36px;
+    display: flex; align-items: center;
+    border: 1px solid #e0e0e0; border-radius: 8px;
+    font-size: 13px; color: #8a8a8a;
+  }
+  .btn-save {
+    position: relative;
+    padding: 0 20px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 8px;
+    background: #1d1d1f;
+    font-size: 13px; font-weight: 600; color: #ffffff;
+    overflow: hidden;
+  }
+  .bs-label { position: relative; }               /* 留在正常流：它撑住按钮宽度 */
+  .bs-done {                                       /* 绝对定位覆盖：换态时框绝不变 */
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0;
+  }
+  .bs-done svg { width: 18px; height: 18px; display: block; }
+
+  /* —— 动效目标 5：成功 toast（滑入 → 停 → 退）—— */
+  .toast {
+    position: absolute;
+    right: 24px; bottom: 24px;
+    width: 300px;
+    padding: 13px 15px;
+    display: flex; align-items: center; gap: 11px;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    background: #ffffff;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, .10);
+    opacity: 0;
+    z-index: 20;
+    transform-origin: bottom center;
+  }
+  .toast svg { width: 19px; height: 19px; flex: 0 0 auto; display: block; }
+  .toast b { font-size: 13.5px; font-weight: 600; }
+  .toast span { display: block; margin-top: 2px; font-size: 12px; color: #8a8a8a; }
+
+  /* —— 动效本体 —— 光标：与 cursor-actor-demo 同款造型（同一条 path 描两遍：白边层 + 实心层） —— */
+  .ui-cursor {
+    position: absolute; left: 0; top: 0;
+    width: 30px; height: 45px;
+    overflow: visible;
+    transform-origin: 0% 0%;    /* 锚在箭头尖：按压微缩不让尖端移位 */
+    z-index: 30;
+    pointer-events: none;
+    filter: drop-shadow(0 2px 5px rgba(0, 0, 0, .28));
+  }
+  .cur-halo {
+    fill: #ffffff; stroke: #ffffff; stroke-width: 2.05;
+    stroke-linejoin: round; stroke-linecap: round;
+  }
+  .cur-body { fill: #1d1d1f; }
+
+  /* 按压涟漪：圆心 = 箭头尖，深芯 + 内外白边（压在刚变深的控件上也读得出） */
+  .click-ripple {
+    position: absolute; left: -15px; top: -15px;
+    width: 30px; height: 30px;
+    box-sizing: border-box;
+    border: 1.7px solid rgba(29, 29, 31, .55);
+    border-radius: 50%;
+    box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .85),
+                inset 0 0 0 1.5px rgba(255, 255, 255, .85);
+    opacity: 0;
+    z-index: 29;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="panel">
+      <div class="blk blk-head">
+        <div class="p-title">输出设置</div>
+        <div class="p-sub">字幕、主题与音量，改完记得保存</div>
+        <div class="p-div"></div>
+      </div>
+
+      <div class="blk row" data-blk="sw">
+        <div class="r-txt"><b>自动生成字幕</b><span>按语音逐句对齐</span></div>
+        <div class="ctl">
+          <div class="tg-track"><div class="tg-knob"></div></div>
+        </div>
+      </div>
+
+      <div class="blk row" data-blk="seg">
+        <div class="r-txt"><b>界面主题</b><span>预览窗与导出封面同步切换</span></div>
+        <div class="ctl">
+          <div class="seg">
+            <div class="seg-ind"></div>
+            <i class="on">浅色</i><i>深色</i><i>跟随</i>
+          </div>
+        </div>
+      </div>
+
+      <div class="blk row" data-blk="sld">
+        <div class="r-txt"><b>输出音量</b><span>混音后的整体电平</span></div>
+        <div class="ctl">
+          <div class="sld">
+            <div class="sld-track">
+              <div class="sld-fill"></div>
+              <div class="sld-thumb"></div>
+            </div>
+            <div class="sld-val">28%</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="blk foot">
+        <div class="btn-ghost">取消</div>
+        <div class="btn-save">
+          <span class="bs-label">保存设置</span>
+          <span class="bs-done">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M5 12.6 L10 17.4 L19 7.2" stroke="#ffffff" stroke-width="2.4"
+                    stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="12" cy="12" r="9.2" stroke="#d8383a" stroke-width="2"/>
+        <path d="M8 12.4 L10.7 15.1 L16.1 9" stroke="#d8383a" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div><b>设置已保存</b><span>下一条视频开始生效</span></div>
+    </div>
+
+    <div class="click-ripple"></div>
+    <svg class="ui-cursor" viewBox="0 0 14 21" aria-hidden="true">
+      <path class="cur-halo" d="M1.25 1.28 L10.63 11.77 Q11.20 12.40 10.35 12.40 L7.85 12.40 Q7.30 12.40 7.43 12.94 L8.83 18.92 Q8.99 19.60 8.35 19.89 L7.79 20.15 Q7.15 20.44 6.92 19.78 L4.90 14.11 Q4.65 13.40 4.10 13.91 L1.66 16.19 Q1.00 16.80 1.00 15.90 L1.00 1.38 Q1.00 1.00 1.25 1.28 Z"/>
+      <path class="cur-body" d="M1.25 1.28 L10.63 11.77 Q11.20 12.40 10.35 12.40 L7.85 12.40 Q7.30 12.40 7.43 12.94 L8.83 18.92 Q8.99 19.60 8.35 19.89 L7.79 20.15 Q7.15 20.44 6.92 19.78 L4.90 14.11 Q4.65 13.40 4.10 13.91 L1.66 16.19 Q1.00 16.80 1.00 15.90 L1.00 1.38 Q1.00 1.00 1.25 1.28 Z"/>
+    </svg>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // —— 动效本体（可整段摘走）——
+    // 整套界面按一条 STEPS 时刻表自演：光标走位 + 控件同拍换态 + 成功 toast 收尾。
+    // 架构纪律（本卡的真正内容）：
+    //   ① 时间只从一处进入 —— STEPS 里的 at 既是光标到位/按下的时刻，也是控件换态的时刻；
+    //      对齐靠**共享同一个常量**，不靠两处手数时间。
+    //   ② 控件坐标是命名常量（POS.xxx，运行时由 P(el) 反算）—— 光标路点只引用名字，
+    //      换布局/换画幅不用改任何一个数字。
+    //   ③ 一个控件只归一个响应函数（RESPOND[name]），响应内部再没有时间参数。
+    const CONFIG = {
+      // 入场
+      cardIn: 0.60,       // 整卡 blur 揭示耗时 s
+      cardBlur: 9,        // 整卡揭示起始模糊 px
+      blkIn: 0.53,        // 卡内区块 blur-in 耗时 s
+      blkBlur: 5,         // 区块揭示起始模糊 px
+      blkStep: 0.20,      // 区块错峰步长 s（每 0.2s 一个）
+      blkLift: 8,         // 区块揭示起始下沉 px
+
+      // 光标
+      moveLong: 0.62,     // 跨区域移动耗时 s
+      moveShort: 0.40,    // 相邻控件之间移动耗时 s
+      hoverHold: 0.20,    // 到位到按下之间的微停顿 s
+      press: 0.09,        // 按压下压时长 s（抬手同值）
+      pressScale: 0.9,    // 按压微缩倍数（锚在箭头尖）
+      ripple: 0.35,       // 涟漪扩散耗时 s
+      rippleFrom: 0.3,    // 涟漪起始倍数
+      rippleTo: 1.6,      // 涟漪终止倍数
+      START: { x: 118, y: 486 },   // 光标起手位（左下空白）
+
+      // 控件换态：全库统一 0.27s + out（press 只给一半）
+      swap: 0.27,
+      // 拖拽段：手柄的值必须与**光标 x 的缓动完全一致**，否则拖动过程中手柄与箭头尖越拖越离
+      dragEase: "power2.inOut",
+      sldFrom: 28,        // 滑杆起始值 %
+      sldTo: 76,          // 滑杆目标值 %
+
+      // toast
+      toastIn: 0.47,      // 滑入耗时 s
+      toastHold: 1.80,    // 停留 s
+      toastOut: 0.47,     // 退场耗时 s
+      toastLift: 16,      // 滑入起始下沉 px
+      accent: "#d8383a",  // 唯一语义色：只上"保存成功"这一拍（toast 图标 + 按钮成功底）
+    };
+
+    // 时刻表：一行一拍。at = 这一拍"按下"的时刻，光标与控件都读它。
+    const STEPS = [
+      { at: 2.10, target: "sw",   act: "click",   move: "long"  },
+      { at: 3.10, target: "seg",  act: "click",   move: "short" },
+      { at: 4.05, target: "sld",  act: "drag",    move: "short", until: 4.95 },
+      { at: 5.90, target: "save", act: "click",   move: "long"  },
+    ];
+
+    DemoShell.register(({ speed }) => {
+      const stage = document.getElementById("stage");
+      const cur = document.querySelector(".ui-cursor");
+      const ripple = document.querySelector(".click-ripple");
+      const panel = document.querySelector(".panel");
+      const blks = Array.prototype.slice.call(document.querySelectorAll(".blk"));
+      const knob = document.querySelector(".tg-knob");
+      const track = document.querySelector(".tg-track");
+      const segInd = document.querySelector(".seg-ind");
+      const segLabels = Array.prototype.slice.call(document.querySelectorAll(".seg i"));
+      const sldFill = document.querySelector(".sld-fill");
+      const sldThumb = document.querySelector(".sld-thumb");
+      const sldTrack = document.querySelector(".sld-track");
+      const sldVal = document.querySelector(".sld-val");
+      const btnSave = document.querySelector(".btn-save");
+      const bsLabel = document.querySelector(".bs-label");
+      const bsDone = document.querySelector(".bs-done");
+      const toast = document.querySelector(".toast");
+
+      // —— 重播语义：所有状态回到"未交互" ——
+      const sld = { p: CONFIG.sldFrom };
+      function renderSld() {
+        sldFill.style.width = sld.p + "%";
+        sldThumb.style.left = sld.p + "%";      // 填充 / 手柄 / 读数共用一个代理值
+        sldVal.textContent = Math.round(sld.p) + "%";
+      }
+      gsap.set(panel, { opacity: 0, filter: "blur(" + CONFIG.cardBlur + "px)" });
+      gsap.set(blks, { opacity: 0, y: CONFIG.blkLift, filter: "blur(" + CONFIG.blkBlur + "px)" });
+      gsap.set(cur, { x: CONFIG.START.x, y: CONFIG.START.y, scale: 1 });
+      gsap.set(ripple, { x: CONFIG.START.x, y: CONFIG.START.y, scale: CONFIG.rippleFrom, opacity: 0 });
+      gsap.set(knob, { x: 0, backgroundColor: "#b0b0b5" });
+      gsap.set(track, { backgroundColor: "#ffffff", borderColor: "#c8c8cd" });
+      gsap.set(segInd, { x: 0 });
+      segLabels.forEach((l, i) => gsap.set(l, { color: i === 0 ? "#ffffff" : "#8a8a8a" }));
+      gsap.set(sldThumb, { scale: 1, borderColor: "#c8c8cd" });
+      sld.p = CONFIG.sldFrom; renderSld();
+      gsap.set(btnSave, { scale: 1, backgroundColor: "#1d1d1f", transformOrigin: "50% 50%" });
+      gsap.set(bsLabel, { opacity: 1 });
+      gsap.set(bsDone, { opacity: 0 });
+      gsap.set(toast, { opacity: 0, y: CONFIG.toastLift, scale: 0.97 });
+
+      // 元素内相对点 → 舞台设计坐标（外壳缩放反算）
+      function P(el, fx, fy) {
+        const s = stage.getBoundingClientRect();
+        const r = el.getBoundingClientRect();
+        const k = stage.offsetWidth / s.width;
+        return { x: (r.left - s.left + r.width * fx) * k, y: (r.top - s.top + r.height * fy) * k };
+      }
+      // 滑杆轨上任意百分比处的舞台坐标（拖拽两端的落点都从这里取）
+      function sldPointAt(p) {
+        const s = stage.getBoundingClientRect();
+        const r = sldTrack.getBoundingClientRect();
+        const k = stage.offsetWidth / s.width;
+        return { x: (r.left - s.left + r.width * (p / 100)) * k, y: (r.top - s.top + r.height / 2) * k };
+      }
+
+      // —— 命名坐标常量：光标路点与控件共用同一批坐标（此刻所有控件都在原位）——
+      const POS = {
+        sw:   P(track, 0.78, 0.42),                 // 落点偏右上：箭头体不盖住滑块行程
+        seg:  P(segLabels[1], 0.5, 0.45),           // 要选的那一段（"深色"）
+        sld:  sldPointAt(CONFIG.sldFrom),           // 手柄起始位
+        sldEnd: sldPointAt(CONFIG.sldTo),           // 手柄目标位
+        save: P(btnSave, 0.5, 0.42),
+      };
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // 入场：整卡 blur 揭示 → 卡内区块每 0.2s 错峰一个
+      tl.to(panel, { opacity: 1, filter: "blur(0px)", duration: CONFIG.cardIn, ease: "power2.out" }, 0);
+      blks.forEach((b, i) => {
+        tl.to(b, { opacity: 1, y: 0, filter: "blur(0px)",
+                   duration: CONFIG.blkIn, ease: "power2.out" },
+              CONFIG.cardIn + i * CONFIG.blkStep);
+      });
+
+      // 移动：x / y 分开插值、用不同缓动 → 轨迹天然成弧线
+      function moveTo(target, p, dur, at) {
+        tl.to(target, { x: p.x, duration: dur, ease: "power2.inOut" }, at)
+          .to(target, { y: p.y, duration: dur, ease: "sine.inOut" }, at);
+      }
+      // 按压：光标微缩 + 从箭头尖扩散一圈涟漪。返回"控件该响应"的时刻（按下中点，不等抬手）
+      function press(at, p) {
+        tl.to(cur, { scale: CONFIG.pressScale, duration: CONFIG.press, ease: "power2.out" }, at)
+          .to(cur, { scale: 1, duration: CONFIG.press, ease: "power2.out" }, at + CONFIG.press);
+        tl.set(ripple, { x: p.x, y: p.y, scale: CONFIG.rippleFrom, opacity: 1 }, at)
+          .to(ripple, { scale: CONFIG.rippleTo, duration: CONFIG.ripple, ease: "power2.out" }, at)
+          .to(ripple, { opacity: 0, duration: CONFIG.ripple, ease: "power2.in" }, at);
+        return at + CONFIG.press * 0.55;
+      }
+      // 按住不放（拖拽起手）：只下压不回弹，涟漪照给
+      function hold(at, p) {
+        tl.to(cur, { scale: CONFIG.pressScale, duration: CONFIG.press, ease: "power2.out" }, at);
+        tl.set(ripple, { x: p.x, y: p.y, scale: CONFIG.rippleFrom, opacity: 1 }, at)
+          .to(ripple, { scale: CONFIG.rippleTo, duration: CONFIG.ripple, ease: "power2.out" }, at)
+          .to(ripple, { opacity: 0, duration: CONFIG.ripple, ease: "power2.in" }, at);
+        return at + CONFIG.press * 0.55;
+      }
+
+      // —— 控件响应：一个控件一个函数，函数内部没有时间参数（时刻全部由 STEPS 传进来）——
+      const RESPOND = {
+        // 开关：滑块滑到另一端 + 轨转深 + 滑块转白
+        sw(t) {
+          tl.to(knob, { x: 20, duration: CONFIG.swap, ease: "power2.out" }, t)
+            .to(knob, { backgroundColor: "#ffffff", duration: CONFIG.swap * 0.6, ease: "power2.out" }, t)
+            .to(track, { backgroundColor: "#1d1d1f", borderColor: "#1d1d1f",
+                         duration: CONFIG.swap * 0.7, ease: "power2.out" }, t);
+        },
+        // 分段选择：指示器滑到第 2 段，两个标签同拍换色（只动 x，不动宽度）
+        seg(t) {
+          tl.to(segInd, { x: segInd.offsetWidth, duration: CONFIG.swap, ease: "power2.out" }, t)
+            .to(segLabels[0], { color: "#8a8a8a", duration: CONFIG.swap * 0.6 }, t)
+            .to(segLabels[1], { color: "#ffffff", duration: CONFIG.swap * 0.6 }, t);
+        },
+        // 滑杆：按下先给手柄一个态，值在拖拽段里实时跟手（onUpdate 同步填充 / 手柄 / 读数）
+        sld(t, step) {
+          tl.to(sldThumb, { scale: 1.12, borderColor: "#8a8a8a",
+                            duration: CONFIG.swap * 0.5, ease: "power2.out" }, t);
+          tl.to(sld, { p: CONFIG.sldTo, duration: step.until - step.at,
+                       ease: CONFIG.dragEase, onUpdate: renderSld }, step.at);
+          tl.to(sldThumb, { scale: 1, borderColor: "#c8c8cd",
+                            duration: CONFIG.swap, ease: "power2.out" }, step.until);
+        },
+        // 保存按钮：按压微缩 → 换成功态（label ↔ 勾 交叉淡化，按钮框不跳）
+        save(t) {
+          tl.to(btnSave, { scale: 0.96, duration: CONFIG.press, ease: "power2.out" }, t - CONFIG.press * 0.55)
+            .to(btnSave, { scale: 1, duration: CONFIG.press * 1.6, ease: "power2.out" }, t + CONFIG.press * 0.45);
+          tl.to(btnSave, { backgroundColor: CONFIG.accent, duration: CONFIG.swap, ease: "power2.out" }, t)
+            .to(bsLabel, { opacity: 0, duration: CONFIG.swap * 0.6, ease: "power2.out" }, t)
+            .to(bsDone, { opacity: 1, duration: CONFIG.swap * 0.8, ease: "power2.out" }, t + CONFIG.swap * 0.25);
+        },
+      };
+
+      // —— 走表：光标与控件读同一批 at ——
+      STEPS.forEach((step) => {
+        const p = POS[step.target];
+        const dur = step.move === "long" ? CONFIG.moveLong : CONFIG.moveShort;
+        // 移动收在 at - hoverHold：到位先停一拍让观众看见"要点这里"，再按下
+        moveTo(cur, p, dur, step.at - CONFIG.hoverHold - dur);
+
+        if (step.act === "drag") {
+          const t = hold(step.at, p);
+          RESPOND[step.target](t, step);
+          // 拖拽：光标与手柄共用同一条曲线同一时长（"抓住了"的因果全靠这个同步）
+          moveTo(cur, POS.sldEnd, step.until - step.at, step.at);
+          tl.to(cur, { scale: 1, duration: CONFIG.press, ease: "power2.out" }, step.until);
+        } else {
+          const t = press(step.at, p);
+          RESPOND[step.target](t, step);
+        }
+      });
+
+      // 收尾 toast：最后一次按下之后约 0.33s 滑入，停 2s，再退场
+      const tToast = STEPS[STEPS.length - 1].at + 0.33;
+      tl.to(toast, { opacity: 1, y: 0, scale: 1, duration: CONFIG.toastIn, ease: "power3.out" }, tToast)
+        .to(toast, { opacity: 0, y: CONFIG.toastLift * 0.6, scale: 0.98,
+                     duration: CONFIG.toastOut, ease: "power2.in" },
+            tToast + CONFIG.toastIn + CONFIG.toastHold);
+    });
+  </script>
+</body>
+</html>

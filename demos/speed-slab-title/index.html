@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>speed-slab-title · 速度块标题</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* 演示语境（不属于动效）：主持人（数字人）占右侧一列口播，标题落在左侧白区。
+     标题本身是本卡的动效对象，所以这些字保留。 */
+  /* 47% ≈ 452px：给 427.7px 宽的数字人留 ≥10px 呼吸（人物不缩小、不截断、整体往中间挪，2026-08-25 定版） */
+  .host-wrap { position: absolute; right: 0; top: 0; bottom: 0; width: 47%; overflow: hidden; }
+
+  .ss-title {
+    position: absolute;
+    left: 84px; top: 50%;
+    transform: translateY(-50%);
+  }
+
+  /* 主标题：黑字整块硬现。transform-origin 取左端——左对齐是构图基线，缩放不许挪走左边缘 */
+  .ss-l1 {
+    font-size: 76px;
+    font-weight: 700;
+    line-height: 1.06;
+    color: #1d1d1f;
+    white-space: nowrap;
+    transform-origin: 0% 50%;
+    will-change: transform, opacity;
+  }
+
+  /* 副题行：外层负责 -3° 静态斜切（写在 CSS 上，GSAP 全程不碰），
+     块与速度线共享这个倾斜 ⇒ 三道线天然与块平行。
+     margin-left 抵掉块的左内边距 ⇒ 副题的**字**与主标题的字左端对齐。
+     margin-top 是净空预算：块斜切 -3° 后**右上角是最高点**，它正好落在主标题末字下方。
+     36px 让块的最高点离主标题字面底还有 14px 净空（12~16px 是甜点区）——
+     14px 时块的右上角会压进主标题末字 7px（用户 2026-08-25 审片反馈）。 */
+  .ss-row {
+    position: relative;
+    margin-top: 36px;
+    margin-left: -20px;
+    transform: rotate(-3deg);
+    transform-origin: 0% 50%;
+    display: inline-block;
+  }
+
+  /* 紫块：唯一被 x 冲入的元素。overflow hidden 是硬要求——
+     副题的字要在块内做"追赶"位移，没有裁切就看不出"字比块慢半拍"。 */
+  .ss-slab {
+    position: relative;
+    display: inline-block;
+    overflow: hidden;
+    padding: 10px 20px 12px;
+    background: #7A5AF8;          /* 本卡唯一强调色（参考图紫系） */
+    border-radius: 4px;
+    will-change: transform;
+  }
+  .ss-slab-t {
+    display: inline-block;
+    font-size: 76px;
+    font-weight: 700;
+    line-height: 1.06;
+    color: #ffffff;
+    white-space: nowrap;
+    will-change: transform;
+  }
+
+  /* 速度拖尾线：从块的左缘往左长出。right:100% 贴住块左缘，
+     transform-origin 取右端 ⇒ scaleX 0→1 就是"往左长" */
+  .ss-lines {
+    position: absolute;
+    right: 100%; top: 0; bottom: 0;
+    width: 60px;
+    pointer-events: none;
+  }
+  .ss-line {
+    position: absolute;
+    right: 6px;
+    height: 7px;
+    border-radius: 4px;
+    background: #7A5AF8;
+    transform-origin: 100% 50%;
+    will-change: transform, opacity;
+  }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="host-wrap"><div class="host-placeholder"></div></div>
+    <div class="ss-title">
+      <div class="ss-l1" id="ssL1">效率不是更快</div>
+      <div class="ss-row">
+        <div class="ss-lines" id="ssLines"></div>
+        <span class="ss-slab" id="ssSlab"><span class="ss-slab-t" id="ssSlabT">而是不做错事</span></span>
+      </div>
+    </div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ─────────────────────────────────────────────────────────────────────────
+    // 可摘走的核心动画：速度块标题
+    //   ① 主标题整块硬现（scale 1.04→1 + opacity，0.18s power3.out）
+    //   ② 紫块从画外 x:-180 冲入到位（0.28s power4.out）
+    //   ③ 到位那一帧三道速度线在块左缘一次性张开（scaleX 0→1，origin right，
+    //      错峰 2 帧，长度 42/30/22px），随后 0.2s 内淡出
+    //   ④ 副题白字随块一起进，但 x 反向补偿 40px ⇒ 块内被裁掉一截，读作"字比块慢半拍"
+    //   命门：速度线是**冲入的残影**，必须在 0.2s 内消失；留在屏上就成装饰。
+    // ─────────────────────────────────────────────────────────────────────────
+    const CONFIG = {
+      lead: 0.40,        // 起手静置：等口播念到主标题
+      l1Dur: 0.18,      // 主标题硬现时长 s
+      l1Scale: 1.04,    // 主标题起始倍数
+      gap: 0.08,        // 主标题落定 → 紫块起冲的间隔 s
+      // 紫块起点 x（**必须完全在画外**）px：判据 = 块静止时的右缘距舞台左缘的距离
+      // ÷ cos(斜切角)。本卡块右缘在 x≈562，-3° 斜切 ⇒ |起点| > 563 才能让右缘出画。
+      // 取 -580（17px 余量）。用户 2026-08-25 审片：-180 时起始帧能看到大半个块。
+      slabFrom: -580,
+      slabDur: 0.28,    // 紫块冲入时长 s（power4.out：起手极猛、尾段极长）
+      lagPx: 40,        // 副题字的反向补偿 px：块内被裁一截 ⇒ "追赶感"
+      lagDur: 0.34,     // 字追上块的时长 s（比块的 0.28s 长 ⇒ 慢半拍）
+      lineLens: [42, 30, 22],  // 三道速度线长度 px（长度不等是"拖尾"的形状来源）
+      lineTops: [0.24, 0.50, 0.76], // 三道线在块高度上的落位比例
+      lineStagger: 0.067,      // 线之间错峰 s（2 帧 @30fps）
+      lineOpen: 0.09,          // 单道线张开时长 s
+      lineFade: 0.20,          // 线淡出时长 s —— 本卡命门，不许放大
+      hold: 1.50,              // 收尾定格
+    };
+
+    DemoShell.register(({ speed }) => {
+      const l1 = document.getElementById("ssL1");
+      const slab = document.getElementById("ssSlab");
+      const slabT = document.getElementById("ssSlabT");
+      const box = document.getElementById("ssLines");
+      box.innerHTML = "";                              // 重播：速度线从头重建
+
+      // 三道线按块高度落位（块高度用 offsetHeight 实测，换字号不用改常量）
+      const h = slab.offsetHeight;
+      const lines = CONFIG.lineLens.map((len, i) => {
+        const el = document.createElement("div");
+        el.className = "ss-line";
+        el.style.width = len + "px";
+        el.style.top = Math.round(CONFIG.lineTops[i] * h - 3.5) + "px";
+        box.appendChild(el);
+        return el;
+      });
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // 初态：全部预置在起手位
+      gsap.set(l1, { opacity: 0, scale: CONFIG.l1Scale });
+      gsap.set(slab, { x: CONFIG.slabFrom });
+      gsap.set(slabT, { x: -CONFIG.lagPx });
+      gsap.set(lines, { scaleX: 0, opacity: 1 });
+
+      // ① 主标题硬现
+      tl.to(l1, { opacity: 1, scale: 1, duration: CONFIG.l1Dur, ease: "power3.out" }, CONFIG.lead);
+
+      // ② 紫块冲入 + ④ 字慢半拍追赶（两条轨同起、字后停）
+      const slabAt = CONFIG.lead + CONFIG.l1Dur + CONFIG.gap;
+      tl.to(slab, { x: 0, duration: CONFIG.slabDur, ease: "power4.out" }, slabAt);
+      tl.to(slabT, { x: 0, duration: CONFIG.lagDur, ease: "power3.out" }, slabAt);
+
+      // ③ 块到位那一帧速度线张开 → 立刻淡出（残影只存在于冲入那一拍）
+      const lineAt = slabAt + CONFIG.slabDur;
+      lines.forEach((el, i) => {
+        const at = lineAt + i * CONFIG.lineStagger;
+        tl.to(el, { scaleX: 1, duration: CONFIG.lineOpen, ease: "power3.out" }, at);
+        tl.to(el, { opacity: 0, duration: CONFIG.lineFade, ease: "power2.in" }, at + CONFIG.lineOpen);
+      });
+
+      tl.to({}, { duration: CONFIG.hold });             // 收尾定格
+    });
+  </script>
+</body>
+</html>

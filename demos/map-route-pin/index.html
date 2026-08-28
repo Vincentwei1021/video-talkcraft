@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>map-route-pin · 地图路线图钉</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 演示语境（不属于动效）：灰阶线框抽象地图 + 主播小窗 + 字幕 ——
+     底色例外：陆地用极浅灰 #f5f5f7、海域留白，"陆/海"必须可区分路线才读得懂（见卡片·底色要求） */
+  #map { position: absolute; inset: 0; display: block; }
+
+  /* 主播 PiP 小窗（真人出镜画中画占位） */
+  .host-pip {
+    position: absolute;
+    left: 18px; bottom: 18px;
+    width: 138px; height: 138px;
+    border-radius: 50%;
+    border: 1px solid #e0e0e0;
+    overflow: hidden;
+    background: #ffffff;
+    z-index: 5;
+  }
+  .host-pip .host-placeholder { border-radius: 50%; }
+
+  /* —— 动效本体 —— 图钉：anchor 定位在城市坐标，内部元素才被 GSAP 动 */
+  .pin-anchor { position: absolute; width: 0; height: 0; z-index: 4; }
+  .pin {
+    position: absolute;
+    left: -13px; bottom: 0;
+    width: 26px; height: 32px;
+    transform-origin: 50% 100%;   /* squash 以钉尖为轴 */
+  }
+  /* 图钉色是本卡语义色（"到达"的视觉重音）：途经点标注色 + 起点区分色 */
+  .pin-head {
+    position: absolute;
+    left: 0; top: 0;
+    width: 26px; height: 26px;
+    background: #d8383a;
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+  }
+  .pin-head::after {              /* 钉帽白芯 */
+    content: "";
+    position: absolute;
+    left: 8px; top: 8px;
+    width: 10px; height: 10px;
+    background: #ffffff;
+    border-radius: 50%;
+  }
+  .pin-anchor.start .pin-head { background: #1d1d1f; }   /* 起点用深色区分：先回答"从哪出发" */
+
+  /* 落地尘圈（砸下时的地面反馈） */
+  .ring {
+    position: absolute;
+    left: -16px; top: -8px;
+    width: 32px; height: 16px;
+    border: 2px solid rgba(29, 29, 31, .55);
+    border-radius: 50%;
+  }
+
+  /* 地名标签：从钉侧滑出 */
+  .pin-label {
+    position: absolute;
+    left: 18px; top: -34px;
+    padding: 3px 10px;
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #1d1d1f;
+    white-space: nowrap;
+  }
+
+  /* 沿路线飞行的线头跟随物（灰阶 SVG 机头，不用彩色 emoji：那是风格不是动效） */
+  .plane {
+    position: absolute;
+    left: 0; top: 0;
+    width: 22px; height: 22px;
+    z-index: 3;
+  }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <!-- 灰阶线框抽象地图底（非真实地图数据）：陆地极浅灰填充 + 灰阶描边 -->
+    <svg id="map" viewBox="0 0 960 540">
+      <defs>
+        <mask id="reveal-1">
+          <path class="route-mask" d="M 430,150 Q 580,170 612,292"
+                fill="none" stroke="#fff" stroke-width="10" stroke-linecap="butt"/>
+        </mask>
+        <mask id="reveal-2">
+          <path class="route-mask" d="M 612,292 Q 622,420 472,458"
+                fill="none" stroke="#fff" stroke-width="10" stroke-linecap="butt"/>
+        </mask>
+      </defs>
+
+      <!-- 经纬网 -->
+      <g stroke="#ececef" stroke-width="1">
+        <path d="M 120,0 V 540 M 240,0 V 540 M 360,0 V 540 M 480,0 V 540 M 600,0 V 540 M 720,0 V 540 M 840,0 V 540"/>
+        <path d="M 0,90 H 960 M 0,180 H 960 M 0,270 H 960 M 0,360 H 960 M 0,450 H 960"/>
+      </g>
+
+      <!-- 大陆板块 + 岛屿 -->
+      <g>
+        <path d="M -20,-20 L 690,-20 C 655,55 705,105 645,168
+                 C 602,214 690,238 648,302
+                 C 615,352 566,342 548,398
+                 C 528,458 480,472 442,560 L -20,560 Z"
+              fill="#f5f5f7" stroke="#d2d2d7" stroke-width="2"/>
+        <ellipse cx="768" cy="196" rx="26" ry="13" fill="#f5f5f7" stroke="#d2d2d7" stroke-width="1.5" transform="rotate(-18 768 196)"/>
+        <ellipse cx="812" cy="392" rx="18" ry="9" fill="#f5f5f7" stroke="#d2d2d7" stroke-width="1.5" transform="rotate(12 812 392)"/>
+        <!-- 内陆虚线省界 -->
+        <path d="M 200,60 C 260,140 210,230 300,300 M 430,-10 C 400,90 470,140 430,150"
+              fill="none" stroke="#d8d8dc" stroke-width="1.2" stroke-dasharray="3 6"/>
+      </g>
+
+      <!-- 城市基点 -->
+      <g fill="#8a8a8a">
+        <circle cx="430" cy="150" r="3.5"/>
+        <circle cx="612" cy="292" r="3.5"/>
+        <circle cx="472" cy="458" r="3.5"/>
+      </g>
+
+      <!-- 两段贝塞尔虚线路线（被 mask 逐渐揭开 = dashoffset 生长）；路线色为语义色 -->
+      <path id="route-1" d="M 430,150 Q 580,170 612,292" mask="url(#reveal-1)"
+            fill="none" stroke="#d8383a" stroke-width="3.5" stroke-dasharray="9 9" stroke-linecap="round"/>
+      <path id="route-2" d="M 612,292 Q 622,420 472,458" mask="url(#reveal-2)"
+            fill="none" stroke="#d8383a" stroke-width="3.5" stroke-dasharray="9 9" stroke-linecap="round"/>
+    </svg>
+
+    <!-- 三枚图钉（anchor 钉在城市坐标，钉尖对准基点） -->
+    <div class="pin-anchor start" style="left:430px; top:150px">
+      <div class="ring"></div>
+      <div class="pin"><div class="pin-head"></div></div>
+      <div class="pin-label">北京 · 总部</div>
+    </div>
+    <div class="pin-anchor" style="left:612px; top:292px">
+      <div class="ring"></div>
+      <div class="pin"><div class="pin-head"></div></div>
+      <div class="pin-label">上海 · 中转仓</div>
+    </div>
+    <div class="pin-anchor" style="left:472px; top:458px">
+      <div class="ring"></div>
+      <div class="pin"><div class="pin-head"></div></div>
+      <div class="pin-label">深圳 · 工厂</div>
+    </div>
+
+    <svg class="plane" viewBox="0 0 24 24" aria-hidden="true">
+      <!-- 机头朝右（0°）：切线角直接用，planeAngle 补正为 0 -->
+      <path d="M 21,12 L 3,4 L 8,12 L 3,20 Z" fill="#1d1d1f"/>
+    </svg>
+
+    <!-- 演示语境：主播小窗 -->
+    <div class="host-pip"><div class="host-placeholder"></div></div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // —— 可摘走的核心动画：复制 CONFIG + register 内部即可复用 ——
+    const CONFIG = {
+      routeGrow: 1.1,          // 单段路线生长时长 s：>1.5 拖节奏，<0.8 看不清走向
+      routeEase: "power1.inOut", // 路线缓动：匀速(none)立刻变 PPT 连接线
+      pinDropFrom: 60,         // 图钉下落高度 px：越大砸感越重，>100 像天降
+      pinDrop: 0.25,           // 下落时长 s，power2.in 加速砸下
+      squashX: 1.3,            // 落地横向压扁倍数
+      squashY: 0.7,            // 落地纵向压扁倍数（一帧级 0.06s）
+      rebound: 0.28,           // 压扁后回弹时长 s
+      labelSlide: 0.2,         // 地名标签侧滑时长 s
+      legPause: 0.4,           // 第二段路线延迟接入的停顿 s（保叙事顺序）
+      planeAngle: 0,           // 线头跟随物相对路径切线的角度补正 deg（本 demo 机头朝右=0°，故为 0）
+    };
+
+    DemoShell.register(({ speed }) => {
+      const routes = [document.getElementById("route-1"), document.getElementById("route-2")];
+      const masks  = document.querySelectorAll(".route-mask");
+      const pins   = document.querySelectorAll(".pin-anchor");
+      const plane  = document.querySelector(".plane");
+
+      // —— 重播语义：每次从头重置全部状态 ——
+      masks.forEach((m) => {
+        // mask 用 butt 线帽：offset=L 时 dash 边界正好落在起点，round 帽会漏出一个点
+        const L = m.getTotalLength() + 2;   // +2 保证走完后盖满整条路线
+        gsap.set(m, { strokeDasharray: L, strokeDashoffset: L });
+      });
+      pins.forEach((p) => {
+        gsap.set(p.querySelector(".pin"),   { y: -CONFIG.pinDropFrom, opacity: 0, scaleX: 1, scaleY: 1 });
+        gsap.set(p.querySelector(".ring"),  { scale: 0.2, opacity: 0 });
+        gsap.set(p.querySelector(".pin-label"), { x: -14, opacity: 0 });
+      });
+      gsap.set(plane, { opacity: 0, x: 430, y: 150 });
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // 图钉从上方砸下：加速下落 → 一帧压扁 → 回弹，标签侧滑
+      function dropPin(i, at) {
+        const pin   = pins[i].querySelector(".pin");
+        const ring  = pins[i].querySelector(".ring");
+        const label = pins[i].querySelector(".pin-label");
+        tl.set(pin, { opacity: 1 }, at)
+          .to(pin, { y: 0, duration: CONFIG.pinDrop, ease: "power2.in" }, at)
+          .to(pin, { scaleY: CONFIG.squashY, scaleX: CONFIG.squashX, duration: 0.06, ease: "power1.in" })
+          .to(pin, { scaleY: 1, scaleX: 1, duration: CONFIG.rebound, ease: "back.out(3)" })
+          .fromTo(ring, { scale: 0.2, opacity: 0.9 },
+                        { scale: 1.6, opacity: 0, duration: 0.45, ease: "power2.out" }, "<-0.05")
+          .to(label, { x: 0, opacity: 1, duration: CONFIG.labelSlide, ease: "power2.out" }, "<");
+      }
+
+      // 路线生长 + 飞机贴着线头飞（getPointAtLength 取点与切线角）
+      function growRoute(i, at) {
+        const route = routes[i];
+        const mask  = masks[i];
+        const L = mask.getTotalLength();
+        const prog = { p: 0 };
+        tl.set(plane, { opacity: 1 }, at)
+          .to(mask, { strokeDashoffset: 0, duration: CONFIG.routeGrow, ease: CONFIG.routeEase }, at)
+          .to(prog, {
+            p: 1, duration: CONFIG.routeGrow, ease: CONFIG.routeEase,
+            onUpdate() {
+              const pt   = route.getPointAtLength(prog.p * L);
+              const next = route.getPointAtLength(Math.min(prog.p * L + 2, L));
+              const deg  = Math.atan2(next.y - pt.y, next.x - pt.x) * 180 / Math.PI;
+              gsap.set(plane, { x: pt.x, y: pt.y, xPercent: -50, yPercent: -50,
+                                rotation: deg + CONFIG.planeAngle });
+            },
+          }, at);
+      }
+
+      dropPin(0, 0.15);                                   // 起点钉先亮：北京
+      growRoute(0, 0.85);                                 // 北京 → 上海
+      dropPin(1, 0.85 + CONFIG.routeGrow);                // 上海落钉
+      const leg2 = 0.85 + CONFIG.routeGrow + 0.6 + CONFIG.legPause;
+      growRoute(1, leg2);                                 // 停顿后第三地接入：上海 → 深圳
+      dropPin(2, leg2 + CONFIG.routeGrow);                // 深圳落钉
+      tl.to(plane, { opacity: 0, scale: 0.4, duration: 0.25, ease: "power2.in" },
+            leg2 + CONFIG.routeGrow + 0.1);
+    });
+  </script>
+</body>
+</html>

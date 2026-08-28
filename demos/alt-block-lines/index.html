@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>alt-block-lines · 双色块对句</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* 演示语境（不属于动效）：主持人（数字人）占右侧一列口播，对句两行落在左侧白区。
+     对句本身是本卡的动效对象，所以这些字保留。 */
+  /* 47% ≈ 452px：给 427.7px 宽的数字人留 ≥10px 呼吸（人物不缩小、不截断、整体往中间挪，2026-08-25 定版） */
+  .host-wrap { position: absolute; right: 0; top: 0; bottom: 0; width: 47%; overflow: hidden; }
+
+  /* —— 动效本体 —— */
+
+  .ab-stack {
+    position: absolute;
+    left: 82px; top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;        /* 块左对齐、宽度各自贴合文字（参考图的构图骨架） */
+    gap: 16px;
+  }
+
+  /* 每行 = 一个块（inline-block，宽度由文字撑出）+ 块内的字。
+     块用 scaleX（origin left）展开，字用 clip-path inset 从右侧收 100%→0 被"刷"出来。
+     两者同曲线同时长、字滞后 2 帧 ⇒ 读作"块的右缘刷过时字跟着显形"，是一个动效不是两个。 */
+  .ab-row {
+    position: relative;
+    display: inline-block;
+    padding: 11px 24px 13px;
+  }
+  .ab-bg {
+    position: absolute;
+    inset: 0;
+    border-radius: 4px;
+    transform-origin: 0% 50%;      /* 从左展开 */
+    will-change: transform;
+  }
+  .ab-t {
+    position: relative;            /* 压在 bg 之上 */
+    display: inline-block;
+    font-size: 66px;
+    font-weight: 700;
+    line-height: 1.08;
+    white-space: nowrap;
+    will-change: clip-path;
+  }
+
+  /* 同结构反色：块1 实色 + 白字；块2 白底 + 黑字 + 1px 灰描边。
+     "对句关系"靠这层反色表达，不靠两种不同的动效 */
+  .ab-row.a .ab-bg { background: #0aa3a3; }             /* 本卡唯一强调色（参考图青系） */
+  .ab-row.a .ab-t  { color: #ffffff; }
+  .ab-row.b .ab-bg { background: #ffffff; box-shadow: inset 0 0 0 1px #d8d8d8; }
+  .ab-row.b .ab-t  { color: #1d1d1f; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="host-wrap"><div class="host-placeholder"></div></div>
+    <div class="ab-stack">
+      <span class="ab-row a">
+        <span class="ab-bg" data-bg></span>
+        <span class="ab-t" data-t>先做减法</span>
+      </span>
+      <span class="ab-row b">
+        <span class="ab-bg" data-bg></span>
+        <span class="ab-t" data-t>再做加法</span>
+      </span>
+    </div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ─────────────────────────────────────────────────────────────────────────
+    // 可摘走的核心动画：双色块对句（块刷出字）
+    //   两行错峰 0.12s，每行两条轨：
+    //     ① 色块 scaleX 0→1（origin left，0.26s power3.out）
+    //     ② 文字 clip-path: inset(0 100% 0 0) → inset(0 0% 0 0)
+    //        同曲线同时长，起点滞后 2 帧（0.067s）⇒ 字始终落在块的右缘之后
+    //   命门：文字必须被块"刷"出来（clip 跟随）。块和字各自淡入 = 两个动效不是一个。
+    // ─────────────────────────────────────────────────────────────────────────
+    const CONFIG = {
+      lead: 0.40,        // 起手静置：等口播念到第一句
+      dur: 0.26,        // 单行展开时长 s（块与字共用）
+      rowStagger: 0.12, // 两行错峰 s（>0.25s 读作两个独立动效）
+      textLag: 0.067,   // 字相对块的滞后 s（2 帧 @30fps）—— 本卡命门
+      hold: 1.80,       // 收尾定格：对句要停久，观众得读完两行才成"对句"
+    };
+
+    DemoShell.register(({ speed }) => {
+      const bgs = Array.from(document.querySelectorAll("[data-bg]"));
+      const txts = Array.from(document.querySelectorAll("[data-t]"));
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // 初态：块收成 0 宽、字被完全裁掉（先摆好，之后只有 to 在跑）
+      gsap.set(bgs, { scaleX: 0 });
+      gsap.set(txts, { clipPath: "inset(0 100% 0 0)" });
+
+      bgs.forEach((bg, i) => {
+        const at = CONFIG.lead + i * CONFIG.rowStagger;
+        // ① 色块从左展开
+        tl.to(bg, { scaleX: 1, duration: CONFIG.dur, ease: "power3.out" }, at);
+        // ② 文字被块的右缘刷出来（同曲线同时长，滞后 2 帧）
+        tl.to(txts[i], {
+          clipPath: "inset(0 0% 0 0)",
+          duration: CONFIG.dur, ease: "power3.out",
+        }, at + CONFIG.textLag);
+      });
+
+      tl.to({}, { duration: CONFIG.hold });     // 收尾定格
+    });
+  </script>
+</body>
+</html>

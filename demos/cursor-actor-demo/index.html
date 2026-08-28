@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>cursor-actor-demo · 光标演员演示</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 演示语境（不属于动效）：一个灰阶线框工具 UI（偏好开关 + 对话框）
+        + 右侧素材库。全部用 CSS/SVG 画，零拟真质感，只为让人看懂"光标作用在什么上"。 —— */
+  .ui-window {
+    position: absolute;
+    left: 56px; top: 48px;
+    width: 560px; height: 386px;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    background: #ffffff;
+    z-index: 1;
+  }
+  .ui-titlebar {
+    height: 36px;
+    display: flex; align-items: center; gap: 6px;
+    padding: 0 14px;
+    border-bottom: 1px solid #ececec;
+    font-size: 12px; color: #8a8a8a;
+  }
+  .ui-titlebar i { width: 9px; height: 9px; border-radius: 50%; background: #d2d2d7; }
+  .ui-titlebar .wname { margin-left: 10px; letter-spacing: 1px; }
+  .ui-body { padding: 20px; }
+  .sec-label {
+    font-size: 12px; color: #8a8a8a; letter-spacing: 2px;
+    margin-bottom: 12px;
+  }
+
+  /* 一行偏好设置 = 一个可被光标点的目标 */
+  .pref-row {
+    position: relative;
+    height: 52px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 12px;
+    border-radius: 8px;
+  }
+  /* 层级中层：响应高亮层（底 UI 之上、文字之下、光标之下） */
+  .pref-row .row-hl {
+    position: absolute; inset: 0;
+    border-radius: 8px;
+    background: #f0f0f0;
+    opacity: 0;
+    z-index: 0;
+  }
+  .pref-row .row-txt { position: relative; z-index: 1; }
+  .pref-row .row-txt b { display: block; font-size: 15.5px; font-weight: 600; color: #1d1d1f; }
+  .pref-row .row-txt span { display: block; font-size: 12px; color: #8a8a8a; margin-top: 3px; }
+
+  /* —— 动效目标之一：开关。轨 44×24、滑块 18，行程 20px（44-18-3*2） —— */
+  .tg { position: relative; z-index: 1; }
+  .tg-track {
+    width: 44px; height: 24px;
+    border: 1.5px solid #c8c8cd;
+    border-radius: 12px;
+    background: #ffffff;
+  }
+  .tg-knob {
+    position: absolute; left: 3px; top: 3px;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: #b0b0b5;
+  }
+
+  .ui-divider { height: 1px; background: #ececec; margin: 18px 0; }
+
+  /* 对话框 + 参考图插槽（拖放落点） */
+  .composer {
+    height: 84px;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    display: flex; align-items: center; gap: 14px;
+    padding: 10px;
+  }
+  .slot {
+    position: relative;
+    width: 88px; height: 62px;
+    flex: 0 0 auto;
+    border: 1.5px dashed #d2d2d7;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: #c8c8cd; font-size: 22px; font-weight: 300;
+  }
+  .composer .ph { font-size: 14px; color: #b0b0b5; }
+
+  /* 素材库 */
+  .tray {
+    position: absolute;
+    left: 664px; top: 108px;
+    width: 236px;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 16px;
+    z-index: 2;              /* 高于窗口：被拖起的缩略图要能飞过窗口 */
+    background: #ffffff;
+  }
+  .tray .sec-label { margin-bottom: 10px; }
+  .tray-grid { display: flex; flex-wrap: wrap; gap: 12px; }
+  /* 被拖走的缩略图留下的空位（拖出后底下露出虚线空槽，网格不塌） */
+  .thumb-hole {
+    position: relative;
+    width: 88px; height: 62px;
+    border: 1.5px dashed #ececef;
+    border-radius: 8px;
+  }
+  .thumb-hole > .thumb { position: absolute; inset: -1.5px; }
+  .thumb {
+    position: relative;
+    width: 88px; height: 62px;
+    border: 1px solid #e6e6e9;
+    border-radius: 8px;
+    background: #f7f7f8;
+    overflow: hidden;
+  }
+  /* 缩略图内容：灰阶线稿（山 + 太阳），不做拟真 */
+  .thumb svg, .slot-img svg { display: block; width: 100%; height: 100%; }
+
+  /* 落进插槽后弹入的缩略图（与素材库缩略图同尺寸，避免飞行中缩放） */
+  .slot-img {
+    position: absolute; inset: -1.5px;
+    border: 1px solid #e6e6e9;
+    border-radius: 8px;
+    background: #f7f7f8;
+    overflow: hidden;
+    opacity: 0;
+  }
+
+  /* —— 动效本体 —— 光标：超常规尺寸的箭头（深墨实心 + 白描边 + 柔投影） —— */
+  .ui-cursor {
+    position: absolute; left: 0; top: 0;
+    width: 30px; height: 45px;
+    overflow: visible;         /* 白描边与投影要能溢出 viewBox */
+    transform-origin: 0% 0%;   /* 锚在箭头尖：按压微缩不让尖端移位 */
+    z-index: 30;               /* 层级顶：光标永远压在一切之上 */
+    pointer-events: none;
+    filter: drop-shadow(0 2px 5px rgba(0, 0, 0, .28));
+  }
+  /* 描边层：同一条 path 先描粗白边（round 关节）→ 实心体压上去，得到均匀 2px 白轮廓 */
+  .cur-halo {
+    fill: #ffffff; stroke: #ffffff; stroke-width: 2.05;
+    stroke-linejoin: round; stroke-linecap: round;
+  }
+  .cur-body { fill: #1d1d1f; }
+
+  /* 按压涟漪：从箭头尖扩散的一圈，给"点下去"一个确认。
+     用与光标同一套"深芯 + 白边"语言（深环两侧各夹一道白），
+     压到开关的深色轨道上也不糊——涟漪常常正好扩过刚变深的控件 */
+  .click-ripple {
+    position: absolute; left: -15px; top: -15px;   /* 负偏移把圆心对到 x/y 坐标 */
+    width: 30px; height: 30px;
+    box-sizing: border-box;
+    border: 1.7px solid rgba(29, 29, 31, .55);
+    border-radius: 50%;
+    box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .85),
+                inset 0 0 0 1.5px rgba(255, 255, 255, .85);
+    opacity: 0;
+    z-index: 29;               /* 压在 UI 之上、光标之下 */
+    pointer-events: none;
+  }
+
+  /* —— 演示语境：角标主持人 —— */
+  .host-badge {
+    position: absolute;
+    left: 44px; top: 442px;
+    width: 84px; height: 84px;
+    border-radius: 50%;
+    border: 1px solid #e0e0e0;
+    overflow: hidden;
+    background: #fff;
+  }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="ui-window">
+      <div class="ui-titlebar"><i></i><i></i><i></i><span class="wname">生成设置</span></div>
+      <div class="ui-body">
+        <div class="sec-label">输出偏好</div>
+
+        <div class="pref-row">
+          <div class="row-hl"></div>
+          <div class="row-txt"><b>自动生成字幕</b><span>按语音逐句对齐</span></div>
+          <div class="tg"><div class="tg-track"></div><div class="tg-knob"></div></div>
+        </div>
+        <div class="pref-row">
+          <div class="row-hl"></div>
+          <div class="row-txt"><b>画面高清增强</b><span>输出 4K，渲染稍慢</span></div>
+          <div class="tg"><div class="tg-track"></div><div class="tg-knob"></div></div>
+        </div>
+        <div class="pref-row">
+          <div class="row-hl"></div>
+          <div class="row-txt"><b>自动配背景音乐</b><span>这次先不要</span></div>
+          <div class="tg"><div class="tg-track"></div><div class="tg-knob"></div></div>
+        </div>
+
+        <div class="ui-divider"></div>
+
+        <div class="composer">
+          <div class="slot">
+            +
+            <div class="slot-img">
+              <svg viewBox="0 0 88 62" aria-hidden="true">
+                <circle cx="64" cy="18" r="7" fill="none" stroke="#c8c8cd" stroke-width="1.5"/>
+                <path d="M8 50 L30 26 L46 44 L57 32 L80 50 Z" fill="none" stroke="#c8c8cd" stroke-width="1.5" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          </div>
+          <div class="ph">描述你想要的画面，或拖一张参考图进来…</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tray">
+      <div class="sec-label">素材库</div>
+      <div class="tray-grid">
+        <div class="thumb">
+          <svg viewBox="0 0 88 62" aria-hidden="true">
+            <rect x="14" y="16" width="60" height="30" rx="4" fill="none" stroke="#c8c8cd" stroke-width="1.5"/>
+            <path d="M14 38 L32 24 L52 40" fill="none" stroke="#c8c8cd" stroke-width="1.5" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="thumb-hole">
+          <div class="thumb pick">
+            <svg viewBox="0 0 88 62" aria-hidden="true">
+              <circle cx="64" cy="18" r="7" fill="none" stroke="#c8c8cd" stroke-width="1.5"/>
+              <path d="M8 50 L30 26 L46 44 L57 32 L80 50 Z" fill="none" stroke="#c8c8cd" stroke-width="1.5" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+        <div class="thumb">
+          <svg viewBox="0 0 88 62" aria-hidden="true">
+            <path d="M12 46 L28 46 L28 20 L44 20 L44 46 L60 46 L60 30 L76 30" fill="none" stroke="#c8c8cd" stroke-width="1.5" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="thumb">
+          <svg viewBox="0 0 88 62" aria-hidden="true">
+            <circle cx="34" cy="24" r="9" fill="none" stroke="#c8c8cd" stroke-width="1.5"/>
+            <path d="M16 48 C24 34, 44 34, 52 48" fill="none" stroke="#c8c8cd" stroke-width="1.5" stroke-linejoin="round"/>
+            <rect x="58" y="18" width="16" height="30" rx="3" fill="none" stroke="#c8c8cd" stroke-width="1.5"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="host-badge"><div class="host-placeholder"></div></div>
+
+    <!-- 动效本体：按压涟漪（圆心 = 箭头尖）+ 光标，尖端 = 元素左上角(0,0) -->
+    <div class="click-ripple"></div>
+    <svg class="ui-cursor" viewBox="0 0 14 21" aria-hidden="true">
+      <!-- 轮廓全程圆角贝塞尔：尖端锐、腰身直、肩与尾跟倒角，缩到 30px 仍读得出是箭头 -->
+      <path class="cur-halo" d="M1.25 1.28 L10.63 11.77 Q11.20 12.40 10.35 12.40 L7.85 12.40 Q7.30 12.40 7.43 12.94 L8.83 18.92 Q8.99 19.60 8.35 19.89 L7.79 20.15 Q7.15 20.44 6.92 19.78 L4.90 14.11 Q4.65 13.40 4.10 13.91 L1.66 16.19 Q1.00 16.80 1.00 15.90 L1.00 1.38 Q1.00 1.00 1.25 1.28 Z"/>
+      <path class="cur-body" d="M1.25 1.28 L10.63 11.77 Q11.20 12.40 10.35 12.40 L7.85 12.40 Q7.30 12.40 7.43 12.94 L8.83 18.92 Q8.99 19.60 8.35 19.89 L7.79 20.15 Q7.15 20.44 6.92 19.78 L4.90 14.11 Q4.65 13.40 4.10 13.91 L1.66 16.19 Q1.00 16.80 1.00 15.90 L1.00 1.38 Q1.00 1.00 1.25 1.28 Z"/>
+    </svg>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // —— 动效本体（可整段摘走）——
+    // 一枚超常规尺寸光标在 UI 上「移动 → 悬停 → 按压 → 元素即时响应」，一个动作一个口播词。
+    const CONFIG = {
+      startDelay: 0.45,   // 起手静置：光标停在角落等口播开口
+      moveLong: 0.52,     // 跨区域移动耗时 s（长距离）
+      moveShort: 0.34,    // 相邻目标之间移动耗时 s
+      moveDrag: 0.62,     // 拖拽移动耗时 s（拖着东西走要更慢更稳）
+      hoverHold: 0.22,    // 悬停微停顿：到位不立刻点，等观众看见"要点这里"
+      press: 0.09,        // 按压下压时长 s（抬手同值）
+      pressScale: 0.9,    // 光标按压微缩倍数（锚在箭头尖）
+      ripple: 0.35,       // 按压涟漪扩散耗时 s
+      rippleFrom: 0.3,    // 涟漪起始倍数（从箭头尖那一点长出来）
+      rippleTo: 1.6,      // 涟漪终止倍数（越大越"响"，>2 抢戏）
+      hlIn: 0.16,         // 悬停高亮加深耗时 s
+      toggleSlide: 0.28,  // 开关滑块行程耗时 s
+      popIn: 0.34,        // 缩略图弹入耗时 s
+      popFrom: 0.4,       // 弹入起始倍数（从光标处长出来）
+      START: { x: 896, y: 468 },  // 光标起手位（舞台设计坐标，右下角空白处）
+    };
+
+    DemoShell.register(({ speed }) => {
+      const stage = document.getElementById("stage");
+      const cur = document.querySelector(".ui-cursor");
+      const ripple = document.querySelector(".click-ripple");
+      const rows = Array.prototype.slice.call(document.querySelectorAll(".pref-row"));
+      const thumb = document.querySelector(".thumb.pick");
+      const slot = document.querySelector(".slot");
+      const slotImg = document.querySelector(".slot-img");
+
+      // 重播语义：所有状态回到"未交互"
+      gsap.set(cur, { x: CONFIG.START.x, y: CONFIG.START.y, scale: 1 });
+      gsap.set(ripple, { x: CONFIG.START.x, y: CONFIG.START.y,
+                         scale: CONFIG.rippleFrom, opacity: 0 });
+      rows.forEach(function (r) {
+        gsap.set(r.querySelector(".row-hl"), { opacity: 0 });
+        gsap.set(r.querySelector(".tg"), { scale: 1, transformOrigin: "50% 50%" });
+        gsap.set(r.querySelector(".tg-track"), { backgroundColor: "#ffffff", borderColor: "#c8c8cd" });
+        gsap.set(r.querySelector(".tg-knob"), { x: 0, backgroundColor: "#b0b0b5" });
+      });
+      gsap.set(thumb, { x: 0, y: 0, scale: 1, opacity: 1, borderColor: "#e6e6e9",
+                        transformOrigin: "50% 50%" });
+      gsap.set(slotImg, { opacity: 0, scale: CONFIG.popFrom, transformOrigin: "34% 30%" });
+
+      // 元素内相对点 → 舞台设计坐标（外壳缩放反算，换布局不用改数字）
+      function P(el, fx, fy) {
+        const s = stage.getBoundingClientRect();
+        const r = el.getBoundingClientRect();
+        const k = stage.offsetWidth / s.width;
+        return { x: (r.left - s.left + r.width * fx) * k, y: (r.top - s.top + r.height * fy) * k };
+      }
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // 移动：x / y 用不同缓动同时插值 → 轨迹自然成弧线（直线平移一眼是程序在推图层）
+      function moveTo(target, p, dur, at) {
+        tl.to(target, { x: p.x, duration: dur, ease: "power2.inOut" }, at)
+          .to(target, { y: p.y, duration: dur, ease: "sine.inOut" }, at);
+      }
+      // 按压：光标微缩 + 从箭头尖扩散一圈涟漪，状态切换在"按下"那一刻就发生（不等抬手）
+      function press(at, p) {
+        tl.to(cur, { scale: CONFIG.pressScale, duration: CONFIG.press, ease: "power2.out" }, at)
+          .to(cur, { scale: 1, duration: CONFIG.press, ease: "power2.out" }, at + CONFIG.press);
+        // 涟漪：圆心贴住此刻的箭头尖，扩散与淡出同时跑完（扩散比按压长，按完还在扩）
+        tl.set(ripple, { x: p.x, y: p.y, scale: CONFIG.rippleFrom, opacity: 1 }, at)
+          .to(ripple, { scale: CONFIG.rippleTo, duration: CONFIG.ripple, ease: "power2.out" }, at)
+          .to(ripple, { opacity: 0, duration: CONFIG.ripple, ease: "power2.in" }, at);
+        return at + CONFIG.press * 0.55;   // 元素响应起点
+      }
+
+      // 目标点先量好（此刻所有元素都在原位）
+      // 落点偏右上（0.82/0.4）：箭头体朝右下伸出，不盖住要被观众读的滑块行程
+      const pTg1 = P(rows[0].querySelector(".tg"), 0.82, 0.4);
+      const pTg2 = P(rows[1].querySelector(".tg"), 0.82, 0.4);
+      const pThumb = P(thumb, 0.42, 0.4);
+      const pSlot = P(slot, 0.34, 0.3);      // 落点 = 插槽内偏左上，弹入原点与它对齐
+
+      let t = CONFIG.startDelay;
+
+      // 动作 1 / 2：点两个开关（移动 → 悬停加深 → 按压 → 滑块滑动 + 轨变深）
+      [[pTg1, rows[0], CONFIG.moveLong], [pTg2, rows[1], CONFIG.moveShort]].forEach(function (a, i) {
+        const p = a[0], row = a[1], dur = a[2];
+        const hl = row.querySelector(".row-hl");
+        moveTo(cur, p, dur, t);
+        t += dur;
+        tl.to(hl, { opacity: 1, duration: CONFIG.hlIn, ease: "power2.out" }, t - CONFIG.hlIn * 0.5);
+        t += CONFIG.hoverHold;
+
+        const tOn = press(t, p);
+        tl.to(row.querySelector(".tg"), { scale: 0.94, duration: CONFIG.press, ease: "power2.out" }, t)
+          .to(row.querySelector(".tg"), { scale: 1, duration: CONFIG.press * 1.6, ease: "power2.out" }, t + CONFIG.press);
+        // 状态切换：滑块滑到右端 + 轨道变深 + 滑块转白
+        tl.to(row.querySelector(".tg-knob"), { x: 20, duration: CONFIG.toggleSlide, ease: "power2.out" }, tOn)
+          .to(row.querySelector(".tg-knob"), { backgroundColor: "#ffffff", duration: CONFIG.toggleSlide * 0.6, ease: "power2.out" }, tOn)
+          .to(row.querySelector(".tg-track"), { backgroundColor: "#1d1d1f", borderColor: "#1d1d1f",
+                                               duration: CONFIG.toggleSlide * 0.7, ease: "power2.out" }, tOn);
+        t += CONFIG.press * 2;
+        // 离开：悬停高亮退回（响应只在光标停留期成立）
+        tl.to(hl, { opacity: 0, duration: 0.2, ease: "power2.out" }, t + 0.1);
+      });
+
+      // 动作 3：移到素材库缩略图，悬停（边框加深）
+      t += 0.1;
+      moveTo(cur, pThumb, CONFIG.moveLong, t);
+      t += CONFIG.moveLong;
+      tl.to(thumb, { borderColor: "#b0b0b5", duration: CONFIG.hlIn, ease: "power2.out" }, t - CONFIG.hlIn * 0.5);
+      t += CONFIG.hoverHold;
+
+      // 动作 4：按住拖起 → 拖进插槽 → 松手，缩略图从光标处弹入
+      const tGrab = press(t, pThumb);
+      tl.to(thumb, { scale: 0.94, duration: CONFIG.press, ease: "power2.out" }, t)
+        .to(thumb, { scale: 1, duration: CONFIG.press * 1.6, ease: "power2.out" }, tGrab + CONFIG.press);
+      t += CONFIG.press * 2;
+
+      const dx = pSlot.x - pThumb.x, dy = pSlot.y - pThumb.y;
+      moveTo(cur, pSlot, CONFIG.moveDrag, t);
+      moveTo(thumb, { x: dx, y: dy }, CONFIG.moveDrag, t);   // 缩略图跟着光标走（同一条曲线）
+      t += CONFIG.moveDrag;
+
+      // 松手：拖影消失，插槽里的缩略图从光标处 pop-in
+      tl.to(thumb, { opacity: 0, duration: 0.12, ease: "power2.out" }, t)
+        .to(slotImg, { opacity: 1, scale: 1, duration: CONFIG.popIn, ease: "power3.out" }, t);
+      // 松手也给一圈涟漪（"放下"同样需要确认感），起点提前一个 press 对齐抬手帧
+      press(t - CONFIG.press, pSlot);
+    });
+  </script>
+</body>
+</html>

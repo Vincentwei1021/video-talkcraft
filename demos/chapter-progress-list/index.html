@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>chapter-progress-list · 章节进度</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* 例外底色：本卡是全库唯一允许深底的列表卡——「章节转场」的语义就是幕间暗场，
+     白底读不出"这是一次转场"。理由见卡片「动效范围 · 底色要求」。 */
+  #stage { background: #1d1d1f; color: #f5f5f7; }
+
+  /* 演示语境（不属于动效）：左侧人物列。深底上把占位底改透明，让 alpha 数字人直接落在暗场里
+     width 448px 给 427.7px 宽的数字人留 ≥10px 呼吸边（人物不缩小、不截断、整体往中间挪，2026-08-25 定版）
+     left 36px：整列再往中间挪一点，把左下角取景角框从袖子边上让开（10px → 30px） */
+  .host-col { position: absolute; left: 36px; bottom: 0; width: 448px; height: 100%; }
+  .host-col .host-placeholder { background: transparent; }
+
+  /* —— 动效本体 —— 四角电影角框（深底模式的取景框，2px 实色，不发光） */
+  .cine-corner {
+    position: absolute;
+    width: 42px; height: 42px;
+    border: 2px solid #d2d2d7;
+    opacity: 0;
+  }
+  .cine-corner.tl { left: 26px;  top: 26px;    border-right: 0; border-bottom: 0; }
+  .cine-corner.tr { right: 26px; top: 26px;    border-left: 0;  border-bottom: 0; }
+  .cine-corner.bl { left: 26px;  bottom: 26px; border-right: 0; border-top: 0; }
+  .cine-corner.br { right: 26px; bottom: 26px; border-left: 0;  border-top: 0; }
+
+  /* —— 动效本体 —— 右侧章节列表 */
+  .ch-list {
+    position: absolute;
+    right: 74px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 400px;
+  }
+  .ch-head {
+    font-size: 13px;
+    letter-spacing: 5px;
+    color: #a1a1a6;            /* dim 实色，不叠 opacity */
+    margin-bottom: 26px;
+    opacity: 0;
+  }
+  .ch-row {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    padding: 11px 0;
+    opacity: 0;
+  }
+  .ch-mark { position: relative; width: 16px; flex: 0 0 16px; align-self: center; }
+  .ch-dot {
+    position: absolute;
+    left: 0; top: 50%;
+    width: 10px; height: 10px;
+    margin-top: -5px;
+    border-radius: 50%;
+    background: #e0452c;       /* 唯一强调色（取参考图①暖色系） */
+    transform: scale(0);
+  }
+  .ch-no {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    font-variant-numeric: tabular-nums;
+    color: #a1a1a6;            /* 未激活 = dim 实色 */
+  }
+  .ch-name {
+    font-size: 23px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: #a1a1a6;            /* 未激活 = dim 实色（要更淡就换更深的底，不动字） */
+    white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="host-col"><div class="host-placeholder"></div></div>
+
+    <div class="cine-corner tl"></div>
+    <div class="cine-corner tr"></div>
+    <div class="cine-corner bl"></div>
+    <div class="cine-corner br"></div>
+
+    <div class="ch-list">
+      <div class="ch-head">CHAPTER</div>
+      <div class="ch-row"><span class="ch-mark"></span><span class="ch-no">01</span><span class="ch-name">先说结论</span></div>
+      <div class="ch-row current"><span class="ch-mark"><span class="ch-dot"></span></span><span class="ch-no">02</span><span class="ch-name">钱是怎么被拿走的</span></div>
+      <div class="ch-row"><span class="ch-mark"></span><span class="ch-no">03</span><span class="ch-name">三个最常见的坑</span></div>
+      <div class="ch-row"><span class="ch-mark"></span><span class="ch-no">04</span><span class="ch-name">你今天能做什么</span></div>
+    </div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // —— 动效本体（可整段摘走）：四行错峰滑入 → 单行升级为"当前章节" → 角框收进来封场 ——
+    const CONFIG = {
+      lead: 0.35,        // 起手静置 s：等口播念到"接下来这一节"
+      rowIn: 0.24,       // 单行滑入耗时 s
+      rowStagger: 0.10,  // 行错峰 s：>0.2 读作四个独立动效，<0.05 读作整块淡入
+      rowShift: 24,      // 行从右侧进入的位移 px
+      hlDelay: 0.06,     // 全部到位 → 高亮之间的呼吸 s（必须留，否则读作"最后一行特殊"）
+      hlDur: 0.20,       // 高亮耗时 s：换色 + 圆点弹出 + 该行再前进
+      hlAdvance: 6,      // 当前行额外前进 px（列表里"站出来一步"）
+      cornerInset: 10,   // 角框向内收的距离 px
+      cornerDur: 0.30,   // 角框入场耗时 s
+      accent: "#e0452c", // 唯一强调色
+      dim: "#a1a1a6",    // 未激活行的 dim 实色（深底模式 ink-muted）
+      hold: 2.0,         // 收尾停留 s：章节表要让人读完四条
+    };
+
+    DemoShell.register(({ speed }) => {
+      const head = document.querySelector(".ch-head");
+      const rows = Array.from(document.querySelectorAll(".ch-row"));
+      const corners = document.querySelectorAll(".cine-corner");
+      const cur = document.querySelector(".ch-row.current");
+      const curNo = cur.querySelector(".ch-no");
+      const curName = cur.querySelector(".ch-name");
+      const dot = cur.querySelector(".ch-dot");
+
+      // 重播语义：每次从头重建（含颜色——高亮是"改属性"，不重置会残留上一轮的红）
+      gsap.set(head, { opacity: 0 });
+      gsap.set(rows, { opacity: 0, x: CONFIG.rowShift });
+      gsap.set([curNo, curName], { color: CONFIG.dim });
+      gsap.set(dot, { scale: 0 });
+      corners.forEach((c) => {
+        const dx = c.classList.contains("tl") || c.classList.contains("bl") ? -CONFIG.cornerInset : CONFIG.cornerInset;
+        const dy = c.classList.contains("tl") || c.classList.contains("tr") ? -CONFIG.cornerInset : CONFIG.cornerInset;
+        gsap.set(c, { opacity: 0, x: dx, y: dy });
+      });
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // ① 章节表从右侧错峰滑入。未激活行一律 dim 实色，opacity 只出现在入场这一段，
+      //    落定后是实色 #a1a1a6——静置态绝不叠透明度（design-language §1 红线）
+      tl.to(head, { opacity: 1, duration: 0.22, ease: "power2.out" }, CONFIG.lead)
+        .to(rows, {
+          opacity: 1, x: 0,
+          duration: CONFIG.rowIn, ease: "power3.out",
+          stagger: CONFIG.rowStagger,
+        }, CONFIG.lead + 0.06);
+
+      // ② 全部到位后才高亮，且只高亮一条：换强调色 + 圆点弹出 + 该行再前进 6px
+      const hlAt = CONFIG.lead + 0.06 + CONFIG.rowStagger * (rows.length - 1) + CONFIG.rowIn + CONFIG.hlDelay;
+      tl.to([curNo, curName], { color: CONFIG.accent, duration: CONFIG.hlDur, ease: "power2.out" }, hlAt)
+        .to(cur, { x: CONFIG.hlAdvance, duration: CONFIG.hlDur, ease: "power3.out" }, hlAt)
+        .to(dot, { scale: 1, duration: CONFIG.hlDur, ease: "back.out(2)" }, hlAt)
+        // ③ 同帧四角角框向内收 + 淡入——"衬"，比高亮慢（0.3s vs 0.2s）不抢戏
+        .to(corners, { opacity: 1, x: 0, y: 0, duration: CONFIG.cornerDur, ease: "power2.out" }, hlAt)
+        // ④ hold：给观众读完四条章节的时间
+        .to({}, { duration: CONFIG.hold }, hlAt + CONFIG.cornerDur);
+    });
+  </script>
+</body>
+</html>

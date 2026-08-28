@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>black-slam-transition · 黑震切转场</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  #stage { overflow: hidden; }
+  /* 入场自带震位 ±9px + 从 1.10 后拉：镜头层做成超出画幅 14%（inset 对称 ⇒ 画面中心不变），
+     震/拉时不漏白边。Remotion 里等价于场景自己的 AbsoluteFill 铺满 */
+  .shot {
+    position: absolute; inset: -14%; display: flex;
+    align-items: center; justify-content: center;
+    will-change: transform, filter, opacity;
+  }
+  /* 镜头里只有式名大字——这是给人认式子用的标签，不是台词字幕 */
+  .shot .big { font-size: 76px; font-weight: 800; color: #8a8a8a;
+    letter-spacing: 3px; white-space: nowrap; }
+  .s1 { background: #ffffff; }
+  .s2 { background: #f1f1f4; }
+
+  /* 转场重音层：白底上白色过曝会被完全吞掉（实测），改成"暗压闪"——全场压暗一拍。
+     深底工程把底色换回白色径向过曝即可，包络不动 */
+  .flash { position: absolute; inset: 0; pointer-events: none; opacity: 0; z-index: 6;
+    background: radial-gradient(ellipse at 50% 46%, rgba(20,20,24,1) 0%, rgba(20,20,24,.55) 45%, rgba(20,20,24,.2) 80%); }
+
+  .tag { position: absolute; left: 24px; top: 20px; font-size: 17px; color: #8a8a8a;
+    border: 1px solid #e0e0e0; border-radius: 999px; padding: 4px 14px; opacity: 0; z-index: 7; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="shot s1"><div class="big">黑震切</div></div>
+    <div class="shot s2"><div class="big">满亮直切</div></div>
+    <div class="flash" id="flash"></div>
+    <div class="tag" id="tag">定格一拍 → 零交叠硬切 · 入场自带震一拍 + 后拉刹住（全片限一次）</div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ─────────────────────────────────────────────────────────────────────────
+    // 可摘走的核心动画：黑震切转场 —— A（慢推 + 末段定格）→ 黑震切 → B（慢漂）
+    // 一式 = 出场相机定格 + 重音冲顶 + 最后 1 帧直接消失（hardOut，零交叠）；
+    //        入场满亮直切且开场自带运动（震一拍 + 从 1.10 后拉刹住）。全片唯一硬切。
+    // Remotion 版：template/motion-systems/transitions.tsx
+    //   出场 shot 不加 CamKey（定格）+ <ShotFade hardOut>；入场 shot lead:0，path 自带起手运动
+    // ─────────────────────────────────────────────────────────────────────────
+    const CONFIG = {
+      hold: 0.80,      // 出场镜停留（前段慢推 + 末段定格）
+      holdEnd: 0.90,   // 入场镜收尾停留
+      slam: {
+        freeze: 0.34,     // 定格时长：全片唯一不动的一拍，是硬切的预备拍
+        punch: 0.12,      // 重音冲顶时长（切点前）
+        peak: 0.34,       // 重音峰值（白底暗压；深底改白色过曝）
+        fall: 0.20,       // 切点后重音回落
+        kick: 0.50,       // 入场后拉刹住时长
+        kickScale: 1.10,  // 入场起手景别（满亮直切时就已经在动）
+        shake: 9,         // 震位幅度 px：三段递减，只在切点一拍发生
+      },
+    };
+
+    DemoShell.register(({ speed }) => {
+      const S = [...document.querySelectorAll(".shot")];   // A, B
+      const flash = document.getElementById("flash");
+      const tag = document.getElementById("tag");
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // ── 初始状态：B 满亮直切进场，起手已经在 1.10（开场自带运动）──
+      gsap.set(S, { opacity: 0, x: 0, y: 0, rotate: 0, scale: 1, filter: "blur(0px)" });
+      gsap.set(S.map((s) => s.querySelector(".big")), { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" });
+      gsap.set(S[0], { opacity: 1 });
+      gsap.set(S[1], { scale: CONFIG.slam.kickScale });
+      gsap.set(flash, { opacity: 0 });
+      gsap.set(tag, { opacity: 0 });
+
+      // 镜头 hold 期：相机永不静止的慢推/慢漂
+      const hold = (el, at, dur, o = {}) =>
+        tl.to(el, { scale: (o.from ?? 1) + (o.push ?? 0.05), x: o.drift ?? 0,
+                    duration: dur, ease: "sine.inOut" }, at);
+
+      // ── 黑震切：出场相机定格 + 重音冲顶，最后 1 帧直接消失（hardOut，零交叠）；
+      //    入场满亮直切且开场自带运动（震一拍 + 后拉刹住）——全片唯一硬切 ──
+      const blackSlam = (out, inn, at) => {
+        const K = CONFIG.slam;
+        const cut = at + K.punch;
+        tl.to(flash, { opacity: K.peak, duration: K.punch, ease: "power3.in" }, at);
+        tl.set(out, { opacity: 0 }, cut);        // hardOut：不淡出，直接消失
+        tl.set(inn, { opacity: 1 }, cut);        // 入场满亮直切
+        tl.to(flash, { opacity: 0, duration: K.fall, ease: "power2.out" }, cut);
+        // 震：切点一拍的三段递减位移（不是定格抖动，只在边界发生一次）
+        tl.set(inn, { x: K.shake }, cut)
+          .to(inn, { x: -K.shake * 0.55, duration: 0.06, ease: "none" }, cut)
+          .to(inn, { x: K.shake * 0.28, duration: 0.06, ease: "none" }, cut + 0.06)
+          .to(inn, { x: 0, duration: 0.08, ease: "power2.out" }, cut + 0.12);
+        tl.to(inn, { scale: 1.0, duration: K.kick, ease: "power4.out" }, cut);
+        return cut + K.kick;
+      };
+
+      // ───────────── 排片：A（慢推 + 定格）→ 黑震切 → B ─────────────
+      let t = 0;
+      tl.to(tag, { opacity: 1, duration: 0.3 }, 0);
+
+      // A 的 hold 只做前段慢推，末段留 freeze —— 定格是黑震切的预备拍
+      hold(S[0], t, CONFIG.hold - CONFIG.slam.freeze, { from: 1.02, push: 0.04 });
+      t += CONFIG.hold;
+      t = blackSlam(S[0], S[1], t);
+      hold(S[1], t, CONFIG.holdEnd, { push: 0.03, drift: 10 });
+    });
+  </script>
+</body>
+</html>

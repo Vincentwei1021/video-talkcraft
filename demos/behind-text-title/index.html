@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>behind-text-title · 人后大字视差</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 三层：背景 → 大字标题 → 前景人物（字从人身后穿出）——
+     中性化：底为白（demo-shell 默认），无渐变/暗角；层级关系才是本卡内容 */
+  /* 3D 艺术字（中性化：立体感全靠灰阶层次）——双层结构：
+     本体扛"挤出侧面 + 落地投影"（浅灰字 + 递进 text-shadow），
+     ::after（同文案，data-text）盖在上面扛"渐变字面"。
+     注意画序：background-clip:text 的字面属于背景层，会被任何伪元素盖住，
+     所以渐变面必须放在"上层伪元素"而不是本体 */
+  .bt-title {
+    position: absolute; z-index: 1;
+    left: 0; right: 0; top: 7%;
+    text-align: center;
+    font-size: 235px;                 /* 屏高 40%+：下缘要被人物吃掉 25%+ 才读得出"在身后" */
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    line-height: 1;
+    opacity: 0;
+    white-space: nowrap;
+    color: #b9b9bf;
+    text-shadow:
+      1px 1px 0 #b2b2b8, 2px 2px 0 #ababb1, 3px 3px 0 #a4a4aa,
+      4px 4px 0 #9d9da3, 5px 5px 0 #96969c, 6px 6px 0 #8f8f95,
+      7px 7px 0 #88888e, 8px 8px 0 #818187, 9px 9px 0 #7a7a80,
+      10px 10px 0 #737379, 11px 11px 0 #6c6c72, 12px 12px 0 #65656b,
+      20px 26px 38px rgba(0, 0, 0, 0.32);
+  }
+  .bt-title::after {
+    content: attr(data-text);
+    position: absolute;
+    left: 0; right: 0; top: 0;
+    background: linear-gradient(180deg, #4a4a50 0%, #1d1d1f 58%, #0c0c0d 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    text-shadow: none;
+  }
+  .bt-sub {
+    position: absolute; z-index: 1;
+    left: 0; right: 0; top: 5.5%;
+    text-align: center;
+    font-size: 16px;
+    letter-spacing: 10px;
+    color: #8a8a8a;
+    opacity: 0;
+  }
+  .bt-host {                          /* 前景人物（实拍中来自抠像）——shell 注入数字人视频，失败退灰阶剪影 */
+    position: absolute; z-index: 2;
+    left: 50%; bottom: 0;
+    width: 470px; height: 430px;   /* 头顶要吃进标题下缘 ≥25%，矮了就是普通标题 */
+    transform: translateX(-50%);
+    background:
+      radial-gradient(ellipse 24% 22% at 50% 12%, #e3e3e6 99%, transparent 100%),
+      radial-gradient(ellipse 50% 62% at 50% 88%, #ececef 99%, transparent 100%);
+  }
+  .bt-host.dh-live { background: none; }
+  .bt-host video.dh-host { height: 100%; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="bt-sub">A DECADE STORY · EP.01</div>
+    <div class="bt-title" data-text="十年之约">十年之约</div>
+    <div class="bt-host" data-dh-host></div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // —— 可摘走的核心动画（复制 CONFIG + register 内部即可复用）——
+    const CONFIG = {
+      titleIn: 0.6,         // 标题升起耗时 s（power3.out）
+      riseFrom: 70,         // 升起起始下沉 px（从人身后升出来；随字号等比加大）
+      trackFrom: "0.14em",  // 字距从松到紧收拢
+      trackTo: "0.02em",
+      driftPx: 4,           // hold 期间标题与人物的反向漂移 ±px
+      driftPeriod: 8,       // 漂移周期 s：快了穿帮，慢了才像"镜头在呼吸"
+      subDelay: 0.35,       // 小字晚于标题出现
+    };
+
+    DemoShell.register(({ speed }) => {
+      const title = document.querySelector(".bt-title");
+      const sub = document.querySelector(".bt-sub");
+      const host = document.querySelector(".bt-host");
+
+      // 重播：动画状态重建
+      gsap.set(title, { opacity: 0, y: CONFIG.riseFrom, x: 0, letterSpacing: CONFIG.trackFrom });
+      gsap.set(sub, { opacity: 0, y: 10 });
+      gsap.set(host, { x: 0 });
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // 标题从人物身后升起 + 字距收拢（下缘被人物剪影遮挡）
+      tl.to(title, { opacity: 1, y: 0, letterSpacing: CONFIG.trackTo,
+                     duration: CONFIG.titleIn, ease: "power3.out" }, 0.4)
+        .to(sub, { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }, 0.4 + CONFIG.subDelay)
+        // hold：标题与人物反向极缓漂移——伪 3D 层次的命门（同向=层次感消失）
+        .to(title, { x: CONFIG.driftPx, duration: CONFIG.driftPeriod / 2,
+                     ease: "sine.inOut", yoyo: true, repeat: -1 }, 0.4 + CONFIG.titleIn)
+        .to(host, { x: -CONFIG.driftPx, duration: CONFIG.driftPeriod / 2,
+                    ease: "sine.inOut", yoyo: true, repeat: -1 }, 0.4 + CONFIG.titleIn);
+    });
+  </script>
+</body>
+</html>

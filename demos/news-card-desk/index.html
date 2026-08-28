@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>news-card-desk · 新闻卡片划重点</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 演示语境（不属于动效）：白底桌面上的灰阶假新闻卡 ——
+     白边 + 投影保留：它们是"素材被摆上桌"这层动效语义的一部分（卡片必须离开背景一层） */
+  .news-card {
+    position: absolute;
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    box-shadow: 0 14px 30px rgba(0, 0, 0, .14);
+    color: #1d1d1f;
+    overflow: hidden;
+    opacity: 0;
+  }
+  .card-a { left: 150px; top: 105px; width: 520px; padding: 24px 30px 26px; }
+  .card-b { left: 520px; top: 235px; width: 330px; padding: 18px 22px 20px; }
+
+  .news-card .masthead {
+    display: flex; justify-content: space-between; align-items: baseline;
+    border-bottom: 2px solid #1d1d1f;
+    padding-bottom: 8px; margin-bottom: 14px;
+  }
+  .news-card .paper { font-size: 20px; font-weight: 800; letter-spacing: 2px; }
+  .news-card .date { font-size: 11px; color: #8a8a8a; }
+  .news-card h2 { font-size: 26px; line-height: 1.4; margin-bottom: 14px; }
+  .card-b h2 { font-size: 18px; margin-bottom: 10px; }
+  .news-card .kw { position: relative; display: inline-block; }
+  /* —— 动效本体 —— 划重点的下划线：语义色（"划"这个动作的唯一强调色） */
+  .news-card .kw .redline {
+    position: absolute; left: -2px; right: -2px; bottom: 1px;
+    height: 5px; background: #d8383a; border-radius: 3px;
+    transform: scaleX(0); transform-origin: left center;
+  }
+  .news-card .gray-line {            /* 正文灰条（假排版占位） */
+    height: 10px; border-radius: 5px; background: #ececef; margin-bottom: 9px;
+  }
+  .news-card .gray-line.short { width: 62%; }
+  .kb-inner { transform-origin: 50% 40%; }   /* Ken Burns 作用层 */
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="news-card card-a" id="cardA"><div class="kb-inner">
+      <div class="masthead"><span class="paper">财经日报</span><span class="date">2026-08-17 · A1 版</span></div>
+      <h2>央行宣布降准 0.5 个百分点，<br>释放长期资金<span class="kw">约 1 万亿元<span class="redline"></span></span></h2>
+      <div class="gray-line"></div>
+      <div class="gray-line"></div>
+      <div class="gray-line short"></div>
+    </div></div>
+    <div class="news-card card-b" id="cardB"><div class="kb-inner">
+      <div class="masthead"><span class="paper" style="font-size:15px;">市场快讯</span><span class="date">10:42</span></div>
+      <h2>股债汇三市齐动，机构：宽松周期确认</h2>
+      <div class="gray-line"></div>
+      <div class="gray-line short"></div>
+    </div></div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // —— 可摘走的核心动画（复制 CONFIG + register 内部即可复用）——
+    const CONFIG = {
+      slideIn: 0.4,       // 卡片上桌耗时 s（power3.out）
+      slideY: 60,         // 上桌起始下沉 px
+      tiltA: -1.5,        // 第一张卡的"摆上桌"歪度 °（直挺挺立在正中一眼假）
+      tiltB: 2,           // 第二张卡歪向另一边
+      redlineAt: 1.0,     // 红线开扫时刻 s（对齐朗读到关键词）
+      redline: 0.3,       // 红线扫过耗时 s
+      cardBAt: 1.9,       // 第二张卡入场时刻 s
+      cardBFrom: 320,     // 第二张卡从右侧进场的 x 位移 px
+      kenburns: 1.04,     // 全程极缓 Ken Burns 终点倍数
+      kbDur: 8,           // Ken Burns 时长 s（快了像镜头晃）
+    };
+
+    DemoShell.register(({ speed }) => {
+      const cardA = document.getElementById("cardA");
+      const cardB = document.getElementById("cardB");
+      const kbs = document.querySelectorAll(".kb-inner");
+      const redline = document.querySelector(".redline");
+
+      // 重播：动画状态重建
+      gsap.set(cardA, { opacity: 0, y: CONFIG.slideY, x: 0, rotate: CONFIG.tiltA });
+      gsap.set(cardB, { opacity: 0, x: CONFIG.cardBFrom, y: 20, rotate: CONFIG.tiltB });
+      gsap.set(kbs, { scale: 1 });
+      gsap.set(redline, { scaleX: 0 });
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // 第一张卡：从下方滑入摆上桌
+      tl.to(cardA, { opacity: 1, y: 0, duration: CONFIG.slideIn, ease: "power3.out" }, 0.1)
+        // 落位即开始极缓 Ken Burns，卡片"活着"但不晃
+        .to(kbs[0], { scale: CONFIG.kenburns, duration: CONFIG.kbDur, ease: "none" }, 0.1 + CONFIG.slideIn)
+        // 红线在标题关键词下扫出——与口播"重点是"同步
+        .to(redline, { scaleX: 1, duration: CONFIG.redline, ease: "power2.out" }, CONFIG.redlineAt)
+        // 第二张卡：从右侧滑入，压在前卡之上（堆叠感）
+        .to(cardB, { opacity: 1, x: 0, y: 0, duration: CONFIG.slideIn, ease: "power3.out" }, CONFIG.cardBAt)
+        .to(kbs[1], { scale: CONFIG.kenburns, duration: CONFIG.kbDur, ease: "none" }, CONFIG.cardBAt + CONFIG.slideIn);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>caret-wipe-transition · 光标擦除转场</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  #stage { overflow: hidden; }
+  /* 两个镜头同位铺满：擦除靠 clipPath 互补裁切，不靠相机推近
+     （本卡没有 scale——它是"边界扫过去"，与六式的相机动量交接是两种东西）。
+     上下各溢出 10px 是给两侧 ±6px 的竖向微反差留的余量（不留会在上下缘漏一线白）；
+     **左右必须严格等于画幅**——clipPath 的 inset(%) 按元素自身宽度算，
+     横向多溢出一点，裁切边界就与按画幅算的光标位置错开几个 px。 */
+  .shot {
+    position: absolute; inset: -10px 0; display: flex;
+    align-items: center; justify-content: center;
+    will-change: clip-path, transform, filter;
+  }
+  /* 镜头里只有式名大字——认式子用的标签，不是台词字幕。
+     两个标签不居中而是各偏一侧：新场景的靠左（最早被露出来的那一带），
+     旧场景的靠右（最后才被吃掉的那一带）——都居中的话两行字会在边界处叠成乱码。 */
+  .shot .big { font-size: 62px; font-weight: 800; color: #8a8a8a;
+    letter-spacing: 3px; white-space: nowrap; z-index: 1; }
+  /* 两镜各自的满幅纹理（灰阶、只为区分"换了一镜"）：
+     擦除边界会停在任意横向位置，光靠居中大字的话中段之后右带就是一片空白，
+     看不出"未到之处还是旧场景"。铺纹理让任何一条竖带都能读出自己属于哪一镜。 */
+  .s1 {                                        /* 旧场景：横线纸 */
+    background: #ffffff;
+    background-image: repeating-linear-gradient(0deg, #ececef 0 1px, transparent 1px 34px);
+    justify-content: flex-end; padding-right: 84px;
+  }
+  .s2 {                                        /* 新场景：点阵 */
+    background: #f1f1f4;
+    background-image: radial-gradient(#d9d9de 1.6px, transparent 1.7px);
+    background-size: 26px 26px;
+    justify-content: flex-start; padding-left: 84px;
+  }
+
+  /* 光标条：3px 实色细条，屏高 50%，骑在擦除边界上。
+     白底舞台禁发光——原版的 box-shadow 光晕在白底上只会糊成一团脏边。 */
+  .caret {
+    position: absolute; top: 25%; height: 50%; width: 3px;
+    background: #1d1d1f; border-radius: 3px;
+    transform: translateX(-50%);
+    opacity: 0; z-index: 8; pointer-events: none;
+    will-change: transform, opacity;
+  }
+
+  .tag { position: absolute; left: 24px; top: 20px; font-size: 17px; color: #8a8a8a;
+    border: 1px solid #e0e0e0; border-radius: 999px; padding: 4px 14px; opacity: 0; z-index: 9; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="shot s1"><div class="big">被退格吃掉</div></div>
+    <div class="shot s2"><div class="big">刚被打出来</div></div>
+    <div class="caret" id="caret"></div>
+    <div class="tag" id="tag">光标即边界：走过之处是新场景 · 未到之处正被吃掉</div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ─────────────────────────────────────────────────────────────────────────
+    // 可摘走的核心动画：光标擦除转场 —— hold A → 光标扫过 → hold B
+    //   一个进度量 x（0→100%）同时驱动三件事：
+    //     新场景 clipPath inset(0 (100−x)% 0 0)  ← 只露光标走过的左带
+    //     旧场景 clipPath inset(0 0 0 x%)        ← 只留光标未到的右带（互补，永无缝）
+    //     光标条 left = x%                        ← 骑在边界上
+    //   两侧微反差是灵魂：新场景 y+3→0 / blur 2→0 沉降解糊（"刚被打出来"）；
+    //                     旧场景 y 0→−6 / blur 0→4 上浮失焦（"正被退格吃掉"）。
+    // ─────────────────────────────────────────────────────────────────────────
+    const CONFIG = {
+      holdA: 0.80,      // 出场镜停留
+      wipe: 1.33,       // 扫完全屏时长 s（≈40 帧 @30fps）
+      holdB: 0.90,      // 入场镜收尾停留
+      caretW: 3,        // 光标条宽 px
+      caretH: 0.5,      // 光标条高 = 屏高比例
+      caretFade: 0.08,  // 两端各多少进度比例内淡入/淡出（防边帧突现）
+      inY: 3,           // 新场景沉降起手 y（+ = 从下方沉上来）
+      inBlur: 2,        // 新场景起手模糊 px
+      outY: -6,         // 旧场景上浮终点 y
+      outBlur: 4,       // 旧场景终点模糊 px
+      dir: "right",     // "right" 从左往右打 / "left" 反向退格
+    };
+
+    // cubic-bezier(0.65,0,0.35,1)：末尾减速，像敲下最后一列
+    function cubicBezier(x1, y1, x2, y2) {
+      const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx;
+      const cy = 3 * y1, by = 3 * (y2 - y1) - cy, ay = 1 - cy - by;
+      return function (p) {
+        let t = p;
+        for (let i = 0; i < 8; i++) {
+          const e = ((ax * t + bx) * t + cx) * t - p;
+          if (Math.abs(e) < 1e-6) break;
+          const d = (3 * ax * t + 2 * bx) * t + cx;
+          if (Math.abs(d) < 1e-6) break;
+          t -= e / d;
+        }
+        t = Math.max(0, Math.min(1, t));
+        return ((ay * t + by) * t + cy) * t;
+      };
+    }
+    const EASE = cubicBezier(0.65, 0, 0.35, 1);
+
+    DemoShell.register(({ speed }) => {
+      const S = [...document.querySelectorAll(".shot")];   // [旧, 新]
+      const caret = document.getElementById("caret");
+      const tag = document.getElementById("tag");
+      const stageW = document.getElementById("stage").offsetWidth;
+      const goingRight = CONFIG.dir === "right";
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // 初态：旧场景全露、新场景全裁掉（宽 0 的一条），光标停在起点
+      const clipOld = (x) => goingRight ? `inset(0 0 0 ${x}%)` : `inset(0 ${100 - x}% 0 0)`;
+      const clipNew = (x) => goingRight ? `inset(0 ${100 - x}% 0 0)` : `inset(0 0 0 ${x}%)`;
+      const x0 = goingRight ? 0 : 100;
+
+      gsap.set(S[0], { clipPath: clipOld(x0), y: 0, filter: "blur(0px)" });
+      gsap.set(S[1], { clipPath: clipNew(x0), y: CONFIG.inY, filter: `blur(${CONFIG.inBlur}px)` });
+      gsap.set(caret, { opacity: 0, width: CONFIG.caretW });
+      caret.style.transform = `translateX(-50%) translateX(${(x0 / 100) * stageW}px)`;
+      gsap.set(tag, { opacity: 0 });
+
+      // ── 一次擦除：进度对象 p.x 驱动裁切与光标，两侧微反差各走自己的曲线 ──
+      const caretWipe = (out, inn, at) => {
+        const p = { x: x0 };
+        tl.to(p, {
+          x: goingRight ? 100 : 0,
+          duration: CONFIG.wipe,
+          ease: EASE,
+          onUpdate() {
+            // 直接写 style，不走 gsap.set —— onUpdate 里 set 会被排到下一个 tick，
+            // 光标与裁切边界差一帧，看上去像"光标追不上擦除线"
+            out.style.clipPath = clipOld(p.x);
+            inn.style.clipPath = clipNew(p.x);
+            caret.style.transform = `translateX(-50%) translateX(${(p.x / 100) * stageW}px)`;
+          },
+        }, at);
+
+        // 新场景：沉降 + 解糊（解糊在 80% 进度前收完，落定那一刻已经是清的）
+        tl.to(inn, { y: 0, duration: CONFIG.wipe, ease: EASE }, at);
+        tl.to(inn, { filter: "blur(0px)", duration: CONFIG.wipe * 0.8, ease: "power1.out" }, at);
+        // 旧场景：上浮 + 失焦（起手延后 10%，让"被吃掉"发生在光标真的开始走之后）
+        tl.to(out, { y: CONFIG.outY, duration: CONFIG.wipe, ease: "none" }, at);
+        tl.to(out, { filter: `blur(${CONFIG.outBlur}px)`, duration: CONFIG.wipe * 0.9, ease: "power1.in" },
+              at + CONFIG.wipe * 0.1);
+
+        // 光标条：两端各 8% 进度淡入淡出——不这么做，扫描的第一帧和最后一帧会"突现/突灭"
+        const fade = CONFIG.wipe * CONFIG.caretFade;
+        tl.to(caret, { opacity: 1, duration: fade, ease: "none" }, at);
+        tl.to(caret, { opacity: 0, duration: fade, ease: "none" }, at + CONFIG.wipe - fade);
+
+        return at + CONFIG.wipe;
+      };
+
+      // ───────────── 排片：hold A → 擦除 → hold B ─────────────
+      let t = 0;
+      tl.to(tag, { opacity: 1, duration: 0.3 }, 0);
+      t += CONFIG.holdA;
+      t = caretWipe(S[0], S[1], t);
+      tl.to({}, { duration: CONFIG.holdB }, t);   // 入场镜定格：新场景已完整
+    });
+  </script>
+</body>
+</html>

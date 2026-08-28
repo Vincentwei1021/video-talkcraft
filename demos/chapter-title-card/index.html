@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>chapter-title-card · 章节标题卡</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 口播语境：主持人讲话 → 色块压入 → 章节卡 → 切回 —— */
+  .chapter-card {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 34px;
+    visibility: hidden;             /* 屏外待命：位置由 GSAP xPercent 控制 */
+  }
+  /* 压屏色块 = 动效本体。颜色收敛成一档中性灰阶序列（墨 → 中灰），
+     复用时这两个值就是品牌色接口，见卡片「动效范围·迁移接口」 */
+  .chapter-card.c1 { background: #1d1d1f; }
+  .chapter-card.c2 { background: #55565a; }
+  .chapter-num {
+    font-family: Georgia, "Songti SC", serif;   /* 超大编号：衬线更有章节感 */
+    font-size: 216px;                            /* 约屏高 40% */
+    font-weight: 700;
+    line-height: 1;
+    color: #ffffff;
+    opacity: 0;
+  }
+  .chapter-text { overflow: hidden; }            /* 章节名遮罩容器 */
+  .chapter-name {
+    font-size: 44px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    color: #ffffff;
+    clip-path: inset(0 100% 0 0);                /* 从左向右揭示 */
+  }
+  .chapter-sub {
+    margin-top: 12px;
+    font-size: 15px;
+    letter-spacing: 6px;
+    color: #ffffff99;
+    opacity: 0;
+  }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="host-placeholder"></div>
+
+    <div class="chapter-card c1">
+      <div class="chapter-num">01</div>
+      <div>
+        <div class="chapter-text"><div class="chapter-name">泡沫是怎么吹起来的</div></div>
+        <div class="chapter-sub">CHAPTER 01 · 2006—2008</div>
+      </div>
+    </div>
+    <div class="chapter-card c2">
+      <div class="chapter-num">02</div>
+      <div>
+        <div class="chapter-text"><div class="chapter-name">谁在最后一刻离场</div></div>
+        <div class="chapter-sub">CHAPTER 02 · 2008.09</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // —— 可摘走的核心动画（复制 CONFIG + register 内部即可复用）——
+    const CONFIG = {
+      wipeIn: 0.3,      // 色块扫入盖屏 s（power4.inOut）
+      numIn: 0.4,       // 编号落位 s（scale 1.3→1）
+      nameIn: 0.35,     // 章节名遮罩揭示 s
+      subDelay: 0.1,    // 小字比章节名再晚一拍
+      hold: 1.2,        // 停留 s（带极缓漂移防呆滞）
+      driftPx: 10,      // hold 期间整组横向漂移量 px
+      wipeOut: 0.3,     // 色块继续向右扫出 s
+      gapBetween: 0.7,  // 两张章节卡之间回到口播的间隔 s
+    };
+
+    // 单张章节卡的完整节拍：压入 → 编号 → 章节名 → 小字 → 漂移 hold → 扫出
+    function chapterBeat(tl, card, at) {
+      const num = card.querySelector(".chapter-num");
+      const name = card.querySelector(".chapter-name");
+      const sub = card.querySelector(".chapter-sub");
+      tl.fromTo(card, { xPercent: -100 }, { xPercent: 0, duration: CONFIG.wipeIn,
+                ease: "power4.inOut", immediateRender: false }, at)
+        // 编号先落位——先立骨架再上名字，层次不塌
+        .fromTo(num, { opacity: 0, scale: 1.3 }, { opacity: 1, scale: 1,
+                duration: CONFIG.numIn, ease: "power3.out", immediateRender: false }, at + CONFIG.wipeIn)
+        // 章节名从编号旁遮罩揭示
+        .fromTo(name, { clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)",
+                duration: CONFIG.nameIn, ease: "power3.out", immediateRender: false }, at + CONFIG.wipeIn + 0.18)
+        .fromTo(sub, { opacity: 0, x: -14 }, { opacity: 1, x: 0, duration: 0.3,
+                immediateRender: false }, at + CONFIG.wipeIn + 0.18 + CONFIG.subDelay)
+        // hold：整组极缓漂移，防"卡帧感"
+        .fromTo([num, name.parentNode.parentNode],
+                { x: 0 }, { x: CONFIG.driftPx, duration: CONFIG.hold + 0.5, ease: "none",
+                immediateRender: false }, at + CONFIG.wipeIn)
+        // 出场：色块继续同方向扫出，露出口播画面
+        .to(card, { xPercent: 100, duration: CONFIG.wipeOut, ease: "power4.in" },
+            at + CONFIG.wipeIn + CONFIG.numIn + CONFIG.nameIn + CONFIG.hold);
+    }
+
+    DemoShell.register(({ speed }) => {
+      const cards = document.querySelectorAll(".chapter-card");
+      // 重播：动画状态重建
+      cards.forEach((card) => {
+        gsap.set(card, { xPercent: -100, visibility: "visible" });
+        gsap.set(card.querySelector(".chapter-num"), { opacity: 0, scale: 1.3, x: 0 });
+        gsap.set(card.querySelector(".chapter-name"), { clipPath: "inset(0 100% 0 0)" });
+        gsap.set(card.querySelector(".chapter-sub"), { opacity: 0, x: 0 });
+        gsap.set(card.querySelector(".chapter-text").parentNode, { x: 0 });
+      });
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      const oneCard = CONFIG.wipeIn + CONFIG.numIn + CONFIG.nameIn + CONFIG.hold + CONFIG.wipeOut;
+      chapterBeat(tl, cards[0], 0.5);                                  // 章节 01
+      chapterBeat(tl, cards[1], 0.5 + oneCard + CONFIG.gapBetween);    // 章节 02
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>scribble-annotation · 手绘圈注箭头</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* 演示语境（不属于动效）：一张被现场圈注的假商品页截图。白底 + 灰阶线框，零风格化 */
+  .shot {
+    position: absolute;
+    left: 130px; top: 55px;
+    width: 700px; height: 430px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 26px 30px;
+    color: #1d1d1f;
+  }
+  /* 注：截图不加倾斜/投影——那是风格；本卡的手作感全部来自 path 形状与描画节奏 */
+  .shot .bar { height: 14px; background: #ececec; border-radius: 7px; margin-bottom: 14px; }
+  .shot h3 { font-size: 24px; font-weight: 700; margin-bottom: 18px; }
+  .shot .price { font-size: 42px; font-weight: 800; margin: 10px 0 22px; }
+  .shot .price small { font-size: 20px; font-weight: 600; color: #8a8a8a; text-decoration: line-through; margin-left: 26px; }
+  .shot .spec { font-size: 17px; line-height: 1.8; color: #8a8a8a; }
+  .shot .fine { font-size: 15px; color: #a6a6a6; margin-top: 10px; }
+  .shot .btn {
+    position: absolute; right: 44px; bottom: 40px;
+    padding: 12px 34px; border-radius: 26px;
+    border: 1px solid #e0e0e0; color: #8a8a8a; font-size: 19px; font-weight: 700;
+  }
+  /* 标注层（动效本体）盖在截图之上 */
+  #inkLayer { position: absolute; inset: 0; pointer-events: none; }
+  #inkLayer path {
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="shot">
+      <div class="bar" style="width: 46%"></div>
+      <h3>「限时特惠」某品牌无线耳机</h3>
+      <div class="price"><span data-ink="price">¥299</span><small>¥899</small></div>
+      <p class="spec">降噪深度 48dB · 续航 36 小时 · 蓝牙 5.4</p>
+      <p class="fine">* <span data-ink="fine">数据来自实验室理想环境，实际效果因人而异</span></p>
+      <div class="btn" data-ink="cta">立即抢购</div>
+    </div>
+    <svg id="inkLayer" viewBox="0 0 960 540"></svg>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // —— 可摘走的核心动画（复制 CONFIG + 下面三段函数 + register 内部即可复用）——
+    // 画完的线保持干净静置：不做 line boil / 定格抖动（用户偏好，见 design-language.md §4）。
+    // 手绘感全部来自 path 形状本身（歪斜的圈/带弧度的线）与起笔快收笔缓的描画节奏。
+    //
+    // ★ 坐标不写死：每笔都绑定到被标注元素（HTML 里打 data-ink="…"），运行时量出目标的
+    //   「墨迹盒」再算 path。改文案/改字号/换素材，圈和线自动跟着走，永远不会偏。
+    const CONFIG = {
+      strokeW: 6,          // 线宽 px：<4 没有笔感
+      startDelay: 0.5,     // 截图先静置半拍
+      gapBetween: 0.55,    // 三个标注之间的间隔 s（对应口播逐条点名）
+      marks: [
+        { // 圈：绕目标墨迹画 1.6 圈的手绘椭圆，起笔快收笔缓
+          kind: "circle", target: "price", color: "#ff4d4d", dur: 0.55, ease: "power2.inOut",
+          // 椭圆半径 = 目标墨迹半宽/半高 + pad。注意椭圆要"外切"一个扁长的字块，
+          // 横向 pad 得比直觉大一档，否则圈的左右腰会切进首末字（在 y=字高处椭圆已收窄）
+          padX: 17, padY: 17,
+          turns: 1.6,           // 绕几圈：>1.5 且首尾错开才有"手画的圈"
+          startAngle: -152,     // 起笔角度（deg，0=右，顺时针）：-152 ≈ 左上角起笔
+          grow: 0.05,           // 每绕一圈半径外扩比例——第二圈落在第一圈外侧，首尾交叉
+          wobble: 4, tilt: -4, seed: 1.7,   // 歪斜量（半径 ±4%）/整体倾角/形状种子
+        },
+        { // 下划线：一笔略带弧度的粗线，压在目标文字 baseline 下方
+          kind: "underline", target: "fine", color: "#ffd23e", dur: 0.4, ease: "power2.out",
+          baselineGap: 4,       // 线心离 baseline 的距离 px（2~6 才像压着字，>10 就飘了）
+          overhang: 9,          // 两端各超出文字多少 px
+          sag: 2.5, tail: 1.5, wobble: 1.2, seed: 3.4,  // 中段下沉/收笔上挑/起伏（tail 太大末端会翘上去压字）
+        },
+        { // 箭头：先杆后头两笔，尖端咬住目标边缘
+          kind: "arrow", target: "cta", color: "#ff4d4d", dur: 0.35, ease: "power2.inOut",
+          headDur: 0.15,
+          side: "left", tipGap: 8,          // 指目标哪条边 / 尖端离边缘 px（5~10 最准）
+          fromDX: -196, fromDY: 34, bow: 26, // 起笔点相对尖端的位移 / 杆的弧度（下凸）
+          headLen: 32, headSpread: 26,       // 箭头两根须的长度 / 张角 deg
+        },
+      ],
+    };
+
+    const svgNS = "http://www.w3.org/2000/svg";
+    const measureCtx = document.createElement("canvas").getContext("2d");
+    const n = (v) => Math.round(v * 10) / 10;
+    // 确定性"手抖"：不用 random，保证每次重播/每次截图形状一致
+    const wob = (t, amp, seed) => amp * (0.62 * Math.sin(t * 3.7 + seed) + 0.38 * Math.sin(t * 9.1 + seed * 2.3));
+
+    // ① 量目标：把 DOM 元素换算到 SVG viewBox（960×540 设计坐标）下的盒子
+    function boxOf(el) {
+      const stage = document.getElementById("stage");
+      const sr = stage.getBoundingClientRect();
+      const k = sr.width / 960;                       // 外壳整体缩放比，量完要除回设计坐标
+      const r = el.getBoundingClientRect();
+      const b = { x: (r.left - sr.left) / k, y: (r.top - sr.top) / k, w: r.width / k, h: r.height / k };
+      b.cx = b.x + b.w / 2; b.cy = b.y + b.h / 2; b.right = b.x + b.w; b.bottom = b.y + b.h;
+      return b;
+    }
+
+    // ② 文字的「墨迹盒」：行盒上下有字体留白，照行盒画圈会偏高、下划线会飘。
+    //    用 canvas measureText 拿真实字形上下沿 + baseline，圈和线才咬得住字。
+    function inkBoxOf(el) {
+      const b = boxOf(el);
+      const cs = getComputedStyle(el);
+      const px = parseFloat(cs.fontSize);
+      measureCtx.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+      const m = measureCtx.measureText(el.textContent.trim());
+      const hasMetrics = m.fontBoundingBoxAscent > 0 && m.actualBoundingBoxAscent > 0;
+      const baseline = b.y + (hasMetrics ? m.fontBoundingBoxAscent : px * 0.88);
+      const top = baseline - (hasMetrics ? m.actualBoundingBoxAscent : px * 0.74);
+      const bottom = baseline + (hasMetrics ? m.actualBoundingBoxDescent : px * 0.06);
+      return { x: b.x, y: top, w: b.w, h: bottom - top, cx: b.cx, cy: (top + bottom) / 2,
+               right: b.right, bottom, baseline };
+    }
+
+    // ③ 采样点串成平滑 path（Catmull-Rom → 三次贝塞尔），比手写 C 指令好改
+    function smooth(pts) {
+      let d = `M ${n(pts[0][0])} ${n(pts[0][1])}`;
+      for (let i = 0; i < pts.length - 1; i++) {
+        const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+        d += ` C ${n(p1[0] + (p2[0] - p0[0]) / 6)} ${n(p1[1] + (p2[1] - p0[1]) / 6)}` +
+             ` ${n(p2[0] - (p3[0] - p1[0]) / 6)} ${n(p2[1] - (p3[1] - p1[1]) / 6)}` +
+             ` ${n(p2[0])} ${n(p2[1])}`;
+      }
+      return d;
+    }
+
+    // 圈：椭圆中心 = 目标墨迹中心，半径 = 半宽/半高 + pad，绕 turns 圈且逐圈外扩
+    function circlePath(box, o) {
+      const rx = box.w / 2 + o.padX, ry = box.h / 2 + o.padY;
+      const a0 = o.startAngle * Math.PI / 180, sweep = Math.PI * 2 * o.turns;
+      const tilt = o.tilt * Math.PI / 180, steps = Math.max(24, Math.round(26 * o.turns));
+      const pts = [];
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps, a = a0 + sweep * t;
+        const r = (1 + o.grow * t) * (1 + wob(a, o.wobble, o.seed) / 100);
+        const x = Math.cos(a) * rx * r, y = Math.sin(a) * ry * r;
+        pts.push([box.cx + x * Math.cos(tilt) - y * Math.sin(tilt),
+                  box.cy + x * Math.sin(tilt) + y * Math.cos(tilt)]);
+      }
+      return smooth(pts);
+    }
+
+    // 下划线：x 从墨迹左端-overhang 到右端+overhang，y = baseline + baselineGap，中段下沉
+    function underlinePath(box, o) {
+      const x0 = box.x - o.overhang, x1 = box.right + o.overhang, y = box.baseline + o.baselineGap;
+      const steps = 10, pts = [];
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        const lift = t > 0.88 ? (t - 0.88) / 0.12 * o.tail : 0;   // 收笔上挑
+        pts.push([x0 + (x1 - x0) * t,
+                  y + Math.sin(Math.PI * t) * o.sag + wob(t * 6, o.wobble, o.seed) - lift]);
+      }
+      return smooth(pts);
+    }
+
+    // 箭头：尖端落在目标某条边外 tipGap px；杆是下凸的三次曲线；箭头须按杆末端切线算，永远朝目标
+    function arrowPaths(box, o) {
+      const tip = { left: [box.x - o.tipGap, box.cy], right: [box.right + o.tipGap, box.cy],
+                    top: [box.cx, box.y - o.tipGap], bottom: [box.cx, box.bottom + o.tipGap] }[o.side];
+      const s = [tip[0] + o.fromDX, tip[1] + o.fromDY];
+      const c1 = [s[0] + (tip[0] - s[0]) * 0.32, s[1] + o.bow];
+      const c2 = [tip[0] - (tip[0] - s[0]) * 0.34, tip[1] + o.bow * 0.55];
+      const shaft = `M ${n(s[0])} ${n(s[1])} C ${n(c1[0])} ${n(c1[1])} ${n(c2[0])} ${n(c2[1])} ${n(tip[0])} ${n(tip[1])}`;
+      // 末端切线（c2→tip）反向 ±headSpread 就是两根须
+      const ang = Math.atan2(tip[1] - c2[1], tip[0] - c2[0]) + Math.PI;
+      const barb = (dev, len) => [n(tip[0] + Math.cos(ang + dev * Math.PI / 180) * len),
+                                  n(tip[1] + Math.sin(ang + dev * Math.PI / 180) * len)];
+      const b1 = barb(o.headSpread, o.headLen), b2 = barb(-o.headSpread - 4, o.headLen - 3);
+      return [shaft, `M ${b1[0]} ${b1[1]} L ${n(tip[0])} ${n(tip[1])} L ${b2[0]} ${b2[1]}`];
+    }
+
+    // 描画一笔：dashoffset 从全长到 0；画完保持静置
+    function drawStroke(tl, layer, { d, color, dur, ease }, at) {
+      const p = document.createElementNS(svgNS, "path");
+      p.setAttribute("d", d);
+      p.setAttribute("stroke", color);
+      p.setAttribute("stroke-width", CONFIG.strokeW);
+      layer.appendChild(p);
+      const len = p.getTotalLength();
+      gsap.set(p, { attr: { "stroke-dasharray": len, "stroke-dashoffset": len } });
+      tl.to(p, { attr: { "stroke-dashoffset": 0 }, duration: dur, ease }, at);
+      return p;
+    }
+
+    DemoShell.register(({ speed }) => {
+      const layer = document.getElementById("inkLayer");
+      layer.innerHTML = "";                           // 重播：清掉上次的墨迹
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      let t = CONFIG.startDelay;
+      CONFIG.marks.forEach((m) => {
+        const el = document.querySelector(`[data-ink="${m.target}"]`);
+        if (!el) return;
+        if (m.kind === "circle") {
+          drawStroke(tl, layer, { d: circlePath(inkBoxOf(el), m), ...m }, t);
+          t += m.dur;
+        } else if (m.kind === "underline") {
+          drawStroke(tl, layer, { d: underlinePath(inkBoxOf(el), m), ...m }, t);
+          t += m.dur;
+        } else {                                      // 箭头：先杆后头两笔
+          const [shaft, head] = arrowPaths(boxOf(el), m);
+          drawStroke(tl, layer, { d: shaft, ...m }, t);
+          t += m.dur;
+          drawStroke(tl, layer, { d: head, color: m.color, dur: m.headDur, ease: "power2.out" }, t);
+          t += m.headDur;
+        }
+        t += CONFIG.gapBetween;
+      });
+    });
+  </script>
+</body>
+</html>

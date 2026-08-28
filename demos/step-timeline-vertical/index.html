@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>step-timeline-vertical · 竖向步骤线</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* 演示语境（不属于动效）：右侧人物列
+     width 448px 给 427.7px 宽的数字人留 ≥10px 呼吸边（人物不缩小、不截断、整体往中间挪，2026-08-25 定版） */
+  .host-col { position: absolute; right: 4px; bottom: 0; width: 448px; height: 100%; }
+
+  /* —— 动效本体 —— 竖向时间轴：一条线 + 三个节点 + 三组文字 */
+  .tl-wrap {
+    position: absolute;
+    left: 132px;
+    top: 118px;
+    width: 420px;          /* 右缘 552px：退到人物可视左缘（570px）之外，文案 nowrap 不受影响 */
+    height: 264px;         /* 线的全长 = 本组的几何基准 */
+  }
+  /* 竖线：唯一"推进"的元素，origin top */
+  .tl-line {
+    position: absolute;
+    left: 0; top: 0;
+    width: 2px; height: 100%;
+    background: #d2d2d7;   /* hairline 档，线是骨架不是重点 */
+    transform: scaleY(0);
+    transform-origin: 50% 0%;
+  }
+  .tl-node {
+    position: absolute;
+    left: -6px;
+    width: 14px; height: 14px;
+    box-sizing: border-box;
+    border-radius: 50%;
+    background: #1d1d1f;
+    border: 0 solid #e0452c;   /* 当前节点升级成空心环时才长出来 */
+    transform: scale(0);
+  }
+  .tl-text {
+    position: absolute;
+    left: 34px;
+    width: 386px;          /* 与 .tl-wrap 同步收窄，右缘 552px */
+  }
+  .tl-kicker {
+    font-size: 14px;
+    letter-spacing: 2px;
+    color: #8a8a8a;        /* dim 实色 */
+    margin-bottom: 4px;
+  }
+  .tl-title {
+    font-size: 25px;
+    font-weight: 600;
+    line-height: 1.25;
+    color: #1d1d1f;
+    white-space: nowrap;
+  }
+  .tl-group { opacity: 0; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="host-col"><div class="host-placeholder"></div></div>
+
+    <div class="tl-wrap">
+      <div class="tl-line"></div>
+
+      <div class="tl-node" data-at="22"></div>
+      <div class="tl-group" data-at="22">
+        <div class="tl-text">
+          <div class="tl-kicker">第一步</div>
+          <div class="tl-title">先把目标写成一句话</div>
+        </div>
+      </div>
+
+      <div class="tl-node" data-at="132"></div>
+      <div class="tl-group" data-at="132">
+        <div class="tl-text">
+          <div class="tl-kicker">第二步</div>
+          <div class="tl-title">砍掉两件不做的事</div>
+        </div>
+      </div>
+
+      <div class="tl-node" data-at="242"></div>
+      <div class="tl-group" data-at="242">
+        <div class="tl-text">
+          <div class="tl-kicker">第三步</div>
+          <div class="tl-title">今天就动第一步</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // —— 动效本体（可整段摘走）：线往下推进，推到哪个节点就点亮哪个 → 当前节点升级空心环 ——
+    const CONFIG = {
+      lead: 0.4,          // 起手静置 s
+      lineDur: 0.6,       // 竖线画出总耗时 s（origin top 的 scaleY 0→1）
+      // 线的缓动决定节点的间隔：inOut 越强，中段走得越快、三个节点就挤在一起。
+      // power2.inOut @0.4s 实测三点只差 0.18s（读作同时亮），power1.inOut @0.6s ⇒ 每 0.175s 一个，
+      // 才读得出"线到哪、亮哪"。要更强的 inOut 就必须同步加长 lineDur。
+      lineEase: "power1.inOut",
+      nodePop: 0.18,      // 节点弹出耗时 s
+      nodeEase: "back.out(1.6)", // 节点是"打上一个点"，允许极轻回弹
+      textDur: 0.26,      // 右侧两行文字淡入耗时 s
+      textLag: 0.067,     // 文字滞后节点 2 帧（@30fps）——点先亮、字后跟
+      textShift: 8,       // 文字从左侧进入的位移 px
+      ringDelay: 0.10,    // 三组全到位 → 当前节点升级 的呼吸 s
+      ringDur: 0.22,      // 升级耗时 s：border 0→3px + scale 1→1.25
+      ringWidth: 3,       // 空心环描边宽 px
+      ringScale: 1.25,    // 空心环放大倍数
+      accent: "#e0452c",  // 唯一强调色（参考图①红）
+      hold: 2.0,          // 收尾停留 s
+    };
+
+    DemoShell.register(({ speed }) => {
+      const line = document.querySelector(".tl-line");
+      const nodes = Array.from(document.querySelectorAll(".tl-node"));
+      const groups = Array.from(document.querySelectorAll(".tl-group"));
+      const wrapH = document.querySelector(".tl-wrap").offsetHeight;
+
+      // 关键：把"线推到某个 y"换算成时间——用缓动函数的反函数（二分），
+      // 节点才真的是"线到哪、亮哪"，而不是拍脑袋写死几个 delay
+      const ease = gsap.parseEase(CONFIG.lineEase);
+      const timeAtProgress = (p) => {
+        let lo = 0, hi = 1;
+        for (let i = 0; i < 40; i++) {
+          const m = (lo + hi) / 2;
+          if (ease(m) < p) lo = m; else hi = m;
+        }
+        return (lo + hi) / 2;
+      };
+
+      // 重播语义：全部复位（含 border/scale——升级是"改属性"，不重置会残留上一轮的环）
+      gsap.set(line, { scaleY: 0 });
+      nodes.forEach((n, i) => {
+        n.style.top = (parseFloat(n.dataset.at) - 7) + "px";
+        gsap.set(n, { scale: 0, borderWidth: 0, backgroundColor: "#1d1d1f" });
+      });
+      groups.forEach((g) => {
+        g.querySelector(".tl-text").style.top = (parseFloat(g.dataset.at) - 26) + "px";
+        gsap.set(g, { opacity: 0, x: -CONFIG.textShift });
+      });
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // ① 竖线从上往下画出
+      tl.to(line, { scaleY: 1, duration: CONFIG.lineDur, ease: CONFIG.lineEase }, CONFIG.lead);
+
+      // ② 线经过节点 → 该节点弹出 → 2 帧后右侧两行字跟上
+      let lastEnd = CONFIG.lead + CONFIG.lineDur;
+      nodes.forEach((n, i) => {
+        const frac = parseFloat(n.dataset.at) / wrapH;
+        const at = CONFIG.lead + CONFIG.lineDur * timeAtProgress(frac);
+        tl.to(n, { scale: 1, duration: CONFIG.nodePop, ease: CONFIG.nodeEase }, at)
+          .to(groups[i], {
+            opacity: 1, x: 0,
+            duration: CONFIG.textDur, ease: "power3.out",
+          }, at + CONFIG.textLag);
+        lastEnd = Math.max(lastEnd, at + CONFIG.textLag + CONFIG.textDur);
+      });
+
+      // ③ 全部到位后，当前节点（第一个）升级为强调色空心环
+      const ringAt = lastEnd + CONFIG.ringDelay;
+      tl.to(nodes[0], {
+        borderWidth: CONFIG.ringWidth,
+        backgroundColor: "#ffffff",
+        scale: CONFIG.ringScale,
+        duration: CONFIG.ringDur, ease: "power3.out",
+      }, ringAt)
+        // ④ hold：三步要读完
+        .to({}, { duration: CONFIG.hold }, ringAt + CONFIG.ringDur);
+    });
+  </script>
+</body>
+</html>

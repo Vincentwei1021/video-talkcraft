@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>ink-underline · 墨迹下划线</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* 演示语境（不属于动效）：主持人占左一列，右侧是口播正在念的一句话。
+     字是被标注的对象（不是动效本体），所以用最朴素的黑字灰阶排版。 */
+  /* 47% ≈ 452px：数字人视频渲染宽 427.7px，容器要给足这个宽度人物才能整体站进画里，
+     左右各留 ≥10px 呼吸边（人物不缩小、不截断，整体往中间挪，2026-08-25 定版） */
+  .host-wrap { position: absolute; left: 0; top: 0; bottom: 0; width: 47%; overflow: hidden; }
+
+  /* 句子起点让位给挪进来的人物：人物可见像素右缘约 x=391，正文从 420 起（留 29px 呼吸） */
+  .say {
+    position: absolute;
+    left: 420px; right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #1d1d1f;
+  }
+  .say-line {
+    font-size: 30px;
+    line-height: 1.95;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  /* 被画线的关键词只加字重，不加颜色——颜色是墨迹的事（同屏只有一个语义色） */
+  .say-line b { font-weight: 700; }
+
+  /* 墨迹层（动效本体）盖在文字之上。ribbon 是填充路径不是描边路径，
+     所以这里不设 stroke——变宽是靠 path 自己的两条边算出来的。 */
+  #inkLayer { position: absolute; inset: 0; pointer-events: none; }
+  #inkLayer path { stroke: none; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="host-wrap"><div class="host-placeholder"></div></div>
+    <div class="say">
+      <div class="say-line">很多人以为这轮涨价是因为<b data-ink="wrong">成本上涨</b>，</div>
+      <div class="say-line">其实真正的变量是<b data-ink="right">渠道结构</b>。</div>
+    </div>
+    <svg id="inkLayer" viewBox="0 0 960 540"></svg>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ─────────────────────────────────────────────────────────────────────────
+    // 可摘走的核心动画：墨迹下划线（变宽缎带 + 沿脊线生长）
+    //   ① spine：一条三次贝塞尔脊线，两个控制点上下反向偏 wobble px —— 弧度就是手作感
+    //   ② ribbon：沿脊线逐点求法线，按 taper（起笔压 → 收笔提）向两侧撑出半宽，
+    //      左岸正走 + 右岸倒走闭合成一个填充路径。这就是"变宽"的全部来源
+    //   ③ 生长：每帧按 progress 截断脊线重算 ribbon —— 笔尖那一刻的宽度就是它的终宽，
+    //      所以看上去是"笔走过去"，不是"一条固定粗的线被擦出来"
+    //   ④ 画完静置：不做 line boil / 定格抖动（design-language.md §4）
+    //   ★ 坐标不写死：绑定到 data-ink 目标，运行时量「墨迹盒」+ baseline，改文案自动跟随
+    // ─────────────────────────────────────────────────────────────────────────
+    const CONFIG = {
+      startDelay: 0.55,      // 起手静置：等口播念到这个词
+      gapBetween: 0.75,      // 两条线之间的间隔 s（口播逐个点名的节拍）
+      color: "#6f7f35",      // 墨色（唯一语义色）
+      inkOpacity: 0.85,      // 墨的透水度：1.0 读作矢量色块，<0.7 读作没蘸够墨
+      samples: 40,           // 脊线采样点数（<20 会看出折线）
+      grain: 0.5,            // 边缘颗粒强度（0 = 关掉滤镜切矢量光边；≥1 会把细的收笔端咬断）
+      marks: [
+        { target: "wrong", dur: 0.50, thickness: 10,
+          pressure: 1, release: 0.15,   // 起笔压满、收笔提到 15% —— 笔离纸
+          wobble: 1.1, baselineGap: 6, overhang: 8 },
+        { target: "right", dur: 0.42, thickness: 10.5,
+          pressure: 1, release: 0.15,
+          wobble: -0.9, baselineGap: 6, overhang: 9 },
+      ],
+      hold: 1.0,             // 收尾定格：画完的两条线就是落点
+    };
+
+    const svgNS = "http://www.w3.org/2000/svg";
+    const measureCtx = document.createElement("canvas").getContext("2d");
+    const n = (v) => Math.round(v * 100) / 100;
+
+    // ① 量目标：DOM 元素换算到 SVG viewBox（960×540 设计坐标）
+    function boxOf(el) {
+      const stage = document.getElementById("stage");
+      const sr = stage.getBoundingClientRect();
+      const k = sr.width / 960;                    // 外壳缩放比，量完除回设计坐标
+      const r = el.getBoundingClientRect();
+      const b = { x: (r.left - sr.left) / k, y: (r.top - sr.top) / k, w: r.width / k, h: r.height / k };
+      b.right = b.x + b.w;
+      return b;
+    }
+    // 文字的真实 baseline：行盒下沿有字体留白，照行盒画线会飘在下面一截
+    function baselineOf(el) {
+      const b = boxOf(el);
+      const cs = getComputedStyle(el);
+      const px = parseFloat(cs.fontSize);
+      measureCtx.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+      const m = measureCtx.measureText(el.textContent.trim());
+      const asc = m.fontBoundingBoxAscent > 0 ? m.fontBoundingBoxAscent : px * 0.88;
+      return { x: b.x, right: b.right, baseline: b.y + asc };
+    }
+
+    // ② 脊线：三次贝塞尔，两个控制点上下反偏 wobble（30% 处上凸、70% 处下凹）
+    function sampleCubic(p0, c1, c2, p3, count) {
+      const pts = [];
+      for (let i = 0; i < count; i++) {
+        const t = i / (count - 1), u = 1 - t;
+        const a = u * u * u, b = 3 * u * u * t, c = 3 * u * t * t, d = t * t * t;
+        pts.push([a * p0[0] + b * c1[0] + c * c2[0] + d * p3[0],
+                  a * p0[1] + b * c1[1] + c * c2[1] + d * p3[1]]);
+      }
+      return pts;
+    }
+    function spineOf(box, o) {
+      const x0 = box.x - o.overhang, x1 = box.right + o.overhang;
+      const y = box.baseline + o.baselineGap, w = o.wobble;
+      return sampleCubic([x0, y], [x0 + (x1 - x0) * 0.3, y + w],
+                         [x0 + (x1 - x0) * 0.7, y - w], [x1, y + w * 0.6], CONFIG.samples);
+    }
+
+    // ③ 变宽缎带：半宽随 t 从 pressure 收到 release；左岸正走、右岸倒走闭合
+    const halfWidth = (o, t) => (o.thickness / 2) * (o.pressure + (o.release - o.pressure) * t);
+    const normalAt = (pts, i) => {
+      const a = pts[i - 1] || pts[i], b = pts[i + 1] || pts[i];
+      const tx = b[0] - a[0], ty = b[1] - a[1], len = Math.hypot(tx, ty) || 1;
+      return [-ty / len, tx / len];
+    };
+    // 采样点串成平滑段（Catmull-Rom → 三次贝塞尔）
+    const curveSegs = (pts) => pts.slice(0, -1).map((p1, i) => {
+      const p0 = pts[i - 1] || p1, p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+      return `C ${n(p1[0] + (p2[0] - p0[0]) / 6)} ${n(p1[1] + (p2[1] - p0[1]) / 6)}, ` +
+             `${n(p2[0] - (p3[0] - p1[0]) / 6)} ${n(p2[1] - (p3[1] - p1[1]) / 6)}, ${n(p2[0])} ${n(p2[1])}`;
+    }).join(" ");
+
+    function ribbon(spine, o, progress) {
+      // 截断到已画部分；taper 的 t 仍按「整条脊线」算 —— 笔尖此刻的宽度就是它的终宽
+      const drawn = Math.max(2, Math.round(progress * (spine.length - 1)) + 1);
+      const left = [], right = [];
+      for (let i = 0; i < drawn; i++) {
+        const half = halfWidth(o, i / (spine.length - 1));
+        const nm = normalAt(spine, i);
+        left.push([spine[i][0] + nm[0] * half, spine[i][1] + nm[1] * half]);
+        right.push([spine[i][0] - nm[0] * half, spine[i][1] - nm[1] * half]);
+      }
+      const back = right.reverse();
+      return `M ${n(left[0][0])} ${n(left[0][1])} ${curveSegs(left)} ` +
+             `L ${n(back[0][0])} ${n(back[0][1])} ${curveSegs(back)} Z`;
+    }
+
+    // ④ 边缘颗粒：静态 turbulence 位移（毛边是形状，不随时间变 —— 不是沸腾）
+    function grainFilter(layer, id, thickness, grain, seed) {
+      const defs = document.createElementNS(svgNS, "defs");
+      defs.innerHTML =
+        `<filter id="${id}" x="-30%" y="-30%" width="160%" height="160%">` +
+        `<feTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves="3" seed="${seed}" result="g"/>` +
+        `<feDisplacementMap in="SourceGraphic" in2="g" scale="${thickness * 0.5 * grain}"` +
+        ` xChannelSelector="R" yChannelSelector="G"/></filter>`;
+      layer.appendChild(defs);
+    }
+
+    DemoShell.register(({ speed }) => {
+      const layer = document.getElementById("inkLayer");
+      layer.innerHTML = "";                        // 重播：清掉上次的墨迹
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      let t = CONFIG.startDelay;
+      CONFIG.marks.forEach((m, idx) => {
+        const el = document.querySelector(`[data-ink="${m.target}"]`);
+        if (!el) return;
+        const spine = spineOf(baselineOf(el), m);
+        const fid = `ink-grain-${idx}`;
+        if (CONFIG.grain > 0) grainFilter(layer, fid, m.thickness, CONFIG.grain, 17 + idx * 61);
+
+        const p = document.createElementNS(svgNS, "path");
+        p.setAttribute("fill", CONFIG.color);
+        p.setAttribute("opacity", 0);
+        if (CONFIG.grain > 0) p.setAttribute("filter", `url(#${fid})`);
+        p.setAttribute("d", ribbon(spine, m, 0));
+        layer.appendChild(p);
+
+        // 生长：progress 0→1 每帧重算 ribbon。直写 setAttribute 而不是 gsap.set，
+        // 避免路径被排到下一 tick（描画看上去比声音晚一帧）
+        const st = { v: 0 };
+        tl.set(p, { attr: { opacity: CONFIG.inkOpacity } }, t)
+          .to(st, {
+            v: 1, duration: m.dur, ease: "power1.out",
+            onUpdate: () => p.setAttribute("d", ribbon(spine, m, st.v)),
+          }, t);
+        t += m.dur + CONFIG.gapBetween;
+      });
+
+      tl.to({}, { duration: CONFIG.hold });
+    });
+  </script>
+</body>
+</html>

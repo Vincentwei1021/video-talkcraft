@@ -1,0 +1,36 @@
+# 制作的单片工程与成品视频不进库（仓库只收 skill 本体）
+demo/
+*.mp4
+
+# 调研原始素材不进库（motion-mining 的分析 JSON/curation 是过程资产，进库）
+research/source-videos/
+research/digital-human/*.png
+
+# sfx-picker 挑出的原始采样不进库（换音色时的本地素材；来源已记在其内 MANIFEST.md）
+demos/_lib/sfx/picked/
+
+# 依赖
+node_modules/
+
+# 工具缓存/截图 + 制作端小工具（CLAUDE.md「制作端工具不进库」）
+tools/
+.playwright-mcp/
+
+# 系统
+.DS_Store
+__pycache__/
+*.pyc
+
+# 本地私有约定（git 工作流等）
+CLAUDE.local.md
+
+# 库作者的制作端工具与过程资产（2026-08-27 定版，见 CLAUDE.md「什么不进库」）
+PLAN.md
+research/
+references/research/
+scripts/sfx-studio.mjs
+scripts/sfx-studio-page.html
+scripts/sfx-picker.mjs
+scripts/merge-cues.py
+demos/_lib/sfx-audition.html
+demos/_lib/sfx/*.mp3

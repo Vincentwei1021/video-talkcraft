@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>subscribe-cta · 多平台关注 CTA</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 口播语境：主持人说"点个关注"，overlay 在下方把动作演一遍 ——
+        demo 依次演三种平台式样（订阅式 / 三连式 / 关注式）；
+        落地时一条视频只出现其中一种、只出现一次。 */
+  .cta-zone {
+    position: absolute;
+    left: 0; right: 0;
+    bottom: 58px;
+    height: 190px;
+  }
+  /* 一段 = 一种平台式样，段间淡出淡入切换 */
+  .seg {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    opacity: 0;
+  }
+  /* 平台标签：小字灰阶（说明"这是哪家的式样"，不是台词字幕） */
+  .plat {
+    font-size: 14px;
+    letter-spacing: 2px;
+    color: #8a8a8a;
+    background: #ffffff;
+    border: 1px solid #e6e6e9;
+    border-radius: 999px;
+    padding: 4px 15px;
+  }
+  .row { display: flex; align-items: center; gap: 22px; }
+
+  /* ——— 式样 A：订阅 + 铃铛（YouTube）———
+        按钮红 = "订阅按钮"的语义色，保留；其余一律灰阶 */
+  .sub-btn {
+    padding: 14px 38px;
+    border-radius: 10px;
+    background: #e62117;
+    color: #fff;
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    transform: scale(0);
+  }
+  .sub-btn.done { background: #ececef; color: #8a8a8a; }
+  /* 铃铛坐在白色圆底盘上：overlay 压实拍时深色铃铛在深色背景上会糊掉（实测糊在西装上） */
+  .bell {
+    position: relative;
+    width: 72px; height: 72px;
+    border: 1.5px solid #d2d2d7;
+    border-radius: 50%;
+    background: #ffffff;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0;
+  }
+  .bell svg { display: block; transform-origin: 50% 8%; }  /* 从铃铛顶部悬点摆 */
+  .bell .rip { inset: -9px; border-color: #1d1d1f; }
+
+  /* ——— 式样 B：一键三连（B站）——— */
+  .tri-row { display: flex; align-items: flex-start; gap: 34px; }
+  .tri-item { display: flex; flex-direction: column; align-items: center; }
+  .plate-wrap { position: relative; width: 72px; height: 72px; }
+  .plate {
+    position: absolute; inset: 0;
+    border: 1.5px solid #d2d2d7;
+    border-radius: 50%;
+    background: #ffffff;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .glyph { display: block; width: 44px; height: 44px; }
+  .glyph path, .glyph circle {
+    fill: none; stroke: #8a8a8a; stroke-width: 2;
+    stroke-linejoin: round; stroke-linecap: round;
+  }
+  /* 图标名走白底小胶囊：overlay 压在实拍上时，裸灰字会糊进人物衣服（实测糊在手上） */
+  .tri-label {
+    font-size: 12px; color: #8a8a8a; letter-spacing: 1px;
+    margin-top: 9px;
+    background: #ffffff;
+    border-radius: 999px;
+    padding: 2px 10px;
+  }
+  /* 长按进度环：绕着"点赞"走一圈，走完才触发三连 */
+  .hold-ring {
+    position: absolute; left: -11px; top: -11px;
+    width: 94px; height: 94px;
+    transform: rotate(-90deg);   /* 起点挪到 12 点方向 */
+    opacity: 0;
+  }
+  .hold-ring circle {
+    fill: none; stroke: #e62117; stroke-width: 3; stroke-linecap: round;
+    stroke-dasharray: 282.7; stroke-dashoffset: 282.7;
+  }
+
+  /* ——— 式样 C：关注（小红书 / 抖音 / X）——— */
+  .follow-btn {
+    position: relative;
+    min-width: 196px;
+    padding: 13px 40px;
+    border-radius: 999px;
+    background: #1d1d1f;
+    color: #fff;
+    font-size: 25px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-align: center;
+    /* 白描边：黑胶囊压在深色衣服上会连成一片（实测糊在西装上），描边让轮廓始终成立 */
+    box-shadow: 0 0 0 3px #ffffff;
+    transform: scale(0);
+  }
+  .follow-btn.done { background: #ececef; color: #8a8a8a; }
+  .tick {
+    position: absolute;
+    left: 15px; top: 50%;
+    width: 26px; height: 26px;
+    margin-top: -13px;
+    opacity: 0;
+  }
+  .tick path {
+    fill: none; stroke: #1d1d1f; stroke-width: 3;
+    stroke-linecap: round; stroke-linejoin: round;
+    stroke-dasharray: 27; stroke-dashoffset: 27;
+  }
+  .follow-btn .rip { inset: -8px; border-radius: 999px; border-color: #1d1d1f; }
+
+  /* 通用涟漪环（三式共用的点击确认） */
+  .rip {
+    position: absolute;
+    inset: -9px;
+    border: 2px solid #e62117;
+    border-radius: 50%;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* 光标：三式共用的同一枚"演员"，尖端锚在元素左上角 */
+  .cursor {
+    position: absolute; left: 0; top: 0;
+    width: 30px; height: 45px;
+    transform-origin: 0% 0%;
+    z-index: 20;
+    opacity: 0;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="host-placeholder"></div>
+
+    <div class="cta-zone">
+      <!-- 式样 A：订阅 + 铃铛 -->
+      <div class="seg seg-yt">
+        <div class="plat">YouTube · 订阅 + 铃铛</div>
+        <div class="row">
+          <div class="sub-btn">订阅</div>
+          <div class="bell">
+            <svg width="44" height="44" viewBox="0 0 44 44">
+              <path d="M22 4 a4 4 0 0 1 4 4 c6 2 8 8 8 14 v6 l4 5 H6 l4 -5 v-6 c0 -6 2 -12 8 -14 a4 4 0 0 1 4 -4 z" fill="#1d1d1f"/>
+              <circle cx="22" cy="38" r="4" fill="#1d1d1f"/>
+            </svg>
+            <div class="rip"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 式样 B：一键三连（长按点赞 → 三个图标依次点亮） -->
+      <div class="seg seg-tri">
+        <div class="plat">B站 · 一键三连（长按点赞）</div>
+        <div class="tri-row">
+          <div class="tri-item">
+            <div class="plate-wrap">
+              <div class="plate">
+                <svg class="glyph" viewBox="0 0 44 44" aria-hidden="true">
+                  <path d="M8 19.5 h8 v17 h-8 z"/>
+                  <path d="M18 36.5 H30 C32.2 36.5 34 34.9 34.3 32.8 L35.9 24.6 C36.3 22.3 34.7 20.4 32.5 20.4 H26.8 L27.8 14.3 C28.2 11.6 26.4 9.2 23.8 9 L21.6 15.7 L18 20.6 Z"/>
+                </svg>
+              </div>
+              <div class="rip"></div>
+              <svg class="hold-ring" viewBox="0 0 94 94" aria-hidden="true">
+                <circle cx="47" cy="47" r="45"/>
+              </svg>
+            </div>
+            <div class="tri-label">点赞</div>
+          </div>
+
+          <div class="tri-item">
+            <div class="plate-wrap">
+              <div class="plate">
+                <svg class="glyph" viewBox="0 0 44 44" aria-hidden="true">
+                  <circle cx="22" cy="22" r="14"/>
+                  <path d="M17.2 16.4 L22 22 L26.8 16.4"/>
+                  <path d="M22 22 V29.6"/>
+                  <path d="M17.6 24.6 H26.4"/>
+                </svg>
+              </div>
+              <div class="rip"></div>
+            </div>
+            <div class="tri-label">投币</div>
+          </div>
+
+          <div class="tri-item">
+            <div class="plate-wrap">
+              <div class="plate">
+                <svg class="glyph" viewBox="0 0 44 44" aria-hidden="true">
+                  <path d="M22 7 L26.2 16.2 L36.3 17.4 L28.8 24.2 L30.8 34.1 L22 29.2 L13.2 34.1 L15.2 24.2 L7.7 17.4 L17.8 16.2 Z"/>
+                </svg>
+              </div>
+              <div class="rip"></div>
+            </div>
+            <div class="tri-label">收藏</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 式样 C：关注（胶囊按钮 → 已关注 + 对勾划入） -->
+      <div class="seg seg-fl">
+        <div class="plat">小红书 / 抖音 / X · 关注</div>
+        <div class="row">
+          <div class="follow-btn">
+            <svg class="tick" viewBox="0 0 26 26" aria-hidden="true">
+              <path d="M4 14 L10.5 20 L22 6.5"/>
+            </svg>
+            <span class="ftxt">关注</span>
+            <div class="rip"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <svg class="cursor" viewBox="0 0 14 21" aria-hidden="true">
+      <path d="M1 1 L1 17.2 L5.3 13.3 L8.1 19.9 L10.8 18.8 L8 12.3 L13.1 12.3 Z"
+            fill="#ffffff" stroke="#1d1d1f" stroke-width="1.4" stroke-linejoin="round"/>
+    </svg>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // —— 可摘走的核心动画：三种平台式样共用一套机制 ——
+    //    ①控件弹入 → ②光标弧线移入做交互 → ③状态翻转 + 确认动效（铃铛摆 / 依次点亮 / 对勾划入）
+    const CONFIG = {
+      accent: "#e62117",        // 唯一高亮色（订阅红=按钮语义色，兼作"点亮"态）
+      idle:   "#8a8a8a",        // 未点亮的线框灰
+      plateOff: "#ffffff",      // 三连图标底盘未点亮
+      plateEdge: "#d2d2d7",
+      segFade: 0.3,             // 段落淡入/淡出
+      segGap: 0.15,             // 段与段之间留白
+      segHold: 0.5,             // 每段做完后的停留（让观众读结果）
+      btnIn: 0.35,              // 按钮/胶囊弹入 scale 0→1.06→1
+      cursorMove: 0.8,          // 光标从屏外弧线移到目标（瞬移=没有引导意义）
+      clickDip: 0.94,           // 点击帧控件下压比例
+      bellSwings: [16, -12, 8, -5, 2, 0],  // 铃铛衰减摆角 °（匀速=节拍器，必须衰减）
+      bellTime: 0.8,
+      triStagger: 0.12,         // 三个图标入场间隔
+      holdPress: 0.55,          // 长按进度环走满耗时（三连的门槛感）
+      triStep: 0.2,             // 点亮的依次间隔（<0.1 像同时亮，看不出"三连"）
+      triPop: 1.22,             // 点亮弹跳峰值
+      checkDraw: 0.36,          // 对勾划入耗时
+      START: { x: 1010, y: 205 },  // 光标起手位：舞台右外侧
+    };
+
+    DemoShell.register(({ speed }) => {
+      const stage = document.getElementById("stage");
+      const cursor = document.querySelector(".cursor");
+      const segs = [".seg-yt", ".seg-tri", ".seg-fl"].map((s) => document.querySelector(s));
+
+      // 式样 A
+      const subBtn = document.querySelector(".sub-btn");
+      const bell = document.querySelector(".bell");
+      const bellSvg = bell.querySelector("svg");
+      const bellRip = bell.querySelector(".rip");
+      // 式样 B
+      const items = Array.prototype.slice.call(document.querySelectorAll(".tri-item"));
+      const plates = items.map((it) => it.querySelector(".plate"));
+      const glyphs = items.map((it) => it.querySelectorAll(".glyph path, .glyph circle"));
+      const triRips = items.map((it) => it.querySelector(".rip"));
+      const holdRing = document.querySelector(".hold-ring");
+      const holdArc = holdRing.querySelector("circle");
+      // 式样 C
+      const flBtn = document.querySelector(".follow-btn");
+      const flTxt = flBtn.querySelector(".ftxt");
+      const tick = flBtn.querySelector(".tick");
+      const tickPath = tick.querySelector("path");
+      const flRip = flBtn.querySelector(".rip");
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // —— 重播语义：文案/颜色/状态全部重建 ——
+      gsap.set(segs, { opacity: 0 });
+      gsap.set(cursor, { opacity: 0, x: CONFIG.START.x, y: CONFIG.START.y, scale: 1 });
+      subBtn.classList.remove("done");
+      subBtn.textContent = "订阅";
+      gsap.set(subBtn, { scale: 0, clearProps: "backgroundColor,color" });
+      gsap.set(bell, { opacity: 0 });
+      gsap.set(bellSvg, { rotation: 0 });
+      gsap.set(bellRip, { opacity: 0, scale: 0.6 });
+      plates.forEach((p) => gsap.set(p, {
+        scale: 0, transformOrigin: "50% 50%",
+        backgroundColor: CONFIG.plateOff, borderColor: CONFIG.plateEdge,
+      }));
+      glyphs.forEach((g) => gsap.set(g, { stroke: CONFIG.idle }));
+      gsap.set(triRips, { opacity: 0, scale: 0.85 });
+      gsap.set(holdRing, { opacity: 0 });
+      gsap.set(holdArc, { strokeDashoffset: 282.7 });
+      flBtn.classList.remove("done");
+      flTxt.textContent = "关注";
+      gsap.set(flBtn, { scale: 0, clearProps: "backgroundColor,color" });
+      gsap.set(tick, { opacity: 0 });
+      gsap.set(tickPath, { strokeDashoffset: 27 });
+      gsap.set(flRip, { opacity: 0, scale: 0.9 });
+
+      // 元素内相对点 → 舞台设计坐标（换布局/换尺寸不用改数字）
+      function P(el, fx, fy) {
+        const s = stage.getBoundingClientRect();
+        const r = el.getBoundingClientRect();
+        const k = stage.offsetWidth / s.width;
+        return { x: (r.left - s.left + r.width * fx) * k, y: (r.top - s.top + r.height * fy) * k };
+      }
+      // 光标目标点先量好（此刻所有控件都在原位；opacity:0 不影响布局）
+      const pSub = P(subBtn, 0.62, 0.55);
+      const pLike = P(plates[0], 0.6, 0.55);
+      const pFl = P(flBtn, 0.6, 0.55);
+
+      // 光标移动：x/y 用不同缓动同时插值 → 轨迹自然成弧线（直线平移一眼是程序在推图层）
+      function moveTo(p, dur, at) {
+        tl.to(cursor, { x: p.x, duration: dur, ease: "power2.inOut" }, at)
+          .to(cursor, { y: p.y, duration: dur, ease: "sine.inOut" }, at);
+      }
+      // 光标按下/抬起（锚在箭头尖，微缩不让尖端移位）
+      function down(at) { tl.to(cursor, { scale: 0.9, duration: 0.09, ease: "power2.out" }, at); }
+      function up(at) { tl.to(cursor, { scale: 1, duration: 0.09, ease: "power2.out" }, at); }
+      function cursorOut(p, at) {
+        tl.to(cursor, { x: p.x + 96, y: p.y + 58, opacity: 0, duration: 0.45, ease: "power2.in" }, at);
+      }
+
+      // ———— 式样 A：订阅 + 铃铛 ————
+      function segYouTube(b) {
+        tl.to(segs[0], { opacity: 1, duration: CONFIG.segFade, ease: "power2.out" }, b);
+        // 1. 按钮弹入
+        tl.to(subBtn, {
+          keyframes: [
+            { scale: 1.06, duration: CONFIG.btnIn * 0.65, ease: "power3.out" },
+            { scale: 1, duration: CONFIG.btnIn * 0.35, ease: "power2.out" },
+          ],
+        }, b + 0.15);
+        // 2. 光标弧线移入
+        tl.set(cursor, { opacity: 1, x: CONFIG.START.x, y: CONFIG.START.y, scale: 1 }, b + 0.4);
+        moveTo(pSub, CONFIG.cursorMove, b + 0.4);
+        // 3. 点击帧：下压一拍 → 变灰"已订阅" → back 回弹
+        const tc = b + 0.4 + CONFIG.cursorMove + 0.1;
+        down(tc);
+        tl.to(subBtn, { scale: CONFIG.clickDip, duration: 0.08, ease: "power2.in" }, tc)
+          .call(() => { subBtn.classList.add("done"); subBtn.textContent = "已订阅"; })
+          .to(subBtn, { scale: 1, duration: 0.2, ease: "back.out(3)" });
+        up(tc + 0.09);
+        cursorOut(pSub, tc + 0.22);
+        // 4. 铃铛淡入 + 衰减摇摆 + 一圈涟漪
+        tl.to(bell, { opacity: 1, duration: 0.15 }, tc + 0.15);
+        const step = CONFIG.bellTime / CONFIG.bellSwings.length;
+        CONFIG.bellSwings.forEach((deg, i) => {
+          tl.to(bellSvg, { rotation: deg, duration: step, ease: "power1.inOut" }, tc + 0.25 + step * i);
+        });
+        // immediateRender:false 必须写——fromTo 默认建表时就把 from 态刷上去，
+        // 会让涟漪环在"还没被点"的时候就挂在控件外圈（实测三连三个环提前显形）
+        tl.fromTo(bellRip, { opacity: 0.7, scale: 0.6 },
+          { opacity: 0, scale: 1.9, duration: 0.6, ease: "power2.out", immediateRender: false }, tc + 0.3);
+        return tc + 0.25 + CONFIG.bellTime + CONFIG.segHold;
+      }
+
+      // ———— 式样 B：一键三连 ————
+      function segTriple(b) {
+        tl.to(segs[1], { opacity: 1, duration: CONFIG.segFade, ease: "power2.out" }, b);
+        // 1. 三个图标依次弹入
+        plates.forEach((p, i) => {
+          tl.to(p, {
+            keyframes: [
+              { scale: 1.08, duration: 0.2, ease: "power3.out" },
+              { scale: 1, duration: 0.12, ease: "power2.out" },
+            ],
+          }, b + 0.12 + i * CONFIG.triStagger);
+        });
+        // 2. 光标移到"点赞"并按住不放
+        tl.set(cursor, { opacity: 1, x: CONFIG.START.x, y: CONFIG.START.y, scale: 1 }, b + 0.45);
+        moveTo(pLike, CONFIG.cursorMove, b + 0.45);
+        const tp = b + 0.45 + CONFIG.cursorMove + 0.1;
+        down(tp);
+        tl.to(plates[0], { scale: 0.95, duration: 0.09, ease: "power2.out" }, tp);
+        // 3. 长按进度环走满（三连的门槛感：不是点一下，是按住）
+        tl.to(holdRing, { opacity: 1, duration: 0.12 }, tp);
+        tl.to(holdArc, { strokeDashoffset: 0, duration: CONFIG.holdPress, ease: "none" }, tp + 0.05);
+        const tLight = tp + 0.05 + CONFIG.holdPress;
+        tl.to(holdRing, { opacity: 0, duration: 0.22, ease: "power2.out" }, tLight + 0.05);
+        // 4. 从左到右依次点亮：底盘转高亮 + 线框转白 + scale 弹跳 + 一圈涟漪
+        plates.forEach((p, i) => {
+          const t = tLight + i * CONFIG.triStep;
+          tl.to(p, { backgroundColor: CONFIG.accent, borderColor: CONFIG.accent,
+                     duration: 0.16, ease: "power2.out" }, t);
+          tl.to(glyphs[i], { stroke: "#ffffff", duration: 0.16, ease: "power2.out" }, t);
+          tl.to(p, {
+            keyframes: [
+              { scale: CONFIG.triPop, duration: 0.14, ease: "power3.out" },
+              { scale: 1, duration: 0.26, ease: "back.out(2.4)" },
+            ],
+          }, t);
+          tl.fromTo(triRips[i], { opacity: 0.7, scale: 0.85 },
+            { opacity: 0, scale: 1.75, duration: 0.5, ease: "power2.out", immediateRender: false }, t + 0.04);
+        });
+        // 5. 松手滑出
+        up(tLight + 0.12);
+        cursorOut(pLike, tLight + 0.3);
+        const tEnd = tLight + (plates.length - 1) * CONFIG.triStep + 0.4;
+        return tEnd + CONFIG.segHold;
+      }
+
+      // ———— 式样 C：关注 ————
+      function segFollow(b) {
+        tl.to(segs[2], { opacity: 1, duration: CONFIG.segFade, ease: "power2.out" }, b);
+        // 1. 胶囊弹入
+        tl.to(flBtn, {
+          keyframes: [
+            { scale: 1.06, duration: CONFIG.btnIn * 0.65, ease: "power3.out" },
+            { scale: 1, duration: CONFIG.btnIn * 0.35, ease: "power2.out" },
+          ],
+        }, b + 0.15);
+        // 2. 光标弧线移入
+        tl.set(cursor, { opacity: 1, x: CONFIG.START.x, y: CONFIG.START.y, scale: 1 }, b + 0.4);
+        moveTo(pFl, CONFIG.cursorMove, b + 0.4);
+        // 3. 点击帧：下压 → 翻转成"已关注" → 回弹 + 一圈涟漪
+        const tc = b + 0.4 + CONFIG.cursorMove + 0.1;
+        down(tc);
+        tl.to(flBtn, { scale: CONFIG.clickDip, duration: 0.08, ease: "power2.in" }, tc)
+          .call(() => { flBtn.classList.add("done"); flTxt.textContent = "已关注"; })
+          .to(flBtn, { scale: 1, duration: 0.2, ease: "back.out(3)" });
+        up(tc + 0.09);
+        tl.fromTo(flRip, { opacity: 0.6, scale: 0.9 },
+          { opacity: 0, scale: 1.28, duration: 0.5, ease: "power2.out", immediateRender: false }, tc + 0.05);
+        cursorOut(pFl, tc + 0.22);
+        // 4. 确认动效：对勾按笔序划入
+        tl.to(tick, { opacity: 1, duration: 0.1 }, tc + 0.14);
+        tl.to(tickPath, { strokeDashoffset: 0, duration: CONFIG.checkDraw, ease: "power2.out" }, tc + 0.16);
+        return tc + 0.16 + CONFIG.checkDraw + CONFIG.segHold;
+      }
+
+      // 三段串行，段间淡出淡入（用完即走：每段做完就撤，不常驻）
+      let t = 0.1;
+      [segYouTube, segTriple, segFollow].forEach((build, i) => {
+        const end = build(t);
+        tl.to(segs[i], { opacity: 0, duration: CONFIG.segFade, ease: "power2.in" }, end);
+        t = end + CONFIG.segFade + CONFIG.segGap;
+      });
+    });
+  </script>
+</body>
+</html>

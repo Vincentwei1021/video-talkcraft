@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>whip-pan-transition · 横甩转场</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  #stage { overflow: hidden; }
+  /* 相机会横甩 560px：镜头层做成超出画幅 14%（inset 对称 ⇒ 画面中心不变），
+     甩镜时不漏白边。Remotion 里等价于场景自己的 AbsoluteFill 铺满 */
+  .shot {
+    position: absolute; inset: -14%; display: flex;
+    align-items: center; justify-content: center;
+    will-change: transform, filter, opacity;
+  }
+  /* 镜头里只有式名大字——这是给人认式子用的标签，不是台词字幕 */
+  .shot .big { font-size: 76px; font-weight: 800; color: #8a8a8a;
+    letter-spacing: 3px; white-space: nowrap; }
+  .s1 { background: #ffffff; }
+  .s2 { background: #f1f1f4; }
+
+  .tag { position: absolute; left: 24px; top: 20px; font-size: 17px; color: #8a8a8a;
+    border: 1px solid #e0e0e0; border-radius: 999px; padding: 4px 14px; opacity: 0; z-index: 7; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="shot s1"><div class="big">横甩</div></div>
+    <div class="shot s2"><div class="big">同向刹住</div></div>
+    <div class="tag" id="tag">向左甩出 → 从右侧同向滑回 · 0.35s 刹住 + 二段回稳</div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ─────────────────────────────────────────────────────────────────────────
+    // 可摘走的核心动画：横甩（whip-pan）转场 —— A（慢推）→ 横甩 → B（慢推）
+    // 一式 = 出场 x 甩出 + blur + 微旋 → 入场从对侧滑回 0（= 同一次横扫），刹住 + 回稳。
+    // Remotion 版：template/motion-systems/transitions.tsx
+    //   whipOut(tEnd,{dir:'left'}) + whipIn(leadSec,{dir:'left'})   ← dir 必须一致
+    // ─────────────────────────────────────────────────────────────────────────
+    const CONFIG = {
+      hold: 0.80,      // 出场镜停留：相机永不静止（慢推）
+      holdEnd: 0.90,   // 入场镜收尾停留
+      whip: {
+        out: 0.42,       // 出场甩出时长（加速段）
+        cutLead: 0.06,   // 切点提前量：甩到最快的那一刻换场
+        overlap: 0.30,   // 交叠（像素淡化）时长 ≈ 9 帧 @30fps，甩镜的交叠比推穿短
+        brake: 0.35,     // 入场刹车时长：不刹直接停 = 撞墙
+        recover: 0.50,   // 二段回稳（只收旋转）
+        dist: 560,       // 甩出位移 px（按舞台宽 960 折算 ≈ 0.58 屏宽）
+        blur: 8,         // 甩镜失焦
+        rot: 1.4,        // 微旋角度 deg：甩镜的"手持感"来源
+      },
+    };
+
+    DemoShell.register(({ speed }) => {
+      const S = [...document.querySelectorAll(".shot")];   // A, B
+      const tag = document.getElementById("tag");
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // ── 初始状态：B 停在画外右侧（+dist），与出场向左的甩是同一次横扫 ──
+      gsap.set(S, { opacity: 0, x: 0, y: 0, rotate: 0, scale: 1, filter: "blur(0px)" });
+      gsap.set(S.map((s) => s.querySelector(".big")), { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" });
+      gsap.set(S[0], { opacity: 1 });
+      gsap.set(S[1], { x: CONFIG.whip.dist, rotate: CONFIG.whip.rot, scale: 1.06,
+                       filter: `blur(${CONFIG.whip.blur}px)` });
+      gsap.set(tag, { opacity: 0 });
+
+      // 镜头 hold 期：相机永不静止的慢推/慢漂
+      const hold = (el, at, dur, o = {}) =>
+        tl.to(el, { scale: (o.from ?? 1) + (o.push ?? 0.05), x: o.drift ?? 0,
+                    duration: dur, ease: "sine.inOut" }, at);
+
+      // ── 横甩：x 甩出 + blur 8 + 微旋 → 同向进入，0.35s 刹住 + 二段回稳 ──
+      const whipPan = (out, inn, at) => {
+        const W = CONFIG.whip;
+        const cut = at + W.out - W.cutLead;
+        tl.to(out, { x: -W.dist, rotate: -W.rot, filter: `blur(${W.blur}px)`,
+                     duration: W.out, ease: "power3.in" }, at);
+        tl.to(out, { opacity: 0, duration: W.overlap }, cut);
+        tl.to(inn, { opacity: 1, duration: 0.12 }, cut);
+        // 入场从右往左滑回 0 = 与出场同一次向左的横扫（改方向必须两侧一起改）
+        tl.to(inn, { x: 0, filter: "blur(0px)", rotate: W.rot * 0.3, scale: 1.02,
+                     duration: W.brake, ease: "power3.out" }, cut);
+        // 二段回稳只收旋转，scale 交给紧接着的 hold（= 进场即自带运动，不撞墙）
+        tl.to(inn, { rotate: 0, duration: W.recover, ease: "sine.out" }, cut + W.brake);
+        return cut + W.brake;
+      };
+
+      // ───────────── 排片：A → 横甩 → B ─────────────
+      let t = 0;
+      tl.to(tag, { opacity: 1, duration: 0.3 }, 0);
+
+      hold(S[0], t, CONFIG.hold, { push: 0.04 });                  t += CONFIG.hold;
+      t = whipPan(S[0], S[1], t);
+      hold(S[1], t, CONFIG.holdEnd, { from: 1.02, push: 0.04 });
+    });
+  </script>
+</body>
+</html>

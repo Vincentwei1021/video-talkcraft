@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>chevron-lower-third · 动态人名条</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 口播语境：真人出镜，左下打人名条 ——
+     与本库 lower-third-nameplate 的区别：那张是"色条 → 姓名 → 头衔"三段接力，
+     这张是"姓名推出 → 职称 chip 展开 → chevron 收尾延伸"。
+     中性化：白底、墨字；唯一语义色 = 蓝 #0066cc，只上在 chip 与 chevron（动效本体）上。 */
+  :root { --acc: #0066cc; }
+
+  /* 人名条整体：退场时整条一起从左收回，所以要有一个共同的变换组 */
+  .clt {
+    position: absolute;
+    left: 72px; bottom: 96px;      /* 安全区内：左 72 / 下 96（≥ action-safe） */
+    transform-origin: left center;
+  }
+
+  .clt-name {
+    font-size: 44px; font-weight: 700; line-height: 1.1;
+    color: #1d1d1f; letter-spacing: 2px;
+    white-space: nowrap;
+  }
+
+  /* 第二行 = 职称 chip + chevron，基线对齐 */
+  .clt-row {
+    display: flex; align-items: center; gap: 12px;
+    margin-top: 14px;
+  }
+
+  .clt-chip {
+    position: relative;
+    height: 40px;
+    padding: 0 18px;
+    border-radius: 12px;           /* 小件圆角（design-language §3） */
+    display: flex; align-items: center;
+    overflow: hidden;              /* chip 展开时字不许溢出到 chip 之外 */
+  }
+  .clt-chip-bg {
+    position: absolute; inset: 0;
+    background: var(--acc);
+    border-radius: 12px;
+    transform-origin: left center;
+  }
+  .clt-chip span {
+    position: relative;
+    font-size: 21px; font-weight: 600; letter-spacing: 1.5px;
+    color: #ffffff; white-space: nowrap;
+  }
+
+  /* 三枚 chevron：条子"还在往右延伸"的收尾手势 */
+  .clt-chevs { display: flex; gap: 4px; }
+  .clt-chev { width: 15px; height: 26px; }
+  .clt-chev path {
+    fill: none; stroke: var(--acc); stroke-width: 4.5;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="host-placeholder"></div>
+
+    <div class="clt">
+      <div class="clt-name">陈知远</div>
+      <div class="clt-row">
+        <div class="clt-chip"><div class="clt-chip-bg"></div><span>供应链咨询顾问 · 12 年</span></div>
+        <div class="clt-chevs">
+          <svg class="clt-chev" viewBox="0 0 15 26"><path d="M 4 4 L 11 13 L 4 22" /></svg>
+          <svg class="clt-chev" viewBox="0 0 15 26"><path d="M 4 4 L 11 13 L 4 22" /></svg>
+          <svg class="clt-chev" viewBox="0 0 15 26"><path d="M 4 4 L 11 13 L 4 22" /></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ─────────────────────────────────────────────────────────────────────
+    // 可摘走的核心动画：动态人名条（姓名推出 → chip 展开 → chevron 扫过 → 整条收回）
+    //   ① 姓名行从左推出：x -26→0 + opacity（0.26s power3.out）。
+    //   ② 职称 chip 错峰 0.1s 从 origin left scaleX 0→1 展开（0.22s），
+    //      chip 内字滞后 2 帧（0.067s）淡入 —— chip 先成形、字后落，层次才不塌。
+    //   ③ 三枚 chevron 依次扫过点亮（错峰 0.07s，x +5→0 + opacity 0→1）：
+    //      收尾语义是"条子还在往右延伸"，不是装饰。
+    //   ④ hold 2.0s —— 人名条要停久，观众得读完姓名 + 头衔两遍。
+    //   ⑤ 退场：整条一起从左收回（scaleX→0 + opacity，0.2s power2.in，比入场快）。
+    // ─────────────────────────────────────────────────────────────────────
+    const CONFIG = {
+      lead: 0.4,          // 起手静置 s：等人物开口
+      nameDur: 0.26,      // 姓名推出时长 s
+      namePush: -26,      // 姓名起始 x 位移 px（负 = 从左推出）
+      chipDur: 0.22,      // chip scaleX 展开时长 s
+      chipGap: 0.1,       // chip 相对姓名起步的错峰 s
+      chipTxtLag: 0.067,  // chip 内字的滞后 s（≈ 2 帧 @30fps）
+      chevDur: 0.14,      // 单枚 chevron 点亮时长 s
+      chevStagger: 0.07,  // chevron 之间的错峰 s
+      chevSlide: 5,       // chevron 点亮时的 x 位移 px
+      hold: 2.0,          // 停留 s：人名条的本职是"让人读完"
+      outDur: 0.2,        // 退场时长 s（比入场快 —— 出场永远比入场轻）
+    };
+
+    DemoShell.register(({ speed }) => {
+      const bar = document.querySelector(".clt");
+      const name = document.querySelector(".clt-name");
+      const chipBg = document.querySelector(".clt-chip-bg");
+      const chipTxt = document.querySelector(".clt-chip span");
+      const chevs = [...document.querySelectorAll(".clt-chev")];
+
+      // 重播语义：全部复位
+      gsap.set(bar, { scaleX: 1, opacity: 1 });
+      gsap.set(name, { x: CONFIG.namePush, opacity: 0 });
+      gsap.set(chipBg, { scaleX: 0 });
+      gsap.set(chipTxt, { opacity: 0 });
+      gsap.set(chevs, { opacity: 0, x: CONFIG.chevSlide });
+
+      const t = gsap.timeline();
+      t.timeScale(speed);
+
+      const t0 = CONFIG.lead;
+      // ① 姓名从左推出
+      t.to(name, { x: 0, opacity: 1, duration: CONFIG.nameDur, ease: "power3.out" }, t0);
+
+      // ② chip 展开 + 字滞后 2 帧
+      const chipAt = t0 + CONFIG.chipGap;
+      t.to(chipBg, { scaleX: 1, duration: CONFIG.chipDur, ease: "power3.out" }, chipAt)
+       .to(chipTxt, { opacity: 1, duration: 0.14, ease: "power1.out" }, chipAt + CONFIG.chipTxtLag);
+
+      // ③ chevron 依次扫过
+      const chevAt = chipAt + CONFIG.chipDur;
+      chevs.forEach((c, i) => {
+        t.to(c, { opacity: 1, x: 0, duration: CONFIG.chevDur, ease: "power2.out" },
+             chevAt + i * CONFIG.chevStagger);
+      });
+
+      // ④ hold → ⑤ 整条从左收回
+      const outAt = chevAt + 2 * CONFIG.chevStagger + CONFIG.chevDur + CONFIG.hold;
+      t.to(bar, { scaleX: 0, opacity: 0, duration: CONFIG.outDur, ease: "power2.in" }, outAt);
+    });
+  </script>
+</body>
+</html>

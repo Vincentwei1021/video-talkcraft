@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>motion-blur-slam-in · 模糊甩入急停</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* 滤镜定义容器：只放 <defs>，不占布局 */
+  .mb-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+  /* 2026-08-26 用户定版：本卡改成**配合数字人**的一卡（原来是左右分屏的
+     "对照组淡入 vs 本卡甩入"教学版）。理由：这张卡的用法本来就是口播念到爆点时
+     把素材怼上来，观众看的是"人在说 + 素材砸到他旁边"；分屏对照是讲课用的，
+     不是这张卡在片子里的样子。对照组那半屏也正好是人物要站的位置。
+     46% ≈ 442px：数字人视频渲染宽 427.7px，容器给足这个宽度人物才能整体站进画里，
+     左右各留 ≥10px 呼吸边（人物不缩小、不截断，整体往中间挪，2026-08-25 定版） */
+  .host-wrap { position: absolute; left: 0; top: 0; bottom: 0; width: 46%; overflow: hidden; }
+  /* 素材区：人物右侧的净白区。卡从这个区的右外侧飞进来 */
+  .evidence { position: absolute; left: 46%; right: 0; top: 0; bottom: 0; }
+
+  /* 假截图卡（占位内容不属于动效；投影只是让拖影在白底上更可读） */
+  .shot {
+    position: absolute;
+    background: #fff;
+    border: 1px solid #e6e6e6;
+    border-radius: 5px;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, .14);
+    overflow: hidden;
+  }
+  .shot .bar { height: 24px; background: #f2f2f4; border-bottom: 1px solid #ececee;
+               display: flex; align-items: center; gap: 5px; padding: 0 9px; }
+  .shot .bar i { width: 8px; height: 8px; border-radius: 50%; background: #cfcfd4; }
+  .shot .h { height: 14px; width: 62%; background: #8a8a8a; border-radius: 3px; margin: 16px 15px 10px; }
+  .shot .l { height: 8px; background: #d9d9de; border-radius: 3px; margin: 8px 15px; }
+  .shot .l.s { width: 48%; }
+  .shot .bars { display: flex; align-items: flex-end; gap: 10px; height: 92px; margin: 20px 16px 0; }
+  .shot .bars b { flex: 1; background: #d9d9de; border-radius: 2px 2px 0 0; }
+  .shot .bars b.hi { background: #8a8a8a; }
+  .shot .cap { height: 8px; width: 44%; background: #d9d9de; border-radius: 3px; margin: 12px 16px; }
+
+  /* 落位相对 .evidence（人物右侧净白区，宽 518px）：后到的 shot-b 压前者一角
+     ——同方向连发 + 层级递增才读作"一沓一沓怼上来" */
+  .shot-a { width: 240px; height: 158px; left: 60px;  top: 150px; z-index: 2; }
+  .shot-b { width: 230px; height: 150px; left: 200px; top: 236px; z-index: 3; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <!-- 方向模糊滤镜：stdDeviation="σ 0" = 只糊横向，才读作速度而不是失焦。
+         filter 区域必须放宽（x/width），否则拖影会被裁出硬边；sRGB 防白底上发灰的脏边。 -->
+    <svg class="mb-defs" aria-hidden="true">
+      <defs>
+        <filter id="mbA" x="-60%" y="-20%" width="220%" height="140%" color-interpolation-filters="sRGB">
+          <feGaussianBlur stdDeviation="0 0"/>
+        </filter>
+        <filter id="mbB" x="-60%" y="-20%" width="220%" height="140%" color-interpolation-filters="sRGB">
+          <feGaussianBlur stdDeviation="0 0"/>
+        </filter>
+      </defs>
+    </svg>
+
+    <div class="host-wrap"><div class="host-placeholder"></div></div>
+
+    <div class="evidence">
+      <div class="shot shot-a slam" data-mb="mbA">
+        <div class="bar"><i></i><i></i><i></i></div>
+        <div class="h"></div><div class="l"></div><div class="l"></div><div class="l s"></div>
+      </div>
+      <div class="shot shot-b slam" data-mb="mbB">
+        <div class="bars">
+          <b style="height:34%"></b><b style="height:52%"></b><b class="hi" style="height:78%"></b>
+          <b style="height:46%"></b><b class="hi" style="height:96%"></b><b style="height:62%"></b>
+        </div>
+        <div class="cap"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // —— 可摘走的核心动画：屏外直线飞入 + 方向模糊随速度收敛 + 到位过冲回正 ——
+    const CONFIG = {
+      startDelay: 0.4,          // 等口播说到"甩上来"再发
+      fromX: 560,               // 屏外起始距离 px：≥ 半屏才有速度累积，模糊才有地方发生
+                                //（从素材区右外侧起飞——落位 left 60/200 + 560 都在 960 画幅之外）
+      slam: 0.2,                // 飞入耗时 s：0.15~0.25，>0.35 就变成平移滑入
+      slamEase: "power4.out",   // 急停的命：快起 + 强减速；power2.out 读作"滑进来"
+      blurMax: 18,              // 起点横向 σ（240px 宽卡）：>25 糊成云雾，<8 等于没做
+      blurFalloff: 0.75,        // σ ∝ (1-p)^0.75 —— power4.out 的速度衰减律，停住那帧自动归零
+      overshoot: 3,             // 到位沿运动方向多冲 px：>8 就变回弹入场（那是 media-pop-in）
+      settle: 0.1,              // 过冲回正耗时 s：>0.2 会被看成第二段运动
+      burst: 0.4,               // 多卡同方向连发间隔 s：0.3~0.5
+    };
+
+    DemoShell.register(({ speed }) => {
+      const slamCards = gsap.utils.toArray(".shot.slam");
+
+      // 写 σ：归零时把 filter 整个摘掉——静止画面绝不允许还挂着拖影
+      const setSigma = (card, sigma) => {
+        const fe = document.querySelector("#" + card.dataset.mb + " feGaussianBlur");
+        if (sigma < 0.05) {
+          fe.setAttribute("stdDeviation", "0 0");
+          card.style.filter = "none";
+          return;
+        }
+        fe.setAttribute("stdDeviation", sigma.toFixed(2) + " 0");
+        card.style.filter = "url(#" + card.dataset.mb + ")";
+      };
+
+      // 重播语义：全部推回屏外并糊回起点态
+      slamCards.forEach((c) => { gsap.set(c, { x: CONFIG.fromX }); setSigma(c, CONFIG.blurMax); });
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      const ease = gsap.parseEase(CONFIG.slamEase);
+
+      slamCards.forEach((card, i) => {
+        const at = CONFIG.startDelay + i * CONFIG.burst;
+        // 飞入：位移由 tween 原生驱动（终点多冲 overshoot px），模糊取同一条 tween 的**已缓动**
+        // 进度 p，σ = blurMax*(1-p)^0.75 —— 等价于"σ 跟着速度走"，p→1 时 σ 自动归零
+        tl.to(card, {
+          x: -CONFIG.overshoot,
+          duration: CONFIG.slam,
+          ease: CONFIG.slamEase,
+          onUpdate() {
+            const p = ease(this.progress());
+            setSigma(card, CONFIG.blurMax * Math.pow(1 - p, CONFIG.blurFalloff));
+          },
+          onComplete() { setSigma(card, 0); },
+        }, at)
+          // 到位过冲回正：一帧级的"顶到底"回弹，不是弹跳入场
+          .to(card, { x: 0, duration: CONFIG.settle, ease: "power2.out" }, at + CONFIG.slam);
+      });
+    });
+  </script>
+</body>
+</html>

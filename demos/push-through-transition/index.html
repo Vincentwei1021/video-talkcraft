@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>push-through-transition · 推穿转场</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  #stage { overflow: hidden; }
+  /* 相机会推到 1.35x：镜头层做成超出画幅 14%（inset 对称 ⇒ 画面中心不变），
+     推近/沉降时不漏白边。Remotion 里等价于场景自己的 AbsoluteFill 铺满 */
+  .shot {
+    position: absolute; inset: -14%; display: flex;
+    align-items: center; justify-content: center;
+    will-change: transform, filter, opacity;
+  }
+  /* 镜头里只有式名大字——这是给人认式子用的标签，不是台词字幕 */
+  .shot .big { font-size: 76px; font-weight: 800; color: #8a8a8a;
+    letter-spacing: 3px; white-space: nowrap; }
+  /* 两个镜头 = 白/浅灰 tile（只为区分"换了一镜"，不是风格） */
+  .s1 { background: #ffffff; }
+  .s2 { background: #f1f1f4; }
+
+  .tag { position: absolute; left: 24px; top: 20px; font-size: 17px; color: #8a8a8a;
+    border: 1px solid #e0e0e0; border-radius: 999px; padding: 4px 14px; opacity: 0; z-index: 7; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="shot s1"><div class="big">推穿</div></div>
+    <div class="shot s2"><div class="big">同向沉降</div></div>
+    <div class="tag" id="tag">出场加速推 → 入场从模糊高位反向沉降 · 两侧同向</div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ─────────────────────────────────────────────────────────────────────────
+    // 可摘走的核心动画：推穿转场 —— A（慢推）→ 推穿 → B（慢推）
+    // 一式 = 出场相机片段 + 入场相机片段，两侧运动必须同向（都在"往里推"这条轴上）。
+    // Remotion 版是 CamKey 生成器：template/motion-systems/transitions.tsx
+    //   pushThroughOut(tEnd) + settleIn(leadSec)
+    // ─────────────────────────────────────────────────────────────────────────
+    const CONFIG = {
+      hold: 0.80,      // 出场镜停留：相机永不静止（慢推）
+      holdEnd: 0.90,   // 入场镜收尾停留
+      push: {
+        out: 0.55,       // 出场加速推时长 s：从静止直接推=没有预备拍
+        cutLead: 0.10,   // 切点提前量：交叠期在出场推到顶之前就开始
+        overlap: 0.45,   // 交叠（像素淡化）时长 ≈ 13 帧 @30fps
+        settle: 0.60,    // 入场沉降时长
+        outScale: 1.35,  // 出场推到多大（"穿过去"的量）
+        outBlur: 7,      // 出场末端失焦
+        inScale: 1.16,   // 入场起手景别（>1 = 从高位往回沉，与出场同向）
+        inBlur: 7,       // 入场起手失焦
+      },
+    };
+
+    DemoShell.register(({ speed }) => {
+      const S = [...document.querySelectorAll(".shot")];   // A, B
+      const tag = document.getElementById("tag");
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // ── 初始状态：B 的"入场起手式"由推穿这一式决定（模糊高位）──
+      gsap.set(S, { opacity: 0, x: 0, y: 0, rotate: 0, scale: 1, filter: "blur(0px)" });
+      gsap.set(S.map((s) => s.querySelector(".big")), { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" });
+      gsap.set(S[0], { opacity: 1 });
+      gsap.set(S[1], { scale: CONFIG.push.inScale, filter: `blur(${CONFIG.push.inBlur}px)` });
+      gsap.set(tag, { opacity: 0 });
+
+      // 镜头 hold 期：相机永不静止的慢推/慢漂
+      const hold = (el, at, dur, o = {}) =>
+        tl.to(el, { scale: (o.from ?? 1) + (o.push ?? 0.05), x: o.drift ?? 0,
+                    duration: dur, ease: "sine.inOut" }, at);
+
+      // ── 推穿：出场加速推 + blur 升 → 入场从模糊高位反向沉降 ──
+      const pushThrough = (out, inn, at) => {
+        const P = CONFIG.push;
+        const cut = at + P.out - P.cutLead;      // 切点 = 交叠期起点
+        tl.to(out, { scale: P.outScale, x: 0, filter: `blur(${P.outBlur}px)`,
+                     duration: P.out, ease: "power2.in" }, at);
+        tl.to(out, { opacity: 0, duration: P.overlap, ease: "power1.inOut" }, cut);
+        tl.to(inn, { opacity: 1, duration: P.overlap, ease: "power1.inOut" }, cut);
+        // 入场沉降不回到 1.0 而是停在 1.03：紧接着的 hold 从这里继续推，进场即自带运动
+        tl.to(inn, { scale: 1.03, filter: "blur(0px)", duration: P.settle, ease: "power2.out" }, cut);
+        return cut + P.settle;
+      };
+
+      // ───────────── 排片：A → 推穿 → B ─────────────
+      let t = 0;
+      tl.to(tag, { opacity: 1, duration: 0.3 }, 0);
+
+      hold(S[0], t, CONFIG.hold);                                  t += CONFIG.hold;
+      t = pushThrough(S[0], S[1], t);
+      hold(S[1], t, CONFIG.holdEnd, { from: 1.03, push: 0.04 });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>typewriter-reveal · 打字机档案戳</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* 演示语境（不属于动效）：主持人（数字人）占左侧一列出镜口播，
+     打字机档案戳落在右侧纯白区的下方——戳是"标注"，占角落不占中央，也不抢人物的戏。
+     档案感（深底/纸纹/做旧）属于风格不属于动效，由复用者自己上。 */
+  /* 47% ≈ 452px：数字人视频渲染宽 427.7px，容器要给足这个宽度人物才能整体站进画里，
+     左右各留 ≥10px 呼吸边（人物不缩小、不截断，整体往中间挪，2026-08-25 定版） */
+  .host-wrap {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 47%;
+    overflow: hidden;
+  }
+  /* —— 动效本体：右侧白区下方的打字机档案戳（等宽字 + 方块光标） ——
+     left 48%（461px）：让位给挪进来的人物（人物可见像素右缘约 x=391） */
+  .stamp {
+    position: absolute;
+    left: 48%; bottom: 112px;
+    font-family: Menlo, Consolas, "Courier New", monospace;
+    color: #1d1d1f;
+  }
+  .stamp .line1 { font-size: 36px; font-weight: 700; letter-spacing: 2px; }
+  .stamp .line2 { font-size: 18px; margin-top: 12px; color: #8a8a8a; letter-spacing: 1px; }
+  .stamp .cursor {
+    display: inline-block;
+    width: .62em; height: 1.05em;
+    background: #1d1d1f;
+    vertical-align: text-bottom;
+    margin-left: 2px;
+  }
+  .line2 .cursor { background: #8a8a8a; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="host-wrap"><div class="host-placeholder"></div></div>
+    <div class="stamp">
+      <div class="line1"><span class="txt"></span><span class="cursor"></span></div>
+      <div class="line2"><span class="txt"></span><span class="cursor"></span></div>
+    </div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // —— 可摘走的核心动画：逐字符敲出 + 方块光标闪烁 ——
+    const CONFIG = {
+      line1: "北京 · 2008年8月8日",
+      line2: "奥运会开幕当晚，全球40亿人正在注视",
+      charMs: 55,        // 每字符基准间隔 ms：30~80 像真打字，>100 像 loading
+      jitterMs: 20,      // 间隔随机抖动 ±ms：0 = 匀速 = 一眼 CSS 教程
+      blinkPeriod: 0.5,  // 光标闪烁周期 s（行业默认 500ms）
+      blinkTimes: 3,     // 句尾闪几次再敲下一行
+      line2Delay: 0.4,   // 第二行相对第一行敲完的延迟 s
+      startDelay: 0.4,   // 整体起始延迟 s
+    };
+
+    // 把一行文字的逐字符 call 排进 timeline，返回敲完的时间点
+    function typeLine(tl, lineEl, text, at) {
+      const txt = lineEl.querySelector(".txt");
+      let t = at;
+      for (let i = 1; i <= text.length; i++) {
+        t += (CONFIG.charMs + (Math.random() * 2 - 1) * CONFIG.jitterMs) / 1000;
+        const n = i;
+        tl.call(() => { txt.textContent = text.slice(0, n); }, null, t);
+      }
+      return t;
+    }
+
+    // 光标在 [at, at+dur] 之间按周期方波闪烁（半亮半灭）
+    function blink(tl, cursorEl, at, times) {
+      for (let i = 0; i < times; i++) {
+        tl.set(cursorEl, { opacity: 0 }, at + i * CONFIG.blinkPeriod);
+        tl.set(cursorEl, { opacity: 1 }, at + i * CONFIG.blinkPeriod + CONFIG.blinkPeriod / 2);
+      }
+      return at + times * CONFIG.blinkPeriod;
+    }
+
+    DemoShell.register(({ speed }) => {
+      const line1 = document.querySelector(".line1");
+      const line2 = document.querySelector(".line2");
+      const cur1 = line1.querySelector(".cursor");
+      const cur2 = line2.querySelector(".cursor");
+
+      // 重播语义：清空文字、光标复位
+      line1.querySelector(".txt").textContent = "";
+      line2.querySelector(".txt").textContent = "";
+      gsap.set(cur1, { opacity: 1, display: "inline-block" });
+      gsap.set(cur2, { opacity: 0, display: "none" });
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // 第一行：敲出 → 句尾闪 3 次
+      const t1End = typeLine(tl, line1, CONFIG.line1, CONFIG.startDelay);
+      const blinkEnd = blink(tl, cur1, t1End + 0.08, CONFIG.blinkTimes);
+
+      // 光标移交第二行（副信息延迟 0.4s 再敲）
+      const t2Start = blinkEnd + CONFIG.line2Delay;
+      tl.set(cur1, { display: "none" }, t2Start);
+      tl.set(cur2, { display: "inline-block", opacity: 1 }, t2Start);
+      const t2End = typeLine(tl, line2, CONFIG.line2, t2Start);
+
+      // 收尾：光标常驻闪烁
+      tl.to(cur2, {
+        opacity: 0, duration: 0.01, repeat: -1,
+        repeatDelay: CONFIG.blinkPeriod / 2, yoyo: true,
+      }, t2End + 0.1);
+    });
+  </script>
+</body>
+</html>

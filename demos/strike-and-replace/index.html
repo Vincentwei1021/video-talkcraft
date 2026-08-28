@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>strike-and-replace · 划线纠错替换</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* 演示语境（不属于动效）：主持人占左一列，右侧白区排一句口播句子 */
+  /* 47% ≈ 452px：数字人视频渲染宽 427.7px，容器要给足这个宽度人物才能整体站进画里，
+     左右各留 ≥10px 呼吸边（人物不缩小、不截断，整体往中间挪，2026-08-25 定版） */
+  .host-wrap { position: absolute; left: 0; top: 0; bottom: 0; width: 47%; overflow: hidden; }
+
+  /* 句子起点让位给挪进来的人物：人物可见像素右缘约 x=391，句子从 45%（432px）起 */
+  .sr-line {
+    position: absolute;
+    left: 45%; right: 3%;
+    top: 50%; transform: translateY(-50%);
+    font-size: 32px; font-weight: 700; line-height: 1.5;
+    white-space: nowrap;                  /* 单行：替换槽后面必须还有字，才看得出"零位移" */
+    color: #1d1d1f;
+    /* 句子共一条基线：被替换的那一段是行内块，前后文字不许动 */
+  }
+  /* 替换槽：inline-block，宽度由"隐形尺子"撑住（见 .ruler）——
+     旧字与新字都绝对定位在它里面，占同一个位置。 */
+  .slot { position: relative; display: inline-block; vertical-align: baseline; }
+  /* 隐形尺子：把 from / to 里更长的那一串排进来占位、visibility:hidden。
+     这是 value-swap 那条纪律的实现——容器宽度一次定死，换值时零位移
+     （句尾的"，一年翻了八倍"就是证人：撑宽没做对，它会在替换那一帧横跳） */
+  .ruler { visibility: hidden; white-space: nowrap; }
+  /* 两个值都以槽的中线为锚（JS 里 xPercent:-50），宽度各自贴合文字：
+     ① 短的那个值在预留宽度里居中 —— 尺子撑出来的余量分到两边，读作"字号排版"
+        而不是"这里少打了一个字"（左对齐会在尾部留一个刺眼的空洞）；
+     ② 划线的 width:100% 因此严格等于旧值的文字宽，不会越过字尾。 */
+  .word {
+    position: absolute; left: 50%; top: 0;
+    white-space: nowrap;
+    will-change: transform, opacity;
+  }
+  .word.from { color: #1d1d1f; }          /* 旧值保持墨色——语义色只上那条线 */
+  .word.to { color: #1d1d1f; }            /* 新值也是墨色：变色会抢掉"划掉"这一拍 */
+  /* 划掉线：唯一的语义色。origin left + scaleX 0→1，绝不动 width（动 width 每帧重排）。
+     它是 .word.from 的子节点 ⇒ 旧值淡出时线跟着一起走，不会留一条线压在新值上。 */
+  .strike {
+    position: absolute; left: 0; top: 50%;
+    height: 3px;                          /* = 字号 8%，随字号等比 */
+    width: 100%;
+    background: #e0452c;
+    border-radius: 2px;
+    transform: translateY(-50%) scaleX(0);
+    transform-origin: left center;
+    will-change: transform;
+  }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="host-wrap"><div class="host-placeholder"></div></div>
+    <div class="sr-line">
+      上下文窗口是<span class="slot" id="slot"></span>，一年翻了八倍
+    </div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ─────────────────────────────────────────────────────────────────────────
+    // 可摘走的核心动画：划线纠错替换（"不是 A，而是 B"）
+    //   三拍：
+    //     快斩    划掉线 scaleX 0→1，0.15s power3.out（origin left，线高 = 字号 8%）
+    //     立换    +0.1s 旧值淡出 + 新值从 y+8 同位淡入 0.25s（同位叠放 ⇒ 替换感）
+    //     定格    划线与新值同屏 hold：论证已完成，让观众读
+    //   变体 b（value-swap）：把 from/to 里更长的字符串当隐形尺子撑宽容器，
+    //   换值零位移——本 demo 的 .ruler 就是它，两个变体共用同一套骨架。
+    // ─────────────────────────────────────────────────────────────────────────
+    const CONFIG = {
+      strikeDur: 0.15,   // 划线时长 s：一瞬间的快斩（2026-08-24 定版；>0.4s 读作"慢慢涂"）
+      swapLag: 0.10,     // 交换相对划线结束的延迟 s：斩完立刻换，不留犹豫
+      swapDur: 0.25,     // 交换时长 s（旧值淡出 + 新值升入）
+      hold: 2.0,         // 定格 s：划线 + 新值同屏，让观众读完"旧 → 新"
+      lead: 0.35,        // 起手静置：等口播念到这个数
+      toRise: 8,         // 新值从下方多少 px 升入（约字号 20%）
+      keepStrike: true,  // 划线是否留在屏上（false = 交换时一起淡出，读作"改完了"）
+      from: "128K",      // 旧值
+      to: "1M",          // 新值
+    };
+
+    DemoShell.register(({ speed }) => {
+      const slot = document.getElementById("slot");
+      // 建结构：尺子（撑宽）+ 旧值（带划线）+ 新值。重播时整槽重建
+      const longer = CONFIG.from.length >= CONFIG.to.length ? CONFIG.from : CONFIG.to;
+      slot.innerHTML =
+        '<span class="ruler">' + longer + '</span>' +
+        '<span class="word from">' + CONFIG.from + '<span class="strike"></span></span>' +
+        '<span class="word to">' + CONFIG.to + '</span>';
+
+      const from = slot.querySelector(".word.from");
+      const to = slot.querySelector(".word.to");
+      const strike = slot.querySelector(".strike");
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // xPercent:-50 配 CSS 的 left:50%：两个值都以槽中线为锚，短值在预留宽度里居中
+      gsap.set([from, to], { xPercent: -50 });
+      gsap.set(from, { opacity: 1 });
+      gsap.set(to, { opacity: 0, y: CONFIG.toRise });
+      gsap.set(strike, { scaleX: 0, opacity: 1 });
+
+      // ① 划线：一瞬间快斩到底（power3.out 冲出去收住）——"否定"是一个决断动作，
+      //    慢慢涂过去读作犹豫。别用回弹：这是纠错不是花字。
+      tl.to(strike, {
+        scaleX: 1,
+        duration: CONFIG.strikeDur,
+        ease: "power3.out",
+      }, CONFIG.lead);
+
+      // ② 交换：斩完立刻换——旧值淡出、新值从 y+8 淡入回落。
+      //    两者绝对定位同位叠放——替换感全部来自"占了同一个位置"
+      const swapAt = CONFIG.lead + CONFIG.strikeDur + CONFIG.swapLag;
+      tl.to(from, { opacity: 0, duration: CONFIG.swapDur, ease: "power1.out" }, swapAt);
+      tl.to(to, { opacity: 1, y: 0, duration: CONFIG.swapDur, ease: "power2.out" }, swapAt);
+      if (!CONFIG.keepStrike) {
+        tl.to(strike, { opacity: 0, duration: CONFIG.swapDur, ease: "power1.out" }, swapAt);
+      }
+
+      // ③ hold：划线 + 新值同屏定格，让观众把"旧 → 新"这条论证读完
+      tl.to({}, { duration: CONFIG.hold }, swapAt + CONFIG.swapDur);
+    });
+  </script>
+</body>
+</html>

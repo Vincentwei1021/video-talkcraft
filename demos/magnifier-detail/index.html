@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>magnifier-detail · 局部放大镜</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* 演示语境（不属于动效）：假评测截图。白底 + 灰阶线框，零风格化 */
+  .shot {
+    position: absolute;
+    left: 56px;
+    top: 116px;
+    width: 540px;
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    overflow: hidden;
+    color: #1d1d1f;
+  }
+  .shot .bar { display:flex; gap:6px; padding:10px 14px; border-bottom:1px solid #ececec; }
+  .shot .bar i { width:10px; height:10px; border-radius:50%; background:#e0e0e0; }
+  .shot .body { padding: 16px 22px 20px; }
+  .shot h3 { font-size: 20px; margin-bottom: 4px; }
+  .shot .sub { font-size: 12px; color:#8a8a8a; margin-bottom: 14px; }
+  .shot .row {
+    display:flex; justify-content:space-between; align-items:center;
+    padding: 10px 2px; border-bottom: 1px solid #ececec;
+    font-size: 16px;
+  }
+  .shot .row .lab { color:#8a8a8a; }
+  .shot .row .val { font-weight: 700; }
+  /* —— 动效本体 —— 目标框 + 连接线 + 圆形镜。指示红是语义色（"看这里"），只用在动效本体上 */
+  .target-box {                               /* 目标点细描边框 */
+    position:absolute; border:2px solid #ff4d4d; border-radius:6px;
+    opacity:0; pointer-events:none;
+  }
+  #link-line { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+  #magnifier {                                /* 圆形放大镜：镜圈本身是动效身份，白底上用深灰细圈 */
+    position:absolute; left:0; top:0;
+    width: 210px; height: 210px;
+    border-radius: 50%;
+    border: 2px solid #1d1d1f;
+    overflow: hidden;
+    background: #ffffff;
+    opacity: 0;
+  }
+  #magnifier .mag-inner { position:absolute; left:0; top:0; transform-origin: 0 0; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div id="shot" class="shot">
+      <div class="bar"><i></i><i></i><i></i></div>
+      <div class="body">
+        <h3>星舟 Pro 14 · 实测数据</h3>
+        <div class="sub">本站实验室 · 同一负载连续三轮取均值</div>
+        <div class="row"><span class="lab">性能释放</span><span class="val">45W 持续</span></div>
+        <div class="row"><span class="lab">屏幕亮度</span><span class="val">612 nit</span></div>
+        <div class="row"><span class="lab">续航测试</span><span class="val" id="magTarget">4 小时 32 分</span></div>
+        <div class="row"><span class="lab">整机重量</span><span class="val">1.38 kg</span></div>
+      </div>
+    </div>
+    <svg id="link-line"><line id="lline" x1="0" y1="0" x2="0" y2="0" stroke="#ff4d4d" stroke-width="2" stroke-dasharray="0 999"/></svg>
+    <div id="magnifier"><div class="mag-inner"></div></div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // —— 可摘走的核心动画（复制 CONFIG + register 内部即可复用）——
+    const CONFIG = {
+      zoom: 1.8,            // 放大倍数：1.5~2，再大内容糊
+      magSize: 210,         // 放大镜直径 px
+      magX: 745, magY: 252, // 放大镜落位中心（截图旁的空白区，别盖住目标本体）
+      popIn: 0.3,           // 弹出耗时 s
+      dimTo: 0.8,           // 底图压暗 brightness：白底截图取 0.75~0.85（0.6 会把白压成大灰块）
+      startDelay: 0.45,     // 截图先看清一拍再弹镜
+      panPx: 7,             // hold 期间镜内轻微扫视幅度 px
+    };
+
+    DemoShell.register(({ speed }) => {
+      const shot = document.getElementById("shot");
+      const mag = document.getElementById("magnifier");
+      const line = document.getElementById("lline");
+      const target = document.getElementById("magTarget");
+
+      // 重播：重建放大副本与目标框
+      mag.querySelector(".mag-inner").innerHTML = "";
+      shot.querySelectorAll(".target-box").forEach((b) => b.remove());
+      const clone = shot.cloneNode(true);
+      clone.removeAttribute("id");
+      clone.querySelectorAll("[id]").forEach((el) => el.removeAttribute("id"));
+      clone.style.cssText = "position:absolute;left:0;top:0;width:540px;border:0;border-radius:0;";
+      mag.querySelector(".mag-inner").appendChild(clone);
+
+      // 校准：目标点在截图内的坐标（用未缩放的布局坐标，防 stage 缩放干扰）
+      const sRect = shot.getBoundingClientRect();
+      const tRect = target.getBoundingClientRect();
+      const k = sRect.width / shot.offsetWidth;          // 外壳缩放系数
+      const px = (tRect.left + tRect.width / 2 - sRect.left) / k;
+      const py = (tRect.top + tRect.height / 2 - sRect.top) / k;
+      // 放大副本定位：让目标点正好落在镜心
+      const inner = mag.querySelector(".mag-inner");
+      gsap.set(inner, { scale: CONFIG.zoom,
+        x: CONFIG.magSize / 2 - CONFIG.zoom * px,
+        y: CONFIG.magSize / 2 - CONFIG.zoom * py });
+
+      // 目标点细描边框
+      const box = document.createElement("div");
+      box.className = "target-box";
+      box.style.cssText += `left:${px - tRect.width / k / 2 - 8}px;top:${py - 16}px;width:${tRect.width / k + 16}px;height:32px;`;
+      shot.appendChild(box);
+
+      // 目标点/落位点的舞台坐标
+      const shotX = 56, shotY = 116;   // 与 .shot 的 left/top 保持一致
+      const tx = shotX + px, ty = shotY + py;
+      line.setAttribute("x1", tx); line.setAttribute("y1", ty);
+      line.setAttribute("x2", CONFIG.magX); line.setAttribute("y2", CONFIG.magY);
+      const lineLen = Math.hypot(CONFIG.magX - tx, CONFIG.magY - ty);
+      gsap.set(line, { attr: { "stroke-dasharray": `0 ${Math.ceil(lineLen) + 10}` } });
+
+      gsap.set(shot, { filter: "brightness(1)" });
+      gsap.set(mag, { opacity: 0, scale: 0.3, xPercent: -50, yPercent: -50,
+                      x: tx, y: ty });          // 从目标点原位起跳
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      tl.to(mag, { opacity: 1, scale: 1, x: CONFIG.magX, y: CONFIG.magY,
+                   duration: CONFIG.popIn, ease: "power3.out" }, CONFIG.startDelay)
+        .to(shot, { filter: `brightness(${CONFIG.dimTo})`, duration: 0.3 }, "<")  // 本体同步压暗
+        .to(box, { opacity: 1, duration: 0.2 }, "<")
+        // 连接线从目标点向放大镜描出——告诉观众"放大的是这里"
+        .to(line, { attr: { "stroke-dasharray": `${Math.ceil(lineLen) + 10} 0` },
+                    duration: 0.25, ease: "power2.out" }, CONFIG.startDelay + CONFIG.popIn - 0.05)
+        // hold：镜内内容轻微平移扫视，画面不呆
+        .to(inner, { x: `-=${CONFIG.panPx * CONFIG.zoom}`, duration: 1.4,
+                     ease: "sine.inOut", yoyo: true, repeat: -1 }, CONFIG.startDelay + CONFIG.popIn + 0.2);
+    });
+  </script>
+</body>
+</html>

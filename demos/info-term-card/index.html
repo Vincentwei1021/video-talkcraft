@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>info-term-card · 名词解释悬浮卡</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 演示语境（不属于动效）：主持人占位靠左，名词卡从人物对侧滑入 —— */
+  .host-left { justify-content: flex-start; }
+  .host-left::after { margin-left: 6%; }
+
+  .term-card {
+    position: absolute;
+    right: 56px;
+    top: 36%;
+    width: 330px;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    padding: 20px 22px;
+    border-radius: 16px;
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    /* 投影是"悬浮"这层语义的一部分（无投影就没有悬感），中性化后只留最低限度的一层 */
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.10);
+    color: #1d1d1f;
+  }
+  .term-card .icon {
+    flex: 0 0 auto;
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    background: #f5f5f7;
+    border: 1px solid #e0e0e0;
+    color: #1d1d1f;
+    font-size: 22px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .term-card .term { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+  .term-card .term small { font-size: 13px; font-weight: 600; color: #8a8a8a; margin-left: 6px; }
+  .term-card .desc { font-size: 14px; line-height: 1.55; color: #5a5a5f; }  /* 释义两行封顶 */
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="host-placeholder host-left"></div>
+    <div class="term-card" id="termCard">
+      <div class="icon">¥</div>
+      <div>
+        <div class="term">量化宽松<small>QE</small></div>
+        <div class="desc">央行"印钱"买入国债等资产，把流动性压进市场，刺激经济。</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // —— 可摘走的核心动画（复制 CONFIG + register 内部即可复用）——
+    const CONFIG = {
+      slideIn: 0.35,     // 入场耗时 s（power3.out）
+      overshootPx: 12,   // 入场过冲距离（约卡宽 3%）：0 就没有"弹"感
+      floatPx: 6,        // 悬浮幅度 ±px：>10 像漂走
+      floatPeriod: 2.8,  // 悬浮周期 s（一个来回）
+      holdBeforeOut: 3.2,// 停留时长 s，念完释义再收
+      slideOut: 0.25,    // 出场原路滑出
+      iconTilt: 8,       // 图标微转角度 °
+      offX: 480,         // 屏外待命的 x 位移 px（人物在右侧时改成 -480）
+    };
+
+    DemoShell.register(({ speed }) => {
+      const card = document.getElementById("termCard");
+      const icon = card.querySelector(".icon");
+
+      // 重播：动画状态重建
+      gsap.set(card, { x: CONFIG.offX, y: 0, opacity: 1 });   // 屏外右侧待命
+      gsap.set(icon, { rotate: 0 });
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      tl.to(card, { x: -CONFIG.overshootPx, duration: CONFIG.slideIn, ease: "power3.out" })
+        .to(card, { x: 0, duration: 0.16, ease: "power2.out" })            // 3% 过冲回稳
+        // 落位后：y 正弦浮动营造"悬浮"，图标跟着微转
+        .to(card, { y: CONFIG.floatPx, duration: CONFIG.floatPeriod / 2,
+                    ease: "sine.inOut", yoyo: true, repeat: 3 }, "+=0.05")
+        .to(icon, { rotate: CONFIG.iconTilt, duration: CONFIG.floatPeriod / 2,
+                    ease: "sine.inOut", yoyo: true, repeat: 3 }, "<")
+        // 出场：原路滑出
+        .to(card, { x: CONFIG.offX, duration: CONFIG.slideOut, ease: "power2.in" },
+            CONFIG.slideIn + 0.16 + CONFIG.holdBeforeOut);
+    });
+  </script>
+</body>
+</html>
