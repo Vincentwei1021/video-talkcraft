@@ -214,7 +214,7 @@ const html = `<!DOCTYPE html>
   .topbar h1 { font-size:21px; letter-spacing:1px; font-weight:800; white-space:nowrap; }
   .tb-spacer { flex:1; }
   /* 统一固定高度：star 计数气泡/纯图标不再把各按钮撑得高矮不一 */
-  .tbtn { display:inline-flex; align-items:center; gap:8px; font-size:13.5px; height:31px; padding:0 14px;
+  .tbtn { display:inline-flex; align-items:center; gap:8px; font-size:13.5px; height:33px; padding:0 14px;
     border-radius:11px; border:1px solid var(--btn-line); background:var(--btn); color:var(--btn-txt);
     cursor:pointer; text-decoration:none; white-space:nowrap; font-family:inherit; line-height:1; }
   .tbtn:hover { border-color:var(--acc); color:var(--acc2); }
@@ -227,13 +227,13 @@ const html = `<!DOCTYPE html>
   .follow .menu { display:none; position:absolute; right:0; top:100%; padding-top:8px; z-index:60; }
   .follow:hover .menu { display:block; }
   .follow .menu-in { background:var(--panel); border:1px solid var(--btn-line); border-radius:16px;
-    box-shadow:0 12px 36px var(--shadow); min-width:214px; padding:8px; }
+    box-shadow:0 12px 36px var(--shadow); min-width:168px; padding:8px; }
   .menu-h { font-size:11px; letter-spacing:2px; color:var(--dim); padding:8px 12px 6px; text-transform:uppercase; }
   .follow .menu a { display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:10px;
     font-size:13.5px; color:var(--txt); text-decoration:none; white-space:nowrap; }
   .follow .menu a:hover { background:var(--chip); }
   .follow .menu a svg { width:18px; height:18px; flex:none; }
-  .follow .menu .arr { margin-left:auto; color:var(--dim); font-size:13px; padding-left:16px; }
+  .follow .menu .arr { margin-left:auto; color:var(--dim); font-size:13px; padding-left:10px; }
 
   /* ── 分类 tab + 搜索框（原 78/78 计数位） ── */
   .tabs { display:flex; align-items:center; gap:16px; padding:0 32px; border-bottom:1px solid var(--line2);
@@ -288,7 +288,7 @@ const html = `<!DOCTYPE html>
     border:1px solid var(--scope-line); border-radius:10px; padding:10px 14px; max-height:132px; overflow:auto; }
   .hero-scope b { color:var(--scope-b); }
   .hero-act { display:flex; gap:10px; margin-top:auto; }
-  .hero-act .btn { font-size:14px; padding:5px 16px; border-radius:10px; border:1px solid var(--btn-line);
+  .hero-act .btn { font-size:14.5px; padding:7px 19px; border-radius:10px; border:1px solid var(--btn-line);
     background:var(--btn); color:var(--txt); cursor:pointer; text-decoration:none; text-align:center; font-family:inherit; }
   .hero-act .btn.primary { background:var(--acc); border-color:var(--acc); color:#fff; font-weight:600; }
   .hero-act .btn:hover { filter:brightness(1.08); }
