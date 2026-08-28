@@ -21,6 +21,8 @@
 
 🖼️ [**在线画廊：78 张动效预览一页全览 »**](https://vincentwei1021.github.io/video-talkcraft/)
 
+[![video-talkcraft 在线画廊](assets/gallery-zh.png)](https://vincentwei1021.github.io/video-talkcraft/)
+
 ## ✨ 亮点
 
 - **字级配音同步**——`scripts/timestamps_cpu.py` 把口播稿对齐到音频

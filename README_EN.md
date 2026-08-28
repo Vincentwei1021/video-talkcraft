@@ -7,18 +7,18 @@
 [![Gallery](https://img.shields.io/badge/Gallery-live%20previews-7A5AF8)](https://vincentwei1021.github.io/video-talkcraft/)
 [![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial-blue)](LICENSE)
 
-**An agent skill for crafting high-quality narration videos: word-level voiceover sync · 78 motion recipe cards · a 7-layer anti-slideshow shot system · triple-gate QA**
+**An agent skill for crafting high-quality voiceover-driven videos: word-level voiceover sync · 78 motion recipe cards · a 7-layer anti-slideshow shot system · triple-gate QA**
 
 [中文](README.md) | [English](README_EN.md)
 
 </div>
 
-**video-talkcraft** is the narration-video installment of the
-[video-shotcraft](https://github.com/Vincentwei1021/video-shotcraft) series: an AI agent
-skill that turns Claude Code or Codex into a motion-design studio for talking
-videos. Hand it a narration script and a finished voiceover, and it aligns
-word-level timestamps locally, storyboards every semantic beat into a
-SHOTBOOK, then renders a high-quality explainer with
+**video-talkcraft** is the voiceover-driven explainer installment of the
+[video-shotcraft](https://github.com/Vincentwei1021/video-shotcraft) series:
+an AI agent skill that turns Claude Code or Codex into a motion-design studio
+for narrated explainer videos. Give it a narration script and a finished
+voiceover, and it aligns word-level timestamps locally, storyboards every
+semantic beat into a SHOTBOOK, then renders a polished explainer with
 [Remotion](https://www.remotion.dev/) — kinetic type, evidence screenshots,
 camera moves, plain-cut subtitles, and film-grade SFX, all locked to the voice.
 
@@ -27,6 +27,8 @@ camera moves, plain-cut subtitles, and film-grade SFX, all locked to the voice.
 > supported). Agents read them natively.
 
 🖼️ [**Browse all 78 motion previews in the live Gallery »**](https://vincentwei1021.github.io/video-talkcraft/)
+
+[![video-talkcraft live gallery](assets/gallery-en.png)](https://vincentwei1021.github.io/video-talkcraft/)
 
 ## ✨ Highlights
 
@@ -142,14 +144,15 @@ For the full workflow, start at [SKILL.md](SKILL.md).
 
 **What is video-talkcraft?**
 An open-source AI agent skill (for Claude Code / Codex) that turns a narration
-script plus a finished voiceover into a fully animated narration video. It is
+script plus a finished voiceover into a fully animated, voiceover-driven
+explainer video. It is
 not an editor and not a template site — the agent reads the methodology, picks
 motion recipe cards, writes [Remotion](https://www.remotion.dev/) code, and
 runs triple-gate QA to deliver a publish-ready explainer.
 
 **What kinds of videos can it make?**
-Landscape narration/explainer videos: knowledge explainers, product reviews,
-news breakdowns, opinion commentary. Designed Chinese-narration-first; mixed
+Landscape, voiceover-driven explainer videos: knowledge explainers, product
+reviews, news breakdowns, opinion commentary. Designed Chinese-narration-first; mixed
 Chinese/English narration is fully supported.
 
 **What do I need to provide?**
