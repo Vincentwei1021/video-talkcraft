@@ -7,7 +7,6 @@ name: callout-line-label
 能量: 中
 类别: 强调标注
 优先级: P1
-参考: Johnny Harris, Vox, Call-Out Titles(4.5K销量), 产品评测
 ---
 
 ## 意图

@@ -7,8 +7,6 @@ name: chevron-lower-third
 能量: 低
 类别: 人物互动
 优先级: P1
-复刻: 参考图
-参考: 参考图③ 第9格「动态Lower Third」
 ---
 
 ## 意图

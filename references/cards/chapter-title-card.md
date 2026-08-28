@@ -7,7 +7,6 @@ name: chapter-title-card
 能量: 中
 类别: 转场结构
 优先级: P0
-参考: 差评君, 小Lin说, LEMMiNO, Johnny Harris, IC实验室
 ---
 
 ## 意图

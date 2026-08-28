@@ -7,7 +7,6 @@ name: host-shrink-to-chip
 时长: 缩位 0.35~0.5s（power2.inOut）+ 图形错峰 0.15s 后入场 0.45s；角标期随口播任意长（demo 2s）；单程让台，回归交给应用侧下一节拍（需要时反向放大 0.42s、图形先退）
 能量: 中
 类别: 人物互动
-参考: 小Lin说, TheAIScaler
 ---
 
 ## 意图

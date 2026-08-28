@@ -7,7 +7,6 @@ name: long-take-world
 能量: 中（持续）
 类别: 转场结构
 优先级: P1
-参考: Prezi 式叙事, apple 产品页滚动叙事, MG 一镜到底流派
 代码: template/motion-systems/longtake.tsx
 ---
 

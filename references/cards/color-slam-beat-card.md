@@ -7,7 +7,6 @@ name: color-slam-beat-card
 能量: 高
 类别: 转场结构
 优先级: P0
-参考: TheAIScaler
 ---
 
 ## 意图

@@ -25,8 +25,14 @@ tools/
 __pycache__/
 *.pyc
 
-# 本地私有约定（git 工作流等）
+# 本地私有约定（git 工作流等）+ agent 指令文件 + 开发过程 plan 文档（2026-08-28 定版不进库）
 CLAUDE.local.md
+CLAUDE.md
+AGENT.md
+AGENTS.md
+PLAN*.md
+*-PLAN.md
+*_PLAN.md
 
 # 库作者的制作端工具与过程资产（2026-08-27 定版，见 CLAUDE.md「什么不进库」）
 PLAN.md

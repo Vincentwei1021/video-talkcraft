@@ -7,7 +7,6 @@ name: chart-grow
 能量: 中
 类别: 数据信息图
 优先级: P0
-参考: 小Lin说(signature), 回形针, Vox, Wendover, Infographics Mega Bundle(2.2K销量)
 ---
 
 ## 意图

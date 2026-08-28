@@ -7,7 +7,6 @@ name: line-chart-story-draw
 能量: 中
 类别: 数据信息图
 优先级: P0
-参考: 小Lin说
 ---
 
 ## 意图

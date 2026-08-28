@@ -7,7 +7,6 @@ name: media-pop-in
 能量: 中
 类别: 素材呈现
 优先级: P0
-参考: Fireship, Ali Abdaal, Johnny Harris, 差评君, 剪映入场动画
 ---
 
 ## 意图

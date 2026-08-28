@@ -7,7 +7,6 @@ name: particle-weld-transition
 能量: 中
 类别: 转场结构
 优先级: P0
-参考: ai-math-video（七镜实战）, Kurzgesagt 形态变换, 影视飓风粒子过渡
 代码: template/motion-systems/transitions.tsx
 ---
 

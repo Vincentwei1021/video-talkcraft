@@ -7,7 +7,6 @@ name: pencil-sketch-draw
 能量: 中
 类别: 素材呈现
 优先级: P1
-参考: ann_nnng(X 手绘卡片流), 手绘白板解说流派
 代码: template/components/pencil.tsx（矢量笔版）; demos/pencil-sketch-draw/index.html（手握实拍版）
 素材: demos/pencil-sketch-draw/hand-pencil.png（绿幕抠像透明 PNG，817×640）
 ---

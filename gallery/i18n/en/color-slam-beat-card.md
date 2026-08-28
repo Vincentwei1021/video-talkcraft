@@ -1,0 +1,58 @@
+---
+name: color-slam-beat-card
+title: The full screen hard-cuts in a single frame to a high-saturation solid color (zero transition, zero wipe); on the color block, large type first "develops" then solidifies while an asset card with a drop shadow rises in on an offset beat, holds 1.5~5s, then hard-cuts back to the talking head — the background color jump itself is the metronome
+usage: Every stressed beat in a short talking-head video (under 60s) where you throw out an opinion, pass judgment, or list items; fast-paced, opinionated tones — common for AI/tech/e-commerce/opinion channels; also works as the "heavy-hammer sentence" in longer narrations
+---
+
+## Intent
+In a short talking-head video every sentence wants to be a stressed beat, but tweened transitions (screen wipes, push-ins) themselves cost 0.3~0.6s — put five of them in one minute and all that's left performing is the transitions.
+The solid-color hard cut compresses transition cost to 0 frames: **the jump in background color is itself the metronome** — the viewer doesn't "see the frame get swapped",
+they "feel struck by a beat". Vital constraints: **zero tweening** (in position in one frame; any fade/wipe/scale spreads the beat into an animation performance),
+**one card, one color** (one high-saturation solid color per card; a second color or a gradient instantly dissipates the "percussive" force of the jump),
+**elements move only after the jump** (the hard cut is the beat; elements entering on offset beats are the afterglow that follows it — the two must never compete in the same frame).
+
+## Motion Core
+- Full-screen solid color layer `.slam-card` (`position:absolute; inset:0`): `tl.set()` flips `autoAlpha 0→1` in one frame + writes `background`, **zero duration** — this is the entire card's only "transition"
+- Large type `.slam-title` (62~72px, weight 800, vertically centered in the left column): already in place on the same frame as the hard cut, but its color is a **light tint of the same hue family** (tint, e.g. base `#1B3CF5` paired with `#8A9BFF`); starting 0.18s after the cut, `color → #fff`, 0.22s, `power2.out` — like a print developing on photo paper, not a fade-in
+- Small stamp `.slam-sub` (index/subtitle with 5px letter-spacing): solidifies 0.12s later than the large type, `autoAlpha 0→1`, 0.24s
+- Asset card `.slam-shot` (white base + rounded corners + deep drop shadow — the shadow carries the semantics of "a physical object slapped onto the surface"): enters **0.2~0.5s** offset from the large type, `y +56px → 0` + `blur(10px) → 0` + `autoAlpha 0→1`, 0.42s, `power3.out` — the rise and blur fly-in share a single tween
+- Hold period (1.5~5s, determined by how long the narration takes to finish the sentence): elements **make no further moves**; only the whole group drifts `y 0 → -8px` linearly throughout, purely to prevent a "video froze" reading
+- Two exit options: ① **hard cut** (`tl.set(autoAlpha 0)`, zero-frame return to the talking head — the default, hardest rhythm); ② **the color block lifts up and yields** (`yPercent 0 → -100`, 0.34s, `power3.out`, the whole block leaves with its elements, the talking head revealed from below)
+- With consecutive cards, each one switches to a different high-saturation base color with hues spread apart (the demo plays blue → red); "one card, one color" is a discipline, not a color scheme
+- Division of labor with neighboring cards: `shape-wipe-transition` is a color block sweeping across the screen (0.6s tween), `chapter-title-card` is a color block pushing in + layered chapter number and title (a 2.5s ritual); this card has **zero tweening** — its entire sense of rhythm comes from the jump
+
+## Parameters
+| Parameter | Typical value | Tuning feel |
+|------|--------|----------|
+| Cut-in transition | 0 frames | This is the card's lifeblood; give it a 0.1s fade-in and it degrades into an ordinary title card, the beat becomes an animation |
+| `developAt` | 0.18s | How long after the hard cut the large type starts solidifying; 0 = no development beat, the type reads as a static decal; >0.4s the viewer has already started reading the tinted text |
+| `developDur` | 0.22s | Development duration; >0.5s reads as "loading", <0.1s the development is invisible — equivalent to a straight color swap |
+| `subDelay` | 0.12s | Offset between the small stamp and the large type; 0 makes both layers appear together and the hierarchy collapses |
+| `shotDelay` | 0.45s | Offset from large type → asset card, 0.2~0.5s; 0 = everything smears in at once, >0.7s an empty gap appears on the card and viewers assume nothing's coming |
+| `shotRise` | 56px | Rise travel; >120px reads as flying in from offscreen and stealing focus, 0 leaves only the blur change with no directional "rise" |
+| `shotBlur` | 10px | Starting value of the blur fly-in; 0 = rising without flying loses the sense of speed, >20px the first few frames smear into a dirty blob |
+| `hold` | 1.5~5s | Hold = the length of this narration sentence; <1.2s the large type gets cut off before it's read, >5s the high-saturation background starts scorching eyes and viewers want to skip ahead |
+| `driftPx` | 8px | Drift amount during hold; 0 reads as a frozen video, >20px reads as a camera-move mistake |
+| `liftOut` | 0.34s | Lift-and-yield duration (lift exit only); >0.5s drags the rhythm, <0.2s might as well hard-cut |
+| Base color saturation | High-saturation solid | Low saturation/grayish = insufficient jump force, reads as flipping a PPT slide; gradient or dual color = "one card, one color" broken, percussive force dissipates |
+
+## Known Pitfalls
+- Adding a fade/wipe/scale to the hard cut — a 0.2s tween spreads "struck by a beat" into "played an animation", instantly killing the card's only mechanism.
+- Using a gradient, dual-color patchwork, or low-saturation Morandi tones for the base — the jump amplitude is insufficient, viewers read it as "flipped a slide", not a beat.
+- Large type and asset card entering on the same frame — two actions fight over one beat, the frame smears into a blob; a 0.2~0.5s offset is what creates hierarchy.
+- Fading the large type in (opacity 0→1) instead of solidifying from a same-hue tint — a fade-in is "text flying in", development is "the text was always there, just surfacing"; only the latter avoids competing with the hard cut for that beat.
+- Complete stillness during the hold — the instant a full-screen high-saturation solid stops moving for even one frame, the viewer's first reaction is "the video froze"; an ultra-slow drift is the cheapest proof of life.
+- Holding longer than 5s — full-screen high-saturation color scorches the eyes; the beat card becomes a detention card.
+- Asset card without a drop shadow, pasted flat on the solid base — reads as part of a vector illustration, losing the physical sense of "slapping the evidence down".
+- Three consecutive cards using the same base color — the jump happened but the color didn't change, equivalent to only swapping content; changing color per card (each one a single solid) is what makes the metronome.
+
+## Reuse Guide
+- HTML/GSAP: demos/color-slam-beat-card/index.html. The core function `slamBeat(tl, el, spec, at, exit)` can be lifted wholesale; pass `exit` as `"cut"` (hard cut back) or `"lift"` (color block lifts and yields). To change colors edit `CONFIG.cards` (each item `{bg, tint}`, tint = a light same-hue variant of bg); to change copy edit the text inside `.slam-title` / `.slam-sub`; to add a card = duplicate one `.slam-card` DOM block + add one item to `CONFIG.cards` + call `slamBeat` once more; all rhythm lives in the top-level `CONFIG`.
+- Remotion port: implement the cut-in with a **frame check, not interpolate** — `frame >= cutFrame && frame < outFrame` decides whether the solid layer renders (any interpolate introduces tweening and breaks the zero-frame hard cut); development uses `interpolateColors(frame, [d, d+devF], [tint, '#fff'])`; asset card `interpolate(frame, [s, s+riseF], [56, 0], {easing: Easing.out(Easing.cubic), extrapolateRight:'clamp'})` drives `translateY`, with a second interpolate over the same range driving `filter: blur(Npx)`; hold drift is one linear interpolate spanning the whole card; lift exit `interpolate(frame, [o, o+liftF], [0, -100])` drives `translateY%`. One `<Sequence>` per card; hard cut = two Sequences butted end to end with no transition.
+- Editing-software equivalents: JianYing/CapCut — lay the solid-color asset directly on the main track, **place no transition at the cut point** (that is the whole trick); the large type uses keyframes that change only the text color, the asset card uses two keyframe tracks for "position + blur"; AE — a Solid layer cut in/out by time with no effects between layers, the text layer uses Fill color keyframes for the development, the asset layer uses Position + Fast Box Blur keyframes with Easy Ease; lift-and-yield = precompose the solid layer with its children and keyframe Position.
+
+## Scope
+- Belongs to this card: **the mechanism itself of the full-screen solid layer hard-cutting in and out in one frame (zero duration, zero wipe, zero scale)**; the large type's "development" from a same-hue tint `color → solid` (starting 0.18s after the cut, 0.22s, `power2.out`); the small stamp's `autoAlpha` follow-up 0.12s later; the asset card's rise 0.2~0.5s offset from the large type with `y +56→0` + `blur 10→0` in one tween (0.42s, `power3.out`); hold-period stillness + whole-group `y 0→-8px` linear drift as freeze prevention; the two exit endings (hard cut / `yPercent 0→-100` whole-block lift-and-yield, 0.34s `power3.out`); and the discipline of "one high-saturation solid color per card, changing color across consecutive cards".
+- Does not belong to this card: the underlying talking-head scene (digital-human placeholder + subtitle copy), the fake screenshots/charts inside the asset card, the specific copy and font sizes/letter-spacing of the large and small type, the demo's back-to-back two-card run and `gapBetween` interval (demonstrating rhythm only; in practice determined by where the narration lands), and the text-left/card-right composition (element placement is free to change; the offset timing is the essence).
+- Migration interfaces: **the base color = the reuser's brand-color interface, but with a semantic constraint** — change `bg` in `CONFIG.cards` (each with a matching same-hue tint `tint` as the development start point); it must be a **high-saturation solid, one color per card**, with hues spread apart across multiple cards; text color on the card inverts against the base's luminance (currently `#fff` / `rgba(255,255,255,.78)`). All timing lives in the top-level `CONFIG`, where `hold` is adjusted per card to each sentence's actual narration length (1.5~5s), and the offset relationships of `developAt`/`shotDelay` simply scale proportionally with total duration; when changing dimensions only recompute `shotRise` (about 10% of screen height) and font sizes — the hard cut and offset timing are aspect-independent; in a vertical layout with text above and card below, keep the asset card's rise direction "bottom-up", don't flip it.
+- Background requirements: **requires a high-saturation solid base (semantically necessary for the motion, an exception to the neutrality contract)** — this card's mechanism is "the background color jump as the metronome"; a white or low-saturation base has no change to jump between, and jump amplitude equals motion intensity. The demo's talking-head scene remains white (neutral); only the beat-card layer uses high-saturation color, and that color is the sole brand-color interface.

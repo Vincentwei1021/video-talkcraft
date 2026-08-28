@@ -7,7 +7,6 @@ name: highlighter-sweep
 时长: 起手静置约 0.7s 等语音到位 → 扫过 0.6s（0.4~0.8s 随语速）+ 压暗 0.45s 同帧 → 扫完 0.3s 浮起定格；卡片全程 8s 极缓推近
 能量: 低
 类别: 强调标注
-参考: Vox, Johnny Harris, Cleo Abram, James Jani
 ---
 
 ## 意图

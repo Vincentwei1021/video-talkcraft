@@ -7,8 +7,6 @@ name: number-slab-pop
 能量: 中
 类别: 数据信息图
 优先级: P0
-参考: 参考图③ 第7格, 老蒋巨靠谱, 小Lin说, Apple Event 数据页
-复刻: 参考图
 ---
 
 ## 意图

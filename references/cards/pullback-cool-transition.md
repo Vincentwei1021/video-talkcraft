@@ -7,7 +7,6 @@ name: pullback-cool-transition
 能量: 低
 类别: 转场结构
 优先级: P0
-参考: ai-math-video（七镜实战）, Vox / Cleo Abram 段落收束, 纪录片 rack focus 收尾
 代码: template/motion-systems/transitions.tsx
 ---
 

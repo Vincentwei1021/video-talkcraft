@@ -7,7 +7,6 @@ name: push-through-transition
 能量: 中
 类别: 转场结构
 优先级: P0
-参考: ai-math-video（七镜实战）, 电影剪辑的 match-on-action 原理
 代码: template/motion-systems/transitions.tsx
 ---
 

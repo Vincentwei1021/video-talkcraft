@@ -7,7 +7,6 @@ name: map-route-pin
 能量: 中
 类别: 数据信息图
 优先级: P1
-参考: Johnny Harris, Wendover, LEMMiNO, Half as Interesting
 ---
 
 ## 意图

@@ -7,7 +7,6 @@ name: caret-wipe-transition
 时长: 扫完全屏 1.33s（≈40 帧 @30fps）；配 hold A 0.8s + hold B 0.9s 的完整一拍约 3.0s
 能量: 中
 类别: 转场结构
-参考: remocn
 ---
 
 ## 意图

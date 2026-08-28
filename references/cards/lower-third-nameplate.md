@@ -7,7 +7,6 @@ name: lower-third-nameplate
 能量: 低
 类别: 人物互动
 优先级: P0
-参考: 影视飓风, MKBHD, ColdFusion, 新闻/访谈类, Videohive 品类 2.6 万商品
 ---
 
 ## 意图

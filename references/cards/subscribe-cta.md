@@ -7,7 +7,6 @@ name: subscribe-cta
 能量: 中
 类别: 人物互动
 优先级: P1
-参考: 几乎所有 YouTube 口播频道, B站三连引导, 小红书/抖音关注贴纸, Like Subscribe Bell Overlay(1.7K销量), LottieFiles subscribe 品类
 ---
 
 ## 意图
