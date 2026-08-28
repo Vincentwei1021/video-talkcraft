@@ -1,0 +1,79 @@
+name: Deploy gallery to GitHub Pages
+
+# 发布口播动效库到 GitHub Pages（方式同 video-shotcraft）：
+# - 站点 = gallery/build.mjs --pages 现场生成的画廊 + demos/（主屏可交互活 demo）+ thumbs
+# - 小窗预览 mp4 不进 git，存放在 `gallery-media` release，组装时下载到 site/media/
+#
+# NOTE: 不 push gh-pages 分支——仓库 Pages 发布源必须设为 "GitHub Actions"
+# （build_type: workflow），否则 GITHUB_TOKEN 推的分支不会触发 Pages 构建，站点悄悄不更新。
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'gallery/**'
+      - 'demos/**'
+      - 'references/cards/**'
+      - '.github/workflows/deploy-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: deploy-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Assemble site
+        run: |
+          mkdir -p site
+          node gallery/build.mjs --pages --out site/index.html
+          rsync -a gallery/thumbs/ site/thumbs/
+          rsync -a demos/ site/demos/
+          touch site/.nojekyll
+
+      - name: Download motion previews from the gallery-media release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p site/media
+          gh release download gallery-media \
+            --repo "$GITHUB_REPOSITORY" \
+            --dir site/media \
+            --pattern '*.mp4' \
+            --clobber
+
+      - name: Check every demo has its preview mp4
+        run: |
+          missing=0
+          for d in demos/*/; do
+            slug=$(basename "$d")
+            case "$slug" in _*) continue ;; esac
+            if [ ! -f "site/media/$slug.mp4" ]; then
+              echo "missing preview: $slug.mp4"
+              missing=1
+            fi
+          done
+          [ "$missing" = 0 ] && echo "all previews present"
+          exit $missing
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

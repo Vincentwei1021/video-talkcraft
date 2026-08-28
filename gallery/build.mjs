@@ -11,6 +11,18 @@ const demosDir = resolve(root, "demos");
 const thumbsDir = resolve(root, "gallery", "thumbs");
 mkdirSync(thumbsDir, { recursive: true });
 
+// --pages：生成 GitHub Pages 版——小窗/胶片条预览改用 release（gallery-media）里的
+//   mp4（media/<slug>.mp4），demo 路径从 ../demos/ 变成同级 demos/（部署时 demos/ 会
+//   拷进站点根，主屏播放器仍是可交互、有声的活 demo）。部署流程见 .github/workflows/deploy-pages.yml。
+// --out <file>：输出 html 路径（默认 gallery/index.html；CI 里用 --pages --out site/index.html）
+const argvv = process.argv.slice(2);
+const PAGES = argvv.includes("--pages");
+const outIdx = argvv.indexOf("--out");
+const outPath = outIdx >= 0 && argvv[outIdx + 1]
+  ? resolve(process.cwd(), argvv[outIdx + 1])
+  : resolve(root, "gallery", "index.html");
+const DEMO_BASE = PAGES ? "demos/" : "../demos/";
+
 function parseCard(file) {
   const raw = readFileSync(resolve(cardsDir, file), "utf8");
   const m = raw.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
@@ -82,6 +94,8 @@ for (const f of readdirSync(cardsDir).filter((f) => f.endsWith(".md")).sort()) {
   const thumbSrc = resolve(root, "tools", ".verify", `${slug}-t1.png`);
   let thumb = null;
   if (existsSync(thumbSrc)) { copyFileSync(thumbSrc, resolve(thumbsDir, `${slug}.png`)); thumb = `thumbs/${slug}.png`; }
+  // CI/新机器上没有 tools/.verify 截图缓存：直接用已入库的 gallery/thumbs
+  else if (existsSync(resolve(thumbsDir, `${slug}.png`))) thumb = `thumbs/${slug}.png`;
   cards.push({
     slug,
     isNew: NEW_SLUGS.has(slug),
@@ -115,7 +129,8 @@ const html = `<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>口播动效库</title>
+<title>video-talkcraft · 口播动效库</title>${PAGES ? `
+<meta name="description" content="video-talkcraft 口播视频动效库：78 张动效配方卡在线预览——动态字卡、数据镜头、证据巡游、运动承接转场、长镜头世界画布。">` : ""}
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   :root { --bg:#0b0b0e; --panel:#131317; --line:#232329; --txt:#ececf1; --dim:#8a8a96; --acc:#7A5AF8; --acc2:#9a82ff; }
@@ -202,6 +217,10 @@ const html = `<!DOCTYPE html>
   .chip-card .idx { position:absolute; right:5px; top:5px; font-size:10px; color:#c9baff;
     background:rgba(5,5,8,.72); border-radius:4px; padding:1px 6px; font-family:Menlo,monospace; }
   .chip-card iframe { width:100%; height:100%; border:0; display:block; pointer-events:none; }
+  .chip-card video, .tile .prev video { width:100%; height:100%; object-fit:cover; display:block;
+    pointer-events:none; background:#0e0e12; }
+  .topbar .ghlink { font-size:13px; color:var(--dim); text-decoration:none; white-space:nowrap; }
+  .topbar .ghlink:hover { color:var(--acc2); }
 
   /* NEW 徽标：本批新增卡 */
   .newbadge { position:absolute; left:6px; top:6px; z-index:3; font-size:10px; font-weight:800;
@@ -268,8 +287,9 @@ const html = `<!DOCTYPE html>
 </head>
 <body>
 <div class="topbar">
-  <h1>口播动效库</h1>
-  <div class="search"><input id="q" placeholder="搜索动效名称或关键词"></div>
+  <h1>video-talkcraft · 口播动效库</h1>
+  <div class="search"><input id="q" placeholder="搜索动效名称或关键词"></div>${PAGES ? `
+  <a class="ghlink" href="https://github.com/Vincentwei1021/video-talkcraft" target="_blank" rel="noopener">GitHub ↗</a>` : ""}
 </div>
 <div class="tabs" id="tabs"></div>
 <div class="hero" id="hero"></div>
@@ -285,8 +305,8 @@ const html = `<!DOCTYPE html>
   <button class="primary" id="copySel">复制名字</button>
   <button id="clearSel">清空</button>
 </div>
-<script src="../demos/_lib/sfx-samples.js"></script>
-<script src="../demos/_lib/sfx.js"></script>
+<script src="${DEMO_BASE}_lib/sfx-samples.js"></script>
+<script src="${DEMO_BASE}_lib/sfx.js"></script>
 <script>
 /* 声音代播：file:// 下 hero iframe 是 opaque origin，拿不到 autoplay 委托，
    iframe 里的 sfx 引擎会把 cue 经 postMessage 转发到这里，用父页的
@@ -317,19 +337,30 @@ function match(c) {
   return true;
 }
 
-/* demo 自动播放：滚入挂 iframe，滚出卸载 */
+/* demo 自动播放：滚入挂预览（本地=活 demo iframe；Pages=release 里的 mp4），滚出卸载 */
+const PAGES = ${PAGES};
+function makePreview(slug) {
+  if (PAGES) {
+    const v = document.createElement("video");
+    v.muted = true; v.loop = true; v.playsInline = true; v.autoplay = true; v.preload = "auto";
+    v.src = "media/" + slug + ".mp4";
+    v.play && v.play().catch(() => {});
+    return v;
+  }
+  const f = document.createElement("iframe");
+  f.loading = "lazy"; f.src = "${DEMO_BASE}" + slug + "/index.html?embed=1";
+  return f;
+}
 const io = new IntersectionObserver((ens) => {
   ens.forEach((en) => {
     const pv = en.target, slug = pv.dataset.slug;
     if (en.isIntersecting) {
-      if (!pv.querySelector("iframe")) {
-        const f = document.createElement("iframe");
-        f.loading = "lazy"; f.src = "../demos/" + slug + "/index.html?embed=1";
-        pv.prepend(f);
+      if (!pv.querySelector("iframe,video")) {
+        pv.prepend(makePreview(slug));
         const img = pv.querySelector("img"); if (img) img.remove();
       }
     } else {
-      const f = pv.querySelector("iframe");
+      const f = pv.querySelector("iframe,video");
       if (f) { f.remove(); const c = CARDS.find((x) => x.slug === slug);
         if (c && c.thumb) pv.insertAdjacentHTML("afterbegin", '<img src="' + c.thumb + '">'); }
     }
@@ -379,7 +410,7 @@ function renderHero(list) {
   h.innerHTML =
     '<div class="hero-player">' +
       // controls=1：播放/暂停、进度条、全屏都叠在视频画面内（demo-shell HUD）
-      '<iframe src="../demos/' + c.slug + '/index.html?embed=1&controls=1" allowfullscreen allow="fullscreen; autoplay"></iframe>' +
+      '<iframe src="${DEMO_BASE}' + c.slug + '/index.html?embed=1&controls=1" allowfullscreen allow="fullscreen; autoplay"></iframe>' +
       '<button class="nav prev" onclick="stepHero(-1)" title="上一个（←）">‹</button>' +
       '<button class="nav next" onclick="stepHero(1)" title="下一个（→）">›</button>' +
       '<span class="pos">' + (idx + 1) + ' / ' + list.length + '</span>' +
@@ -399,7 +430,7 @@ function renderHero(list) {
       (c.usage ? '<div class="hero-usage"><b>适用场景：</b>' + c.usage + '</div>' : "") +
       (scope ? '<div class="hero-scope"><b>动效范围</b>' + scope + '</div>' : "") +
       '<div class="hero-act">' +
-        '<a class="btn primary" href="../demos/' + c.slug + '/index.html" target="_blank">新窗口预览</a>' +
+        '<a class="btn primary" href="${DEMO_BASE}' + c.slug + '/index.html" target="_blank">新窗口预览</a>' +
         '<button class="btn" onclick="openCard(\\'' + c.slug + '\\')">配方卡</button>' +
         '<label class="btn"><input type="checkbox" ' + (picked.has(c.slug) ? "checked" : "") +
           ' onchange="togglePick(\\'' + c.slug + '\\', this.checked)">选取</label>' +
@@ -500,6 +531,7 @@ render();
 </body>
 </html>`;
 
-writeFileSync(resolve(root, "gallery", "index.html"), html);
-console.log(`画廊已生成：gallery/index.html（${cards.length} 张卡）`);
+mkdirSync(dirname(outPath), { recursive: true });
+writeFileSync(outPath, html);
+console.log(`画廊已生成：${outPath}（${cards.length} 张卡${PAGES ? "，Pages 版" : ""}）`);
 if (problems.length) console.log("待处理：\n - " + problems.join("\n - "));

@@ -2,6 +2,10 @@
 demo/
 *.mp4
 
+# 画廊预览视频不进 git：存放在 GitHub release `gallery-media`（同 video-shotcraft），
+# Pages 部署时由 workflow 下载到位；本地重录用 tools/record-demos.mjs（制作端工具，不进库）
+gallery/media/
+
 # 调研原始素材不进库（motion-mining 的分析 JSON/curation 是过程资产，进库）
 research/source-videos/
 research/digital-human/*.png
