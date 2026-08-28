@@ -41,6 +41,23 @@ function parseCard(file) {
 
 const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
+// 英文翻译：gallery/i18n/en/<slug>.md（frontmatter: name/title/usage + 翻译正文），
+// 画廊英文模式的一句话/适用/配方卡正文都从这里来；缺翻译时回退中文并记入 problems
+const i18nEnDir = resolve(root, "gallery", "i18n", "en");
+function parseEnCard(slug) {
+  const p = resolve(i18nEnDir, `${slug}.md`);
+  if (!existsSync(p)) return null;
+  const raw = readFileSync(p, "utf8");
+  const m = raw.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
+  if (!m) return null;
+  const meta = {};
+  for (const line of m[1].split("\n")) {
+    const kv = line.match(/^([^:：]+)[:：]\s*(.*)$/);
+    if (kv) meta[kv[1].trim()] = kv[2].trim();
+  }
+  return { title: meta.title || "", usage: meta.usage || "", body: m[2].trim() };
+}
+
 // 极简 markdown → HTML（够渲染配方卡：标题/表格/列表/加粗/行内码）
 function mdToHtml(md) {
   const inline = (s) => esc(s)
@@ -95,20 +112,25 @@ for (const f of readdirSync(cardsDir).filter((f) => f.endsWith(".md")).sort()) {
   if (existsSync(thumbSrc)) { copyFileSync(thumbSrc, resolve(thumbsDir, `${slug}.png`)); thumb = `thumbs/${slug}.png`; }
   // CI/新机器上没有 tools/.verify 截图缓存：直接用已入库的 gallery/thumbs
   else if (existsSync(resolve(thumbsDir, `${slug}.png`))) thumb = `thumbs/${slug}.png`;
+  const en = parseEnCard(slug);
+  if (!en) problems.push(`${slug}: 缺英文翻译（gallery/i18n/en/${slug}.md）`);
   cards.push({
     slug,
     isNew: NEW_SLUGS.has(slug),
     zhName: parsed.meta["标题"] || slug,
     title: parsed.meta["一句话"] || "",
+    titleEn: en?.title || "",
     category: parsed.meta["类别"] || "未分类",
     energy: parsed.meta["能量"] || "",
     duration: parsed.meta["时长"] || "",
     usage: parsed.meta["适用"] || "",
+    usageEn: en?.usage || "",
     priority: parsed.meta["优先级"] || "P1",
     hasDemo,
     code: codeRef,
     thumb,
     bodyHtml: mdToHtml(parsed.body),
+    bodyHtmlEn: en ? mdToHtml(en.body) : "",
   });
 }
 
@@ -189,21 +211,28 @@ const html = `<!DOCTYPE html>
   /* ── 顶栏 ── */
   .topbar { position:sticky; top:0; z-index:40; display:flex; align-items:center; gap:10px;
     padding:12px 32px; background:var(--bar); backdrop-filter:blur(12px); border-bottom:1px solid var(--line2); }
-  .topbar h1 { font-size:20px; letter-spacing:1px; font-weight:800; white-space:nowrap; }
-  .topbar h1 .sub { color:var(--dim); font-size:14px; font-weight:600; letter-spacing:0; }
+  .topbar h1 { font-size:21px; letter-spacing:1px; font-weight:800; white-space:nowrap; }
   .tb-spacer { flex:1; }
-  .tbtn { font-size:13px; padding:7px 14px; border-radius:9px; border:1px solid var(--btn-line);
-    background:var(--btn); color:var(--btn-txt); cursor:pointer; text-decoration:none;
-    white-space:nowrap; font-family:inherit; line-height:1.4; }
+  .tbtn { display:inline-flex; align-items:center; gap:8px; font-size:13.5px; padding:8px 15px;
+    border-radius:12px; border:1px solid var(--btn-line); background:var(--btn); color:var(--btn-txt);
+    cursor:pointer; text-decoration:none; white-space:nowrap; font-family:inherit; line-height:1.4; }
   .tbtn:hover { border-color:var(--acc); color:var(--acc2); }
+  .tbtn svg { width:16px; height:16px; display:block; flex:none; }
+  .tbtn.icon-only { padding:8px 11px; }
+  .follow-btn { border-color:var(--acc); }
+  .tbtn .cnt { display:none; font-size:12px; background:var(--chip); color:var(--chip-txt);
+    border-radius:999px; padding:2px 10px; }
   .follow { position:relative; }
   .follow .menu { display:none; position:absolute; right:0; top:100%; padding-top:8px; z-index:60; }
   .follow:hover .menu { display:block; }
-  .follow .menu-in { background:var(--panel); border:1px solid var(--btn-line); border-radius:10px;
-    overflow:hidden; box-shadow:0 8px 28px var(--shadow); min-width:130px; }
-  .follow .menu a { display:block; padding:9px 16px; font-size:13px; color:var(--txt);
-    text-decoration:none; white-space:nowrap; }
-  .follow .menu a:hover { background:var(--acc); color:#fff; }
+  .follow .menu-in { background:var(--panel); border:1px solid var(--btn-line); border-radius:16px;
+    box-shadow:0 12px 36px var(--shadow); min-width:214px; padding:8px; }
+  .menu-h { font-size:11px; letter-spacing:2px; color:var(--dim); padding:8px 12px 6px; text-transform:uppercase; }
+  .follow .menu a { display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:10px;
+    font-size:13.5px; color:var(--txt); text-decoration:none; white-space:nowrap; }
+  .follow .menu a:hover { background:var(--chip); }
+  .follow .menu a svg { width:18px; height:18px; flex:none; }
+  .follow .menu .arr { margin-left:auto; color:var(--dim); font-size:13px; padding-left:16px; }
 
   /* ── 分类 tab + 搜索框（原 78/78 计数位） ── */
   .tabs { display:flex; align-items:center; gap:16px; padding:0 32px; border-bottom:1px solid var(--line2);
@@ -258,7 +287,7 @@ const html = `<!DOCTYPE html>
     border:1px solid var(--scope-line); border-radius:10px; padding:10px 14px; max-height:132px; overflow:auto; }
   .hero-scope b { color:var(--scope-b); }
   .hero-act { display:flex; gap:10px; margin-top:auto; }
-  .hero-act .btn { font-size:14px; padding:10px 20px; border-radius:10px; border:1px solid var(--btn-line);
+  .hero-act .btn { font-size:14px; padding:7px 18px; border-radius:10px; border:1px solid var(--btn-line);
     background:var(--btn); color:var(--txt); cursor:pointer; text-decoration:none; text-align:center; font-family:inherit; }
   .hero-act .btn.primary { background:var(--acc); border-color:var(--acc); color:#fff; font-weight:600; }
   .hero-act .btn:hover { filter:brightness(1.08); }
@@ -354,16 +383,29 @@ const html = `<!DOCTYPE html>
   <h1>video-talkcraft <span class="sub" id="h1sub">· 口播动效库</span></h1>
   <span class="tb-spacer"></span>
   <div class="follow">
-    <button class="tbtn" id="followBtn">关注作者 ▾</button>
+    <button class="tbtn follow-btn" id="followBtn"><span id="followTxt">关注作者</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
     <div class="menu"><div class="menu-in">
-      <a id="fDouyin" href="https://www.douyin.com/user/MS4wLjABAAAAK1pkjBxilk2Oi_9h_vFyD-lTAu9CTlvhmOtkosDvvxg" target="_blank" rel="noopener">抖音</a>
-      <a id="fXhs" href="https://xhslink.cn/m/At9iP2d5C1V" target="_blank" rel="noopener">小红书</a>
-      <a id="fX" href="https://x.com/VincentWei93" target="_blank" rel="noopener">X</a>
+      <div class="menu-h" id="menuH">关注作者</div>
+      <a href="https://www.douyin.com/user/MS4wLjABAAAAK1pkjBxilk2Oi_9h_vFyD-lTAu9CTlvhmOtkosDvvxg" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.53.02C13.84 0 15.14.01 16.44 0c.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg>
+        <span id="fDouyinT">抖音</span><span class="arr">↗</span></a>
+      <a href="https://xhslink.cn/m/At9iP2d5C1V" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24"><rect x="2" y="5.5" width="20" height="13" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.8"/><text x="12" y="14.8" text-anchor="middle" font-size="6.5" fill="currentColor" font-family="PingFang SC,sans-serif" font-weight="600">小红书</text></svg>
+        <span id="fXhsT">小红书</span><span class="arr">↗</span></a>
+      <a href="https://x.com/VincentWei93" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        <span id="fXT">X</span><span class="arr">↗</span></a>
     </div></div>
   </div>
-  <a class="tbtn" id="starBtn" href="${GITHUB}" target="_blank" rel="noopener">★ Star</a>
-  <button class="tbtn" id="themeBtn" title="切换深/浅色">🌙</button>
-  <button class="tbtn" id="langBtn" title="Switch language">EN</button>
+  <a class="tbtn" id="starBtn" href="${GITHUB}" target="_blank" rel="noopener">
+    <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+    <span>Star</span><span class="cnt" id="starCnt"></span></a>
+  <button class="tbtn icon-only" id="themeBtn" title="切换深/浅色"></button>
+  <button class="tbtn" id="langBtn" title="Switch language">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+    <span id="langTxt">English</span></button>
 </div>
 <div class="tabs">
   <div class="cats" id="cats"></div>
@@ -393,8 +435,9 @@ window.addEventListener("message", (e) => {
   const m = e.data && e.data.__sfx;
   if (m && window.SFX) window.SFX.play(m.name, m.opts);
 });
-const CARDS = ${JSON.stringify(cards.map(({ bodyHtml, ...rest }) => rest))};
+const CARDS = ${JSON.stringify(cards.map(({ bodyHtml, bodyHtmlEn, ...rest }) => rest))};
 const BODIES = ${JSON.stringify(Object.fromEntries(cards.map((c) => [c.slug, c.bodyHtml])))};
+const BODIES_EN = ${JSON.stringify(Object.fromEntries(cards.filter((c) => c.bodyHtmlEn).map((c) => [c.slug, c.bodyHtmlEn])))};
 const CATS = ${JSON.stringify(categories)};
 const DEMO_BASE = "${DEMO_BASE}";
 const GITHUB = "${GITHUB}";
@@ -406,19 +449,19 @@ const dlg = $("dlg");
 
 /* ── 主题 + 语言（右上角点击切换；默认深色 + 中文，localStorage 记忆） ── */
 const I18N = {
-  zh: { sub: "· 口播动效库", search: "搜索动效名称或关键词", follow: "关注作者 ▾", star: "★ Star",
-    douyin: "抖音", xhs: "小红书", x: "X",
+  zh: { sub: "· 口播动效库", search: "搜索动效名称或关键词", follow: "关注作者", menuH: "关注作者",
+    douyin: "抖音", xhs: "小红书", x: "X", langTxt: "English",
     card: "配方卡", source: "源码", pick: "选取", close: "关闭", copy: "复制名字", copied: "已复制 ✓",
     clear: "清空", selA: "已选 ", selB: " 张", all: "全部", viewAll: "查看全部 ›",
-    empty: "没有匹配的卡片", p0: "P0 高频", energy: "能量·", usage: "适用场景：",
+    empty: "没有匹配的卡片", p0: "P0 高频", energy: "能量·", usage: "适用场景：", scope: "动效范围",
     hintA: " 切换动效 · ", hintB: " 选取当前 · 下方胶片条可点选",
     clickPlay: "点击播放（有声）", newChip: "NEW · 本批新增",
     prevT: "上一个（←）", nextT: "下一个（→）", themeT: "切换深/浅色", langT: "Switch to English" },
-  en: { sub: "· Motion Library", search: "Search motions by name or keyword", follow: "Follow ▾", star: "★ Star",
-    douyin: "Douyin", xhs: "RedNote", x: "X",
+  en: { sub: "· Motion Library", search: "Search motions by name or keyword", follow: "Follow me", menuH: "Follow me on",
+    douyin: "Douyin", xhs: "RedNote", x: "X", langTxt: "中文",
     card: "Recipe", source: "Source", pick: "Pick", close: "Close", copy: "Copy names", copied: "Copied ✓",
     clear: "Clear", selA: "", selB: " picked", all: "All", viewAll: "View all ›",
-    empty: "No matching cards", p0: "P0 · Frequent", energy: "Energy · ", usage: "Best for: ",
+    empty: "No matching cards", p0: "P0 · Frequent", energy: "Energy · ", usage: "Best for: ", scope: "Scope",
     hintA: " switch · ", hintB: " pick · click the filmstrip below",
     clickPlay: "Click to play (with sound)", newChip: "NEW",
     prevT: "Previous (←)", nextT: "Next (→)", themeT: "Toggle light/dark", langT: "切换到中文" }
@@ -431,25 +474,38 @@ try { LANG = localStorage.getItem("vtc-lang") || "zh"; THEME = localStorage.getI
 const T = () => I18N[LANG];
 const catLabel = (c) => LANG === "en" ? (c === "全部" ? T().all : (CAT_EN[c] || c)) : c;
 const nameOf = (c) => LANG === "en" ? c.slug : c.zhName;
+const ICON_MOON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+const ICON_SUN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>';
 function applyTheme() {
   document.documentElement.dataset.theme = THEME;
-  $("themeBtn").textContent = THEME === "dark" ? "🌙" : "☀️";
+  $("themeBtn").innerHTML = THEME === "dark" ? ICON_MOON : ICON_SUN;
 }
 function applyI18n() {
   const t = T();
   document.documentElement.lang = LANG === "zh" ? "zh" : "en";
   $("h1sub").textContent = t.sub;
   $("q").placeholder = t.search;
-  $("followBtn").textContent = t.follow;
-  $("fDouyin").textContent = t.douyin; $("fXhs").textContent = t.xhs; $("fX").textContent = t.x;
-  $("starBtn").textContent = t.star;
+  $("followTxt").textContent = t.follow;
+  $("menuH").textContent = t.menuH;
+  $("fDouyinT").textContent = t.douyin; $("fXhsT").textContent = t.xhs; $("fXT").textContent = t.x;
   $("dlgClose").textContent = t.close;
   $("copySel").textContent = t.copy;
   $("clearSel").textContent = t.clear;
-  $("langBtn").textContent = LANG === "zh" ? "EN" : "中";
+  $("langTxt").textContent = t.langTxt;
   $("langBtn").title = t.langT;
   $("themeBtn").title = t.themeT;
 }
+/* GitHub star 数：api.github.com 允许任意 origin 的 CORS，取不到就不显示计数气泡 */
+fetch("https://api.github.com/repos/Vincentwei1021/video-talkcraft")
+  .then((r) => (r.ok ? r.json() : null))
+  .then((j) => {
+    if (j && typeof j.stargazers_count === "number") {
+      const n = j.stargazers_count;
+      const el = $("starCnt");
+      el.textContent = n >= 1000 ? (n / 1000).toFixed(1).replace(/\\.0$/, "") + "k" : String(n);
+      el.style.display = "inline-block";
+    }
+  }).catch(() => {});
 $("themeBtn").addEventListener("click", () => {
   THEME = THEME === "dark" ? "light" : "dark";
   try { localStorage.setItem("vtc-theme", THEME); } catch (e) {}
@@ -478,15 +534,19 @@ function mountHeroIframe() {
     if (!activated) { activated = true; mountHeroIframe(); }
   }, { capture: true }));
 
-/* 从配方卡正文里抠「动效范围」段（h3 标题到下一个 h3），主推区展示 */
+/* 正文按语言取：英文模式且有翻译时用 BODIES_EN，否则回退中文 */
+function bodyOf(slug) {
+  return (LANG === "en" && BODIES_EN[slug]) || BODIES[slug] || "";
+}
+/* 从配方卡正文里抠「动效范围/Scope」段（h3 标题到下一个 h3），主推区展示 */
 function scopeOf(slug) {
-  const m = (BODIES[slug] || "").match(/<h3>动效范围<\\/h3>([\\s\\S]*?)(?=<h3>|$)/);
+  const m = bodyOf(slug).match(/<h3>(?:动效范围|Scope)<\\/h3>([\\s\\S]*?)(?=<h3>|$)/);
   return m ? m[1] : "";
 }
 
 function match(c) {
   if (cat !== "全部" && c.category !== cat) return false;
-  if (q && !(c.slug + c.zhName + c.title + c.usage + c.category + (CAT_EN[c.category] || "")).toLowerCase().includes(q.toLowerCase())) return false;
+  if (q && !(c.slug + c.zhName + c.title + (c.titleEn || "") + c.usage + (c.usageEn || "") + c.category + (CAT_EN[c.category] || "")).toLowerCase().includes(q.toLowerCase())) return false;
   return true;
 }
 
@@ -539,7 +599,7 @@ async function copyPicked(btn) {
   setTimeout(() => { btn.textContent = T().copy; }, 1200);
 }
 function togglePick(slug, on) { on ? picked.add(slug) : picked.delete(slug); syncSel(); }
-function openCard(slug) { $("dlgTitle").textContent = slug; $("dlgBody").innerHTML = BODIES[slug]; dlg.showModal(); }
+function openCard(slug) { $("dlgTitle").textContent = slug; $("dlgBody").innerHTML = bodyOf(slug); dlg.showModal(); }
 
 function renderTabs() {
   const t = $("cats"); t.innerHTML = "";
@@ -576,9 +636,9 @@ function renderHero(list) {
         '<span class="hchip">' + catLabel(c.category) + '</span>' +
         (c.energy ? '<span class="hchip">' + T().energy + (LANG === "en" ? (EN_ENERGY[c.energy] || c.energy) : c.energy) + '</span>' : "") +
       '</div>' +
-      '<div class="hero-one">' + c.title + '</div>' +
-      (c.usage ? '<div class="hero-usage"><b>' + T().usage + '</b>' + c.usage + '</div>' : "") +
-      (scope ? '<div class="hero-scope"><b>动效范围</b>' + scope + '</div>' : "") +
+      '<div class="hero-one">' + ((LANG === "en" && c.titleEn) || c.title) + '</div>' +
+      ((LANG === "en" ? c.usageEn || c.usage : c.usage) ? '<div class="hero-usage"><b>' + T().usage + '</b>' + (LANG === "en" ? c.usageEn || c.usage : c.usage) + '</div>' : "") +
+      (scope ? '<div class="hero-scope"><b>' + T().scope + '</b>' + scope + '</div>' : "") +
       '<div class="hero-act">' +
         '<button class="btn primary" onclick="openCard(\\'' + c.slug + '\\')">' + T().card + '</button>' +
         '<a class="btn" href="' + GITHUB + '/blob/main/demos/' + c.slug + '/index.html" target="_blank" rel="noopener">' + T().source + '</a>' +
