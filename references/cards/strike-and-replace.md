@@ -2,6 +2,7 @@
 name: strike-and-replace
 标题: 划线纠错替换
 优先级: P1
+代码: template/cards/strike-and-replace.tsx
 一句话: 一条语义色横线 0→100% 划穿旧值，划完那一刻旧值淡出、新值从同一位置下方 8px 升起顶上来——替换感来自"占了同一个位置"，容器宽度由隐形尺子撑住，句子其余部分零位移
 适用: 口播里"不是 A，而是 B"这个高频句式——旧观念纠正、旧价格/旧参数作废、版本对比、辟谣；一句话里只替换一个值的时刻
 时长: 起手静置 0.35s → 划线 1.6s（总时长 0→40%）→ 交换 0.8s（40~60%）→ hold 1.6s（60~100%）；总 4.35s
@@ -93,6 +94,7 @@ name: strike-and-replace
   转折的戏剧性也没了。切镜点提前到枢轴句起点（cinematography.md §4.5 第 2 条）。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/strike-and-replace.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/strike-and-replace/index.html。**换内容只改 `CONFIG.from` / `CONFIG.to`** 与句子模板里
   替换槽前后的文字（`.sr-line` 里那句）；隐形尺子会自动取更长的那个值，不需要手改宽度。
   节奏只改 `CONFIG.total`（三段按比例自动切）。语义色改 `.strike` 的 `background`，

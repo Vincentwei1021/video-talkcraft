@@ -7,7 +7,7 @@ name: particle-weld-transition
 能量: 中
 类别: 转场结构
 优先级: P0
-代码: template/motion-systems/transitions.tsx
+代码: template/cards/particle-weld-transition.tsx
 ---
 
 ## 意图
@@ -82,6 +82,7 @@ Remotion 对应写法（`template/motion-systems/transitions.tsx`）：
 - 用在语义不成立的边界（两镜内容毫无关系）：观众读到"这两个东西是同一个"，然后发现不是，比硬切更困惑。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/particle-weld-transition.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：`demos/particle-weld-transition/index.html`。摘 `particleWeld(出场镜头, 入场镜头, 起始秒) → 结束秒`
   + `CONFIG.weld` + `rnd()` + `makeParticles()` + `#weld` 那段 CSS。
   **`HOME` 要改成你的主体包围盒**（demo 是舞台 960×540 里的字块 `{x:480,y:268,w:340,h:74}`）；

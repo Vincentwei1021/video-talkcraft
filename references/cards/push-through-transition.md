@@ -7,7 +7,7 @@ name: push-through-transition
 能量: 中
 类别: 转场结构
 优先级: P0
-代码: template/motion-systems/transitions.tsx
+代码: template/cards/push-through-transition.tsx
 ---
 
 ## 意图
@@ -65,6 +65,7 @@ Remotion 对应写法（`template/motion-systems/transitions.tsx`，生成器直
 - lead 补偿漏算：入场侧相机片段的 `t` 忘了取负，沉降从叙事第 0 帧才开始，交叠期入场镜头是静止的。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/push-through-transition.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：`demos/push-through-transition/index.html`。核心是 `pushThrough(出场镜头, 入场镜头, 起始秒) → 转场结束秒`
   一个函数 + `CONFIG.push` 一组参数，整段可直接摘走；`hold()` 是镜头停留期的慢推，也一起摘（没有它转场两端会撞墙）。
 - Remotion：`transitions.tsx` 的 `pushThroughOut` / `settleIn` spread 进 `shots.ts`：

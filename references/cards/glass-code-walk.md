@@ -2,6 +2,7 @@
 name: glass-code-walk
 标题: 玻璃代码走读
 优先级: P1
+代码: template/cards/glass-code-walk.tsx
 一句话: 玻璃质感代码块弹入、10 行代码逐行落位，相机推到 1.68x 后按「读一行 → 滑到下一行」逐句走读（浮点行号 linePosition 同时驱动相机与高亮带，行间是滑过去的不是跳格），非当前行压暗到 0.30，读完 0.85s 拉回全景解除压暗
 适用: 口播里带观众读一小段真实代码/配置——技术教程、代码讲解、开源项目介绍、"这几行就是关键"的时刻；6~10 行、每行都值得念一句的量
 时长: 块弹入 0.55s → 逐行落位 1.0s → 推近 0.55s → 走读 9 句（每句 dwell 0.32s + 滑 0.26s）→ hold 0.30s → 拉回 0.85s → 尾 0.5s；demo 全程 8.26s。行数变化按「行数 × 0.58s」加减
@@ -91,6 +92,7 @@ backdrop blur 把背后的东西揉开、块内块外能看出同一片背景的
 - 代码写 lorem 或伪代码——观众一眼看出是假的，"这是真代码"的说服力归零；写真实感短代码（能编译的那种）。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/glass-code-walk.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：`demos/glass-code-walk/index.html`。**换代码只改 `CONFIG.code`**——分词、建行、行心、`stops`（空行过滤）、走读句数全部自动跟着走，不用手补任何坐标或时刻。
   节奏在 `CONFIG.dwell` / `stepDur` / `pushDur` / `pullDur`；焦距 `CONFIG.zoom`（改了要按 `960/zoom` 复查块宽）；压暗深度 `CONFIG.dimFloor`；块几何 `blkL/blkT/blkW/blkH`（既推行心，也当相机钳制边界，CSS 的 `.ring` 要同步改）。
   核心可摘走：`CONFIG` + `trackedRow()` + `apply()`（反解 + 钳制 + 带子 + 压暗，共二十来行）。

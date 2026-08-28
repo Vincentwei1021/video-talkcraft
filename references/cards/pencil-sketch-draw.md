@@ -7,7 +7,7 @@ name: pencil-sketch-draw
 能量: 中
 类别: 素材呈现
 优先级: P1
-代码: template/components/pencil.tsx（矢量笔版）; demos/pencil-sketch-draw/index.html（手握实拍版）
+代码: template/cards/pencil-sketch-draw.tsx
 素材: demos/pencil-sketch-draw/hand-pencil.png（绿幕抠像透明 PNG，817×640）
 ---
 
@@ -61,6 +61,7 @@ SVG path + `pathLength=100` + `strokeDashoffset` 从 100 减到 0 做描画；�
 - 路径太复杂一笔画完——真人不会一笔画完一辆车，按"笔画"拆成多个 path 串接（起笔快收笔缓）。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/pencil-sketch-draw.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - **笔具二选一**：要临场感 → 手握铅笔实拍素材（`demos/pencil-sketch-draw/hand-pencil.png`，绿幕抠像透明 PNG，
   817×640，`tip=(1,552)`、`axisDeg=44.24`）；要能换色/无素材依赖 → 纯矢量笔（`pencil.tsx`）。
   两者共用同一个坐标契约（笔尖 = 局部原点、笔身朝 −Y），换笔只改 `makePencil()`，`placePencil` 一行不动。

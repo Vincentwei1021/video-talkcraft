@@ -7,6 +7,7 @@ name: lower-third-nameplate
 能量: 低
 类别: 人物互动
 优先级: P0
+代码: template/cards/lower-third-nameplate.tsx
 ---
 
 ## 意图
@@ -42,6 +43,7 @@ name: lower-third-nameplate
 - 头衔写两行以上——读不完；一行 12 字内，多余身份删掉。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/lower-third-nameplate.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/lower-third-nameplate/index.html。改 `.name/.title` 文案、`.bar` 换品牌色；节奏都在 `CONFIG`（barDur/nameDur/titleLag/hold）；变体 b 在 `.plate`，改 logo 字和公司名即可。
 - Remotion 移植：三段用 `<Sequence from={...}>` 串接；clip 揭示 `clipPath: inset(0 ${interpolate(frame,[0,8],[100,0])}% 0 0)`；出场用总时长减帧数做反向 interpolate。
 - 剪辑软件对应物：剪映"文字模板→字幕条/人名条"分类；AE 是 Videohive "lower thirds" 品类（2.6 万商品直接套）；FCPX 内置 Lower Thirds 生成器；CapCut "Name tag" 贴纸。

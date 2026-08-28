@@ -7,6 +7,7 @@ name: chevron-lower-third
 能量: 低
 类别: 人物互动
 优先级: P1
+代码: template/cards/chevron-lower-third.tsx
 ---
 
 ## 意图
@@ -79,6 +80,7 @@ chip 先成形、字后落，才有"发牌"的两拍。
 - 忘了给 `.clt` 设 `transform-origin: left center`——退场时整条从中心收，读作"被吸走"而不是"收回左边"。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/chevron-lower-third.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/chevron-lower-third/index.html。换文案改 `.clt-name` 与
   `.clt-chip span`（头衔 ≤12 字），chip 宽度自动跟着文字走（`padding: 0 18px`）；
   改强调色只动 `:root --acc`（chip + chevron 共用，姓名保持墨色）；

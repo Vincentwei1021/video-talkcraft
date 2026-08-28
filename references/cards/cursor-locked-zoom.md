@@ -2,6 +2,7 @@
 name: cursor-locked-zoom
 标题: 光标锁定跟拍
 优先级: P1
+代码: template/cards/cursor-locked-zoom.tsx
 一句话: 一条长命令在灰阶终端窗里逐字打出，相机 2.6~2.8x 锁死在光标上跟拍（tx = W/2 − zoom·cursorX 反解 + transform-origin 0 0），字符从画面右侧被"喂"进来、光标恒在正中；打完停 0.75s 让人读完，再用 0.8s inOut 把 zoom 拉回 1 收在全景居中
 适用: 竖屏/小屏里念一条长命令、长路径、长配置、长代码行——"你要跑的是这一条"；也用于任何"目标在移动、镜头必须跟着"的段落（光标、进度点、正在被填的表单字段）
 时长: 实拍：起手 0.4~0.6s → 打字段（长度 ÷ 15 char/s，一条 50 字符命令约 3.4s）→ 读完 hold 0.6~0.9s → 拉回全景 0.8s → 尾 0.5s；合计 5.5~7s。demo：全程 6.0s
@@ -68,6 +69,7 @@ name: cursor-locked-zoom
 - 一屏里同时跟拍**两个**移动目标（光标 + 进度条）——镜头只能锁一个。要讲两个就拆两拍。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/cursor-locked-zoom.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：`demos/cursor-locked-zoom/index.html`。换命令改 `CONFIG.cmd`（同时按新长度检查窗宽）；速率与焦距在 `CONFIG.rate` / `CONFIG.zoom`；素材换成别的窗口时改 `CONFIG.winL/winT/winW/winH/pad/chromeH` 这组几何（它们既用来推锚点，也当相机的钳制边界）。核心可摘走：`CONFIG` + `apply()`（反解 + 钳制那七八行）。
 - 换素材的最小流程：① 把素材在世界坐标里的四边填进 `winL/winT/winW/winH`；② 锚点公式换成"素材里那个移动目标的中心坐标"（不一定是字符光标——进度点、被填的表单字段、正在被高亮的行都行）；③ 其余不动。**只要能写出"目标中心的世界坐标"这一个函数，本卡就能跟拍它。**
 - **多行代码跟拍**（源头的 `glass-code-walk` 变体）：把 `cmdRow` 从整数换成浮点行号，`cursorY = 窗顶 + 窗栏 + 内边距 + linePosition × lineH + lineH/2`，`linePosition` 在相邻行之间插值（扫读第 3 行到第 4 行时它是 3.0 → 4.0）⇒ 镜头在行间平滑滑过而不是整跳。横向可以只锁 x 到行首（读代码是整行读，不是逐字读），或对整行取中点。

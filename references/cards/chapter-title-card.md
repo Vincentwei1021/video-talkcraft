@@ -7,6 +7,7 @@ name: chapter-title-card
 能量: 中
 类别: 转场结构
 优先级: P0
+代码: template/cards/chapter-title-card.tsx
 ---
 
 ## 意图
@@ -44,6 +45,7 @@ name: chapter-title-card
 - 色块出场换方向（从右回弹）——观众预期"翻页"是单向的，来回晃读作撤销。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/chapter-title-card.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/chapter-title-card/index.html。换文案改 `.chapter-num` / `.chapter-name` / `.chapter-sub` 内文本；换色改 `.chapter-card.c1` / `.c2` 的 `background`；节奏全部在顶部 `CONFIG`（`wipeIn`/`numIn`/`nameIn`/`subDelay`/`hold`/`driftPx`/`wipeOut`/`gapBetween`）。加第三章 = 复制一段 `.chapter-card` DOM + 在 register 里多调一次 `chapterBeat(tl, cards[2], at)`。核心节拍函数 `chapterBeat` 可整段摘走。
 - Remotion 移植：每章一个 `<Sequence>`；色块用 `interpolate(frame, [0, wipeIn*fps], [-100, 0], {easing: Easing.inOut(Easing.quart)})` 驱动 `translateX%`；编号 scale/opacity 与章节名 `clipPath` 的 inset 百分比同样用 interpolate（`Easing.out(Easing.cubic)`）；hold 漂移是一条贯穿的线性 interpolate；出场放同一 Sequence 尾部用 `Easing.in(Easing.quart)`。
 - （实测变体）暗色纹理版：黑底 + 星座粒子 + 同心环做底，eyebrow 英文小字先出、主标衬线大字随后、副字再延迟 0.4s——三层错峰的骨架不变，只把"品牌色块"换成有纹理的暗场，适合叙事更重的长片开幕。见小Lin说·韩股崩盘。

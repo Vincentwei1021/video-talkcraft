@@ -2,6 +2,7 @@
 name: evidence-scroll-tour
 标题: 证据长页慢滚
 优先级: P0
+代码: template/cards/evidence-scroll-tour.tsx
 一句话: 超出屏高的长截图页作为画面唯一动元素匀速上滚（约 10% 页高/s），预标注的红框/高亮随页滚动，讲到关键条目提前减速、停 1~2s 再滚完——滚速就是讲述节奏
 适用: 口播出示文档/协议/README/搜索结果等长页证据、需要"我们从头看一遍，重点在这一条"的时刻；财经拆解、测评对比、事件梳理等冷静举证的调性
 时长: 起滚缓入约 0.5s → 匀速慢滚 4~6s（随页高）→ 提前 ~1s 减速、关键条目停在视口中线 1~2s → 加速 ~0.6s 回匀速滚完；单页全程 8~14s
@@ -46,6 +47,7 @@ name: evidence-scroll-tour
 - 关键条目停在视口边缘——观众不知道该看哪一行，停留白停。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/evidence-scroll-tour.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/evidence-scroll-tour/index.html。换证据改 `.doc-page` 内文（红框停点是 `#stop-box`，任意换到别的句子上，停点位置运行时自动测量）；换标注色改 `.mark-box` 的 `border-color`；节奏全在顶部 `CONFIG`（`scrollSpeed` / `stopHold` / `stopAlign` / `decelDist` / `accelDist` / `breathScale`）。多个停点把"减速→呼吸→加速"三段照抄串联即可。
 - Remotion 移植：把"位移-时间"曲线拆成分段 `interpolate(frame, [t0,t1,t2,t3,t4,t5]*fps, [0, -accelDist, -(stopY-decelDist), -stopY, -stopY, -(stopY+accelDist), -total])`，各段 easing 依次 `Easing.in(Easing.quad)` / linear / `Easing.out(Easing.quad)` / 常值（hold）/ `Easing.in(Easing.quad)` / linear；段时长按 `距离/scrollSpeed`（加减速段 `2*dist/v`）；呼吸用 hold 区间内的 `Math.sin` 单周期映射 scale。
 - 剪辑软件对应物：剪映——长截图导入后打"位置"关键帧，匀速段两点线性、停点前后各加一个关键帧并对减速点右键"缓出"/启动点"缓入"；AE——Position 关键帧 + 停点两侧 Easy Ease（速度图里把停点速度拉到 0），红框呼吸用 scale 表达式 `1+0.03*Math.sin(...)`; CapCut 同剪映 keyframe 做法。

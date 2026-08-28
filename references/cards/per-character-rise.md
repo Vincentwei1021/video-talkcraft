@@ -2,6 +2,7 @@
 name: per-character-rise
 标题: 逐字升起
 优先级: P1
+代码: template/cards/per-character-rise.tsx
 一句话: 每个汉字从自己位置下方（字号 44%）升到位，位移 0.33s、淡入 0.70s 走两条不同缓动，逐字错峰仅 1 帧（0.033s）——整句读作"一股气顶上来"而不是一个个蹦，全程零模糊零缩放
 适用: 一句话的判断/主张/口号立在画面上——段落开头的论点句、结论句、口号；语速稳、句子短（6~10 字）的时刻；想要方向感与"顶起来"的力道但不要弹跳廉价感的调性；不适合连续跟读的常规字幕（每句都升会让整片有下往上的抖）
 时长: 起手静置 0.3s → 位移 0.33s（升起）→ 淡入 0.70s（位移先停、淡入后停）→ 逐字错峰 0.033s（8 字整句在 1.23s 处全实）→ 收尾定格 1.2s；共约 2.43s
@@ -70,6 +71,7 @@ name: per-character-rise
 - 重播不重建 DOM 只重置 transform——换文案后字数变了，旧的 span 还在，错峰序列与实际字数对不上。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/per-character-rise.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/per-character-rise/index.html。**换内容只改 `CONFIG.text`** 这一个字符串（6~10 字），
   切字与错峰序列都是运行时算的。手感只调 `dur`（`travel` 要跟着保持约 48% 的比例）；
   换字号改 `.pcr-text` 的 `font-size`，同时把 `CONFIG.rise` 改成新字号的 44%。

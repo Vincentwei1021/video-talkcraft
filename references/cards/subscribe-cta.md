@@ -7,6 +7,7 @@ name: subscribe-cta
 能量: 中
 类别: 人物互动
 优先级: P1
+代码: template/cards/subscribe-cta.tsx
 ---
 
 ## 意图
@@ -74,6 +75,7 @@ name: subscribe-cta
 - `fromTo` 忘了 `immediateRender: false`——涟漪环建表时就把 from 态刷上去，控件"还没被点"时红环已经挂在外圈（实测三连三个环全部提前显形）。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/subscribe-cta.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/subscribe-cta/index.html。三段各是一个独立函数（`segYouTube` / `segTriple` / `segFollow`），
   落地时**只留你要的那一段**——把 `[segYouTube, segTriple, segFollow]` 数组裁成一个即可，共用的
   `moveTo/down/up/cursorOut/P` 四个辅助函数不用改。换文案改 `.sub-btn` / `.ftxt` 与 `.call(...)` 里的"已订阅/已关注"；

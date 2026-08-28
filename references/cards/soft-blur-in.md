@@ -2,6 +2,7 @@
 name: soft-blur-in
 标题: 柔焦淡入
 优先级: P1
+代码: template/cards/soft-blur-in.tsx
 一句话: 一句话像被镜头对焦出来——整块文字从 blur（字号 1/6）起、边解糊边淡入走满 0.9s，同时字号 22% 的下沉位移只占前 0.3s，逐字错峰仅 1 帧（0.033s）留下一道几乎读不出的左→右扫过感
 适用: 需要"轻"的字幕入场——冷静的旁白句、结论句、章节内的小标题；柔和调性的口播（知识区、访谈、品牌片）；素材切换后第一句上屏的字；不适合要打点的重音词与要跟语速的连续跟读字幕
 时长: 起手静置 0.3s → 解糊淡入 0.9s（位移只占前 0.3s）→ 逐字错峰 0.033s（9 字整句在 1.47s 处全清晰）→ 收尾定格 1.2s；共约 2.67s
@@ -68,6 +69,7 @@ name: soft-blur-in
 - 重播不重建 DOM 只重置 transform——换文案后字数变了，旧的 span 还在，错峰序列与实际字数对不上。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/soft-blur-in.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/soft-blur-in/index.html。**换内容只改 `CONFIG.text`** 这一个字符串（6~12 字），
   切字与错峰序列都是运行时算的。能量只调 `dur`（`travel` 要跟着保持约 33% 的比例，两者的比例才是手感）；
   换字号改 `.sb-text` 的 `font-size`，同时把 `CONFIG.blur` 改成新字号的 1/6、`CONFIG.rise` 改成新字号的 22%。

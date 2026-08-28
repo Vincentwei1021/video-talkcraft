@@ -2,6 +2,7 @@
 name: ink-underline
 标题: 墨迹下划线
 优先级: P1
+代码: template/cards/ink-underline.tsx
 一句话: 一条起笔压满、收笔提细的墨色缎带沿关键词下方 0.4~0.5s 生长出来——变宽不是描边粗细而是路径自己的两条边算出来的，笔尖走过那一刻的宽度就是它的终宽，画完静置
 适用: 口播念到"重点是这三个字"的时刻；一句话里给 1~2 个关键词划线（对比式论述尤其合适：先划错的说法、再划对的）；书评/拆解/教学等"我在替你标注"的调性
 时长: 起手静置 0.55s 等语音到位 → 单条描画 0.4~0.5s（随词长）→ 条间隔 0.75s（口播逐个点名的节拍）→ 收尾定格 1.0s
@@ -81,6 +82,7 @@ name: ink-underline
 - 在 `onUpdate` 里用 `gsap.set` 改 `d`——被排到下一 tick，描画比 scratch 音效晚一帧。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/ink-underline.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/ink-underline/index.html。核心是三个函数——`spineOf()`（脊线）、
   `ribbon(spine, o, progress)`（变宽缎带，**这个函数可以整段抄走**，它与本卡的其他部分无耦合）、
   `baselineOf()`（量真实 baseline）。加一条线就在 `CONFIG.marks` 里加一项并给目标元素打 `data-ink`。

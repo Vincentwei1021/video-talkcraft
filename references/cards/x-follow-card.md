@@ -2,6 +2,7 @@
 name: x-follow-card
 标题: 关注卡弹出
 优先级: P1
+代码: template/cards/x-follow-card.tsx
 一句话: X 资料卡整体 spring 弹入（0.62s 微过冲），十层内容随后按阅读顺序 0.07s 错峰 blur-in 逐层落位，光标弧线移入点击"关注"，同帧三件事一起发生——按钮两态交叉翻转 + 胶囊涟漪 + 粉丝数纸带上推 +1
 适用: 口播里介绍某个人或账号——嘉宾出场、"这个人你该关注"、引用某人观点时给出处、推荐同行/作者；一条视频里同一张卡只出现一次
 时长: 卡弹入 0.62s → 十层错峰 0.87s（0.34→1.21s）→ 静置到 1.55s → 光标移入 0.95s → 2.58s 点击（翻转 0.34s + 涟漪 0.5s + 计数 0.42s）→ hold 0.85s；demo 全程 4.08s
@@ -102,6 +103,7 @@ name: x-follow-card
 - bio 写 lorem 或英文占位——"这是个真人"的说服力归零；写真实感中文。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/x-follow-card.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：`demos/x-follow-card/index.html`。**换人只改 HTML 里那几处文本**（`.name` / `.badge`（要不要认证）/ `.handle` / `.bio` / `.meta` 三条 / `.stats` 的两个数字 / `.post` 那条示例帖）——
   时序全在 `CONFIG`，与内容解耦，改文案不用碰任何时刻。粉丝数改 `.roll .strip` 里上下两个 `<i>`（上=旧值、下=新值，**窗口高 20px 与 `rollDur` 那条 tween 的 `−20px` 要同步**）。
   节奏在 `CONFIG.cardIn` / `layerStagger` / `layerDur` / `cursorStart` / `cursorMove` / `flipDur` / `rollDur`；层序改 `layers` 数组（按阅读顺序，按钮行留在最后）；光标起点 `CONFIG.START`（换尺寸时按舞台宽重算，落点由 `P(el, fx, fy)` 从元素实际位置反算，换布局不用改坐标数字）。

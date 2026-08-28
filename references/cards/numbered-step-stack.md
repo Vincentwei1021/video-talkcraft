@@ -2,6 +2,7 @@
 name: numbered-step-stack
 标题: 编号步骤堆入
 优先级: P1
+代码: template/cards/numbered-step-stack.tsx
 一句话: 四枚带编号方块的横条从右侧以严格均匀的 0.11s 错峰依次堆进来，每枚落定的同一帧它的编号块 punch 一下（1.12→1，4 帧）当作"落地确认"，四枚都到位后整组轻微上浮 4px 把它们收成一件事
 适用: 口播里"给方法"的段落——"记住这四条"、"操作就三步"、清单式干货；需要观众截图保存的时刻；带货/教程类口播的要点罗列。不适合有先后依赖的流程（那用 step-timeline-vertical）
 时长: 起手静置 0.4s → 四枚错峰堆入 0.71s → 整组收束 0.28s → 收尾 hold 1.8s；共约 3.2s
@@ -77,6 +78,7 @@ name: numbered-step-stack
   上一轮的 1.0 会让第二遍 punch 无事发生（四枚安静落地，"确认感"消失）。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/numbered-step-stack.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/numbered-step-stack/index.html。**换内容改 `.step-txt` 文案 + `.step-no` 编号**；
   加/减条数直接复制或删掉整个 `.step-bar`（时序是 `i * CONFIG.barStagger` 算的，**不用改任何 delay**），
   条数变了只需把 `hold` 按"每条 0.45s"重算。

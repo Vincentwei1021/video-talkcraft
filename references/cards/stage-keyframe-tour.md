@@ -2,6 +2,7 @@
 name: stage-keyframe-tour
 标题: 长页兴趣点巡游
 优先级: P1
+代码: template/cards/stage-keyframe-tour.tsx
 一句话: 一张超出画幅的长落地页躺在 3D 透视舞台上（perspective 900 + rotateX 14° + rotateY −20° + scale 0.86 + 接触阴影），相机沿一条多关键帧路径依次停靠 3 个兴趣点（每点 hold 0.8~1s）再拉开离场；每段都把目标兴趣点设为 transform-origin 并平移到画面正中，所以 zoom 与 roll 绕的是"当前在讲的那一块"而不是长页的几何中心
 适用: 讲一张超出画幅的长东西——长落地页、长截图、长对话记录、长报表——且要"讲到哪儿镜头停到哪儿"的段落；产品巡览（Hero → 数据 → 价格）、"我们改了这三处"、把一张长图当一条时间线走完
 时长: 实拍：落点 hold 0.6~1s → 每个兴趣点 1~1.3s 转场 + 0.8~1.2s hold → 离场拉开 1.2~1.6s；3 个兴趣点合计 8~11s。demo：0.8s 入场沉降 + 落点 hold 0.9s + 三段巡游 + 离场 1.4s，全程 8.75s
@@ -68,6 +69,7 @@ name: stage-keyframe-tour
 - 手持抖动开到 0.3 以上——从"摄影师呼吸"变成"手在抖"，且与本库"不做沸腾/定格抖动"的定版偏好冲突。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/stage-keyframe-tour.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：`demos/stage-keyframe-tour/index.html`。换素材改 `.page` 内整块 DOM（或直接换成一张铺满的长截图 `<img>`），改 JS 里的 `planeH` 为素材真实高度；路径与节奏全在顶部 `CONFIG.moves`（每行一个关键帧 `{d, px, py, zoom, roll}`，相邻同姿态即 hold）；舞台姿态在 `CONFIG.rotX/rotY/scale`；手持档在 `CONFIG.shake`。核心可摘走：`CONFIG` + `bez()` + `DemoShell.register` 回调体里的 `apply()`，加上三层结构那几行 CSS。
 - 换素材的最小流程：① 量出长截图的原始宽高，`planeH = 806 × (原高 / 原宽)`；② 兴趣点的 `py` 直接用"该版块中心在长图里的像素 y ÷ 原高"；③ `px` 取 0.5；④ 每段 `d` 按口播稿这句话的时长给，hold 段按"读完这一处要几秒"给。
 - Remotion 移植（这就是源头）：`registry/remocn/stage/index.tsx`。`resolveStagePose(frame, moves)` 做关键帧插值（每个 key 给 `{at, x, y, zoom, rotate, easing}`，默认 EXPO）、`getStagePlaneGeometry` 算平面几何与 `translateX/Y`、`getStageTransform` 拼字符串、`getStageShake` 出手持抖动（用 Remotion 的 `random(seed)` 而非 `Math.random`，保证逐帧确定）。它的 `at` 是绝对帧号，本卡 demo 的 `d` 是段时长——移植时累加即可。

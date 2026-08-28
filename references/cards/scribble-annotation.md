@@ -2,6 +2,7 @@
 name: scribble-annotation
 标题: 手绘圈注箭头
 优先级: P0
+代码: template/cards/scribble-annotation.tsx
 一句话: 马克笔质感的圈/下划线/箭头按真实笔顺现场画出，画完保持干净静置
 适用: 口播点名素材/截图里的具体位置时（"看这个价""就这行小字""点这里"）；测评、锐评、扒皮解说等有"作者在场"感的调性
 时长: 单笔 0.3~0.6s（圈 0.55s、下划线 0.4s、箭头杆 0.35s+头 0.15s），笔与笔间隔 0.55s 对齐逐条点名
@@ -47,6 +48,7 @@ name: scribble-annotation
 - 拿行盒当文字位置——`getBoundingClientRect()` 含 line-height 留白（17px 字的行盒可比字形高 10px+），圈会整体偏上、下划线离字太远。要用字形墨迹盒 + baseline。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/scribble-annotation.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/scribble-annotation/index.html。**换标注对象不用改坐标**：给目标元素加 `data-ink="xx"`，在 `CONFIG.marks` 里写 `{kind:"circle"|"underline"|"arrow", target:"xx"}` 即可，位置自动跟着 DOM 走；微调用 `padX/padY`（圈松紧）、`baselineGap/overhang`（线贴合）、`side/tipGap/fromDX/fromDY/bow`（箭头从哪来、指哪条边）。换色改 `marks[].color`，节奏改 `dur`/`gapBetween`。手抖用确定性函数（`sin` 组合 + `seed`）不用 `Math.random()`——重播形状一致，也便于逐帧渲染。核心逻辑 = `CONFIG` + `boxOf/inkBoxOf` + `circlePath/underlinePath/arrowPaths` + `smooth()` + `drawStroke()`，可整体摘走。
 - Remotion 移植：用 `@remotion/paths` 的 `evolvePath(progress, d)` 拿 `strokeDasharray/strokeDashoffset`，progress = `interpolate(frame, [start, start+durInFrames], [0,1], {easing: Easing.inOut(Easing.quad)})`；三笔的 start 帧按 gapBetween 换算错开。
 - （实测变体）序号点名：要一次点名 5 项时不逐笔画，而是 5 根手绘箭头呈扇形**整组淡入**，数字 1-5 再在各箭头尾部逐个弹入（0.2s 间隔）——描画通道让给数字弹入通道，避免 5 笔描画吃掉 3 秒。见 TheAIScaler（Apm_oCzPEQs）。

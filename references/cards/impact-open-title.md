@@ -2,6 +2,7 @@
 name: impact-open-title
 标题: 冲击开场
 优先级: P0
+代码: template/cards/impact-open-title.tsx
 一句话: 整句一次砸出（scale 1.08→1 + opacity，0.2s power4.out），末词延后 3 帧单独换成强调色并再 punch 一次；四角 L 取景框与整句**同帧**起但走 0.3s 更慢地向内收 12px，点阵网格最后错峰淡入 0.4s 且只到 0.5 不透明度，副题收尾上浮——一屏只砸一次，其余全是衬
 适用: 视频最开头的 3 秒钩子（"三秒抓住重点"这类承诺句）、大章节的开幕标题；节奏快、态度强的短口播与知识区开场；全片只用 1~2 次
 时长: 起手静置 0.4s → 整句砸出 0.2s（角框同帧起、0.3s 收完）→ 末词换色 punch 0.167s → 点阵淡入 0.4s → 副题淡入 0.28s → 收尾定格 1.6s；共约 3.14s
@@ -85,6 +86,7 @@ name: impact-open-title
 - 全片用超过两次——开场钩子的力量来自稀缺，第三次出现观众就把它当栏目包装了（design-language §2：hero 字阶全片 1~2 次）。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/impact-open-title.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/impact-open-title/index.html。**换文案改两处 HTML**：
   `#ioLine` 的前半句（3~5 字）+ `#ioLast` 里的末词（**必须是 2~3 字的独立 span**，它是唯一换色的元素），
   以及 `#ioSub` 的副题（10~18 字）。

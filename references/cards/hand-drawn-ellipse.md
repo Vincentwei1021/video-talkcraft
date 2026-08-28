@@ -2,6 +2,7 @@
 name: hand-drawn-ellipse
 标题: 手绘圈重点
 优先级: P0
+代码: template/cards/hand-drawn-ellipse.tsx
 一句话: 一笔逆时针画出的歪椭圆圈住关键短语——0.5s 画到 1.08 圈让尾巴过头 8% 与起笔交叉，圈画完之后短语才 punch 1.06→1 一拍，然后静置 1.8s
 适用: 口播说"就是这一点""记住这个词"这种**指认单个短语**的时候；观点类、方法论、锐评口播；需要比双线更强、比爆点字更克制的强调档；不适合圈整句（圈的语义是"就这几个字"，圈一整行读作框选）
 时长: 起手静置 0.42s → 画圈 0.5s → 呼吸 0.06s → 短语 punch 0.22s → 收尾定格 1.8s；共约 3.0s
@@ -88,6 +89,7 @@ name: hand-drawn-ellipse
   那是 `outline-box-title`（机器画的框）的语言，两种别混。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/hand-drawn-ellipse.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/hand-drawn-ellipse/index.html。**换圈的对象不用改坐标**：给目标元素加
   `data-ink="key"`（几何全部从 DOM 量出来，改文案/改字号圈自动跟着走）。
   松紧调 `padX/padY`，形状调 `turns/grow/tilt/wobble/seed`，节奏调 `draw/punchGap/punchDur`，

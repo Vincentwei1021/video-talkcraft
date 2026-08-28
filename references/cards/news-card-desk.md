@@ -7,6 +7,7 @@ name: news-card-desk
 能量: 中
 类别: 素材呈现
 优先级: P0
+代码: template/cards/news-card-desk.tsx
 ---
 
 ## 意图
@@ -44,6 +45,7 @@ name: news-card-desk
 - 红线用 width 动画而不是 scaleX——width 回流抖动且不吃 GPU，扫动不顺滑。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/news-card-desk.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/news-card-desk/index.html。换文案改两张卡里的 `.paper`（报头）、`.date`、`h2` 标题即可；要划的关键句包在 `<span class="kw">…<span class="redline"></span></span>` 里；红线颜色改 `.redline` 的 `background: #d8383a`，卡底色改 `.news-card` 的 `background`。节奏全部在顶部 `CONFIG`：`redlineAt` 对齐你的语音重音，`cardBAt` 对齐第二条素材的口播时刻，`tiltA/tiltB` 控制歪度。核心动画即 `DemoShell.register` 内那一段 timeline，连同 CONFIG 复制可直接摘走。
 - （实测变体）译文条覆盖：外文截图不用红线划重点，而是在关键句上直接叠一条白底黑字的译文横条（宽度对齐该句，压在原文之上）——观众省掉"读外文再理解"的一步；适合引用英文报道/推文的段落，与红线通道二选一。见小Lin说·韩股崩盘。
 - Remotion 移植：卡片入场用 `spring({frame, config:{damping:200}})` 驱动 y/opacity；Ken Burns 用 `interpolate(frame, [inFrame, inFrame+8*fps], [1, 1.04])` 慢推（clamp）；红线单独包 `<Sequence from={redlineAt*fps}>`，内部 `interpolate(frame, [0, 0.3*fps], [0, 1])` 驱动 scaleX；第二张卡再包一个 `<Sequence from={cardBAt*fps}>` 重复同一入场组件。

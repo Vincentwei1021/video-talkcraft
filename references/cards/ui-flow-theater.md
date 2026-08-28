@@ -2,6 +2,7 @@
 name: ui-flow-theater
 标题: 界面流程剧场
 优先级: P0
+代码: template/cards/ui-flow-theater.tsx
 一句话: 整套灰阶假设置面板按一条 STEPS 时刻表自演一遍完整流程——光标走位（路点弧线 + 按压涟漪）与控件换态（开关滑、分段切、滑杆拖、按钮转成功）共享同一批 at 常量同拍发生，最后一记成功 toast 滑入收尾：不是"贴一段录屏"，是界面按脚本演给你看
 适用: 口播讲"这个产品/功能怎么用"的完整流程段落——"进设置把这个打开、主题换成深色、音量拉到七成、保存"；工具测评、SaaS/AI 产品讲解、教程与上手引导类口播；真录屏拿不到（产品未上线/要脱敏/流程太长）时的唯一不穿帮做法
 时长: 入场整卡揭示 0.6s + 区块错峰 5×0.2s → 每拍 = 移动 0.4~0.62s + 悬停 0.2s + 按压 0.09s + 换态 0.27s ≈ 1s/拍；4 拍 + toast（滑入 0.47s + 停 1.8s）共 8~9s
@@ -102,6 +103,7 @@ name: ui-flow-theater
 - 底色要求：白底即可（浅色设置面板是最常见情形）。深色 UI 同样成立，硬要求两条：**光标与底的对比必须保住**（深墨实心 + 白描边在两种底上都成立，深底把 `drop-shadow` 调淡）、**控件的开/关两态对比必须保住**（开关轨由"白→深"改为"深→高亮"，滑杆填充改为提亮，分段指示器改为亮块 + 深字）。toast 由白卡改为比背景略亮的深卡 + 保留同一个语义色图标。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/ui-flow-theater.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/ui-flow-theater/index.html。**换流程只改 `STEPS`**（一行一拍：`at` 时间戳 + `target` 控件名 + `act` 动作 + 拖拽拍的 `until`）；换界面改 `#stage` 里的 `.panel` 结构，然后同步改两处、只有两处——`POS` 里那几行 `P(el, fx, fy)` 反算，和 `RESPOND` 里对应的响应函数（响应函数签名是 `(t, step)`，`t` 就是"该变了"的时刻，函数内部不允许出现别的时间数字）；节奏参数全在 `CONFIG`。可整段摘走的核心是四块：`CONFIG` + `moveTo/press/hold` 三个光标原语 + `POS` 反算 + `RESPOND` 表，最后那个 `STEPS.forEach` 走表循环是把它们缝起来的全部代码（不到 20 行）。注意 `.blk` 用的是 `filter: blur()` 揭示，**入场结束后 GSAP 会把 `filter` 留成 `blur(0px)`**——后面若要给区块加 `will-change`，只加在有文字的容器上（加在整卡层会让 1px 边框在锐利/模糊间脉动）。
 - Remotion 移植：remocn 源码就是这张卡的原型，直接读 `registry/remocn-ui/settings-toggle-flow/index.tsx`（本卡的主要来源）、`checkout-flow/index.tsx`（同架构的支付流程）、`ai-prompt-flow/index.tsx`（同架构的 AI 生成流程），架构说明在 `content/docs/ui/concepts.mdx` 与 `registry/remocn-ui/STYLE-GUIDE.md`。它那套的等价关系：`STEPS` → 每个控件一个 `use<Name>Transition([{at, state, duration}])` hook，光标 → `useCursorPath([{at, x, y, duration, click, press, easing}])`，**两边的 `at` 写同一个常量表达式**（源码里 `{at: 24 + DEMO}` 同时出现在 `useCursorPath` 和 `useSwitchTransition`，`DEMO` 是整体偏移量——这就是"共享 at"在帧驱动下的写法）；坐标 → 顶部一批命名常量（`SWITCH_CX = RIGHT_X + SWITCH_W / 2`）；控件本体 → 纯函数 `(state, theme) => view`，**绝不读帧**，帧只在调用方的 hook 里读一次。本库的秒 → 帧换算：×30（`swap` 0.27s = 8 帧、`hoverHold` 0.2s = 6 帧、`toastIn` 0.47s = 14 帧、整卡揭示 0.6s = 18 帧、区块错峰 0.2s = 6 帧）。若不用 remocn 那套 hook，自己写就是 `interpolate(frame, [at*fps, (at+swap)*fps], [from, to], {easing: Easing.out(Easing.quad), extrapolateLeft: 'clamp', extrapolateRight: 'clamp'})`，光标 x/y 两轴分别用 `Easing.inOut(Easing.quad)` 与 `Easing.inOut(Easing.sin)`。
 - 剪辑软件对应物：剪映/CapCut——把界面拆成"底图 + 每个控件两张状态图（关/开）"，底图一轨常驻，每个控件两轨叠放并在该拍的按下帧硬切（下层关、上层开，用关键帧把上层不透明度 0→100 在两帧内切完，别用长淡入），光标是一张放大的 PNG 单独一轨打位置关键帧并把两端设"缓入/缓出"，滑杆填充用色块 + 蒙版位置关键帧、手柄单独一层同区间同缓动（两层必须选同一种缓动），toast 用一张卡片 PNG 做位置+不透明度关键帧；AE——每个控件一个预合成、状态切换用 Time Remap 或两层 Opacity 在同一帧对切，光标 Position 关键帧 + 空间插值改"贝塞尔"手动拉弧线，**所有关键帧的时间码从一张 marker 表来**（在时间轴上先按语音打好 marker，再把每个图层的关键帧吸附到 marker 上——这就是"共享 at"在 AE 里的等价物）；任何软件里的"UI 演示模板/鼠标点击特效预设"一律不用（节奏不受控、自带发光涟漪与拟真质感）。

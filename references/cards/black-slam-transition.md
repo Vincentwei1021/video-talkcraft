@@ -7,7 +7,7 @@ name: black-slam-transition
 能量: 高
 类别: 转场结构
 优先级: P0
-代码: template/motion-systems/transitions.tsx
+代码: template/cards/black-slam-transition.tsx
 ---
 
 ## 意图
@@ -76,6 +76,7 @@ Remotion 对应写法（`template/motion-systems/transitions.tsx`）：
 - 定格 + 硬切放在一句话中间：本式必须压在句末/停顿处，否则语音连续而画面断裂，读作丢帧。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/black-slam-transition.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：`demos/black-slam-transition/index.html`。摘 `blackSlam(出场镜头, 入场镜头, 起始秒) → 结束秒`
   一个函数 + `CONFIG.slam` 一组参数 + `.flash` 那段 CSS。**注意排片**：出场镜头的 `hold()` 时长要写成
   `hold - freeze`（末段留空 = 定格），这一句不能省，否则定格不存在。

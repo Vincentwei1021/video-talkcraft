@@ -3,8 +3,9 @@
 来源五批：① 4 份平台调研（B站中文长视频 / 英文 YouTube / 抖音竖屏短视频 / 模板生态反推；调研原稿为过程资产不随库分发，结论已蒸馏进本文与各卡），
 71 条动效条目交叉去重后精选为 19 张调研卡，另按通用纪录片/评测视频语法补 **5 张运镜卡**（静态素材的相机运动）共 24 张
 （后按字幕素排铁律删 1 张字幕卡，现存 23）；② 项目实战沉淀的 **8 张实战卡★**
-（来自 deepseek-harness demo、ai-math-video、ann_nnng 复刻——frontmatter 带 `代码:` 字段指向可复制的
-Remotion 组件，同时配 HTML demo；其中运动承接转场六式各自成卡）；③ 2026-08-23 真实视频挖掘：小Lin说·韩股崩盘 + TheAIScaler shorts top10，
+（来自 deepseek-harness demo、ai-math-video、ann_nnng 复刻——生产母本是 template/motion-systems|components
+下的 Remotion 组件，同时配 HTML demo；其中运动承接转场六式各自成卡。2026-08-28 定版后
+全库 78 卡的 frontmatter `代码:` 统一指向逐卡自包含 tsx `template/cards/<slug>.tsx`）；③ 2026-08-23 真实视频挖掘：小Lin说·韩股崩盘 + TheAIScaler shorts top10，
 13 段分析 208 条观察策展出 **9 张卡（标记◆）**，同时把 13 条变体观察回填进现有卡；
 ④ 2026-08-24 remocn 项目（Remotion UI 动效注册表）挖掘适配 + 指定搬运 19 张卡（标记◇，后删 1 张现存 **18**；
 个别卡"复用指引"里的 `registry/remocn/...` 是该项目的源码路径，仅溯源用，本库不含 registry/ 目录），
@@ -12,7 +13,7 @@ Remotion 组件，同时配 HTML demo；其中运动承接转场六式各自成�
 （它那些同源卡 terminal-typing-log / chat-gpt / claude-code / glass-code-walk / cursor-actor-demo 本来就都在素材呈现里，单卡成类没有意义）；
 ⑤ 2026-08-25 参考图逐格复刻：用户提供三张动效库 UI 参考图（暖色卡墙 / 深紫卡墙 / 蓝色模板墙），
 逐格设计复刻 26 张、经用户审片筛选后留 **20 张卡（标记◈）**（施工书为过程资产，不随库分发）。
-共 **7 大类 78 张卡，全部有可播 demo**（各批次数字是入库时的历史记录；2026-08-27 用户定版
+共 **7 大类 78 张卡，全部有可播 demo + 自包含 tsx 源码**（各批次数字是入库时的历史记录；2026-08-27 用户定版
 删 2 张：word-pop-captions 逐词弹跳字幕——与「底部字幕素排」纪律冲突且再无别的用武之地；
 kinetic-center-build 逐词推挤居中）。
 优先级：P0 = 跨平台高频、几乎所有头部口播在用；P1 = 某一流派的招牌动作。

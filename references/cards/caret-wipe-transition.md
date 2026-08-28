@@ -2,6 +2,7 @@
 name: caret-wipe-transition
 标题: 光标擦除转场
 优先级: P1
+代码: template/cards/caret-wipe-transition.tsx
 一句话: 一条 3px 文本光标从左到右扫过 1.33s 完成换场——走过之处露出新场景（沉降解糊，像刚被打出来），未到之处仍是旧场景（上浮失焦，像正被退格吃掉），互补裁切永不露缝
 适用: 讲代码/编辑器/文档/AI 生成内容的镜头边界——"改完了""重写这一段""换个版本"；边界本身要有语义的时刻；不适合真人出镜之间的切换（光标隐喻与人像无关）
 时长: 扫完全屏 1.33s（≈40 帧 @30fps）；配 hold A 0.8s + hold B 0.9s 的完整一拍约 3.0s
@@ -78,6 +79,7 @@ name: caret-wipe-transition
 - 场景内容是纯色块（没有满幅纹理）——中段之后未到之处是一片空白，看不出"这仍是旧场景"；两侧都要有铺满画幅的可辨识内容。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/caret-wipe-transition.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/caret-wipe-transition/index.html。核心是 `caretWipe(out, inn, at)` 这个函数——
   把两个铺满画幅的场景层传进去就能用，返回擦除结束的时刻（便于接着排 hold）。
   换方向改 `CONFIG.dir`；`clipOld` / `clipNew` 两个函数已经把方向分支写好了。

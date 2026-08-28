@@ -2,6 +2,7 @@
 name: chat-message-flow
 标题: 聊天记录自演
 优先级: P0
+代码: template/cards/chat-message-flow.tsx
 一句话: 聊天记录自己演一遍——我方消息先在底部输入框逐字打出、停 0.33s 后弹上屏，对方先出"正在输入"三点气泡（时长按回复长度算）再弹消息，反应表情在消息落定 0.27s 后贴上；整张时刻表由文本长度自动生成
 适用: 口播甩聊天记录当证据的时刻——"客户是这么说的""团队当时的讨论""我问了它，它这么回"；产品复盘、职场沟通、AI 对话演示、争议还原；不适合需要展示大量历史消息的场景（自演只演 2~4 条）
 时长: 起手静置 0.4s → 我方打字 0.6~2.6s（按字数）+ 0.33s + 上屏 0.47s → 对方 1.1~2.3s 输入气泡 + 上屏 0.47s；消息间隔 0.6s；3 条一段共约 8.8s
@@ -79,6 +80,7 @@ name: chat-message-flow
 - 给气泡加渐变/投影/头像照片——聊天面板变成主角；线框灰阶 + 首字头像圆足够。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/chat-message-flow.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/chat-message-flow/index.html。**换内容只改 `CONFIG.messages`**——
   每条 `{ from: "me" | "them", text, react? }`，时刻表自动重算（这是本卡设计的全部意义，不要手动补时间）。
   节奏参数全在 `CONFIG`（`charDur` / `sendGap` / `reveal` / `msgGap` / `thinkPerChar` / `reactDelay` / `dotAmp` / `dotCps`）；

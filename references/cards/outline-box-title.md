@@ -7,6 +7,7 @@ name: outline-box-title
 能量: 中
 类别: 字幕花字
 优先级: P1
+代码: template/cards/outline-box-title.tsx
 ---
 
 ## 意图
@@ -78,6 +79,7 @@ name: outline-box-title
 - hold 期给框加呼吸/漂移——机器画的框动起来就成了"没对准"。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/outline-box-title.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/outline-box-title/index.html。换文案改 `.ob-row1 .txt` 与 `.ob-chip-txt`，
   **同时**要改 `.ob-row1` / `#obBox` 的 `width` 与 `#obBoxPath` 的 `d`（框是写死尺寸的
   path，不会跟着文字自适应——这是有意的：框的尺寸是排版决定，不该由文字宽度抖出来），

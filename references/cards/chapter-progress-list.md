@@ -2,6 +2,7 @@
 name: chapter-progress-list
 标题: 章节进度
 优先级: P1
+代码: template/cards/chapter-progress-list.tsx
 一句话: 暗场里四条章节从右侧错峰 0.1s 滑进来，全部站定后**只有当前那一条**换成强调色、左边弹出一枚圆点、整行再往前一步，同帧四角电影角框向内收 10px 淡入把这一幕封住
 适用: 长口播的分段处——"接下来第二部分"、"我们先说第一件事"；开场先给全片目录；多集系列片的"本集进度"；需要观众知道"讲到哪了、还剩几段"的时刻。不适合只有两段的短口播（两条列表撑不起一次转场）
 时长: 起手静置 0.35s → 四条错峰滑入 0.65s → 高亮 + 角框 0.3s → 收尾 hold 2.0s；共约 3.3s
@@ -66,6 +67,7 @@ name: chapter-progress-list
   第二遍播放时它一开场就是红的，"站定—点名"两拍全丢。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/chapter-progress-list.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/chapter-progress-list/index.html。**换内容改 `.ch-row` 的文案**，
   当前章节把 `current` 类挪到对应行（圆点 `<span class="ch-dot">` 跟着挪）。节奏全在 `CONFIG`：
   `rowStagger` 调"一串感"、`hlDelay` 调两拍之间的呼吸、`hold` 按条数给（每条约 0.5s）。

@@ -7,6 +7,7 @@ name: quote-card
 能量: 中
 类别: 字幕花字
 优先级: P1
+代码: template/cards/quote-card.tsx
 ---
 
 ## 意图
@@ -39,6 +40,7 @@ name: quote-card
 - 出场用花哨转场——金句的余味在静，出场越轻越高级。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/quote-card.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/quote-card/index.html，改 `.quote-line` 文案与 `.kw` 位置即可换句子；节奏全在 `CONFIG`（panelIn/lineStagger/hold）。罗翔变体：底板换纯黑、去掉 `.kw` 色彩、行入场只留 opacity。
 - Remotion 移植：每行一个 `<Sequence from={i*5}>` + `spring({damping:200})` 驱动 y/opacity；hold 用 Sequence duration 控制；出场 interpolate(frame, [out, out+9], [0, 40])。
 - 剪辑软件对应物：剪映"文字模板→大字报"；CapCut "quote card"; AE 里是文本层 position/opacity 关键帧 + 纯色层做底板。

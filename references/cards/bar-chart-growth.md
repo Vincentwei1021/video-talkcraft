@@ -7,6 +7,7 @@ name: bar-chart-growth
 能量: 中
 类别: 数据信息图
 优先级: P0
+代码: template/cards/bar-chart-growth.tsx
 ---
 
 ## 意图
@@ -83,6 +84,7 @@ name: bar-chart-growth
   连续微动在这里也不合语义）。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/bar-chart-growth.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：`demos/bar-chart-growth/index.html`。**换数据只改 HTML 里七个 `.bar` 的 `data-v`**
   （0~`maxVal`），柱高、chip 落位都是运行时按容器高度算的；换文案改 `.title` / `.grow-chip` /
   `.xlabels`。柱数增减：HTML 里加减 `.bar` 与对应 `.xlabels span`（两边数量必须一致，

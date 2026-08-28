@@ -7,6 +7,7 @@ name: motion-blur-slam-in
 能量: 高
 类别: 素材呈现
 优先级: P1
+代码: template/cards/motion-blur-slam-in.tsx
 ---
 
 ## 意图
@@ -55,6 +56,7 @@ name: motion-blur-slam-in
 - 飞入距离只有一两百 px——没有速度累积，模糊没地方发生，最后只是个位移淡入。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/motion-blur-slam-in.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/motion-blur-slam-in/index.html。方向模糊 = `<defs>` 里每张卡一个 `feGaussianBlur stdDeviation="σ 0"` 滤镜（卡上 `data-mb="mbA"` 指过去），`setSigma()` 负责写 σ 并在 σ→0 时把 `filter` 摘成 `none`；节奏与手感全在顶部 `CONFIG`（`fromX`/`slam`/`slamEase`/`blurMax`/`blurFalloff`/`overshoot`/`settle`/`burst`）。换素材把 `.shot` 内部整块换成 `<img>` 即可；换方向把 `fromX` 换成 y 通道并把 σ 写成 `"0 σ"`（竖向甩入）。
 - Remotion 移植：`const p = interpolate(frame, [f0, f0 + slamF], [0, 1], {easing: Easing.out(Easing.poly(4)), extrapolateRight: 'clamp'})`，位移 `translateX(${fromX * (1 - p) - overshoot * p}px)`，模糊 `σ = blurMax * Math.pow(1 - p, 0.75)` 写进同一 composition 里的 `<svg><filter>` 的 `stdDeviation={`${σ} 0`}`（或用 `filter: url(#mb)` 的 style）；过冲回正另起一段 `interpolate(frame, [f0+slamF, f0+slamF+settleF], [-overshoot, 0], {easing: Easing.out(Easing.quad)})`。多卡就是 `f0 = start + i * burstF`。σ 到 0 时把 style.filter 置空，避免整帧走一遍无用滤镜。
 - 剪辑软件对应物：剪映——"入场动画→甩入/向左滑动"缩到 6~7 帧，再叠"运动模糊/拖影"特效（或复制两层降透明度做残影）；AE——位置关键帧 + Easy Ease 后拉曲线成急停，开图层 Motion Blur（或 ReelSmart/CC Force Motion Blur / Directional Blur 关键帧）；CapCut——"Slide in" + Motion Blur 效果，快门角度调大。

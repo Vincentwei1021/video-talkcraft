@@ -7,6 +7,7 @@ name: shape-wipe-transition
 能量: 高
 类别: 转场结构
 优先级: P0
+代码: template/cards/shape-wipe-transition.tsx
 ---
 
 ## 意图
@@ -43,6 +44,7 @@ name: shape-wipe-transition
 - 色块只做一屏宽——power4 中段速度是均速的 4 倍，60~80ms 错峰在空间上被放大成约 2 屏宽的缝，新场景从缝里闪出来，一眼穿帮。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/shape-wipe-transition.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/shape-wipe-transition/index.html。改 `CONFIG.colors` 换色系（浅→中→深三个值），改 `CONFIG.wipeDur / layerDelay / skew / stretch` 调手感；场景 A/B 的内容替换 `.scene-a` / `.scene-b` 内部即可，换内容回调不用动。
 - Remotion 移植：每层 `interpolate(frame, [start, start+half, start+dur], [-75, 0, 75])` 配 easing 拆两段（前半 Easing.in(Easing.quart)、后半 Easing.out(Easing.quart)）；换内容用同帧判断 `frame >= swapFrame ? <SceneB/> : <SceneA/>` 切 Sequence，swapFrame = 第二层的中点帧。
 - 剪辑软件对应物：剪映"转场→MG 动画/划像"类；CapCut "shape wipe / MG transition"；AE 用 3 个固态层位置关键帧 + 各错开 2 帧 + Easy Ease 100%，中间帧上做剪辑点。

@@ -7,6 +7,7 @@ name: info-term-card
 能量: 低
 类别: 数据信息图
 优先级: P1
+代码: template/cards/info-term-card.tsx
 ---
 
 ## 意图
@@ -41,6 +42,7 @@ name: info-term-card
 - 落位后完全静止——与截图素材无区分，"悬浮卡"变"贴纸"。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/info-term-card.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/info-term-card/index.html。换文案改 `.term-card` 内三处：`.icon` 里的符号（¥/％/AI 单字都行）、`.term` 词条名与 `<small>` 缩写、`.desc` 释义（两行内）；换色改 `.term-card` 的 `background` 渐变与 `.icon` 的渐变；时长手感全在顶部 `CONFIG`（slideIn / overshootPx / floatPx / floatPeriod / holdBeforeOut / slideOut / iconTilt）。若主持人在右侧：去掉 `.host-left`、卡改 `left` 定位、把 `gsap.set` 与出场的 x=480 改成 -480。
 - Remotion 移植：入场用 `spring({frame, fps, config:{damping:14, stiffness:120}})` 插值 x: 480→0（spring 自带过冲，替代两段 tween）；悬浮用 `Math.sin((frame/fps) * 2*Math.PI / floatPeriod) * floatPx` 直接写进 translateY，帧驱动天然可 seek；出场 `interpolate(frame, [outStart, outStart+0.25*fps], [0, 480], {easing: Easing.in(Easing.quad)})`。
 - （实测变体）手持词牌：卡不从屏外滑入，而是固定叠在人物胸前手的位置（略带一点手的倾角），人物说话时手偶尔越过卡边缘，产生"举着牌子在讲"的错觉——比屏外滑入更有人味，也天然解决"卡不压人脸"的构图问题；代价是卡的位置被人物姿态锁定，只能用在手位稳定的机位。见小Lin说·韩股崩盘。

@@ -2,6 +2,7 @@
 name: step-timeline-vertical
 标题: 竖向步骤线
 优先级: P1
+代码: template/cards/step-timeline-vertical.tsx
 一句话: 一条竖线从上往下 0.6s 画下去，线推到哪个位置那个圆节点就弹出来、2 帧后右侧两行字跟着左移淡入（三个节点每 0.18s 一个，是解线的缓动反函数算出来的）——三组全部到位后第一个节点升级成强调色空心环并放大 1.25 倍，标出"你现在在这一步"
 适用: 讲有先后依赖的流程——"三步走"、"我是这样一步步做的"、复盘时间线；需要观众理解"顺序不能颠倒"的时刻；也能当"当前进度"用（空心环指向进行中的那一步）。不适合并列的清单（那用 numbered-step-stack）
 时长: 起手静置 0.4s → 线画出 0.6s（三个节点在 0.52 / 0.70 / 0.88s 依次被线点亮，间隔 0.18s）→ 空心环升级 0.32s → 收尾 hold 2.0s；共约 3.5s
@@ -86,6 +87,7 @@ name: step-timeline-vertical
   第二遍播放时它开场就是环，"升级"这一拍全丢。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/step-timeline-vertical.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/step-timeline-vertical/index.html。**换内容改 `.tl-kicker` / `.tl-title` 的文案**；
   改节点位置只改 HTML 里的 `data-at="22|132|242"`（像素，相对 `.tl-wrap` 顶部）——
   节点触发时刻与文字落位都是运行时按它算的，**不用改任何 delay**。

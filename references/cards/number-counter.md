@@ -7,6 +7,7 @@ name: number-counter
 能量: 中
 类别: 数据信息图
 优先级: P0
+代码: template/cards/number-counter.tsx
 ---
 
 ## 意图
@@ -39,6 +40,7 @@ name: number-counter
 - 目标值太小还硬滚（如 0→7）——两位数以内直接弹出即可，滚动反而做作。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/number-counter.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/number-counter/index.html。模式 a 改 `CONFIG.target/countDur`，模式 b 改 `CONFIG.odoTarget`（字符串保位数）；`buildOdometer()` 自动按位生成滚轮，含千分位逗号。
 - Remotion 移植：模式 a `Math.floor(interpolate(frame, [0, dur], [0, target], {easing: Easing.out(Easing.cubic)}))` 再 toLocaleString；模式 b 每位一个 `<div>` 用 spring 驱动 translateY，delay 按位序递增。
 - （实测变体）记账卡跳变：分步账目推演时不滚动——账目行的数字**瞬时跳变**到新值，旁边一个"+20"角标小弹出，同帧该行整体轻高亮；因为观众要读的是"这一步加了多少"，滚动会把差值糊掉。适合逐笔算账、成本拆解类段落。见小Lin说·韩股崩盘。

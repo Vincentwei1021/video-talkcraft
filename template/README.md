@@ -1,5 +1,13 @@
 # 模板件说明
 
+## cards/（78 张动效卡的逐卡自包含 tsx，2026-08-28 起）
+
+每张配方卡一个单文件 Remotion 源码（`cards/<slug>.tsx`），与 `demos/<slug>/index.html`
+逐帧同画面——skill 做片选卡后**以它为实现基准**，复制进工程改顶部 CONFIG 即用。
+契约见 `references/demo-spec.md`「tsx 源码硬性要求」：只 import react/remotion、
+`export const meta`（尺寸/fps/时长）+ default 组件、演示语境素材经 `hostSrc?/handSrc?` prop
+注入（不传则灰阶剪影/矢量兜底）。改 HTML demo 后必须同步改对应 tsx。
+
 ## motion-systems/（来自 ai-math-video，反 PPT 四系统 + 桥）
 
 从可工作项目原样抽出、import 已收敛到目录内。用法见 `references/cinematography.md`。

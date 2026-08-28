@@ -7,6 +7,7 @@ name: callout-line-label
 能量: 中
 类别: 强调标注
 优先级: P1
+代码: template/cards/callout-line-label.tsx
 ---
 
 ## 意图
@@ -41,6 +42,7 @@ name: callout-line-label
 - 用 opacity 渐显代替 clip-path 展开——标签失去"从线端长出来"的方向感，和线脱节。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/callout-line-label.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/callout-line-label/index.html。换文案/换位置只改 `CONFIG.callouts`：`label.html` 换标签文字（`<b>`主句+`<small>`补充）、`target`/`points`/`label.x/y` 换坐标、`label.from` 换展开方向；`CONFIG.color` 换主题色；假手机是 `.phone` 一段纯 CSS，替换成自己的截图元素即可。入场基准延迟 0.6s 写死在 register 内的 `t0 = 0.6 + i * CONFIG.stagger`。核心动画即 `DemoShell.register` 回调整段，复制 CONFIG + 回调可直接摘走。
 - Remotion 移植：三拍用 `<Sequence>` 串接，`from` 按 `dotIn/lineDraw/labelIn × fps` 换算帧；折线描画用 `interpolate(frame, [0, lineDraw*fps], [len, 0])` 驱动 `strokeDashoffset`（`getTotalLength()` 需在 `useEffect`/`useLayoutEffect` 里量或预先算好写死）；圆点用 `spring({frame, config:{damping:10}})` 出 back.out 的过冲；标签用 `clipPath: inset(0 ${interpolate(...)}% 0 0)` 插值，文字 opacity 延迟 3 帧。
 - 剪辑软件对应物：AE 里即 "Call-Out Titles" 类模板，自建 = 形状图层折线加"修剪路径"（Trim Paths）+ 文本层矩形蒙版位移揭示；剪映用贴纸搜"标注/指示线"或线条生长素材叠字幕入场"擦除"；CapCut 搜 callout/annotation 模板。

@@ -2,6 +2,7 @@
 name: type-contrast-emphasis
 标题: 字体对比重音
 优先级: P0
+代码: template/cards/type-contrast-emphasis.tsx
 一句话: 字幕逐词追加、普通词一律无衬线小字轻 pop，念到重音词的瞬间该词换成衬线斜体放大 1.5~2 倍（或换唯一强调色），强调完全靠字体气质的落差砸出来，运动本身刻意做轻、不弹不过冲
 适用: 每段口播的判断句/反转句/结论词——尤其"不是 A，是 B"这种对照句式；克制、有编辑气质的知识区与个人观点口播，想要重音但不想要综艺弹跳的调性
 时长: 普通词轻 pop 0.1s（scale 0.95→1 无回弹）；重音词入场 0.15s（上滑 + 轻放大淡入）；词间距抄真实语速（0.2~0.7s 不等）；一句 5 词约 2s，追加式全句完成后定格
@@ -57,6 +58,7 @@ name: type-contrast-emphasis
 - 强调色不止一个——本卡的色彩通道必须复用全片唯一 accent，多一个颜色就成花字。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/type-contrast-emphasis.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - 与 keyword-pop-highlight 的分工：那张卡的重音要"砸"（scale 1.65 过冲 + 色块 + 整屏震动），本卡的重音要"稳"（字形气质落差 + 0.15s 轻上滑，不过冲）。同一句里**只能选一张**——回弹强调与气质对比同屏混用一眼假；同一片子里可按段落调性分用（高能段落走 keyword-pop-highlight，判断句/结论句走本卡）。见 references/cards/keyword-pop-highlight.md。
 - HTML/GSAP：demos/type-contrast-emphasis/index.html。换文案改 `CONFIG.words`（`w` 分词 + `beat` 词级语音时刻 + `emph: "serif" | "color"` 指定通道，不填即普通词）；换尺寸只改 CSS 变量 `--tc-base`；落差量级在 `--tc-serif-scale` / `--tc-color-scale`；强调色在 `.tc-word.emph-color` 的 `color`；手感在 `accentIn` / `accentRise` / `obliqueDeg`。核心可摘走部分 = `CONFIG` + `DemoShell.register` 回调内部。
 - Remotion 移植：普通词 `opacity: interpolate(frame, [b, b+3], [0, 1])` + `scale: interpolate(frame, [b, b+3], [0.95, 1])`（b = 该词语音帧，`extrapolate*: 'clamp'`，`transformOrigin: '50% 100%'`）；重音词同区间取 `[b, b+5]`，`y: interpolate(..., [14, 0], {easing: Easing.out(Easing.cubic)})` + `scale [0.92, 1]`，`transform` 里把 `skewX(-7deg)` 写成静态项（别让它参与插值）；字族/字号落差全在 style 常量里，不进插值；`beat` 由 whisper/forced-alignment 词级时间戳换算帧直接填入。接力式把前词 opacity 在 `bNext` 帧阶跃到 0。

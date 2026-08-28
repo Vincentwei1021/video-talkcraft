@@ -7,6 +7,7 @@ name: typewriter-reveal
 能量: 低
 类别: 字幕花字
 优先级: P1
+代码: template/cards/typewriter-reveal.tsx
 ---
 
 ## 意图
@@ -41,6 +42,7 @@ name: typewriter-reveal
 - 把戳放在画面正中——它是标注不是标题，居中就抢了素材的戏。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/typewriter-reveal.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/typewriter-reveal/index.html。demo 带口播语境：主持人（数字人）占左侧 40% 出镜，档案戳排在右侧白区下方——戳是标注，不压人物、不占中央。改 `CONFIG.line1/line2` 换文案，`charMs/jitterMs` 调手感；`.host-wrap` 与 `.host-placeholder` 只是演示语境（真人出镜位），应用侧换成实拍/数字人图层即可；`.stamp` 的 `left/bottom` 就是落位接口（人在左则戳在右，反之对调）；"档案感"（深底/做旧/纸纹）属于风格层，自己按片子调性加。
 - Remotion 移植：按帧取 substring——`text.slice(0, charAt(frame))`，其中 charAt 用预生成的随机时刻表（useMemo 固定 seed）；光标 `opacity = Math.floor(frame / (fps*0.25)) % 2`。
 - （实测变体）乱码 decode：命令/术语先在一枚胶囊里以乱码高速滚动，再**逐位从左到右锁定**为真字符——身份从"打字机"换成"解码中"，适合抛出命令行、模型名、密钥类字符串；方块光标可省，锁定的进度本身就是光标。见 TheAIScaler（u8OWXXTcu3Q）。

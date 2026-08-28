@@ -642,7 +642,7 @@ function renderHero(list) {
       (scope ? '<div class="hero-scope"><b>' + T().scope + '</b>' + scope + '</div>' : "") +
       '<div class="hero-act">' +
         '<button class="btn primary" onclick="openCard(\\'' + c.slug + '\\')">' + T().card + '</button>' +
-        '<a class="btn" href="' + GITHUB + '/blob/main/demos/' + c.slug + '/index.html" target="_blank" rel="noopener">' + T().source + '</a>' +
+        '<a class="btn" href="' + GITHUB + '/blob/main/template/cards/' + c.slug + '.tsx" target="_blank" rel="noopener">' + T().source + '</a>' +
         '<label class="btn"><input type="checkbox" ' + (picked.has(c.slug) ? "checked" : "") +
           ' onchange="togglePick(\\'' + c.slug + '\\', this.checked)">' + T().pick + '</label>' +
       '</div>' +

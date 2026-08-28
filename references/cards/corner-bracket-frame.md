@@ -7,6 +7,7 @@ name: corner-bracket-frame
 能量: 低
 类别: 强调标注
 优先级: P1
+代码: template/cards/corner-bracket-frame.tsx
 ---
 
 ## 意图
@@ -65,6 +66,7 @@ name: corner-bracket-frame
 - hold 期给角框加漂移/呼吸——角框是精确的取景符号，动起来就成了"没对准"。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/corner-bracket-frame.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/corner-bracket-frame/index.html。换文案改 `.cb-line.l1 / .l2` 的文字，
   框的尺寸改 `.cb-frame` 的 `width/height`（框要比文字块四周各留 30px 上下气口）；
   改强调色只动 `:root --acc` 一个变量（角框专用）；节奏全在 `CONFIG`

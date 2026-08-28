@@ -7,7 +7,7 @@ name: long-take-world
 能量: 中（持续）
 类别: 转场结构
 优先级: P1
-代码: template/motion-systems/longtake.tsx
+代码: template/cards/long-take-world.tsx
 ---
 
 ## 意图
@@ -41,6 +41,8 @@ name: long-take-world
 - （实战）运镜途中 ≥0.5s 的全空舞台=评审必挑；给途中路线放前景视差符号垫场（到站构图外、只在途中入画，按视锥验算位置）。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/long-take-world.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
+- 生产母本：template/motion-systems/longtake.tsx
 - Remotion：`longtake.tsx`，站点表写在 shots.ts 旁做表驱动；组合范式见文件头注释。
 - SHOTBOOK 写法：先画世界布局草图（各站点世界坐标 + 相机路线箭头），层矩阵按"站"分节。
 - 状态：已实战验证（2026-08-19，作者内部工程 V3 幕：23.1s 三站，运镜 1.08 屏/s，无途中穿帮，三重验收全过；该工程为过程资产不随库分发）。可复制实现即上面的 `longtake.tsx`。

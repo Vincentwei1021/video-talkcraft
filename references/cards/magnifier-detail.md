@@ -2,6 +2,7 @@
 name: magnifier-detail
 标题: 局部放大镜
 优先级: P1
+代码: template/cards/magnifier-detail.tsx
 一句话: 截图目标处 0.3s 弹出一个圆形放大镜（1.8 倍，白描边+大投影）落到旁边空白区，本体同步压暗留一圈细描边框，连接线随后描回出处
 适用: 评测/教程口播说到截图里某个具体数字、按钮、条款时——"注意看这里"；信息密度高的证据截图必备，理性讲解调性
 时长: 截图先静置 0.45s → 弹出 0.3s（压暗同帧）→ 连接线 0.25s 接力；hold 期间镜内 1.4s 半周期轻扫视
@@ -43,6 +44,7 @@ name: magnifier-detail
 - hold 期间完全静止——放大镜读作贴上去的静态圆图，不像"正在看"。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/magnifier-detail.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/magnifier-detail/index.html。换截图内容改 `.shot .body` 里各行文案；换放大目标只需把 `id="magTarget"` 挂到任意元素上（目标坐标运行时自动反推，副本对位与连接线端点跟着变）；换落位/倍数/压暗程度改 `CONFIG` 的 `magX/magY`、`zoom`、`dimTo`；换强调色改 `.target-box` 边框色与 `#lline` 的 `stroke`（现为 #ffd23e），放大镜描边色在 `#magnifier` 的 `border`；口播字幕在 `.caption-zone` 内。核心可摘走：复制 `CONFIG` + `DemoShell.register` 回调体即可。
 - Remotion 移植：同一截图渲染两个 `<Img>`，上层包在 `borderRadius:'50%'; overflow:'hidden'` 的圆形容器里，内层 `transform: scale(zoom) translate(...)` 按同一公式对位；入场用 `spring({frame, config:{damping:200}})` 驱动 scale 0.3→1，位置用 `interpolate(frame, [t0,t1], [targetX, magX])`；压暗 `filter: brightness(interpolate(...))`；连接线 SVG `<line>` 用 `strokeDasharray = \`${interpolate(frame,...,[0,len])} ${len}\``；hold 扫视 `Math.sin(frame/fps * 2π/2.8) * panPx * zoom`。
 - 剪辑软件对应物：剪映——画中画复制同素材 + "蒙版→圆形" + 缩放放大，或素材库搜"放大镜"贴纸；AE——复制图层加椭圆蒙版 + Scale 关键帧，或直接用内置 Magnify（放大）效果 + 描边圆形固态层；CapCut——"Magnifier" 贴纸 / PIP + circle mask 同法。

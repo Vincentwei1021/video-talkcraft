@@ -2,6 +2,7 @@
 name: behind-text-title
 标题: 人后大字视差
 优先级: P1
+代码: template/cards/behind-text-title.tsx
 一句话: 超大标题 0.55s 从人物身后升起、字距由松收紧，下缘被人物剪影遮住；hold 期间标题与人物各 ±4px 反向极缓漂移，平面画面读出伪 3D 层次
 适用: 开场题眼、章节大标题、结尾点题；vlog 化 / 电影感调性的真人出镜口播（人物层需抠像，无出镜场景不适用）
 时长: 起手延迟 0.4s + 标题升起 0.55s，小字晚 0.35s 跟进；hold 漂移周期 8s 循环，可随口播任意延长
@@ -46,6 +47,7 @@ name: behind-text-title
 - 漂移周期太短——观众看出"元素在动"而不是"镜头在呼吸"，立刻廉价。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/behind-text-title.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/behind-text-title/index.html。换文案改 `.bt-title`（主标）与 `.bt-sub`（副标）内文本；
   换色改 `.bt-title` 的 `color:#e9e6dc`、`.bt-sub` 的 `color:#9a97a8`、`.bt-bg` 的渐变；
   时序手感全部在顶部 `CONFIG`（titleIn / riseFrom / trackFrom / trackTo / driftPx / driftPeriod / subDelay）；

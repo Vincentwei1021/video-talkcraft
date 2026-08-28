@@ -2,6 +2,7 @@
 name: quote-bracket-pull
 标题: 引号夹句
 优先级: P1
+代码: template/cards/quote-bracket-pull.tsx
 一句话: 两枚压过正文三倍的大引号从画外对角**同帧**向内推入把一片空白夹成"引文区"，引号走过一半时三行金句才开始错峰 0.09s 淡入上浮，末行关键短语最后被荧光笔扫过 0.26s
 适用: 金句要"被引用"的时刻——引别人的话、复述观众留言、把自己的一句话立成引文；不想遮住人物的金句（本卡不盖底板，人物全程在画面里）；克制调性的知识区/访谈类口播。不适合需要"让位仪式"的暴论式金句（那用 quote-card）
 时长: 起手静置 0.35s → 双引号同帧推入 0.32s → 三行错峰淡入 0.48s → 荧光笔扫 0.26s → 收尾 hold 2.2s；共约 3.6s
@@ -82,6 +83,7 @@ name: quote-bracket-pull
   hold 比它们的总和还长才对；砍掉 hold 等于砍掉金句本身。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/quote-bracket-pull.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/quote-bracket-pull/index.html。**换内容改 `.qb-line` 的三行文案**
   （荧光笔的关键短语用 `.qb-mark-wrap` 包住即可，色块宽度自动贴合）；
   行数增减直接加删 `.qb-line`（错峰是 `stagger` 算的，不用改 delay），
