@@ -22,7 +22,7 @@ name: color-slam-beat-card
 - 大字 `.slam-title`（62~72px、800 字重、左栏竖向居中）：硬切同帧就已在位，但颜色是**同色系淡色**（tint，如底 `#1B3CF5` 配 `#8A9BFF`）；切后 0.18s 起 `color → #fff`，0.22s，`power2.out`——像相纸显影，不是淡入
 - 小字戳 `.slam-sub`（字距 5px 的编号/副题）：比大字变实再晚 0.12s，`autoAlpha 0→1`，0.24s
 - 素材卡 `.slam-shot`（白底 + 圆角 + 深投影，投影是"实体被拍上来"的语义）：与大字错峰 **0.2~0.5s** 后入场，`y +56px → 0` + `blur(10px) → 0` + `autoAlpha 0→1`，0.42s，`power3.out`——升入与模糊飞入同一条 tween
-- 停留期（1.5~5s，由口播念完这句的时长决定）：元素**不再做任何动作**，只有整组 `y 0 → -8px` 线性漂移贯穿，纯粹防"视频卡帧"读法
+- 停留期（1.5~5s，由口播念完这句的时长决定）：元素**不再做任何动作**，整组静置（2026-08-29 用户定版 `driftPx=0`——此前的极缓漂移在成片里被读成"画面在飘"；超长停留怕读成卡帧时可开 ≤8px 线性漂移）
 - 切出二选一：① **硬切**（`tl.set(autoAlpha 0)`，零帧回口播——默认，节奏最硬）；② **色块整体上移让位**（`yPercent 0 → -100`，0.34s，`power3.out`，整块带元素一起走，底下口播从下方露出）
 - 连续多卡时每张换一个高饱和底色，色相拉开（demo 演蓝 → 红），"一片一色"是纪律不是配色
 - 与邻卡的分工：`shape-wipe-transition` 是色块扫过屏（0.6s 补间），`chapter-title-card` 是色块压入 + 编号章名分层（2.5s 仪式）；本卡**零补间**，节奏感全部来自跳变
@@ -38,7 +38,7 @@ name: color-slam-beat-card
 | `shotRise` | 56px | 升入行程；>120px 读作从画外飞进来抢戏，0 则只有模糊变化、没有"升"的方向 |
 | `shotBlur` | 10px | 模糊飞入起始值；0 = 只升不飞少了速度感，>20px 前几帧糊成一团脏 |
 | `hold` | 1.5~5s | 停留 = 这句口播的长度；<1.2s 大字读不完就跳走，>5s 高饱和底色开始灼眼、观众想快进 |
-| `driftPx` | 8px | 停留期漂移量；0 读作视频卡帧，>20px 读作运镜失误 |
+| `driftPx` | 0（2026-08-29 定版） | 停留期漂移量；默认静置——非 0 时观众读作"画面在飘"；确需防卡帧（停留 >4s）开 ≤8px，>20px 读作运镜失误 |
 | `liftOut` | 0.34s | 上移让位耗时（仅 lift 出场）；>0.5s 拖节奏，<0.2s 不如直接硬切 |
 | 底色饱和度 | 高饱和纯色 | 低饱和/灰调 = 跳变力度不足，读作换了张 PPT；渐变或双色 = "一片一色"破功，打击感散掉 |
 
@@ -47,7 +47,7 @@ name: color-slam-beat-card
 - 底色用渐变、双色拼接或低饱和莫兰迪——跳变幅度不够，观众读作"换了张幻灯片"，不是节拍。
 - 大字与素材卡同帧入场——两个动作抢同一拍，画面糊成一坨，错峰 0.2~0.5s 才有层次。
 - 大字做淡入（opacity 0→1）而不是同色系淡色变实——淡入是"字飞进来"，显影是"字一直在、只是浮出来"，后者才不与硬切抢那一拍。
-- 停留期完全静止——高饱和满屏纯色一旦一帧不动，观众第一反应是"视频卡了"，极缓漂移是最低成本的"活着"证明。
+- 给停留期加漂移求"活着"——实测（2026-08-29 用户审片）满屏纯色上的整组漂移读作"画面在飘"，比担心中的"卡帧"更扎眼；停留期的"活着"感交给素材卡入场余韵与口播节奏，不靠位移。真要开（停留 >4s）也压在 ≤8px。
 - 停留超过 5s——高饱和满屏色灼眼，节拍卡变成了罚站卡。
 - 素材卡没有投影、直接贴在纯色底上——读作矢量插画的一部分，失去"把证据拍上来"的实体感。
 - 连着三张卡用同一个底色——跳变了但色没变，等于只切了内容；每张换色（且各自一片一色）才是节拍器。
@@ -55,11 +55,11 @@ name: color-slam-beat-card
 ## 复用指引
 - Remotion/tsx（skill 首选）：template/cards/color-slam-beat-card.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/color-slam-beat-card/index.html。核心函数 `slamBeat(tl, el, spec, at, exit)` 可整段摘走，`exit` 传 `"cut"`（硬切回）或 `"lift"`（色块上移让位）。换色改 `CONFIG.cards`（每项 `{bg, tint}`，tint = bg 的同色系淡色）；换文案改 `.slam-title` / `.slam-sub` 内文本；加卡 = 复制一段 `.slam-card` DOM + `CONFIG.cards` 多一项 + 多调一次 `slamBeat`；节奏全在顶部 `CONFIG`。
-- Remotion 移植：切入用**帧判断而非 interpolate**——`frame >= cutFrame && frame < outFrame` 决定纯色层是否渲染（任何 interpolate 都会引入补间，破坏零帧硬切）；显影用 `interpolateColors(frame, [d, d+devF], [tint, '#fff'])`；素材卡 `interpolate(frame, [s, s+riseF], [56, 0], {easing: Easing.out(Easing.cubic), extrapolateRight:'clamp'})` 驱动 `translateY`，同区间另一条 interpolate 驱动 `filter: blur(Npx)`；停留漂移一条贯穿的线性 interpolate；lift 出场 `interpolate(frame, [o, o+liftF], [0, -100])` 驱动 `translateY%`。每张卡一个 `<Sequence>`，硬切 = 两个 Sequence 首尾相接、无 transition。
+- Remotion 移植：切入用**帧判断而非 interpolate**——`frame >= cutFrame && frame < outFrame` 决定纯色层是否渲染（任何 interpolate 都会引入补间，破坏零帧硬切）；显影用 `interpolateColors(frame, [d, d+devF], [tint, '#fff'])`；素材卡 `interpolate(frame, [s, s+riseF], [56, 0], {easing: Easing.out(Easing.cubic), extrapolateRight:'clamp'})` 驱动 `translateY`，同区间另一条 interpolate 驱动 `filter: blur(Npx)`；停留期静置（`driftPx=0` 定版；开启时是一条贯穿的线性 interpolate）；lift 出场 `interpolate(frame, [o, o+liftF], [0, -100])` 驱动 `translateY%`。每张卡一个 `<Sequence>`，硬切 = 两个 Sequence 首尾相接、无 transition。
 - 剪辑软件对应物：剪映/CapCut——纯色素材直接铺在主轨上，**转场处不放任何转场**（这就是全部），大字用关键帧只改文字颜色、素材卡用"位置 + 模糊"两条关键帧；AE——纯色层（Solid）按时间切入切出、层间不加效果，文字层用 Fill 颜色关键帧做显影，素材层 Position + Fast Box Blur 关键帧配 Easy Ease；上移让位 = 把纯色层与其子层预合成后打 Position 关键帧。
 
 ## 动效范围
-- 属于本卡的：**满屏纯色层一帧硬切进出（零 duration、零擦除、零缩放）这个机制本身**；大字从同色系淡色 `color → 实色` 的"显影"（切后 0.18s 起、0.22s、`power2.out`）；小字戳晚 0.12s 的 `autoAlpha` 跟进；素材卡与大字错峰 0.2~0.5s 后的 `y +56→0` + `blur 10→0` 同 tween 升入（0.42s、`power3.out`）；停留期元素静置 + 整组 `y 0→-8px` 线性漂移防卡帧；切出的两种收法（硬切 / `yPercent 0→-100` 整体上移让位 0.34s `power3.out`）；以及"一张卡一个高饱和纯色、连续多卡换色"这条纪律。
+- 属于本卡的：**满屏纯色层一帧硬切进出（零 duration、零擦除、零缩放）这个机制本身**；大字从同色系淡色 `color → 实色` 的"显影"（切后 0.18s 起、0.22s、`power2.out`）；小字戳晚 0.12s 的 `autoAlpha` 跟进；素材卡与大字错峰 0.2~0.5s 后的 `y +56→0` + `blur 10→0` 同 tween 升入（0.42s、`power3.out`）；停留期元素整组静置（`driftPx=0`，2026-08-29 定版；≤8px 漂移是可选开关）；切出的两种收法（硬切 / `yPercent 0→-100` 整体上移让位 0.34s `power3.out`）；以及"一张卡一个高饱和纯色、连续多卡换色"这条纪律。
 - 不属于本卡的：底下口播场景（数字人占位 + 字幕文案）、素材卡里的假截图/假图表内容、大字与小字的具体文案与字号字距、demo 连演两张卡与 `gapBetween` 间隔（仅示范节奏，实际由口播落点决定）、左字右卡的这套构图（元素落位可自由改，错峰时序才是本体）。
 - 迁移接口：**底色 = 复用者的品牌色接口，但有语义约束**——改 `CONFIG.cards` 的 `bg`（每项另配一个同色系淡色 `tint` 作显影起点），必须是**高饱和纯色、一片一色**，多卡之间色相拉开；卡上文字色随底色明度取反（当前 `#fff` / `rgba(255,255,255,.78)`）。时序全在顶部 `CONFIG`，其中 `hold` 按每句口播实际时长逐卡改（1.5~5s），`developAt`/`shotDelay` 的错峰关系跟着总时长等比缩放即可；换尺寸时只需重算 `shotRise`（约屏高 10%）与字号，硬切与错峰时序与画幅无关；竖屏改成上字下卡时把素材卡的升入方向保持"由下往上"不要反。
 - 底色要求：**需要高饱和纯色底（动效语义必需，中性化契约的例外）**——本卡的机制就是"底色跳变当节拍器"，白底或低饱和底根本没有可跳的变化，跳变幅度即动效强度。demo 的口播场景仍是白底（中性），只有节拍卡这一层用高饱和色，且该色是唯一的品牌色接口。
