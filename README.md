@@ -29,7 +29,7 @@
   （默认 FireRedASR2-CTC int8，备选 faster-whisper 免手动下载）。110s 中英混合口播
   对照 GPU 强制对齐器实测：字级偏差中位 20–40ms、最差 200ms、质检零误报。
   每个动效节拍都锚在确切的字上。
-- **78 张动效配方卡**——每张有意图、参数、已知坑和可跑的 HTML 预览，
+- **78 张动效配方卡**——每张有意图、参数、已知坑、可直接复制的自包含 Remotion tsx 源码和可跑的 HTML 预览，
   [在线画廊](https://vincentwei1021.github.io/video-talkcraft/)一页全览
   （本地 `open gallery/index.html` 同款）。动态字卡、数据镜头、证据巡游、
   六式运动承接转场、长镜头世界画布、人物合成等。
@@ -91,7 +91,7 @@ ln -s "$(pwd)" ~/.codex/skills/video-talkcraft    # Codex
 
 | 内容 | 说明 |
 | --- | --- |
-| 78 张动效配方卡 | 意图、能量档、参数、实现要点、已知坑——每张都配可跑的 HTML demo |
+| 78 张动效配方卡 | 意图、能量档、参数、实现要点、已知坑——每张都配自包含 Remotion tsx 源码（`template/cards/`，复制单文件即用）+ 可跑的 HTML demo |
 | 画廊 | [在线版](https://vincentwei1021.github.io/video-talkcraft/)或本地 `open gallery/index.html`——78 个预览一页自动播放，按名称/关键词搜索 |
 | 动效系统 | CameraRig、视差平面、idle/让位生命周期、环境层、六式转场、长镜头世界画布（`template/motion-systems/`） |
 | 组件 | 素排字幕、花字、砸字、荧光笔、铅笔手绘、数字滚动（`template/components/`） |
@@ -116,7 +116,10 @@ video-talkcraft/
 │   └── demo-spec.md            # 卡片/demo 编写规范
 ├── demos/                      # 78 个可跑的 HTML 预览（共享库内嵌音效）
 ├── gallery/                    # 单页本地画廊
-├── template/                   # 即取即用的 Remotion 动效系统与组件
+├── template/                   # 即取即用的 Remotion 代码
+│   ├── cards/                  # 78 卡逐卡自包含 tsx 源码（skill 首选引用）
+│   ├── motion-systems/         # 相机/视差/让位/环境/转场/长镜头系统
+│   └── components/             # 字幕/花字/砸字/铅笔等组件
 └── scripts/                    # 时间戳、人脸检测、QA 工具
 ```
 

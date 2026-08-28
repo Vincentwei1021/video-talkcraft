@@ -2,6 +2,7 @@
 name: line-by-line-slide
 标题: 逐行滑入
 优先级: P1
+代码: template/cards/line-by-line-slide.tsx
 一句话: 多行要点一行一行从左侧（字号 78%）外滑进来（位移 0.47s / 淡入 0.90s，行间错峰 0.13s），读完整叠再从同一侧往右穿出去——进从左、出向右不是倒放，出场错峰只有入场的一半、横向位移还要迟 0.27s 才起
 适用: 3~4 行并列要点/步骤/清单的整段上屏——"三件事""两个前提""四步走"这种口播段落；也用于分行的金句（每行一个短句）；不适合单行文字（退化成普通滑入）与 5 行以上（首行早已淡出，"一叠"读不出来）
 时长: 起手静置 0.3s → 逐行入场 0.90s / 错峰 0.133s（3 行在 1.47s 处全实）→ 停留 1.4s → 逐行出场 0.60s / 错峰 0.067s → 共约 3.6s
@@ -78,6 +79,7 @@ name: line-by-line-slide
 - 重播不重建 DOM 只重置 transform——换文案后行数变了，旧的 span 还在，错峰序列与实际行数对不上。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/line-by-line-slide.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/line-by-line-slide/index.html。**换内容只改 `CONFIG.lines`** 这个字符串数组（3~4 行），
   入场/出场的时刻表都是从行数算出来的。节奏只调 `enterStagger`（`enterTravel` 要跟着 `enterDur` 保持约 52%）；
   停留时间调 `hold`（按总字数，每字约 0.12s）；换字号改 `.lbl-text` 的 `font-size`，

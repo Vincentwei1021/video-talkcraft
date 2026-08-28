@@ -2,6 +2,7 @@
 name: slow-push-in
 标题: 缓推特写
 优先级: P0
+代码: template/cards/slow-push-in.tsx
 一句话: 静态页面（截图/文档/图片）以匀速或极缓减速缓慢推进 scale 1→1.08~1.15，transform-origin 咬在兴趣点上、画幅同时微移把它让向构图位，8~15s 里读不出"某一帧在动"却始终没停
 适用: 口播出示网页截图/文档/图片/UI 界面时的默认底噪运镜——静态素材一上屏就该有这条曲线；讲解、评测、财经拆解等冷静举证调性；也是"讲到这一段时把视线收拢到这一处"的引导手段
 时长: 实拍 8~15s（与本段口播等长，一句话一条曲线）；demo 压缩演示：主推 4.2s → hold 1.6s 续推，全程 5.8s
@@ -49,6 +50,7 @@ name: slow-push-in
 - 同一段里既缓推又缓拉（推一半又拉回来）——观众读作"手抖了"或"没想好"。一段一个方向；要反向就换镜头。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/slow-push-in.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：`demos/slow-push-in/index.html`。换素材改 `.page` 内的整块 DOM（或换成一张 `<img>` 铺满 `.camera`）；换兴趣点把 `id="poi"` 挂到任意元素上（origin 坐标运行时反推）；节奏全在顶部 `CONFIG`（`zoomFrom` / `zoomTo` / `pushDur` / `holdDur` / `endRate` / `driftX` / `driftY`）。核心可摘走：`CONFIG` + `camEase` + `DemoShell.register` 回调体三段。
 - Remotion 移植：整段就是一个 `interpolate`——`const z = interpolate(frame, [0, pushEnd, holdEnd], [1, 1.10, holdZoom], {easing: Easing.bezier(0.33, 0.33, 0.5, 0.85), extrapolateRight: 'clamp'})`，`x` / `y` 同法各一条；套在 `transform: scale(z) translate(x, y)` 上，`transformOrigin` 用兴趣点的百分比坐标。**要匀速就直接 `easing: Easing.linear`**（默认 `Easing.bezier(0.42,0,1,1)` 是 ease-in，会读成加速）；要极缓减速就用上面那条 bezier（末段仍有速度）。`holdZoom = zoomTo + (zoomTo−1)/pushDur × endRate × holdDur`，这样两段速度连续、无需拆 Sequence。图片素材记得 `<Img src={staticFile(...)}/>` 并保证原图 ≥ 画幅 × zoomTo。
 - 剪辑软件对应物：剪映——图片素材打两个"缩放"关键帧（100% → 110%），**必须把两个关键帧都设成线性**（右键去掉默认的缓入缓出），位移关键帧同法；AE——Scale 两个关键帧 + 右键 `Keyframe Interpolation → Linear`，锚点（Anchor Point）拖到兴趣点上，或用 Transform 的 `Position` 配合；这就是各家素材站说的 **Ken Burns**（本卡是它的推镜半边，拉镜半边见 [slow-pull-reveal](slow-pull-reveal.md)）；CapCut/Premiere 同理（PR 用 `Motion → Scale` 线性关键帧 + `Anchor Point`）。

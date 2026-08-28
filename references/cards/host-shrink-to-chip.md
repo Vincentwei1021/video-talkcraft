@@ -2,6 +2,7 @@
 name: host-shrink-to-chip
 标题: 人物缩位让台
 优先级: P1
+代码: template/cards/host-shrink-to-chip.tsx
 一句话: 图形要上台时讲者从全屏 0.4s 缩进角落的圆形头像章继续口播，图形从对侧错峰 0.15s 入场接位——让台是单程的，主角让位但人不消失
 适用: 口播从"我说给你听"切到"我给你看图/数据/截图"的每一次交接；讲解、财经拆解、教程类需要反复在人与图之间来回的长口播
 时长: 缩位 0.35~0.5s（power2.inOut）+ 图形错峰 0.15s 后入场 0.45s；角标期随口播任意长（demo 2s）；单程让台，回归交给应用侧下一节拍（需要时反向放大 0.42s、图形先退）
@@ -57,6 +58,7 @@ name: host-shrink-to-chip
 - **chip 放在字幕区或图形要用的那一侧**——让位让到别人身上，等于没让。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/host-shrink-to-chip.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/host-shrink-to-chip/index.html。核心是 `setHost(t)` 这一个函数 + 顶部 `CONFIG`，
   连 `lerp` 一起复制即可摘走；换素材只需重调 `anchorY` / `chipScale` 让脸在 chip 里居中。
   chip 左下↔右下换边改 `chipInsetX`（并把图形 `gfxSlide` 取反保持对侧入场）；成片落位只许下角；

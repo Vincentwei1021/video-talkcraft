@@ -2,6 +2,7 @@
 name: sway-parallax
 标题: 左右摇移
 优先级: P1
+代码: template/cards/sway-parallax.tsx
 一句话: 镜头在一张比画幅宽近一倍的长页面前横向匀速平移扫过（150~170px/s），极轻 rotateY 3~4° 跟随倾斜，起摇缓入 0.55s、到位极缓收住但不停死，hold 期继续以末速漂
 适用: 素材横向比画幅宽得多时——宽横幅、流程图、时间线、并列对比长图、超宽截图；口播正在顺着讲一条横向序列（"第一步…第二步…"）时最贴，摇移速度就是讲述节奏
 时长: 实拍 8~15s（行程 ÷ 速度，与本段口播等长）；demo 压缩演示：缓入 0.55s → 匀速摇移 4.5s → hold 1.1s，全程 6.2s
@@ -52,6 +53,7 @@ name: sway-parallax
 - 纵向长页误用本卡——纵向滚是 [evidence-scroll-tour](evidence-scroll-tour.md)（它带"讲到关键处减速停留"的完整语法）；本卡的横向摇移是不同的信息结构。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/sway-parallax.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：`demos/sway-parallax/index.html`。换素材改 `.page` 内整块 DOM（或换成一张超宽 `<img>`）并同步改 `.camera` 的 `width`；节奏与姿态全在顶部 `CONFIG`（`panSpeed` / `xFrom` / `xTo` / `swayDeg` / `accelDur` / `holdDur` / `endRate` / `zLift`）；透视值改 `.world` 的 `perspective`。**改 `panSpeed` 或行程后不用手算时长**——三段时长由 `dist`/`accelDist`/`mainDur` 运行时推出。核心可摘走：`CONFIG` + `camEase` + `DemoShell.register` 回调体。
 - Remotion 移植：`x` 是一条三段 `interpolate`——`interpolate(frame, [0, tAccel, tMain, tHold].map(s => s*fps), [xFrom, xFrom + dir*accelDist, xTo, xTo + dir*holdRate*holdDur])`，缓入段 `Easing.in(Easing.sin)`、主段 `Easing.bezier(0.33,0.33,0.5,0.85)`（末速非零）、hold 段 `Easing.linear`；分段 easing 在 Remotion 里要么拆成三个 `interpolate` 按 `frame` 区间选，要么用一个 `interpolate` 配多段 `easing`（v4 支持数组式 easing 需自行分段）。`rotateY` / `z` 各一条同法。外层 `perspective: 1200`，相机层 `transformStyle: 'preserve-3d'` + `transform: \`translateX(${x}px) translateZ(${z}px) rotateY(${ry}deg)\``。**纵向变体**只需把 `x` 换成 `y`、`rotateY` 换成 `rotateX`，速度上限同样按可读性取。
 - 剪辑软件对应物：这就是各家说的 **pan / 横移镜头（whip pan 的慢速版）**。剪映——超宽图片打两个"位置"关键帧（X 从 +40 到 -770），**两端都设线性**再单独给首尾各加一个缓动关键帧；"3D 旋转"的 Y 轴打 0→3° 跟随。AE——Position 的 X 打关键帧，速度图（Graph Editor）里把起点速度设 0、终点速度设为匀速的一半（这就是 `endRate`），3D 图层的 `Y Rotation` 跟 3°；或者反过来固定素材、给摄像机（Camera）的 Position 打关键帧（更接近"镜头在走"的物理）。Premiere——`Motion → Position` 线性关键帧 + `Basic 3D → Swivel` 微量跟随。

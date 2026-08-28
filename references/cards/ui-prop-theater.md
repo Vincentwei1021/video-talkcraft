@@ -2,6 +2,7 @@
 name: ui-prop-theater
 标题: 界面道具剧场
 优先级: P1
+代码: template/cards/ui-prop-theater.tsx
 一句话: 拟物 UI 道具（进度条/任务清单/滑杆）的状态按语音节拍逐步变化：进度 17%→96% 分段跳进、清单逐项打勾、滑杆拖动数字联动——界面自己演戏，不是在跑 loading
 适用: 口播讲"这东西怎么跑起来的""要等多久""要满足这几个条件""调这个参数会怎样"——进度/清单/参数三类内容的默认呈现方式；工具测评、AI 产品讲解、教程与流程拆解类口播
 时长: 起手静置约 0.55s 等口播开口 → 每拍 = 跳进 0.3s（+ 勾 0.2s / 换文案 0.32s）＋ 语音决定的停顿；4~5 拍一段共 4~6s
@@ -68,6 +69,7 @@ name: ui-prop-theater
 - 给 UI 加拟真质感（渐变/内阴影/玻璃/投影堆叠）——道具变成主角，抢掉讲述；线框灰阶足够。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/ui-prop-theater.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/ui-prop-theater/index.html。**换内容只改 `CONFIG.beats`**（每行一拍：`at` 时间戳 + `pct` 目标值 + `status` 文案 + `tick` 行号 + `done` 收尾），清单条目改 `#stage` 里的 `.step` 结构（勾的 SVG path 保留）；换强调色改 `CONFIG.accent` 与 `.bar-fill` 的 `background`；节奏参数全在 `CONFIG`（`jump` / `swapOut` / `swapIn` / `tickDelay` / `tickDraw` / `rowGlow` / `rowSettle` / `donePop`）。**注意 `fromTo` 必须带 `immediateRender: false`**——否则建时间线那一刻就把起手文案打成 `opacity: 0`，第一拍前画面是空的（本 demo 踩过）。
 - Remotion 移植：节拍表原样搬成 `BEATS` 数组，`at` 换算成帧号；进度用**分段查表**而不是一条 interpolate——`const seg = BEATS.filter(b => frame >= b.at*fps); const pct = interpolate(frame, [cur.at*fps, (cur.at+jump)*fps], [prev.pct, cur.pct], {easing: Easing.out(Easing.quad), extrapolate*: 'clamp'})`，段间自然静止；百分比文本读同一个 `pct` 变量（这就是"共用代理值"在帧驱动下的等价写法）；勾用 `strokeDashoffset: interpolate(frame, [tk*fps, (tk+0.2)*fps], [L, 0])`（`L` 用 `path.getTotalLength()` 或预量好的常量）；文案换字用两个 `<span>` 各自 interpolate opacity/translateY，切换点在 `at+swapOut`；完成勾用 `spring({frame: frame - done*fps, fps, config: {damping: 12}})`；行底色用 `interpolateColors(frame, [glowIn, glowOut], ['#f0f0f2', '#f7f7f8'])`。
 - 剪辑软件对应物：剪映/CapCut——进度条用一个色块 + "线性擦除"或蒙版位置关键帧，**在每个语音节拍点打两个关键帧（跳的起止）、其余段落不打**（这就是分段跳进），状态文案用文本层在节拍点硬切+两端小幅淡入淡出，勾用"笔刷描边/线条生长"贴纸或勾的 PNG 配蒙版擦除；AE——进度用 Rectangle 的 Scale/Trim Paths 关键帧且**关键帧成对贴在节拍点**（中间保持段，别让 AE 自动补成匀速），勾用 Trim Paths 的 End 0→100% + Easy Ease，行底色用 Solid 的 Opacity 两段关键帧，完成勾 Scale 关键帧配 Overshoot 表达式；任何软件里的"进度条预设/loading 动画预设"一律不用（全是匀速，且自带光泽扫光）。

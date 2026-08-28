@@ -2,6 +2,7 @@
 name: converging-arrows
 标题: 双箭头聚焦
 优先级: P1
+代码: template/cards/converging-arrows.tsx
 一句话: 两支手绘箭头从对角空白处几乎同时画向关键词（错峰仅 0.06s，杆 0.26s + 头 0.11s，箭尖停在离词 16px 处不戳字），两支箭尖都到位那一帧关键词换成强调色（只换色、不缩放），箭头留在屏上 hold 1.6s
 适用: 口播抛出"记住这 3 点""关键就在这里"这种**要观众钉住一个词**的时候；教学、清单、方法论口播；需要比手绘圈更强的指向性（箭头有方向，圈没有）；不适合同屏有多个候选词（双箭头只能夹一个目标）
 时长: 起手静置 0.42s → 第一支画杆 0.26s（第二支 +0.06s 切入）+ 箭头须 0.11s → 关键词换色 0.1s → 收尾定格 1.6s；共约 2.6s
@@ -104,6 +105,7 @@ name: converging-arrows
 - 画完加 line boil / 定格抖动——本库定版禁项（design-language.md §4）。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/converging-arrows.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/converging-arrows/index.html。**换关键词不用改坐标**：
   给目标元素加 `data-arrow="key"`（箭尖从它的盒子算，改文案自动跟随）。
   换来向改 `arrows[].corner`（`topRight`/`bottomLeft`/`topLeft`/`bottomRight` 四选二）

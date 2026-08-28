@@ -2,6 +2,7 @@
 name: chat-gpt
 标题: ChatGPT 对话框
 优先级: P1
+代码: template/cards/chat-gpt.tsx
 一句话: ChatGPT 首屏三件套按阅读顺序错峰淡入（问候大标题 → 药丸输入条 → 建议 chips，位移带视差），提示词逐字打进单行药丸、圆形语音键**原地变形成圆形发送键**且建议 chips 同时淡出下移，发送后问候语退场让位给对话，回答分块流式吐出
 适用: 口播讲 AI 话题时把「我是这么问的、它是这么答的」演成现在进行时——ChatGPT 相关的提示词技巧、AI 工具测评、模型能力讨论；不适合需要展示长对话历史的场景（自演只演一问一答）
 时长: 三段错峰入场 0.13→1.07s → 1.40s 起打 → 打字 1.41s（12 字 @8.5 字/s）+ 0.33s → 发送 → 思考 0.52s → 流式回答 1.50s；整卡约 6.4s
@@ -95,6 +96,7 @@ name: chat-gpt
 - 一段演两问两答——观众切换到"读对话"模式；一问一答是自演的容量上限。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/chat-gpt.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/chat-gpt/index.html。**换内容只改 `CONFIG.prompt` / `CONFIG.reply` / `CONFIG.placeholder`**——
   时刻表 `buildSchedule()` 按字数自动重算。节奏参数全在 `CONFIG`
   （`greetPar` / `pillPar` / 三段 `*Fade` 窗 / `cps` / `morphDur` / `chipsOutY` / `greetOut` / `thinkDur` / `streamRate` / `streamChunk`）；

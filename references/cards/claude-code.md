@@ -2,6 +2,7 @@
 name: claude-code
 标题: 编码智能体终端
 优先级: P1
+代码: template/cards/claude-code.tsx
 一句话: 深底终端窗弹入后三段错峰按阅读顺序铺开（欢迎框 → What's new 栏 → 提示行），命令逐字符敲进提示行、回车后整行退成灰，接着「工具调用 → 结果 → diff → 结论」的因果链逐行分块蹦出，工具调用行的状态点在出结果前一直呼吸，diff 的 `+` 行是全窗唯一语义色
 适用: 口播讲 AI 编程——「我让它改了一行，它是这么改的」；AI 编码工具测评/对比、Agent 工作流讲解、开发者向教程与踩坑复盘；不适合非技术受众的软性内容（终端本身会筛掉观众）
 时长: 窗体弹入 0.62s → 三段错峰 0.20→1.20s → 1.60s 起打 → 命令 2.18s（24 字 @11 字/s）+ 0.36s 回车 → 七行工作日志 5.2s（不等距）；整卡约 10.2s
@@ -94,6 +95,7 @@ name: claude-code
 - 日志写十几行完整 agent trace——终端是**证据**不是内容；6~8 行的一条链足够，再多观众开始读日志。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/claude-code.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/claude-code/index.html。**换内容只改 `CONFIG.prompt` 与 `CONFIG.lines`**——
   每行 `{ k, t, d }`：`k` 取 `tool`（工具调用，带状态点）/ `res`（结果，带 `⎿` 折角缩进）/
   `del`（diff 删除，灰）/ `add`（diff 新增，唯一语义色）/ `ok`（结论，带 `✓`），`d` 是行间延迟。

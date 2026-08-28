@@ -2,6 +2,7 @@
 name: count-badge-title
 标题: 数字重音标题
 优先级: P1
+代码: template/cards/count-badge-title.tsx
 一句话: 数字「3」先单独从 1.6 倍缩到位并在落定那刻换成强调色，紧接着「个方法」被它从右缘 clip 推出来，第二行错峰 0.1s 淡入上浮，收尾数字再补一记 5 帧 punch
 适用: 口播开场承诺条数——"三个方法""五个坑""两件事"；章节内的分点预告；需要观众记住"有几条"的每一次（列表卡之前的那一屏）
 时长: 起手静置 0.4s → 数字入场 0.3s（落定换色）→「个方法」0.22s 被带出 → 第二行错峰 0.1s 后 0.28s 淡入 → 间隔 0.35s 后数字 punch 5 帧 → 定格 1.7s；共约 3.1s
@@ -80,6 +81,7 @@ name: count-badge-title
 - 换成"三"这个汉字数字——汉字数字宽高与其余汉字一样，`numScale` 撑再大也读作"一个大字"，丢掉"数量"这个语义；本卡要阿拉伯数字。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/count-badge-title.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/count-badge-title/index.html。换文案改三处文本：`.cb-num`（1~2 位阿拉伯数字）、
   `.cb-rest`（量词，2~4 字）、`.cb-l2`（第二行，3~6 字）。
   换强调色只改 `CONFIG.accent` 一个值。能量只调 `numScale`；

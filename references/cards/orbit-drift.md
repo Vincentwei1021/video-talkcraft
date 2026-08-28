@@ -2,6 +2,7 @@
 name: orbit-drift
 标题: 环绕微漂
 优先级: P1
+代码: template/cards/orbit-drift.tsx
 一句话: 3D 空间里绕静态页面做小幅环绕——rotateY 与 rotateX 两条正弦相位错开 90°，合成一条闭合椭圆轨迹（幅度 ±6°/±3.4°），叠一层前后呼吸与反向跟随的投影，无始无终、整段都是 hold
 适用: 静态页面要在屏上停留很久的段落（长讲述、逐条分析、边看边聊），需要一条"永不重复得太明显"的持续底噪；也用于让页面稳定地当背景道具，前面叠字幕/图表/数据
 时长: 环绕一圈 = 实拍 9~14s（demo 压缩到 5.6s 一圈）；本卡没有入场也没有出场，随讲述长度无限续
@@ -61,6 +62,7 @@ name: orbit-drift
 - 拿本卡当入场——它没有入场也没有出场。素材的入场交给 media-pop-in，姿态的建立交给 [tilt-3d-page](tilt-3d-page.md)（可以先立面、再挂本卡当 hold 底噪，两卡串联是推荐组合）。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/orbit-drift.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：`demos/orbit-drift/index.html`。换素材改 `.page` 内整块 DOM（或换成铺满的 `<img>`）；轨迹全在顶部 `CONFIG`（`orbit` / `baseRotY` / `baseRotX` / `ampRotY` / `ampRotX` / `phaseX` / `ampZ` / `phaseZ` / `shadowShift` / `cycles` / `periodXRatio`）；透视改 `.world` 的 `perspective`。核心可摘走：`CONFIG` + `apply()` 那七行三角函数 + 驱动它的单条 tween。**长用改一个数**：`periodXRatio: 0.78`。
 - Remotion 移植：本卡是**最适合 Remotion 的一张**——纯 `frame` 的函数，天然 seek-safe、零状态：`const t = frame / fps;` 然后 `const ry = baseRotY + ampRotY * Math.sin(2*Math.PI * t/orbit);`、`const rx = baseRotX + ampRotX * Math.sin(2*Math.PI * (t/(orbit*ratio) + 0.25));`、`const z = ampZ * Math.sin(2*Math.PI * (t/orbit + 0.6));`——**不需要 interpolate**。套在外层 `perspective: 900` + 相机层 `transformStyle: 'preserve-3d'` + `transform: \`rotateY(${ry}deg) rotateX(${rx}deg) translateZ(${z}px)\``；投影层 `transform: \`translateZ(-40px) translate(${-sy*20}px, ${sx*10}px)\``。这套写法直接就是全局系统 G3 的 idle 微动的 3D 版（见 `template/motion-systems/`），可以整段并入 CameraRig 当 hold 期底噪。
 - 剪辑软件对应物：AE——3D 图层的 `Y Rotation` / `X Rotation` 各挂表达式 `value + 6.2*Math.sin(time*2*Math.PI/9)` 和 `value + 3.4*Math.sin(time*2*Math.PI/6.8 + Math.PI/2)`（**注意第二条里的 `+ Math.PI/2` 就是那个 90° 相位差**），`Position` 的 Z 挂第三条；这是 AE 里做"idle 呼吸"的标准表达式写法，比打关键帧准确得多。剪映/CapCut——没有表达式，只能用"3D 旋转"打若干关键帧手动近似一个椭圆（4~6 个关键帧一圈，设成缓入缓出），或直接用"轻微晃动"类预设（幅度通常偏大，需调小）。Premiere——`Basic 3D` 的 `Swivel`/`Tilt` 打关键帧同法，或用表达式（PR 表达式能力弱于 AE）。

@@ -2,6 +2,7 @@
 name: focus-dim-spotlight
 标题: 聚焦压暗切换
 优先级: P0
+代码: template/cards/focus-dim-spotlight.tsx
 一句话: 讲到哪里哪里亮——目标行/卡片保持原亮并点亮发光描边，其余整屏压暗 40%（或整页高斯模糊只留目标清晰），焦点随口播 0.2s 滑到下一目标，讲完整体 0.4s 恢复
 适用: 口播出示表格/清单/代码/多卡版面，逐项讲"这一行→下一行"的时刻；也用于整屏退让给一句结论。财经财报拆解、AI 工具演示、评测参数对比等信息密度高、需要"我说到哪你看哪"的冷静调性
 时长: 起手静置 0.45s → 焦点建立 0.3s（压暗缓入 + 描边撑开同帧）→ 每目标停留 1~1.5s、焦点跳转 0.2s（可连续 N 次）→ 讲完整体恢复 0.4s；四目标一段约 8s
@@ -59,6 +60,7 @@ name: focus-dim-spotlight
 - 描边框贴着目标边缘零留白——框压在文字/卡片边线上读作选中态；左右内缩到内容盒、上下外扩 3px 左右。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/focus-dim-spotlight.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/focus-dim-spotlight/index.html。换目标改 `.trow.data` 选择器（矩形运行时测量，坐标不用改）；换聚焦几何改 `focusInsetX` / `focusPadY`；节奏全在顶部 `CONFIG`（`dimIn` / `jump` / `hold` / `restore`）；焦点色一个 CSS 变量 `--focus`；暗度 `dimTo` 直接写进 `.spot` 的 `box-shadow` spread 色值。核心可摘走部分 = `CONFIG` + `DemoShell.register` 回调体（含 `rectIn` / `focusBox` 两个测量函数）。通道②改成给内容容器上 `filter: blur()` 并把目标行提到未模糊的同位克隆层。
 - Remotion 移植：聚光窗口用一个绝对定位 div，`boxShadow: \`0 0 0 9999px rgba(0,0,0,${interpolate(frame,[d,d+dimInF],[0,dimTo])})\``（外层 `overflow:'hidden'`）；焦点跳转把 `left/top/width/height` 各自 `interpolate(frame, [t,t+jumpF], [from, to], {easing: Easing.out(Easing.quad)})`，目标矩形在构建时静态算好（Remotion 无外壳缩放，直接写设计坐标）；描边 `scale: interpolate(..., [0.95,1], {easing: Easing.out(Easing.cubic)})`；辉光脉动 `opacity: 0.35 + 0.65*(0.5+0.5*Math.sin(frame/fps*Math.PI/glowHalf))`；通道②用 `filter: \`blur(${interpolate(...)}px)\`` 作用在内容 Sequence 上。
 - 剪辑软件对应物：剪映——新建黑色色块铺满画面、不透明度 40%，加"蒙版→矩形"并**反转蒙版**，蒙版位置/大小打关键帧即焦点跳转；发光框用"边框"贴纸或矩形描边素材 + 发光滤镜；AE——黑色 Solid + Mask（Mode 设 Subtract）、Mask Path 关键帧移动，或 Set Matte；发光框用 Shape Layer 描边 + Glow 效果，Opacity 表达式做呼吸；通道②用 Gaussian Blur + 反转蒙版的调整图层；CapCut——同剪映的 inverted mask keyframe 做法。

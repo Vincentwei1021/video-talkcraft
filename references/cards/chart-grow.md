@@ -7,6 +7,7 @@ name: chart-grow
 能量: 中
 类别: 数据信息图
 优先级: P0
+代码: template/cards/chart-grow.tsx
 ---
 
 ## 意图
@@ -39,6 +40,7 @@ name: chart-grow
 - 柱子用 height 动画而不是 scaleY——布局回流卡顿，低端机掉帧。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/chart-grow.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/chart-grow/index.html，改 `.bar-col` 的 `data-v` 与年份文字即可换数据（高度自动按 `CONFIG.maxVal` 计算）；关键柱挪 `hot` class；节奏在 `CONFIG`。
 - Remotion 移植：每柱 `spring({frame: frame - i*4, config:{damping:14}})` 驱动 scaleY；数字标签 delay = i*4 + Math.round(growDur*0.7)；punch 用 interpolate 三键帧 [1, 1.03, 1]。
 - （实测变体）分组错峰：多指标分组时不是逐柱 stagger，而是**逐组**从左到右出现（组间约 0.5s），组内多柱同时生长——错峰层级从"根"提到"组"，对齐口播的"第一个季度……第二个季度……"；全组长完后一个大数字结论压顶弹出收尾。见 TheAIScaler（Apm_oCzPEQs）。

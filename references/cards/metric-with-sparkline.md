@@ -7,6 +7,7 @@ name: metric-with-sparkline
 能量: 中
 类别: 数据信息图
 优先级: P0
+代码: template/cards/metric-with-sparkline.tsx
 ---
 
 ## 意图
@@ -80,6 +81,7 @@ name: metric-with-sparkline
   版式件（标签/刻度）一律灰阶。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/metric-with-sparkline.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：`demos/metric-with-sparkline/index.html`。**换数据改两处**：`CONFIG.target`（计数终值）
   和 `CONFIG.pts`（折线点位，SVG 局部坐标 `viewBox 0 0 400 96`，y 越小越高）；换文案改 HTML 里的
   `.label` 与 `.xlabels`。换涨跌方向：`CONFIG.color` 换 `#d70015`（negative）、

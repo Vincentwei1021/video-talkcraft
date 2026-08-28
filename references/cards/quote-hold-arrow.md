@@ -2,6 +2,7 @@
 name: quote-hold-arrow
 标题: 金句停留
 优先级: P1
+代码: template/cards/quote-hold-arrow.tsx
 一句话: 三行金句先全部以普通样式错峰淡入、末行原地平淡地停 0.34s，然后才**升级**——黄色高亮框从末行文字中心 scaleX 铺开 0.24s、框到位后文字 punch 一下，然后停住
 适用: 口播里"话到这儿才是重点"的时刻——铺垫两句后落到结论、转折句、行动号召前的那一句；需要观众记住**整句里的哪一句**（不是哪个词）的场合。不适合一上屏就要砸的钩子句（那没有铺垫可升级）
 时长: 起手静置 0.4s → 三行错峰淡入 0.52s → 末行平淡停 0.34s → 高亮框铺开 0.24s + punch 0.17s → 收尾 hold 2.2s；共约 3.9s
@@ -76,6 +77,7 @@ name: quote-hold-arrow
 - 在 punch 之后再补任何动作（箭头、下划线、图标）——那 2.2s 停留就是本卡的落点，加东西等于把余味填满。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/quote-hold-arrow.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/quote-hold-arrow/index.html。**换内容改 `.qh-line` 三行文案**
   （末行的字放在 `.qh-last-txt` 里，框会自动跟着宽度走）。
   节奏只调 `plainHold`（两拍之间的空白，本卡的能量旋钮）与 `hold`（余味）。

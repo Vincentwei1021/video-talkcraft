@@ -2,6 +2,7 @@
 name: cursor-actor-demo
 标题: 光标演员演示
 优先级: P0
+代码: template/cards/cursor-actor-demo.tsx
 一句话: 一枚超常规尺寸的系统光标在 UI 截图上"移动-悬停-点击"，每落到一个目标元素就即时响应（hover 底色加深 / 开关滑块滑过去 / 缩略图从光标处 pop-in），一个动作对齐一个口播词——光标是替观众操作的演员，不是鼠标轨迹录屏
 适用: 口播演示工具/软件怎么用的段落——"你就点这里""把图拖进来""这两个开关先打开"；工具测评、AI 产品讲解、教程类口播的标配呈现方式
 时长: 起手静置约 0.45s 等口播开口 → 每个动作 = 移动 0.3~0.6s + 悬停 0.2s + 按压 0.09s + 元素响应 0.3s ≈ 1s/动作；3~4 个动作一段共 4~6s
@@ -85,6 +86,7 @@ name: cursor-actor-demo
 - 拖拽时被拖元素与光标不同步（各自一条曲线）——两个东西各走各的，"抓住了"的因果感断掉。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/cursor-actor-demo.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/cursor-actor-demo/index.html。换 UI 只改 `#stage` 内的灰阶线框结构（本卡的动作序列按选择器取目标：`.pref-row` 行 / `.tg` 开关 / `.thumb.pick` 缩略图 / `.slot` 落点）；目标点用运行时 `P(el, fx, fy)` 反算舞台坐标（换布局不用改任何数字，`fx/fy` 是元素内相对落点）；节奏全在顶部 `CONFIG`（`moveLong` / `moveShort` / `moveDrag` / `hoverHold` / `press` / `pressScale` / `ripple` / `rippleFrom` / `rippleTo` / `hlIn` / `toggleSlide` / `popIn` / `popFrom` / `startDelay`）；`moveTo()` / `press()` 两个函数 + `CONFIG` 就是可摘走的动效本体（`press(at, p)` 的第二参是本次按压的落点，涟漪靠它把圆心贴到箭头尖）。光标形状换成手型/文本光标只改 `.ui-cursor` 里那两条同形 path（描边层与实心层要同步改，保持 `transform-origin` 锚在热点）。
 - Remotion 移植：光标位置 `x: interpolate(frame, [t0, t1]*fps, [x0, x1], {easing: Easing.inOut(Easing.quad), extrapolate*: 'clamp'})`、`y` 同区间换 `Easing.inOut(Easing.sin)`——两轴不同 easing 就是弧线；按压 `scale` 用 `[tp, tp+3, tp+6] → [1, 0.9, 1]`，涟漪同起点另开一组 `scale: [tp, tp+11] → [0.3, 1.6]` + `opacity: [tp, tp+11] → [1, 0]`（`Easing.out(Easing.quad)` / `Easing.in(Easing.quad)`），圆环用 `borderRadius: '50%'` 的 div 并把 `left/top` 设为 -半径；开关滑块 `translateX: interpolate(frame, [tOn, tOn+8], [0, 20], {easing: Easing.out(Easing.quad)})`，轨道色用 `interpolateColors`；pop-in `scale: interpolate(frame, [tUp, tUp+10], [0.4, 1], {easing: Easing.out(Easing.cubic)})` + `transformOrigin` 写成落点内光标的百分比坐标；拖拽阶段让被拖元素与光标读同一组 interpolate（只差一个常量偏移）。整段动作序列建议做成 `ACTIONS` 数组（`{target, at, kind}`）在组件里 map，帧号由词级时间戳换算。
 - 剪辑软件对应物：剪映/CapCut——导入一张放大的光标 PNG（去底）单独一轨，打"位置"关键帧并把两端设"缓入/缓出"，UI 响应用同一截图的两个版本（关/开）在按下帧硬切 + 开关滑块单独一层做位移关键帧；AE——光标层 Position 关键帧 + 空间插值改"贝塞尔"手动拉出弧线（关键：别用线性），Scale 关键帧做按压，开关滑块 Position + Easy Ease，缩略图 pop-in 用 Scale 关键帧并把锚点拖到光标位置；录屏软件的"放大光标/点击高亮"内置功能一律不用（尺寸与节奏都不受控，且自带涟漪特效）。

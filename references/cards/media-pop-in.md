@@ -7,6 +7,7 @@ name: media-pop-in
 能量: 中
 类别: 素材呈现
 优先级: P0
+代码: template/cards/media-pop-in.tsx
 ---
 
 ## 意图
@@ -41,6 +42,7 @@ name: media-pop-in
 - 投影太小或没有——素材贴死在背景上，"拍上来"的空间层次消失。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/media-pop-in.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/media-pop-in/index.html。三张假截图是纯 CSS（`.shot-browser/.shot-chat/.shot-pay`），整块换成 `<img>` 即可用真素材；每张的落位角度在 `data-rot`，节奏在 `CONFIG.stagger/popDur`。
 - Remotion 移植：每张一个 `spring({frame: frame - i*4, config: {damping: 12, stiffness: 200}})` 驱动 scale，opacity 用同 spring 的前半段 clamp；旋转 interpolate 从 rot-6 到 rot。
 - （实测变体）分屏压上：不在人物旁边堆素材，而是人物缩入下方圆角卡、B-roll 落入上半区，两件事错峰 3~5 帧完成——整版一次换装，比逐张拍上来更干净，适合只有一条素材要看的时刻。人物缩位这一半已独立成卡（见 references/cards/host-shrink-to-chip.md）。见 TheAIScaler（Apm_oCzPEQs）。

@@ -7,6 +7,7 @@ name: line-chart-story-draw
 能量: 中
 类别: 数据信息图
 优先级: P0
+代码: template/cards/line-chart-story-draw.tsx
 ---
 
 ## 意图
@@ -52,6 +53,7 @@ name: line-chart-story-draw
 - 标签先于线段出现——结论比推演先到，逐段推理的悬念全废。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/line-chart-story-draw.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/line-chart-story-draw/index.html。换数据只改 `CONFIG`：`history` 换历史点位、`pivot` 换拐点、`segments[].pts/dur/label` 换推演段与段末标签、`alt` 换对比线与端点标签、`annot` 换拐点标注（`arc` 三点定弧线箭头）、`bands` 换罩显区间、`scale` 定 y→数值映射；节奏全在 `hold0/segGap/annotHold/altGap/bandStagger`。核心动画即 `DemoShell.register` 回调整段（`growSeg` / `popLabel` 两个小函数），复制 CONFIG + 回调可直接摘走。
 - Remotion 移植：每段一个 `<Sequence from={段起始帧}>`，`strokeDashoffset={interpolate(frame, [0, dur*fps], [L, 0], {easing: Easing.out(Easing.quad), extrapolateRight:'clamp'})}`（`L` 用 `useLayoutEffect` 里 `getTotalLength()` 量或预先算好写死）；段末标签用 `spring({frame: frame - (段起 + dur*fps), config:{damping:10}})` 驱动 scale；端点 chip 位置用同一 `interpolate` 的进度调 `getPointAtLength`（把点位预采样成数组避免每帧测量）；对比虚线保留 mask 结构，动 mask path 的 dashoffset；色带用 opacity interpolate + `i*bandStagger*fps` 延迟。**帧驱动下段间停顿要写成显式空帧**，别指望时间线自然拉开。
 - 剪辑软件对应物：AE——形状图层折线 + "修剪路径"(Trim Paths) End 关键帧，每段一个图层错开入点（虚线段用 Trim Paths 配合"描边"效果的虚线开关，或同样做遮罩层揭示）；剪映——折线只能用"线条生长"贴纸拼段，分段叙事需要把每段做成独立素材依次入场；CapCut 搜 line chart / graph animation 模板，但内置的多是一次性描完，分段得自己切。

@@ -7,6 +7,7 @@ name: number-slab-pop
 能量: 中
 类别: 数据信息图
 优先级: P0
+代码: template/cards/number-slab-pop.tsx
 ---
 
 ## 意图
@@ -87,6 +88,7 @@ name: number-slab-pop
   说明行是 dim 实色（`#8a8a8a`，且**不许再叠 opacity**，§1 浅底红线）。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/number-slab-pop.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：`demos/number-slab-pop/index.html`。**换数字改 HTML 里三个 span**：
   `.int`（整数）/ `.dec`（小数，含小数点）/ `.pct`（单位）；没有小数就删掉 `.dec` span
   并把 `decLag` 用于单位（时序不用改）；换文案改 `.slab-cap`。

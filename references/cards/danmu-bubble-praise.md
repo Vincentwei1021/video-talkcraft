@@ -2,6 +2,7 @@
 name: danmu-bubble-praise
 标题: 弹幕气泡
 优先级: P1
+代码: template/cards/danmu-bubble-praise.tsx
 一句话: 四枚评论气泡按 0.55s 错峰从最近的边缘外侧飘入，每枚只停 0.75s 就上移 18px 淡出——进出交叠到第 3 枚进场时第 1 枚正在走，四枚里只有一枚是强调色
 适用: 口播讲到"评论区都在说""大家反馈最多的就是这点"时；开场证明这条内容有共识；结尾引导互动前的铺垫；社区感、轻快调性的口播（知识区、测评、生活方式）
 时长: 起手静置 0.4s → 四枚错峰 0.55s 依次进（每枚进 0.3s / 停 0.75s / 走 0.4s）→ 末枚走后留白 0.45s；共约 3.95s
@@ -76,6 +77,7 @@ name: danmu-bubble-praise
 - 用 `Math.random()` 生成落位或错峰——重播两次不一样，卡库要求可复现（用固定数组）。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/danmu-bubble-praise.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/danmu-bubble-praise/index.html。换文案改四个 `.db-b` 的文本（每条 4~8 字，
   `white-space: nowrap` 是硬要求）；换落位改 `#b1~#b4` 的 `left/top`，同时把 `side-l/side-r`
   改成"离哪边近就从哪边进"（这个 class 只决定进场方向）。

@@ -1,20 +1,34 @@
 # Demo 与配方卡编写规范
 
-本库约定：每个动效 = 一张配方卡（markdown）+ 一个可运行 HTML demo。
-目标读者是"想一键复用的人"：卡片讲清何时用、参数怎么调；demo 打开就能看、改文案就能用。
+本库约定（2026-08-28 定版）：每个动效 = 一张配方卡（markdown）+ 一份自包含 Remotion tsx 源码
++ 一个可运行 HTML demo。**tsx 是 skill 引用的正主**（复用成本最小：复制单文件进 Remotion 工程即可用），
+HTML demo 是免构建预览（浏览器直开、画廊活播）。卡片讲清何时用、参数怎么调。
 
 ## 目录约定
 
 ```
-references/cards/<slug>.md     # 配方卡
-demos/<slug>/index.html        # 自包含 demo（可引用 ../_lib/ 下共享资源）
+references/cards/<slug>.md     # 配方卡（frontmatter `代码:` 指向 tsx）
+template/cards/<slug>.tsx      # 自包含 Remotion 源码（skill 首选引用，见下方 tsx 硬性要求）
+demos/<slug>/index.html        # 自包含 HTML demo（可引用 ../_lib/ 下共享资源）
 demos/_lib/                    # gsap.min.js / lottie.min.js / demo-shell.css / demo-shell.js
                                # + sfx.js（WebAudio 合成音效引擎）/ sfx-map.js（逐卡 cue 表）
 ```
 
-**实战卡变体**：从已交付项目沉淀的动效可以不做 HTML demo，在 frontmatter 加
-`代码: template/<path>`（可运行参考是 Remotion 组件），画廊会渲染成"实战代码卡"。
-其余五节格式相同；"复用指引"一节必须写清组件文件与关键 props。
+**实战卡**：从已交付项目沉淀的动效，其生产母本在 `template/motion-systems/` 或
+`template/components/`（"复用指引"里写清组件文件与关键 props）；`template/cards/<slug>.tsx`
+仍然要有（与 demo 同画面的独立版本）。
+
+## tsx 源码硬性要求（2026-08-28 定版）
+
+1. **单文件自包含**：只 import `react` 与 `remotion`；不 import template/ 其他文件、不引外部资源
+   （图标/占位一律内联 SVG/CSS）。演示语境素材（数字人、实拍手）经可选 prop 注入
+   （`hostSrc?/handSrc?: string`），不传时灰阶剪影/矢量兜底。
+2. **导出契约**：`export const meta = { width, height, fps: 30, durationInFrames }` +
+   default 导出组件；CONFIG 常量顶置（与 demo 的 CONFIG 同名同注释）。
+3. **纯函数渲染**：一切状态由 `useCurrentFrame()` 推出；禁 `Math.random`/`Date.now`/自跑动画，
+   随机用 remotion 的 `random(seed)`（canvas 卡允许 `useEffect` 依赖帧号逐帧全量重画）。
+4. **与 HTML demo 逐帧视觉一致**：demo 是视觉真值。**改 demo 时序/画面后必须同步改 tsx**
+   （与 sfx cue 表同一条纪律）。
 
 ## Demo 硬性要求
 

@@ -2,6 +2,7 @@
 name: slow-pull-reveal
 标题: 缓拉全貌
 优先级: P0
+代码: template/cards/slow-pull-reveal.tsx
 一句话: 镜头起手咬在页面某处细节上（scale 1.25 + 偏移把它顶到画心），8~15s 匀速拉远回正到素材原样满画幅，观众在"原来这是一整张看板"的瞬间接到规模信息
 适用: 出示的静态素材本身"量大"时——数据看板、长清单、密集表格、全景图；开场悬念（先看一个数字再揭示它在哪张表里）、段落收束（从细节退回全局做总结）两个时机最稳
 时长: 实拍 8~15s（与本段口播等长）；demo 压缩演示：主拉 4.4s → hold 1.5s 拉完余量，全程 5.9s
@@ -52,6 +53,7 @@ name: slow-pull-reveal
 - 当段口播讲的是"聚焦某一点"却用了缓拉——运镜方向和语义反了。往里聚焦用 [slow-push-in](slow-push-in.md)，往外扩展才用本卡。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/slow-pull-reveal.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：`demos/slow-pull-reveal/index.html`。换素材改 `.page` 内整块 DOM（或换成一张铺满 `.camera` 的 `<img>`）；换起手咬点把 `id="poi"` 挂到任意元素上（偏移量运行时反推）；节奏全在顶部 `CONFIG`（`zoomFrom` / `zoomTo` / `pullDur` / `holdDur` / `endRate`）。核心可摘走：`CONFIG` + `camEase` + `DemoShell.register` 回调体三段。
 - Remotion 移植：`transformOrigin: 'center center'` 固定，三条 `interpolate` 同一时间轴——`const z = interpolate(frame, [0, pullEnd, holdEnd], [1.26, zMid, 1], {easing: Easing.bezier(0.33,0.33,0.5,0.85), extrapolateRight:'clamp'})`，`x` / `y` 从 `-dx/-dy` 插到 `0`（`dx/dy` 由兴趣点在素材内的百分比坐标 × 画幅算出，写死成常量即可）。要匀速就 `easing: Easing.linear`（**别用默认 bezier，它是 ease-in**）。`zMid` 与 `k` 按卡内公式算：`k = 1 − (总量/pullDur × endRate × holdDur) / 总量`。合成 `transform: scale(z) translate(${x}px, ${y}px)`。
 - 剪辑软件对应物：这是 **Ken Burns 的拉镜半边**（推镜半边见 [slow-push-in](slow-push-in.md)）。剪映——图片打两个"缩放"关键帧（126% → 100%）+ 两个"位置"关键帧（偏移 → 0,0），**两端关键帧都设成线性**（默认的缓入缓出会让末速归零）；AE——Scale 126→100 + Position 关键帧，锚点保持素材中心，`Keyframe Interpolation → Linear`，或在速度图里把末端速度拉到非零；Premiere/CapCut 同理（PR 是 `Motion → Scale/Position` 线性关键帧）。

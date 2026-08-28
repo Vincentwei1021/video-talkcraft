@@ -7,7 +7,7 @@ name: whip-pan-transition
 能量: 高
 类别: 转场结构
 优先级: P0
-代码: template/motion-systems/transitions.tsx
+代码: template/cards/whip-pan-transition.tsx
 ---
 
 ## 意图
@@ -70,6 +70,7 @@ Remotion 对应写法（`template/motion-systems/transitions.tsx`）：
 - 一片里左甩右甩随机混用：方向应服务叙事（时间轴向右、回溯向左），随机换向读作乱。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/whip-pan-transition.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：`demos/whip-pan-transition/index.html`。摘 `whipPan(出场镜头, 入场镜头, 起始秒) → 结束秒`
   一个函数 + `CONFIG.whip` 一组参数即可；换方向把 `dist` 与 `rot` 的正负**两侧一起**取反，
   以及初始 `gsap.set(S[1], {x: +dist})` 也要跟着翻。`hold()` 一起摘。

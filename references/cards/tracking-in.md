@@ -2,6 +2,7 @@
 name: tracking-in
 标题: 字距收拢
 优先级: P1
+代码: template/cards/tracking-in.tsx
 一句话: 一行大标题的字距从 0.5em 极松收拢到 −0.03em，同一条 spring 同时把 9px 模糊解开——散开的字一边聚拢一边聚焦成一块，起手 0.3s 走掉 80%、剩下 0.5s 极慢地咬到位，全程零回弹
 适用: 整屏让位给一句大标题的时刻——开场标题、章节论点、片尾落版、品牌短句（4~8 字）；需要"大片感/发布会气质"的单句；不适合多行文本、不适合常规字幕（这是标题动作不是字幕动作）
 时长: 起手静置 0.3s → spring 收拢 + 解糊 1.0s（前 0.3s 走掉 80%）→ 淡入另走 0.5s 线性 → 收尾定格 1.3s；共约 2.6s
@@ -81,6 +82,7 @@ opacity 走独立的 0.5s 线性——所以字在还只有一半透明度的时
 - 起手那一帧整行的视觉中心比终态偏左约 `startTracking / 2`（CSS 的字距会在最后一个字后面也加一份，居中时把可见字形整体推向左）——**源码同样存在**，属于忠实搬运的一部分；真要消掉就给整行加 `margin-right: −<当前字距>`（跟着 `onUpdate` 一起改），但会与源码的观感有细微差别。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/tracking-in.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/tracking-in/index.html。**换内容只改 `#tiTitle` 的文案**（4~8 字，写在 HTML 里，
   本卡不切字所以没有内容数组）。能量只调 `startTracking`；换字号改 `.ti-title` 的 `font-size`，
   同时把 `CONFIG.startBlur` 改成新字号的 1/8（`startTracking` 是 em、自动等比，不用改）。

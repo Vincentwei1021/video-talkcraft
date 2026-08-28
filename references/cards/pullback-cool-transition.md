@@ -7,7 +7,7 @@ name: pullback-cool-transition
 能量: 低
 类别: 转场结构
 优先级: P0
-代码: template/motion-systems/transitions.tsx
+代码: template/cards/pullback-cool-transition.tsx
 ---
 
 ## 意图
@@ -76,6 +76,7 @@ Remotion 对应写法（`template/motion-systems/transitions.tsx`）：
 - 用在信息推进段：整片节奏塌一次，观众以为要结束了。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/pullback-cool-transition.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：`demos/pullback-cool-transition/index.html`。摘 `pullBack(出场镜头, 入场镜头, 起始秒) → 结束秒`
   一个函数 + `CONFIG.pull` 一组参数。**注意函数内部取了 `out.querySelector(".big")`**——
   沉暗作用在内容层而不是镜头层，迁移时把这个选择器换成你的主体面容器。`hold()` 一起摘。

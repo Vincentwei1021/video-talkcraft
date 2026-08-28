@@ -7,6 +7,7 @@ name: map-route-pin
 能量: 中
 类别: 数据信息图
 优先级: P1
+代码: template/cards/map-route-pin.tsx
 ---
 
 ## 意图
@@ -47,6 +48,7 @@ name: map-route-pin
 - 起点没有先亮的标记——观众不知道从哪儿出发，路线长到一半才反应过来方向。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/map-route-pin.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/map-route-pin/index.html。换城市：改三个 `.pin-anchor` 的 left/top 和标签文案，
   同步改两条 `route`/`reveal` mask 的 path `d`（起终点对准城市坐标、Q 控制点向外弓）；
   节奏与砸感全在顶部 `CONFIG`；起点钉颜色在 `.pin-anchor.start .pin-head`。

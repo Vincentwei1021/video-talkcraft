@@ -2,6 +2,7 @@
 name: logo-enter
 标题: Logo 登场
 优先级: P1
+代码: template/cards/logo-enter.tsx
 一句话: 品牌圆牌用 spring 从 0.5 倍弹到位（唯一带过冲的一拍），错峰 0.233s 后字标从圆牌一侧推出、副行再错峰一拍，同时一圈描线绕着圆牌合拢——三拍收尾，落定即终帧
 适用: 片头的身份交代（"我是…"）与片尾的品牌收束；系列视频每期固定的开场/落幕；产品名/机构名的正式立牌。一片各用一次（开头一次、结尾一次）
 时长: 起手静置 0.35s → 圆牌弹入 0.60s → 字标推出 0.45s（错峰 0.233s / 0.466s）→ 描环合拢 0.70s → 收尾定格 1.30s；全程约 2.6s
@@ -82,6 +83,7 @@ remocn 的 `logo-enter` 给出的做法很克制：一个 spring 同时驱动三
 - 一片里用 3 次以上——它是身份标识，开头一次、结尾一次足够；中间反复出现读作水印。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/logo-enter.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/logo-enter/index.html。**替换成自己的 logo**：把 `.badge` 里那段
   `<svg viewBox="0 0 100 100">…</svg>` 整段换掉（demo 里是灰阶几何占位标：三角 + 挖圆）。
   换品牌文案改 `.brand` / `.tag` 两行；节奏全在顶部 `CONFIG`。

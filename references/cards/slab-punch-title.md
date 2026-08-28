@@ -2,6 +2,7 @@
 name: slab-punch-title
 标题: 重点放大
 优先级: P0
+代码: template/cards/slab-punch-title.tsx
 一句话: 两行标题里第二行的重点词坐在斜切色块上——第一行整块硬现 0.18s，色块从中心 scaleX 撑开 0.22s，**块撑到位那一帧**白字才硬切出现并从 1.12 倍 punch 落定（5 帧）
 适用: 一句口播里"前半句铺垫 + 后半句是重点"的对照句式（"找到 / 关键点"、"问题不在 A / 在 B"）；态度鲜明的观点号、干货号、带货口播；也可当短口播的段落小标题
 时长: 起手静置 0.4s → 第一行硬现 0.18s → 呼吸 0.07s → 色块中心撑开 0.22s → 白字 punch 0.167s → 收尾定格 1.6s；共约 2.64s
@@ -72,6 +73,7 @@ GSAP 全程不碰。做成"落定后回正"或"落定后抖两下"都是错的�
 - `padding` 上下等值——中文字视觉重心偏上，等 padding 读作字贴着块的下沿；下 padding 要比上多 2~3px。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/slab-punch-title.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/slab-punch-title/index.html。**换文案改两处 HTML 文本**（`#spL1` 的铺垫词 2~4 字、
   `#spL2` 的重点词 2~5 字）——块宽由字自动撑出，不用改任何常量。
   换强调色改 `.sp-slab-bg` 的 `background` 一处（红 `#e0452c` / 紫 `#7A5AF8` / 青 `#0aa3a3` 任取其一）。

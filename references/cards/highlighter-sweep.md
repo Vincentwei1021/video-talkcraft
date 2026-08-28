@@ -2,6 +2,7 @@
 name: highlighter-sweep
 标题: 荧光笔高亮扫过
 优先级: P0
+代码: template/cards/highlighter-sweep.tsx
 一句话: 半透明黄色荧光笔从左到右 0.4~0.8s 扫过引用文段的关键句，同帧其余文字压暗，扫完整句轻微浮起，读者视线被押着走
 适用: 口播引用报告/文献/新闻截图、念到"就是这一句"的时刻；纪录片解说、知识区拆解等冷静讲证据的调性
 时长: 起手静置约 0.7s 等语音到位 → 扫过 0.6s（0.4~0.8s 随语速）+ 压暗 0.45s 同帧 → 扫完 0.3s 浮起定格；卡片全程 8s 极缓推近
@@ -40,6 +41,7 @@ name: highlighter-sweep
 - 高亮的不是完整语义句（半句/跨两行断开）——观众读不出"这一句"的完整性。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/highlighter-sweep.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/highlighter-sweep/index.html。换文案改 `.quote-line` 各行文本，关键句放进 `.hl-wrap` 内（`.hl-block` 保留在最前）；换色改 `.hl-block` 的 `background: #FFE949` 与 `opacity: 0.6`（深色截图上可改 `mix-blend-mode` 为 `screen` 并换深色荧光）；节奏全在顶部 `CONFIG`（`startDelay` / `sweep` / `dimTo` / `liftScale` / `kenburns`）。
 - Remotion 移植：色块 `transform: scaleX(${interpolate(frame, [d, d+sweepF], [0, 1], {easing: Easing.inOut(Easing.quad), extrapolateRight: 'clamp'})})` + `transformOrigin: 'left center'`，容器 div 保留 `mixBlendMode: 'multiply'`；压暗用同起点的 opacity interpolate；Ken Burns 用 `interpolate(frame, [0, durationInFrames], [1, 1.025])` 线性；浮起接在 `d+sweepF` 帧之后 spring 或 quad-out。
 - 剪辑软件对应物：剪映——黄色色块素材设混合模式"正片叠底"+ 蒙版"线性"关键帧从左扫到右（或贴纸搜"荧光笔"），其余区域盖半透明黑色块压暗；AE——黄色 Solid 设 Multiply 混合 + Linear Wipe 效果（或 scaleX 关键帧、锚点在左），配 Easy Ease；CapCut——"highlight pen" 贴纸或同样的 mask wipe 做法。

@@ -39,7 +39,8 @@ camera moves, plain-cut subtitles, and film-grade SFX, all locked to the voice.
   worst case 200 ms, zero false QA flags. Every motion beat anchors to the
   exact word.
 - **78 motion recipe cards** — each with intent, parameters, known pitfalls,
-  and a runnable HTML preview — browse them all in the
+  a copy-paste self-contained Remotion tsx source, and a runnable HTML
+  preview — browse them all in the
   [online Gallery](https://vincentwei1021.github.io/video-talkcraft/) or
   locally with `open gallery/index.html`. Kinetic type, data shots, evidence
   tours, six motion-carry transitions, a long-take world canvas, host
@@ -109,7 +110,7 @@ Make a 100-second explainer about <topic>; here is the script and the audio.
 
 | Content | Description |
 | --- | --- |
-| 78 motion recipe cards | Intent, energy, parameters, implementation notes, and known pitfalls — every card has a runnable HTML demo |
+| 78 motion recipe cards | Intent, energy, parameters, implementation notes, and known pitfalls — every card ships a self-contained Remotion tsx source (`template/cards/`, copy one file and go) plus a runnable HTML demo |
 | Gallery | [Online](https://vincentwei1021.github.io/video-talkcraft/) or local (`open gallery/index.html`) — browse and autoplay all 78 previews, search by name/keyword |
 | Motion systems | CameraRig, parallax planes, idle/yield lifecycle, environment layer, six transitions, long-take world canvas (`template/motion-systems/`) |
 | Components | Plain-cut subtitles, flower-word titles, smash words, highlight sweeps, pencil draw, number rolls (`template/components/`) |
@@ -134,7 +135,10 @@ video-talkcraft/
 │   └── demo-spec.md            # Card/demo authoring spec
 ├── demos/                      # 78 runnable HTML previews (+ shared lib with embedded SFX)
 ├── gallery/                    # One-page local gallery
-├── template/                   # Copy-paste Remotion motion systems and components
+├── template/                   # Copy-paste Remotion code
+│   ├── cards/                  # Per-card self-contained tsx sources (the skill's primary reference)
+│   ├── motion-systems/         # Camera / parallax / yield / environment / transitions / long-take
+│   └── components/             # Subtitles, flower words, smash words, pencil, etc.
 └── scripts/                    # Timestamps, face bbox, QA tooling
 ```
 

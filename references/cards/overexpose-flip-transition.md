@@ -7,7 +7,7 @@ name: overexpose-flip-transition
 能量: 中～高
 类别: 转场结构
 优先级: P0
-代码: template/motion-systems/transitions.tsx
+代码: template/cards/overexpose-flip-transition.tsx
 ---
 
 ## 意图
@@ -67,6 +67,7 @@ Remotion 对应写法（`template/motion-systems/transitions.tsx`）：
 - 一片里过曝翻页用了七八次：曝光重音会通胀，最后每次都不重要。2~4 次为上限。
 
 ## 复用指引
+- Remotion/tsx（skill 首选）：template/cards/overexpose-flip-transition.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：`demos/overexpose-flip-transition/index.html`。摘 `blowout(出场镜头, 入场镜头, 起始秒) → 结束秒`
   一个函数 + `CONFIG.blow` 一组参数 + `.flash` 那段 CSS；`hold()` 一起摘（转场两端要有慢推）。
   **白底工程直接用**；深底工程把 `.flash` 的 `radial-gradient` 底色换成白色、`peak` 提到 0.42~0.55，包络和时序都不动。
