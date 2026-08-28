@@ -7,7 +7,6 @@ name: motion-blur-slam-in
 能量: 高
 类别: 素材呈现
 优先级: P1
-参考: TheAIScaler, 小Lin说
 ---
 
 ## 意图

@@ -7,7 +7,6 @@ name: black-slam-transition
 能量: 高
 类别: 转场结构
 优先级: P0
-参考: ai-math-video（七镜实战）, 电影 hard cut on impact, TheAIScaler（高频硬切节拍）
 代码: template/motion-systems/transitions.tsx
 ---
 

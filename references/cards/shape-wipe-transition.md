@@ -7,7 +7,6 @@ name: shape-wipe-transition
 能量: 高
 类别: 转场结构
 优先级: P0
-参考: 所有 YouTuber pack(15~140个/包), BASE(2.5K销量), 影视飓风, 综艺化口播
 ---
 
 ## 意图

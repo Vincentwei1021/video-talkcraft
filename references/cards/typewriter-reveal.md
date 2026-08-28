@@ -7,7 +7,6 @@ name: typewriter-reveal
 能量: 低
 类别: 字幕花字
 优先级: P1
-参考: Johnny Harris, LEMMiNO, Fireship(代码版), James Jani
 ---
 
 ## 意图

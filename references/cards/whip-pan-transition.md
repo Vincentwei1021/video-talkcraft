@@ -7,7 +7,6 @@ name: whip-pan-transition
 能量: 高
 类别: 转场结构
 优先级: P0
-参考: ai-math-video（七镜实战）, 影视飓风, 综艺化口播, Y17upxADWXs（径向爆糊变体）
 代码: template/motion-systems/transitions.tsx
 ---
 

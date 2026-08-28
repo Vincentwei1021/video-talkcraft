@@ -10,7 +10,7 @@
   var runFn = null;
   var speed = 1;
 
-  // ?embed=1：嵌入模式（画廊小窗）——无留边、贴满视口、播完自动循环
+  // ?embed=1：嵌入模式（画廊小窗）——无留边、贴满视口；播完回卷到开头暂停（不自动循环）
   // ?controls=1（或非嵌入直开）：视频内叠层控制条（悬停显示）——播放/暂停、进度、倍速、全屏
   var EMBED = /[?&]embed=1/.test(location.search);
   var CONTROLS = !EMBED || /[?&]controls=1/.test(location.search);
@@ -83,12 +83,26 @@
     runDur = end > runStart ? Math.min(end - runStart, 60) : 0;
   }
 
-  // 嵌入模式循环：动画播完立即重播（0.4s 呼吸）。非 GSAP demo 退回固定 8s 周期。
+  // 播完不自动循环（2026-08-28 用户定版）：回卷到开头并暂停，等下一次手动播放/重播。
+  // 画廊小窗滚出视野会卸载 iframe、滚回来重建，天然还是“进视野就播一遍”。
+  function finishRun() {
+    clearTimeout(loopTimer);
+    try {
+      if (window.gsap && runDur > 0) {
+        window.gsap.globalTimeline.pause();
+        window.gsap.globalTimeline.time(runStart);
+        cueIdx = 0;
+        setPauseUI(true);
+        if (window.SFX) window.SFX.suspend();
+      }
+    } catch (e) { /* 忽略 */ }
+  }
   function scheduleLoop() {
-    if (!EMBED) return;
     clearTimeout(loopTimer);
     var dur = runDur > 0 ? runDur : 8;
-    loopTimer = setTimeout(run, (dur + 0.4) * 1000);
+    var t = 0;
+    try { if (window.gsap) t = Math.max(0, window.gsap.globalTimeline.time() - runStart); } catch (e) { /* 忽略 */ }
+    loopTimer = setTimeout(finishRun, (Math.max(0, dur - t) + 0.4) * 1000);
   }
 
   function run() {

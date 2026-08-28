@@ -7,7 +7,6 @@ name: number-counter
 能量: 中
 类别: 数据信息图
 优先级: P0
-参考: 小Lin说, 何同学, Wendover, 影视飓风, Odometer 模板(1.2K销量)
 ---
 
 ## 意图

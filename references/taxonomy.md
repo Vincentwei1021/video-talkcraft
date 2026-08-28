@@ -33,11 +33,9 @@ kinetic-center-build 逐词推挤居中）。
 | 运镜 | 静态素材（截图/图片/文档/UI）不死板：相机替素材动起来 | slow-push-in, slow-pull-reveal, tilt-3d-page, sway-parallax, orbit-drift, stage-keyframe-tour◇, cursor-locked-zoom◇, pip-zoom-box◈ |
 
 ★ = 实战卡；◆ = 真实视频挖掘卡（第三批）；◇ = remocn 适配卡（第四批，原型是 Remotion 组件，
-每卡的「复用指引」里带 `registry/` 源码路径与秒↔帧换算）；◈ = 参考图复刻卡（第五批，原型是用户提供的
-三张动效库 UI 参考图里的缩略格，每卡「参考」字段标注了来源图与格位，frontmatter 另带 `复刻: 参考图`）。
-这些批次记号只是**来源标注**，不是分类维度：**2026-08-26 用户筛选完成后，画廊里按来源切的
-「复刻」横切 tab 已取消**——那两批卡本来就各自带着语义类别，在常规分类里已经就位。
-要按来源找卡改用画廊搜索框（搜「参考图」20 张、「remocn」18 张、博主名亦可命中「参考」字段）。
+个别卡「复用指引」里带 `registry/` 源码路径与秒↔帧换算）；◈ = 参考图复刻卡（第五批）。
+这些批次记号只是入库历史，不是分类维度，画廊与配方卡均不展示来源
+（2026-08-28 用户定版：卡片 frontmatter 的「参考/复刻」来源字段已删除，画廊来源徽标与按来源搜索一并取消）。
 转场选型口诀：镜头边界优先**运动承接六式**（各自一卡，共享
 lead/tail 交叠 12~16 帧 + 两侧同向的动量交接纪律，代码同为 `template/motion-systems/transitions.tsx`）——
 递进用 push-through，翻页用 overexpose-flip，并列用 whip-pan，最大反转用 black-slam（全片限一次），

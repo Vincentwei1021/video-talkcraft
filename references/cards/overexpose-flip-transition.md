@@ -7,7 +7,6 @@ name: overexpose-flip-transition
 能量: 中～高
 类别: 转场结构
 优先级: P0
-参考: ai-math-video（七镜实战）, Johnny Harris / Vox 章节过曝, 小Lin说·韩股崩盘（白闪斜扫变体）
 代码: template/motion-systems/transitions.tsx
 ---
 

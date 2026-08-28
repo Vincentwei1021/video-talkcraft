@@ -7,7 +7,6 @@ name: info-term-card
 能量: 低
 类别: 数据信息图
 优先级: P1
-参考: 小Lin说(signature), IC实验室, 财经知识区, FCPX/剪映同款预设商品
 ---
 
 ## 意图

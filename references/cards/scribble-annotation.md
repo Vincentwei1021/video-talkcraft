@@ -7,7 +7,6 @@ name: scribble-annotation
 时长: 单笔 0.3~0.6s（圈 0.55s、下划线 0.4s、箭头杆 0.35s+头 0.15s），笔与笔间隔 0.55s 对齐逐条点名
 能量: 中
 类别: 强调标注
-参考: Ali Abdaal, Johnny Harris, Vox, Mrwhosetheboss, LottieFiles arrow/underline 品类
 ---
 
 ## 意图

@@ -7,8 +7,6 @@ name: metric-with-sparkline
 能量: 中
 类别: 数据信息图
 优先级: P0
-参考: 参考图① 第4格, 小Lin说, 硬件茶谈, Vox, Bloomberg Quicktake
-复刻: 参考图
 ---
 
 ## 意图

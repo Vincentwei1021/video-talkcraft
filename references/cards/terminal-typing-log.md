@@ -7,7 +7,6 @@ name: terminal-typing-log
 时长: 起手静置 0.32s → 命令 0.4~0.5s 敲完 → 每条日志 0.15~0.5s 打完 + 行间 0.27s；11 行一段共约 8.2s（`...` 悬停各占 0.6s）
 能量: 中
 类别: 素材呈现
-参考: remocn(terminal-simulator), Fireship, Theo, ThePrimeagen
 ---
 
 ## 意图
