@@ -54,6 +54,9 @@ python3 scripts/make_timing.py audio/timestamps.json remotion/src/timing.json
 ## ③ 素材
 - **先给每个镜头标素材模式（多选，可组合，2026-08-28 定版）**：`B-roll`（实录空镜）/ `截图`（证据画面）/
   `纯动效`——如"B-roll 打底 + 截图证据卡"。新闻/信息类话题证据优先：Playwright 实时截图比泛用 B-roll 更有信息量
+- **真图硬规（2026-08-30 定版）**：话题存在可截的真实页面（产品官网/GitHub/文档/画廊）时，
+  成片中的浏览器/页面类镜头**禁止用代码 mock 冒充截图**——卡片 demo 里的灰条假 UI 是占位物，
+  成片必须按卡片"复用指引"整块换成 `<img>` 真图；mock 只允许表现无真实对应物的示意 UI
 - 标了 B-roll 的镜头列 2–3 个英文视觉概念词跑 **Pexels + Pixabay API 双源并行**，候选落 `assets/broll/`；
   源分层与授权红线（**只用免署名源**）见 `references/broll-sources.md`
 - **调研记账**：承载关键事实的来源页逐一截图存档，`sources.md` 里链接与本地截图一一对应
@@ -69,10 +72,18 @@ python3 scripts/make_timing.py audio/timestamps.json remotion/src/timing.json
 先用 `references/shot-design.md` 给每个镜头填**三面分层工作单**（背景面/主体面/文字面 + 各面动效
 + 七种镜头类型预设），再按 `references/cinematography.md` §4 展开成层矩阵，范例 `references/shotbook-example.md`。
 每场景：一句意图 + 主体接力线 + 逐节拍层矩阵（节拍锚定字级时间戳；每行动作必须答得出"配合谁"）。
+**节拍必须机器可验（2026-08-30 定版）**：每条画面重音落成 `remotion/beats.json`
+（`{t, anchor, sentence, what}`，t 一律由 timing.json/`atChar()` 查得，**禁止手敲近似秒数**——
+手敲曾把"啪、啪、啪"的画面做早 2 秒，静帧 QA 根本看不见），SHOTBOOK 节拍表与 beats.json 一致，
+关卡 1.75 用 `scripts/beat_lint.py` 对 timestamps.json 校验 |Δ|≤0.1s。
 **排版预算（2026-08-28 用户定版，细则 cinematography.md §4）**：分镜按语义段落切、每镜一个 primary visual job；
 枢轴句（"但这次不是X"式转折/设问）的动效归它**开启**的下一镜，上清过场的舞台；任一时刻同屏主体组 ≤3
 （降权留守的元素**计入**）、每镜至少留一个空象限；人物在场先跑 `scripts/face_bbox.py` 定人脸安全区。
 动效词汇从 **78 张配方卡** 里选：`references/taxonomy.md` 索引 → `references/cards/<slug>.md` 参数与坑 → `template/cards/<slug>.tsx` **自包含 Remotion 源码（实现以它为准，复制进工程改 CONFIG 即用）**；`demos/<slug>/index.html` 是同画面的 HTML 预览（`open gallery/index.html` 一屏浏览、demo 滚入即自动播放；带★实战卡的生产母本另在 template/motion-systems|components）。
+**保真铁律（2026-08-30 实战教训）**：每张用到的卡在工程里必须真实存在 `src/cards/<slug>.tsx`
+（自 template 复制改 CONFIG）——只读 md 文档就凭卡名手写"神似"简化版，是已发生过的最大翻车
+（回弹/拍击/密度全丢、取景框括号方向画反、名片变色块），关卡 1.75 用 `scripts/card_lint.py`
+逐 slug 校验存在性与相似度（≥0.55，改 CONFIG/文案在容忍内）。
 三段式铁律（模板工业共识）：入场 0.2~0.8s → hold（**必须带 idle 微动**）→ 出场 0.15~0.5s；入场永远比出场用力；同屏重音同一时刻只能有一个。
 **选了动效就要带上它的音效**：每张卡在 `demos/_lib/sfx-map.js` 有 cue 表（`{t, name, vol, rate?, clip?}`，t 为卡内相对秒）——
 SHOTBOOK 选卡时把 cue 抄进该镜头的层矩阵（换算成绝对秒；**vol 按成片口径重标 ≤0.35**，
@@ -118,16 +129,36 @@ anime.js v4 / three.js 走 `anime-remotion.ts` / `three-anime.ts` 桥（seek-saf
 ```bash
 npx remotion render src/entry.ts <Comp> out/vN.mp4 --concurrency=4
 python3 scripts/motion_check.py out/vN.mp4        # 关卡1：无 ≥0.8s 静止段，FAIL 必修
-# 关卡1.5：音效在场（渲一条 sfxSolo 纯音效轨逐 cue 验能量——名字打错/音量为零当场现形；
-# 工程主音轨要支持 `{!getInputProps().sfxSolo && <Audio .../>}`）
+# 关卡1.5：音效两查（工程主音轨要支持 `{!getInputProps().sfxSolo && <Audio .../>}`）——
+# ①在场：solo 轨逐 cue 峰值 ≥ −45dBFS 绝对阈（名字打错/音量为零现形）；
+# ②可听：对最终混音跑 --mix，逐 cue 分级 UNMASKED/AUDIBLE/MASKED，
+#   MASKED>50% 或 UNMASKED 少于 max(3, 片长/30s) 即 FAIL——
+#   "57/57 在场但全被人声掩蔽、观众一记都听不见"是已发生过的翻车；
+#   良品口径（v4 实测）：转场/边界 cue 落句间 ~0.3s 气口出声，19 个间隙中 7 个有能量
 npx remotion render src/entry.ts <Comp> out/sfx-solo.wav --props='{"sfxSolo":true}' --codec=wav
 python3 scripts/sfx_check.py out/sfx-solo.wav cues.json
-# 抽帧：每句 2 帧 + 动效锚点帧（anchors.json 从 SHOTBOOK 重音表导出）+ 连拍三帧对
+python3 scripts/sfx_check.py --mix out/vN.mp4 audio/full.wav cues.json
+# 关卡1.75：保真 + 词落点（2026-08-30 新增，两道都是 P1 级硬闸）
+python3 scripts/card_lint.py remotion/src <slug,slug,...>   # 卡片实现必须复制自 template/cards
+python3 scripts/beat_lint.py remotion/beats.json audio/timestamps.json   # 节拍对齐字级时间戳
+# 抽帧：每句 2 帧 + 动效锚点帧（anchors.json 从 beats.json 导出）+ 连拍三帧对
 python3 scripts/qa_extract.py out/vN.mp4 audio/timestamps.json /tmp/qa_vN 540 anchors.json
 ```
-关卡 2（**必须派独立 subagent，不许制作者自评**——做的人对自己的画面有盲区，2026-08-27 用户定版）：
-subagent 读 SHOTBOOK + 抽帧全集，**以视觉效果为主**，按 rubric（可读性/构图/信息传达/质感/事实一致）
-出 [P0/P1/P2] 缺陷清单（提醒它：入场中间态不是缺陷）。自查盯的是**成片质量缺陷**，不是规则合规
+关卡 2（**必须派独立 subagent，不许制作者自评**——做的人对自己的画面有盲区，2026-08-27 用户定版）。
+**独立 = 全新上下文（2026-08-30 硬化）**：禁止 fork/复用制作对话当"评审"、禁止对同一评审做
+followup 复审——fork 出来的评审继承制作者视角，对照物又是制作者自己写的 SHOTBOOK，
+形成自证闭环（P0/P1/P2 全零、成片却一身病，翻车实录）。
+评审材料四件套（缺一不可）：① SHOTBOOK + 抽帧全集；② **原版卡对比帧**——SHOTBOOK 每个 slug
+从 `gallery/media/<slug>.mp4` 抽 2 帧与成片对应镜头帧并排，评审逐 slug 判"这是同一张卡的实现吗"
+（保真不进评审视野就永远查不出来）；③ **词落点核对表**——beats.json 每条锚点的定妆帧 +
+锚字 + 应落时刻，核"该词说出口时画面是否恰好在响应"；④ **音效可听度报告**——
+`sfx_check.py --mix` 的输出（评审没有耳朵，机器报告就是它的耳朵）。
+subagent 按 rubric（可读性/构图/信息传达/质感/事实一致 + 保真/词落点）
+出 [P0/P1/P2] 缺陷清单（提醒它：入场中间态不是缺陷）。
+**缺陷分级定义（2026-08-30 补，此前无定义）**：
+P0 = 观众必然察觉且伤害理解——事实/文字/字形错误、不可读、声画错位、元素相撞遮正文、标注指错目标；
+P1 = 违反硬规则或明显走样——错峰残影、词落点偏差 >0.3s、整镜头音效缺席、与原版卡对比帧明显不符；
+P2 = 质感瑕疵——密度/留白/样式，记录但不挡验收。修完 P0+P1 才算过关。自查盯的是**成片质量缺陷**，不是规则合规
 （规则项在关卡 3）：元素重叠/覆盖/堆积、动效位置不准（标注没落在目标上、强调错位、元素出画）、
 画面噪点/压缩伪影/渲染残影、非有意的抖动或闪烁、文字贴边裁切、**排版凌乱**（同屏主体组 >3、
 无空象限的满盘布局、画面文字与字幕整句重复双份、人脸安全区被文字或其背景侵入、多个 hero 造型互相抢戏）。
@@ -153,10 +184,14 @@ subagent 读 SHOTBOOK + 抽帧全集，**以视觉效果为主**，按 rubric（
 ```bash
 ffmpeg -i out/final.mp4 -c:v copy -af "loudnorm=I=-15:TP=-1.5:LRA=11" -c:a aac -b:a 192k delivery.mp4
 ```
-听一遍确认配音无爆音/截断、音效不压人声不叠帧（loudnorm 之后音效相对电平会变，以成品耳听为准）；
+听一遍确认配音无爆音/截断、音效不压人声不叠帧（loudnorm 之后音效相对电平会变）——
+**agent 自己听不了成品，`sfx_check.py --mix` 就是耳听的机器替身：交付前必须对 delivery.mp4 重跑一次**；
 简介附素材来源行（用了库内采样时加 sfx 来源，见 demos/_lib/sfx/ATTRIBUTION.md）。
-发布时**推荐（非强制）**在简介 @ 一下本 skill 作者：X `@VincentWei93` · 抖音/小红书 @Vincent
-（链接见根 README「Follow me」）——对作者是最好的支持。
+发布时**推荐（非强制）**在简介 @ 一下本 skill 作者——对作者是最好的支持：
+X [`@VincentWei93`](https://x.com/VincentWei93) ·
+抖音 [@Vincent](https://www.douyin.com/user/MS4wLjABAAAAK1pkjBxilk2Oi_9h_vFyD-lTAu9CTlvhmOtkosDvvxg) ·
+小红书 [@Vincent](https://xhslink.cn/m/At9iP2d5C1V)。
+有建议、反馈欢迎扫根 README「微信讨论群」小节的二维码进反馈群。
 
 ## 目录路由
 
@@ -172,4 +207,5 @@ ffmpeg -i out/final.mp4 -c:v copy -af "loudnorm=I=-15:TP=-1.5:LRA=11" -c:a aac -
 | 新增配方卡 | `references/demo-spec.md`，验证 `node scripts/verify-demo.mjs <slug>` |
 | 可复制代码 | `template/cards/`（78 卡逐卡自包含 tsx）、`template/motion-systems/`（相机/让位/环境/桥）、`template/components/`（字幕/花字/铅笔/吉祥物） |
 | 字级时间戳（本机 CPU） | `scripts/timestamps_cpu.py`（FireRedASR2-CTC 默认 / faster-whisper 备选，+ 口播稿逐字对齐）→ `scripts/make_timing.py` |
+| 保真 / 词落点 / 音效可听度校验 | `scripts/card_lint.py`（卡片须复制自 template/cards）/ `scripts/beat_lint.py`（beats.json 对 timestamps）/ `scripts/sfx_check.py`（solo 在场 + `--mix` 可听度） |
 | 动效配套音效 | 逐卡 cue 表 `demos/_lib/sfx-map.js`（口味纪律见 `references/demo-spec.md` §8）；制作端 `node scripts/sfx_dump.mjs` 导出采样 |
