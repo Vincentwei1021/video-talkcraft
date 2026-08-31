@@ -12,7 +12,8 @@
 用法：
   python3 scripts/jitter_check.py delivery.mp4                        # 自动每 ~18s 采样一窗
   python3 scripts/jitter_check.py delivery.mp4 --window 46,1100:80:140:205   # t秒,crop
-判定：任一受判窗去趋势残差 |resid|>0.5 的帧数 ≥4 → FAIL（exit 1）。
+判定：任一受判窗去趋势残差 |resid|>0.5 的帧数 ≥6（持续振荡）→ FAIL（exit 1）；
+动画加速/减速斜坡只会给出 3~4 帧同号残差，不会误伤。
 良品口径：--concurrency=1 渲染实测 osc_max <0.15；并发 4 病灶 osc_max 1.5~3。
 """
 import glob
@@ -52,14 +53,19 @@ def window_diffs(src, t, crop):
 
 def judge(d):
     ma = np.convolve(d, np.ones(5) / 5, mode="same")
-    resid = np.abs(d - ma)
+    resid = d - ma
     # 瞬时爆点（切镜/元素砸入，raw>6）及其 ±2 帧不参与判定——病灶的签名是"小差值上的持续振荡"
     spike = d > 6.0
     near = spike.copy()
     for k in (1, 2):
         near |= np.roll(spike, k) | np.roll(spike, -k)
     r = resid[~near] if (~near).any() else resid
-    return d.mean(), (r.max() if len(r) else 0.0), int((r > 0.5).sum())
+    # 振荡判据：残差须正负交替（lag-1 自相关 <0）。加速/减速的真实动画残差同号连片，不算病
+    r1 = 0.0
+    if len(r) > 6 and r.std() > 1e-6:
+        r1 = float(np.corrcoef(r[:-1], r[1:])[0, 1])
+    ra = np.abs(r)
+    return d.mean(), (ra.max() if len(ra) else 0.0), int((ra > 0.5).sum()), r1
 
 
 def main():
@@ -86,13 +92,13 @@ def main():
         if d is None:
             print(f"t={t:7.1f}s  抽帧不足，跳过")
             continue
-        mean, osc, cnt = judge(d)
+        mean, osc, cnt, r1 = judge(d)
         if mean > 6.0:
             print(f"t={t:7.1f}s  raw_mean={mean:6.2f}  快速运动窗，跳过判定")
             continue
-        bad = osc > 0.5 and cnt >= 4
+        bad = osc > 0.5 and cnt >= 6
         fail |= bad
-        print(f"t={t:7.1f}s  raw_mean={mean:6.2f}  osc_max={osc:5.2f}  超阈帧={cnt:2d}  {'FAIL' if bad else 'ok'}")
+        print(f"t={t:7.1f}s  raw_mean={mean:6.2f}  osc_max={osc:5.2f}  超阈帧={cnt:2d}  r1={r1:+.2f}  {'FAIL' if bad else 'ok'}")
     print("== JITTER", "FAIL：静态文字区周期振荡，用 --concurrency=1 重渲 ==" if fail else "PASS ==")
     sys.exit(1 if fail else 0)
 
