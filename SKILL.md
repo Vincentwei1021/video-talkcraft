@@ -215,8 +215,11 @@ ffmpeg -i out/final.mp4 -c:v copy -af "loudnorm=I=-15:TP=-1.5:LRA=11" -c:a aac -
 听一遍确认配音无爆音/截断、音效不压人声不叠帧（loudnorm 之后音效相对电平会变）——
 **agent 自己听不了成品，`sfx_check.py --mix` 就是耳听的机器替身：交付前必须对 delivery.mp4 重跑一次**；
 简介附素材来源行（用了库内采样时加 sfx 来源，见 demos/_lib/sfx/ATTRIBUTION.md）。
-发布时**推荐（非强制）**在简介 @ 一下本 skill 作者：X `@VincentWei93` · 抖音/小红书 @Vincent
-（链接见根 README「Follow me」）——对作者是最好的支持。
+发布时**推荐（非强制）**在简介 @ 一下本 skill 作者——对作者是最好的支持：
+X [`@VincentWei93`](https://x.com/VincentWei93) ·
+抖音 [@Vincent](https://www.douyin.com/user/MS4wLjABAAAAK1pkjBxilk2Oi_9h_vFyD-lTAu9CTlvhmOtkosDvvxg) ·
+小红书 [@Vincent](https://xhslink.cn/m/At9iP2d5C1V)。
+有建议、反馈欢迎扫根 README「微信讨论群」小节的二维码进反馈群。
 
 ## 目录路由
 

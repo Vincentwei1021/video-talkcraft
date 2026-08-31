@@ -6,6 +6,7 @@
 
 [![Gallery](https://img.shields.io/badge/Gallery-live%20previews-7A5AF8)](https://vincentwei1021.github.io/video-talkcraft/)
 [![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial-blue)](LICENSE)
+[![WeChat](https://img.shields.io/badge/WeChat-%E8%AE%A8%E8%AE%BA%E7%BE%A4-07C160?logo=wechat&logoColor=white)](assets/wechat-group.jpg)
 
 **口播视频的 agent skill：字级配音同步 · 78 张动效配方卡 · 七层反 PPT 镜头系统 · 三重验收**
 
@@ -180,3 +181,11 @@ agent 读方法论、选动效配方卡、写 [Remotion](https://www.remotion.de
   <a href="https://xhslink.cn/m/At9iP2d5C1V"><img alt="在小红书关注作者" src="https://img.shields.io/badge/%E5%B0%8F%E7%BA%A2%E4%B9%A6-%E5%85%B3%E6%B3%A8%E6%88%91-FF2442?style=for-the-badge&logo=xiaohongshu&logoColor=white"></a>
   <a href="https://x.com/VincentWei93"><img alt="在 X 关注作者" src="https://img.shields.io/badge/X-%E5%85%B3%E6%B3%A8%E6%88%91-000000?style=for-the-badge&logo=x&logoColor=white"></a>
 </p>
+
+## 微信讨论群
+
+有建议、反馈或使用问题？扫码加入 video-talkcraft 内测反馈群：
+
+<img src="assets/wechat-group.jpg" alt="video-talkcraft 微信内测反馈群二维码" width="300">
+
+二维码过期后会不定期更新；也可通过上方社媒直接联系作者。
