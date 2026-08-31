@@ -56,7 +56,10 @@ python3 scripts/make_timing.py audio/timestamps.json remotion/src/timing.json
   `纯动效`——如"B-roll 打底 + 截图证据卡"。新闻/信息类话题证据优先：Playwright 实时截图比泛用 B-roll 更有信息量
 - **真图硬规（2026-08-30 定版）**：话题存在可截的真实页面（产品官网/GitHub/文档/画廊）时，
   成片中的浏览器/页面类镜头**禁止用代码 mock 冒充截图**——卡片 demo 里的灰条假 UI 是占位物，
-  成片必须按卡片"复用指引"整块换成 `<img>` 真图；mock 只允许表现无真实对应物的示意 UI
+  成片必须按卡片"复用指引"整块换成 `<img>` 真图；mock 只允许表现无真实对应物的示意 UI，
+  且 SHOTBOOK 逐镜标注"为何无真图"。**引申（2026-08-31 用户定版）**：口播讲"这样的成片/效果"时，
+  示例画面必须是真成片片段（`<OffthreadVideo>` 内嵌已有成片/真机内录裁切，muted）；
+  讲"长页面/看板/参数页"时用 Playwright **全页长截图**（放大镜/巡航类动效直接吃真图坐标）
 - 标了 B-roll 的镜头列 2–3 个英文视觉概念词跑 **Pexels + Pixabay API 双源并行**，候选落 `assets/broll/`；
   源分层与授权红线（**只用免署名源**）见 `references/broll-sources.md`
 - **调研记账**：承载关键事实的来源页逐一截图存档，`sources.md` 里链接与本地截图一一对应
@@ -76,6 +79,11 @@ python3 scripts/make_timing.py audio/timestamps.json remotion/src/timing.json
 （`{t, anchor, sentence, what}`，t 一律由 timing.json/`atChar()` 查得，**禁止手敲近似秒数**——
 手敲曾把"啪、啪、啪"的画面做早 2 秒，静帧 QA 根本看不见），SHOTBOOK 节拍表与 beats.json 一致，
 关卡 1.75 用 `scripts/beat_lint.py` 对 timestamps.json 校验 |Δ|≤0.1s。
+**未到拍不显形（2026-08-31 用户定版）**：词锚未到的数字/图形必须完全不可见（opacity 0），
+禁止压暗/灰显"预告"——"78 提前摆好只压暗"与"七个 chips 25% 灰显蹲点"都被用户抓过；
+行内数字要连同其后继字符一起 gate（「就 __ 类」的空洞挂 5 秒同样是缺陷）。
+**开镜不空台（2026-08-31 用户定版）**：镜头开场到第一个动效锚点 >1.5s 的空窗必须有承载画面
+（真实 b-roll / 上一镜元素延续 / 真素材墙），"空画布干等词锚"是被用户抓过的缺陷。
 **排版预算（2026-08-28 用户定版，细则 cinematography.md §4）**：分镜按语义段落切、每镜一个 primary visual job；
 枢轴句（"但这次不是X"式转折/设问）的动效归它**开启**的下一镜，上清过场的舞台；任一时刻同屏主体组 ≤3
 （降权留守的元素**计入**）、每镜至少留一个空象限；人物在场先跑 `scripts/face_bbox.py` 定人脸安全区。
@@ -127,8 +135,12 @@ anime.js v4 / three.js 走 `anime-remotion.ts` / `three-anime.ts` 桥（seek-saf
 
 ## ⑥⑦ 渲染 + 三重验收（循环到全过）
 ```bash
-npx remotion render src/entry.ts <Comp> out/vN.mp4 --concurrency=4
+# 交付渲染一律 --concurrency=1（2026-08-31 用户在成片肉眼抓到后定版）：多 tab 并发渲染的
+# 光栅化亚像素相位不一致，会让静态文字区以"并发数"为周期抖动（conc=4 实测帧差 1.4→3.1→4.0→0.9 循环）；
+# remotion still 单进程量不出来，必须量成片 mp4。预览/中间验证可用 --concurrency=4 提速
+npx remotion render src/entry.ts <Comp> out/vN.mp4 --concurrency=1
 python3 scripts/motion_check.py out/vN.mp4        # 关卡1：无 ≥0.8s 静止段，FAIL 必修
+python3 scripts/jitter_check.py out/vN.mp4        # 关卡1.1：静态文字区周期振荡=并发光栅病，FAIL 必单并发重渲
 # 关卡1.5：音效两查（工程主音轨要支持 `{!getInputProps().sfxSolo && <Audio .../>}`）——
 # ①在场：solo 轨逐 cue 峰值 ≥ −45dBFS 绝对阈（名字打错/音量为零现形）；
 # ②可听：对最终混音跑 --mix，逐 cue 分级 UNMASKED/AUDIBLE/MASKED，
@@ -175,7 +187,9 @@ P2 = 质感瑕疵——密度/留白/样式，记录但不挡验收。修完 P0+
 - 状态型动画（让位/换位/揭示）的修复必须覆盖**完整受影响区间的并集**（起点/中点/终点 + 每个边界前后），
   不能用"批注帧已正常"代替整段验收；
 - 同一问题二次返工时，REVIEW 必须留下"第一次修复为何失效"的记录。
-关卡 3：cinematography.md §5 验收口径（静息帧 ≥2 层动、转场运动连续、让位无堆积、排版预算达标）。
+关卡 3：cinematography.md §5 验收口径（静息帧 ≥2 层动、转场运动连续、让位无堆积、排版预算达标）；
+**调试 overlay（slug 标签/镜头编号/网格线/安全区框）禁止出现在交付渲染**（2026-08-31 用户定版）——
+要用就挂 `debugOverlay` 输入 prop，交付默认关。
 可读性终检：把成片**缩到 390px 宽**（手机上刷到横屏片的实际宽度）复看一遍，每行都要能读——
 桌面全屏预览不是验收标准；排不下时先删次要文案，不缩字号、不留孤字行。
 修完 P0+P1 与 motion FAIL → 重渲 → 重评（每轮都换**全新**评审上下文）。
@@ -207,5 +221,5 @@ ffmpeg -i out/final.mp4 -c:v copy -af "loudnorm=I=-15:TP=-1.5:LRA=11" -c:a aac -
 | 新增配方卡 | `references/demo-spec.md`，验证 `node scripts/verify-demo.mjs <slug>` |
 | 可复制代码 | `template/cards/`（78 卡逐卡自包含 tsx）、`template/motion-systems/`（相机/让位/环境/桥）、`template/components/`（字幕/花字/铅笔/吉祥物） |
 | 字级时间戳（本机 CPU） | `scripts/timestamps_cpu.py`（FireRedASR2-CTC 默认 / faster-whisper 备选，+ 口播稿逐字对齐）→ `scripts/make_timing.py` |
-| 保真 / 词落点 / 音效可听度校验 | `scripts/card_lint.py`（卡片须复制自 template/cards）/ `scripts/beat_lint.py`（beats.json 对 timestamps）/ `scripts/sfx_check.py`（solo 在场 + `--mix` 可听度） |
+| 保真 / 词落点 / 音效可听度 / 光栅抖动校验 | `scripts/card_lint.py`（卡片须复制自 template/cards）/ `scripts/beat_lint.py`（beats.json 对 timestamps）/ `scripts/sfx_check.py`（solo 在场 + `--mix` 可听度）/ `scripts/jitter_check.py`（静态文字区周期振荡=并发光栅病） |
 | 动效配套音效 | 逐卡 cue 表 `demos/_lib/sfx-map.js`（口味纪律见 `references/demo-spec.md` §8）；制作端 `node scripts/sfx_dump.mjs` 导出采样 |
