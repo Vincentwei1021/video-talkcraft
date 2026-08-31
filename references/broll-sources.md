@@ -25,6 +25,11 @@
 
 ## 关键请求格式
 ```
+# Mixkit Free（无 API，但列表页可免 key 解析直链——2026-08-31 实测；逐条核对授权标签）
+#   curl -sL "https://mixkit.co/free-stock-video/<关键词>/" -H "User-Agent: Mozilla/5.0" \
+#     | grep -oE 'https://assets\.mixkit\.co/videos[^"]*\.mp4'      # {id}-1080.mp4 优先，无则 -720
+#   标题↔id 对照：同页 href="/free-stock-video/<slug>-<id>/" 的 <a> 文本；Pexels/Pixabay 无 key 时的首选兜底
+
 # Pexels 视频（Header: Authorization: <KEY>，200次/时 + 20,000次/月）
 GET https://api.pexels.com/v1/videos/search?query=data%20center&orientation=portrait&size=medium&per_page=15
 # 下载 video_files[].link（按档给直链 mp4，SD/HD/4K）
