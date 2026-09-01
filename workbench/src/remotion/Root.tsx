@@ -5,7 +5,7 @@ import { defaultsOf } from "../cards/types";
 import { zodFromCard } from "./zodFromCard";
 import { MainComposition } from "../preview/Composition";
 import { demoProject } from "../demoProject";
-import { projectDuration } from "../types";
+import { projectDuration, projectEndFrame } from "../types";
 import type { ProjectData } from "../types";
 
 /** Remotion Studio 入口：
@@ -18,14 +18,20 @@ export const RemotionRoot: React.FC = () => {
     <>
       <Composition
         id="Main"
-        component={MainComposition as React.ComponentType<{ project: ProjectData }>}
+        component={MainComposition as React.ComponentType<{ project: ProjectData; renderExact?: boolean }>}
         durationInFrames={projectDuration(demo)}
         fps={demo.fps}
         width={demo.width}
         height={demo.height}
-        defaultProps={{ project: demo }}
+        defaultProps={{ project: demo, renderExact: false }}
         calculateMetadata={({ props }) => ({
-          durationInFrames: projectDuration(props.project),
+          // 导出成片（renderExact）用内容精确时长；Studio 预览留 1s 余量
+          durationInFrames: props.renderExact
+            ? Math.max(2, projectEndFrame(props.project))
+            : projectDuration(props.project),
+          fps: props.project.fps,
+          width: props.project.width,
+          height: props.project.height,
         })}
       />
       {CARD_LIST.map((card) => (

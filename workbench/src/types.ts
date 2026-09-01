@@ -43,10 +43,14 @@ let seq = 0;
 export const uid = (prefix: string) =>
   `${prefix}_${Date.now().toString(36)}${(seq++).toString(36)}`;
 
-/** 工程总时长（帧）：最晚 clip 结束 + 1s 余量，最短 5s */
-export const projectDuration = (project: ProjectData): number => {
+/** 内容精确结束帧（最晚 clip 结束；导出成片用，不带余量） */
+export const projectEndFrame = (project: ProjectData): number => {
   let end = 0;
   for (const t of project.tracks)
     for (const c of t.clips) end = Math.max(end, c.start + c.duration);
-  return Math.max(150, end + 30);
+  return end;
 };
+
+/** 工程总时长（帧）：最晚 clip 结束 + 1s 余量，最短 5s（编辑预览用） */
+export const projectDuration = (project: ProjectData): number =>
+  Math.max(150, projectEndFrame(project) + 30);

@@ -1,0 +1,166 @@
+// 自动生成，勿手改：node scripts/gen-index.mjs
+import type React from "react";
+import * as t0 from "@tpl/alt-block-lines";
+import * as t1 from "@tpl/bar-chart-growth";
+import * as t2 from "@tpl/behind-text-title";
+import * as t3 from "@tpl/black-slam-transition";
+import * as t4 from "@tpl/callout-line-label";
+import * as t5 from "@tpl/caret-wipe-transition";
+import * as t6 from "@tpl/chapter-progress-list";
+import * as t7 from "@tpl/chapter-title-card";
+import * as t8 from "@tpl/chart-grow";
+import * as t9 from "@tpl/chat-gpt";
+import * as t10 from "@tpl/chat-message-flow";
+import * as t11 from "@tpl/chevron-lower-third";
+import * as t12 from "@tpl/claude-code";
+import * as t13 from "@tpl/color-slam-beat-card";
+import * as t14 from "@tpl/converging-arrows";
+import * as t15 from "@tpl/corner-bracket-frame";
+import * as t16 from "@tpl/count-badge-title";
+import * as t17 from "@tpl/cursor-actor-demo";
+import * as t18 from "@tpl/cursor-locked-zoom";
+import * as t19 from "@tpl/danmu-bubble-praise";
+import * as t20 from "@tpl/evidence-scroll-tour";
+import * as t21 from "@tpl/focus-dim-spotlight";
+import * as t22 from "@tpl/glass-code-walk";
+import * as t23 from "@tpl/gooey-morph";
+import * as t24 from "@tpl/hand-drawn-ellipse";
+import * as t25 from "@tpl/highlighter-sweep";
+import * as t26 from "@tpl/host-shrink-to-chip";
+import * as t27 from "@tpl/impact-open-title";
+import * as t28 from "@tpl/info-term-card";
+import * as t29 from "@tpl/ink-underline";
+import * as t30 from "@tpl/keyword-pop-highlight";
+import * as t31 from "@tpl/line-by-line-slide";
+import * as t32 from "@tpl/line-chart-story-draw";
+import * as t33 from "@tpl/logo-enter";
+import * as t34 from "@tpl/long-take-world";
+import * as t35 from "@tpl/lower-third-nameplate";
+import * as t36 from "@tpl/magnifier-detail";
+import * as t37 from "@tpl/map-route-pin";
+import * as t38 from "@tpl/media-pop-in";
+import * as t39 from "@tpl/metric-with-sparkline";
+import * as t40 from "@tpl/motion-blur-slam-in";
+import * as t41 from "@tpl/news-card-desk";
+import * as t42 from "@tpl/number-counter";
+import * as t43 from "@tpl/number-slab-pop";
+import * as t44 from "@tpl/numbered-step-stack";
+import * as t45 from "@tpl/orbit-drift";
+import * as t46 from "@tpl/outline-box-title";
+import * as t47 from "@tpl/overexpose-flip-transition";
+import * as t48 from "@tpl/particle-weld-transition";
+import * as t49 from "@tpl/pencil-sketch-draw";
+import * as t50 from "@tpl/per-character-rise";
+import * as t51 from "@tpl/pip-zoom-box";
+import * as t52 from "@tpl/pullback-cool-transition";
+import * as t53 from "@tpl/push-through-transition";
+import * as t54 from "@tpl/quote-bracket-pull";
+import * as t55 from "@tpl/quote-card";
+import * as t56 from "@tpl/quote-hold-arrow";
+import * as t57 from "@tpl/scribble-annotation";
+import * as t58 from "@tpl/shape-wipe-transition";
+import * as t59 from "@tpl/slab-punch-title";
+import * as t60 from "@tpl/slow-pull-reveal";
+import * as t61 from "@tpl/slow-push-in";
+import * as t62 from "@tpl/soft-blur-in";
+import * as t63 from "@tpl/speed-slab-title";
+import * as t64 from "@tpl/stage-keyframe-tour";
+import * as t65 from "@tpl/step-timeline-vertical";
+import * as t66 from "@tpl/strike-and-replace";
+import * as t67 from "@tpl/subscribe-cta";
+import * as t68 from "@tpl/sway-parallax";
+import * as t69 from "@tpl/terminal-typing-log";
+import * as t70 from "@tpl/tilt-3d-page";
+import * as t71 from "@tpl/tracking-in";
+import * as t72 from "@tpl/type-contrast-emphasis";
+import * as t73 from "@tpl/typewriter-reveal";
+import * as t74 from "@tpl/ui-flow-theater";
+import * as t75 from "@tpl/ui-prop-theater";
+import * as t76 from "@tpl/whip-pan-transition";
+import * as t77 from "@tpl/x-follow-card";
+
+export type TplModule = {
+  default?: React.ComponentType<Record<string, unknown>>;
+  meta?: { durationInFrames?: number };
+};
+
+export const TPL_MODULES: Record<string, TplModule> = {
+  "alt-block-lines": t0 as unknown as TplModule,
+  "bar-chart-growth": t1 as unknown as TplModule,
+  "behind-text-title": t2 as unknown as TplModule,
+  "black-slam-transition": t3 as unknown as TplModule,
+  "callout-line-label": t4 as unknown as TplModule,
+  "caret-wipe-transition": t5 as unknown as TplModule,
+  "chapter-progress-list": t6 as unknown as TplModule,
+  "chapter-title-card": t7 as unknown as TplModule,
+  "chart-grow": t8 as unknown as TplModule,
+  "chat-gpt": t9 as unknown as TplModule,
+  "chat-message-flow": t10 as unknown as TplModule,
+  "chevron-lower-third": t11 as unknown as TplModule,
+  "claude-code": t12 as unknown as TplModule,
+  "color-slam-beat-card": t13 as unknown as TplModule,
+  "converging-arrows": t14 as unknown as TplModule,
+  "corner-bracket-frame": t15 as unknown as TplModule,
+  "count-badge-title": t16 as unknown as TplModule,
+  "cursor-actor-demo": t17 as unknown as TplModule,
+  "cursor-locked-zoom": t18 as unknown as TplModule,
+  "danmu-bubble-praise": t19 as unknown as TplModule,
+  "evidence-scroll-tour": t20 as unknown as TplModule,
+  "focus-dim-spotlight": t21 as unknown as TplModule,
+  "glass-code-walk": t22 as unknown as TplModule,
+  "gooey-morph": t23 as unknown as TplModule,
+  "hand-drawn-ellipse": t24 as unknown as TplModule,
+  "highlighter-sweep": t25 as unknown as TplModule,
+  "host-shrink-to-chip": t26 as unknown as TplModule,
+  "impact-open-title": t27 as unknown as TplModule,
+  "info-term-card": t28 as unknown as TplModule,
+  "ink-underline": t29 as unknown as TplModule,
+  "keyword-pop-highlight": t30 as unknown as TplModule,
+  "line-by-line-slide": t31 as unknown as TplModule,
+  "line-chart-story-draw": t32 as unknown as TplModule,
+  "logo-enter": t33 as unknown as TplModule,
+  "long-take-world": t34 as unknown as TplModule,
+  "lower-third-nameplate": t35 as unknown as TplModule,
+  "magnifier-detail": t36 as unknown as TplModule,
+  "map-route-pin": t37 as unknown as TplModule,
+  "media-pop-in": t38 as unknown as TplModule,
+  "metric-with-sparkline": t39 as unknown as TplModule,
+  "motion-blur-slam-in": t40 as unknown as TplModule,
+  "news-card-desk": t41 as unknown as TplModule,
+  "number-counter": t42 as unknown as TplModule,
+  "number-slab-pop": t43 as unknown as TplModule,
+  "numbered-step-stack": t44 as unknown as TplModule,
+  "orbit-drift": t45 as unknown as TplModule,
+  "outline-box-title": t46 as unknown as TplModule,
+  "overexpose-flip-transition": t47 as unknown as TplModule,
+  "particle-weld-transition": t48 as unknown as TplModule,
+  "pencil-sketch-draw": t49 as unknown as TplModule,
+  "per-character-rise": t50 as unknown as TplModule,
+  "pip-zoom-box": t51 as unknown as TplModule,
+  "pullback-cool-transition": t52 as unknown as TplModule,
+  "push-through-transition": t53 as unknown as TplModule,
+  "quote-bracket-pull": t54 as unknown as TplModule,
+  "quote-card": t55 as unknown as TplModule,
+  "quote-hold-arrow": t56 as unknown as TplModule,
+  "scribble-annotation": t57 as unknown as TplModule,
+  "shape-wipe-transition": t58 as unknown as TplModule,
+  "slab-punch-title": t59 as unknown as TplModule,
+  "slow-pull-reveal": t60 as unknown as TplModule,
+  "slow-push-in": t61 as unknown as TplModule,
+  "soft-blur-in": t62 as unknown as TplModule,
+  "speed-slab-title": t63 as unknown as TplModule,
+  "stage-keyframe-tour": t64 as unknown as TplModule,
+  "step-timeline-vertical": t65 as unknown as TplModule,
+  "strike-and-replace": t66 as unknown as TplModule,
+  "subscribe-cta": t67 as unknown as TplModule,
+  "sway-parallax": t68 as unknown as TplModule,
+  "terminal-typing-log": t69 as unknown as TplModule,
+  "tilt-3d-page": t70 as unknown as TplModule,
+  "tracking-in": t71 as unknown as TplModule,
+  "type-contrast-emphasis": t72 as unknown as TplModule,
+  "typewriter-reveal": t73 as unknown as TplModule,
+  "ui-flow-theater": t74 as unknown as TplModule,
+  "ui-prop-theater": t75 as unknown as TplModule,
+  "whip-pan-transition": t76 as unknown as TplModule,
+  "x-follow-card": t77 as unknown as TplModule,
+};

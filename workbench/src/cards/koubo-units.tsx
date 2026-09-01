@@ -104,7 +104,7 @@ export const kouboSubtitlesCard: CardDef = {
 export const kouboEnvironmentCard: CardDef = {
   id: "koubo-environment",
   name: "口播环境（暗角+光扫）",
-  category: "环境光效",
+  category: "口播拆解",
   durationInFrames: TOTAL_FRAMES,
   accent: "#8e8e93",
   component: (() => <KScale><Environment /></KScale>) as React.ComponentType<Record<string, unknown>>,

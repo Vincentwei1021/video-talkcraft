@@ -215,6 +215,19 @@ ffmpeg -i out/final.mp4 -c:v copy -af "loudnorm=I=-15:TP=-1.5:LRA=11" -c:a aac -
 听一遍确认配音无爆音/截断、音效不压人声不叠帧（loudnorm 之后音效相对电平会变）——
 **agent 自己听不了成品，`sfx_check.py --mix` 就是耳听的机器替身：交付前必须对 delivery.mp4 重跑一次**；
 简介附素材来源行（用了库内采样时加 sfx 来源，见 demos/_lib/sfx/ATTRIBUTION.md）。
+
+**交付成片后主动打开动效工作台**（不要等用户问）——给用户一个剪映式界面做人工微调：
+
+```bash
+cd <skill根>/workbench && npm install            # 首次
+ln -sfn <本片工程>/remotion/src kbsrc            # 链接本片工程（机器本地符号链接，不进库）
+mkdir -p public && for f in <本片工程>/remotion/public/*; do ln -sfn "$f" "public/$(basename "$f")"; done
+npm run dev                                       # 浏览器打开 http://localhost:5199 并告知用户
+```
+
+工作台里点「素材 → 拆解导入」即把成片拆成逐句字幕/逐镜参数化/逐条音效/转场/环境的多轨工程，
+文字内容、颜色、字号、位置、变速逐项可调（词锚节拍与相机保持固定）；改完点「导出成片」
+（内置 Remotion 渲染，遵守单并发纪律）。详见 `workbench/README.md`。
 发布时**推荐（非强制）**在简介 @ 一下本 skill 作者——对作者是最好的支持：
 X [`@VincentWei93`](https://x.com/VincentWei93) ·
 抖音 [@Vincent](https://www.douyin.com/user/MS4wLjABAAAAK1pkjBxilk2Oi_9h_vFyD-lTAu9CTlvhmOtkosDvvxg) ·
@@ -234,6 +247,7 @@ X [`@VincentWei93`](https://x.com/VincentWei93) ·
 | 人物素材（输入规格 / CPU 抠像 / 人脸安全区）· 与 B-roll 同屏怎么摆 | `references/host-footage.md` + `scripts/face_bbox.py` |
 | 新增配方卡 | `references/demo-spec.md`，验证 `node scripts/verify-demo.mjs <slug>` |
 | 可复制代码 | `template/cards/`（78 卡逐卡自包含 tsx）、`template/motion-systems/`（相机/让位/环境/桥）、`template/components/`（字幕/花字/铅笔/吉祥物） |
+| 成片后人工微调 / 导出 | `workbench/`（剪映式工作台：多轨时间线 + 全卡参数化 + 成片拆解 + Remotion 渲染导出） |
 | 字级时间戳（本机 CPU） | `scripts/timestamps_cpu.py`（FireRedASR2-CTC 默认 / faster-whisper 备选，+ 口播稿逐字对齐）→ `scripts/make_timing.py` |
 | 机器闸（画面健康 / 保真 / 词落点+镜尾 / 音效） | `scripts/motion_check.py`（静止段+并发光栅抖动双判定）/ `scripts/card_lint.py`（卡片须复制自 template/cards）/ `scripts/beat_lint.py`（词落点对 timestamps + `--shots` 镜尾保护带）/ `scripts/sfx_check.py`（solo 在场 + `--mix` 可听度） |
 | 动效配套音效 | 逐卡 cue 表 `demos/_lib/sfx-map.js`（口味纪律见 `references/demo-spec.md` §8）；制作端 `node scripts/sfx_dump.mjs` 导出采样 |

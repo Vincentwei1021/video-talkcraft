@@ -109,7 +109,7 @@ export const buildKouboProject = (): ProjectData => {
     tracks: [
       { id: uid("track"), name: "字幕", clips: subtitleClips },
       { id: uid("track"), name: "转场", clips: wipeClips },
-      { id: uid("track"), name: "环境光效", clips: [fullLen("koubo-environment", "环境光效")] },
+      { id: uid("track"), name: "环境", clips: [fullLen("koubo-environment", "口播环境")] },
       { id: uid("track"), name: "数字人", clips: [fullLen("koubo-host", "数字人 host.webm")] },
       { id: uid("track"), name: "动效镜头", clips: shotClips },
       {

@@ -10,12 +10,13 @@ npm run dev        # http://localhost:5199
 
 ## 能做什么
 
-- **素材库四 tab**：素材（成片/拆解单元/实拍文件）· 动效库（**78 张卡全量**，按画廊 7 分类折叠，循环视频预览）· 音效（33 个全量）· 环境光效。**点击=中屏预览，拖拽到时间轨=添加**
+- **素材库四 tab**：素材（成片/拆解单元/实拍文件，网格自动循环预览）· 动效库（**78 张卡全量**，按画廊 7 分类折叠，循环视频预览）· 音效（33 个全量）· 背景（design-language §1.1 预设背景 6 款：浅底白/羊皮纸/深底近黑/细网格/pastel mesh/居中追光，均可调参）。**点击=中屏预览，拖拽到时间轨=添加**
 - **时间轨**：多轨道（上层覆盖下层）、拖拽移动、两端裁剪、跨轨拖动、吸附、分割（S）、复制（⌘D）、缩放/适配；三栏与时间轨均可拖拽分隔条调整尺寸
 - **属性面板（schema 驱动）**：79 张动效卡 100% 参数化——全部文案（多条内容用逐行 DSL）、颜色、字号（派生几何等比联动）、内容块位置 posX/posY、语境节奏；动效节奏命门保持 FIXED 不暴露，保动效品相
 - **通用 clip 属性**：起点/时长（裁剪/定格延长）、**变速 0.25×–4×**（`<Freeze>` 时间重映射）、**裁入点**、不透明度/缩放/位移。音频与视频素材卡走 `trimBefore`/`playbackRate` 原生通道，裁剪变速不哑音
 - **口播成片拆解**（需链接外部工程，见下）：一键把成片拆为逐句字幕（127 句，文本可改）、23 个镜头（逐镜参数化卡，文案/颜色/字号/位置可调；词锚节拍/相机保持固定）、81 条音效（逐条可挪可调音量）、转场、数字人、环境层
 - **保存**：每次改动自动存 localStorage（800ms 防抖 + 关页即时落盘），导出/导入工程 JSON，撤销/重做（⌘Z/⇧⌘Z）
+- **导出成片**：顶栏「导出成片」→ dev server 内起 Remotion CLI 渲染当前工程为 MP4（内容精确时长、单并发保光栅一致），输出到 `exports/`，完成后一键在 Finder 显示
 - **Remotion Studio 入口**：`npm run studio`（卡片 Zod schema 自动生成，官方 Inspector 调参 + 渲染 UI）
 
 ## 接入口播成片工程（可选）
@@ -54,12 +55,19 @@ src/
   preview/PreviewPanel.tsx  Player + 走带 + 素材点击预览
   timeline/             标尺 / 轨道 / clip 拖拽裁剪 / 拖放接收
   panels/               素材库四 tab / schema 属性面板
+  remotion/             Remotion CLI 入口（Studio + 渲染导出共用 Main 合成）
   cards/
-    registry.ts         注册表：手写核心卡 + gen/ 自动收集 + 模板卡兜底
+    registry.ts         注册表：手写核心卡 + gen 参数化卡 + 模板卡兜底
     gen/                批量参数化产物（78 卡 + 23 口播镜头 kscene-*）
-    templateCards.ts    template/cards 全量 glob 接入（tplcards 相对符号链接）
+    gen-index.ts        静态索引（scripts/gen-index.mjs 生成，webpack/Vite 双兼容）
+    background-cards.tsx 预设背景 6 款（design-language §1 色板 + §1.1 背景菜单）
+    templateCards.ts    template/cards 全量接入（tplcards 相对符号链接 + @tpl 别名）
     tplMeta.ts          卡 id → 中文名/分类（由 gallery 数据生成）
+scripts/gen-index.mjs   卡片静态索引生成（dev/build/studio 前置钩子自动跑）
+remotion.config.ts      Remotion CLI 打包配置（@kbsrc/@tpl 别名 + 单并发）
+vite.config.ts          Vite + 导出渲染 API（POST /api/export → Remotion CLI）
 kbsrc-stub/             外部口播工程未链接时的降级实现
+exports/                导出成片输出目录（不进库）
 ```
 
 ## 参数化模式（新卡接入）
@@ -69,5 +77,6 @@ kbsrc-stub/             外部口播工程未链接时的降级实现
 ## 已知边界
 
 - 同轨允许 clip 重叠（层级用多轨表达）；变速为匀速重映射（无曲线变速）
+- 口播拆解后相邻动效镜头各自带 8 帧重叠——这是原片的交叠转场设计（前后镜头在换幕期间同时在场），不是 bug；对齐首尾会丢转场交叠
 - 口播镜头改文案不改节拍——动效时机锚在原配音词级时间戳上；换口播词需重新走生产管线（配音+时间戳）
-- 未接渲染导出——工程 JSON 已含全部信息，后续可喂 Remotion 渲染管线；Studio 的 Render 按钮可渲染单卡
+- 导出成片走 dev server（`npm run dev` 时可用）；也可命令行 `npx remotion render src/remotion/index.ts Main out.mp4 --props=<工程JSON包一层 {"project":…,"renderExact":true}>`

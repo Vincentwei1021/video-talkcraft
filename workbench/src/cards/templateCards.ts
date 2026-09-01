@@ -1,21 +1,14 @@
-import type React from "react";
 import type { CardDef } from "./types";
 import { TPL_META } from "./tplMeta";
 
-/** 全量模板卡：workbench/tplcards → template/cards 符号链接，Vite glob 一次接入。
+/** 全量模板卡：workbench/tplcards → template/cards 符号链接，
+ *  静态索引 tpl-index.ts（scripts/gen-index.mjs 生成）一次接入。
  *  这些卡未参数化（schema 空），但可正常上轨播放/裁剪/变速；
  *  参数化版本（registry 靠前注册的同 id 卡）优先生效。 */
-const modules = import.meta.glob("../../tplcards/*.tsx", { eager: true }) as Record<
-  string,
-  {
-    default?: React.ComponentType<Record<string, unknown>>;
-    meta?: { durationInFrames?: number };
-  }
->;
+import { TPL_MODULES } from "./tpl-index";
 
-export const TEMPLATE_CARDS: CardDef[] = Object.entries(modules)
-  .flatMap(([path, mod]) => {
-    const id = path.split("/").pop()!.replace(/\.tsx$/, "");
+export const TEMPLATE_CARDS: CardDef[] = Object.entries(TPL_MODULES)
+  .flatMap(([id, mod]) => {
     if (!mod.default) return [];
     const meta = TPL_META[id];
     const card: CardDef = {

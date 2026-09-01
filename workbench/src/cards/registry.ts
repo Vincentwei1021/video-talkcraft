@@ -15,18 +15,12 @@ import {
   kouboWipeCard,
 } from "./koubo-units";
 import { imageClipCard, videoClipCard } from "./media-cards";
-import { ambientSweepCard, ambientVignetteCard } from "./ambient-cards";
+import { BG_CARDS } from "./background-cards";
 import { TEMPLATE_CARDS } from "./templateCards";
-
-/** 批量参数化产物（src/cards/gen/*.tsx，各文件 export const card）自动收集；
- *  同 id 优先级：手写核心卡 > gen 参数化卡 > 模板原卡 */
-const genModules = import.meta.glob("./gen/*.tsx", { eager: true }) as Record<
-  string,
-  { card?: CardDef }
->;
-const GEN_CARDS: CardDef[] = Object.values(genModules).flatMap((m) =>
-  m.card ? [m.card] : [],
-);
+// 批量参数化产物（src/cards/gen/*.tsx，各文件 export const card）。
+// 静态索引由 node scripts/gen-index.mjs 生成（webpack/Vite 双兼容，渲染导出依赖）。
+// 同 id 优先级：手写核心卡 > gen 参数化卡 > 模板原卡
+import { GEN_CARDS } from "./gen-index";
 
 /** 参数化卡（优先）+ 全量模板卡（同 id 时参数化版胜出）。
  *  模板卡参数化模式：CONFIG 中"语境/文案/颜色"级参数提为 props + schema，
@@ -47,8 +41,7 @@ const CORE_CARDS: CardDef[] = [
   audioClipCard,
   videoClipCard,
   imageClipCard,
-  ambientVignetteCard,
-  ambientSweepCard,
+  ...BG_CARDS,
 ];
 
 const coreIds = new Set(CORE_CARDS.map((c) => c.id));

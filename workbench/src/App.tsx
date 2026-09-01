@@ -39,6 +39,78 @@ const startSplit = (
   window.addEventListener("pointerup", up, { once: true });
 };
 
+/** 导出成片：提交当前工程给 dev server 的 Remotion 渲染任务，轮询进度 */
+const ExportButton: React.FC = () => {
+  const [job, setJob] = useState<{
+    id: string;
+    status: "running" | "done" | "error";
+    progress: number;
+    lastLine?: string;
+  } | null>(null);
+  const timer = useRef<number>();
+
+  const poll = (id: string) => {
+    timer.current = window.setInterval(async () => {
+      const r = await fetch(`/api/export/${id}`);
+      if (!r.ok) return;
+      const j = await r.json();
+      setJob({ id, ...j });
+      if (j.status !== "running") window.clearInterval(timer.current);
+    }, 1000);
+  };
+
+  const start = async () => {
+    const project = useStore.getState().project;
+    const r = await fetch("/api/export", { method: "POST", body: JSON.stringify({ project }) });
+    const j = await r.json();
+    if (!r.ok) {
+      window.alert(j.error ?? "导出启动失败");
+      return;
+    }
+    setJob({ id: j.id, status: "running", progress: 0 });
+    poll(j.id);
+  };
+
+  useEffect(() => () => window.clearInterval(timer.current), []);
+
+  if (job?.status === "running")
+    return (
+      <button className="btn primary" disabled>
+        导出中 {Math.round(job.progress * 100)}%
+      </button>
+    );
+  if (job?.status === "done")
+    return (
+      <>
+        <button
+          className="btn"
+          title="在 Finder 中显示导出的 MP4"
+          onClick={() => fetch(`/api/export/${job.id}/reveal`, { method: "POST" })}
+        >
+          ✓ 已导出 · 显示文件
+        </button>
+        <button className="btn primary" onClick={start}>
+          再次导出
+        </button>
+      </>
+    );
+  if (job?.status === "error")
+    return (
+      <button className="btn danger" title={job.lastLine} onClick={start}>
+        导出失败 · 重试
+      </button>
+    );
+  return (
+    <button
+      className="btn primary"
+      title="用 Remotion 渲染当前工程为 MP4（单并发保画质，输出到 workbench/exports/）"
+      onClick={start}
+    >
+      导出成片
+    </button>
+  );
+};
+
 export const App: React.FC = () => {
   const project = useStore((s) => s.project);
   const undo = useStore((s) => s.undo);
@@ -121,6 +193,7 @@ export const App: React.FC = () => {
           ↪ 重做
         </button>
         <span className="tl-sep" />
+        <ExportButton />
         <button className="btn" onClick={exportJson}>导出 JSON</button>
         <button className="btn" onClick={() => fileRef.current?.click()}>导入</button>
         <button

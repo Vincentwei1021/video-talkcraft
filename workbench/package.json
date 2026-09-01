@@ -4,10 +4,15 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "gen": "node scripts/gen-index.mjs",
+    "predev": "node scripts/gen-index.mjs",
     "dev": "vite",
+    "prebuild": "node scripts/gen-index.mjs",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "studio": "remotion studio src/remotion/index.ts"
+    "prestudio": "node scripts/gen-index.mjs",
+    "studio": "remotion studio src/remotion/index.ts",
+    "render": "remotion render src/remotion/index.ts Main exports/render.mp4"
   },
   "dependencies": {
     "@remotion/player": "^4.0.0",
