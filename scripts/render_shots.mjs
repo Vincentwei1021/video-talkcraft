@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 // 分镜分段渲染母版制：按镜头切段渲染 → 段文件缓存 → concat 拼装 → 整条音轨混入。
 //
-// 解决两件事（2026-09-02 定版）：
+// 解决两件事（2026-09-02 定版，数字为 201s 竖屏片实测）：
 //   1) 全片首渲提速：K 段并行、每段内部单进程连续渲——段内光栅自洽（防多 tab 相位抖动病），
-//      段边界都是切镜点。201s 的片 13min → ~3-4min（K=4 实测口径见 SKILL.md ⑥）。
-//   2) 单镜头迭代：改一个镜头只重渲该段 ±邻段（镜头衔接有 lead/tail 交叠，波及邻镜边缘几帧），
-//      再拼装，~2-3min 出新片，不必整渲。
+//      段边界都是切镜点。整渲 13min → 9min（含整条音轨首渲 ~3min，音轨缓存后纯视频 ~6min）。
+//   2) 单镜头迭代：改一个镜头只重渲该段 ±邻段（镜头衔接有 lead/tail 交叠 8–16 帧，波及邻镜边缘；
+//      邻镜比交叠还短的极端情形需手动 --only 多扩一段），再拼装，53s 出有声新片，不必整渲。
 //
 // 音画对齐三条硬纪律（缺一必错位）：
 //   A. 音轨整条不分段——视频段一律 muted 渲染，音轨单独渲一次整条（--audio），交付时一次性混入。
@@ -30,7 +30,13 @@ import fs from 'node:fs';
 const args = process.argv.slice(2);
 const opt = (name, dflt) => {
   const i = args.indexOf(`--${name}`);
-  return i >= 0 ? args[i + 1] : dflt;
+  if (i < 0) return dflt;
+  const v = args[i + 1];
+  if (v === undefined || v.startsWith('--')) {   // 缺值静默回落会无声降级成"渲缺失段"模式（评审 P2）
+    console.error(`--${name} 缺参数值`);
+    process.exit(2);
+  }
+  return v;
 };
 const has = (name) => args.includes(`--${name}`);
 const projDir = process.cwd();
@@ -38,30 +44,48 @@ const entry = opt('entry', 'src/entry.ts');
 const shotsPath = opt('shots', 'shots.json');
 const segDir = opt('seg-dir', 'out/segments');
 const parallel = Number(opt('parallel', '4'));
+if (!Number.isInteger(parallel) || parallel < 1) {   // NaN→0 个 worker 会一段不渲直接进拼装（评审 P1-3）
+  console.error(`--parallel 需为 ≥1 的整数，得到：${opt('parallel', '4')}`);
+  process.exit(2);
+}
 
 const require = createRequire(path.join(projDir, 'package.json'));
 const {bundle} = require('@remotion/bundler');
 const {selectComposition, renderMedia, getCompositions} = require('@remotion/renderer');
 
 const shots = JSON.parse(fs.readFileSync(shotsPath, 'utf8'));
-if (!Array.isArray(shots) || !shots.length || shots.some((s) => !s.id || s.start == null)) {
-  console.error('shots.json 需为 [{"id","start","end"}] 数组');
+if (!Array.isArray(shots) || !shots.length ||
+    shots.some((s) => !s.id || typeof s.start !== 'number' || typeof s.end !== 'number')) {
+  console.error('shots.json 需为 [{"id","start","end"}] 数组（start/end 必须是数字）');
   process.exit(2);
+}
+// 乱序分镜表会静默渲错段（评审 P0-1 实测复现：对调两行后 --only 渲出 3 倍长的段仍打绿勾）
+for (let i = 1; i < shots.length; i++) {
+  if (!(shots[i].start > shots[i - 1].start)) {
+    console.error(`FAIL: shots.json 非时序（${shots[i - 1].id} start=${shots[i - 1].start} → ${shots[i].id} start=${shots[i].start}）——分镜表须按 start 升序`);
+    process.exit(1);
+  }
 }
 
 const t0 = Date.now();
 const serveUrl = await bundle({entryPoint: path.join(projDir, entry), onProgress: () => {}});
 const compId = opt('comp', null);
-const composition = compId
-  ? await selectComposition({serveUrl, id: compId, inputProps: {}})
-  : (await getCompositions(serveUrl, {inputProps: {}}))[0];
+let composition;
+if (compId) {
+  composition = await selectComposition({serveUrl, id: compId, inputProps: {}});
+} else {
+  const comps = await getCompositions(serveUrl, {inputProps: {}});
+  if (comps.length > 1) console.warn(`工程有 ${comps.length} 个 composition（${comps.map((c) => c.id).join(', ')}），默认取第一个——如不对请 --comp 指定`);
+  composition = comps[0];
+}
 const fps = composition.fps;
 const TOTAL = composition.durationInFrames;
 console.log(`bundle ${((Date.now() - t0) / 1000).toFixed(1)}s · ${composition.id} ${composition.width}x${composition.height}@${fps} · ${TOTAL} 帧`);
 
 // —— 段表：边界取整与 Sequence 同规则（纪律 B）——
+// NaN-safe 写法：Math.abs(NaN-x)>1 恒 false 会静默旁路断言（评审 P1-2 实测复现）
 const lastEndFrame = Math.round(shots[shots.length - 1].end * fps);
-if (Math.abs(lastEndFrame - TOTAL) > 1) {
+if (!(Math.abs(lastEndFrame - TOTAL) <= 1)) {
   console.error(`FAIL: shots.json 末镜 end(${lastEndFrame}帧) 与 composition 时长(${TOTAL}帧) 差 >1 帧——分镜表与合成不同源`);
   process.exit(1);
 }
@@ -70,9 +94,14 @@ const segs = shots.map((s, i) => {
   const to = (i + 1 < shots.length ? Math.round(shots[i + 1].start * fps) : TOTAL) - 1;
   return {id: s.id, from, to, frames: to - from + 1, file: path.join(segDir, `${s.id}.mp4`)};
 });
-for (let i = 1; i < segs.length; i++) {
-  if (segs[i].from !== segs[i - 1].to + 1) {
-    console.error(`FAIL: 段 ${segs[i - 1].id}/${segs[i].id} 边界不连续`);
+for (let i = 0; i < segs.length; i++) {
+  if (!(segs[i].frames > 0)) {
+    console.error(`FAIL: 段 ${segs[i].id} 帧数 ${segs[i].frames} ≤ 0`);
+    process.exit(1);
+  }
+  // 真实的连续性检查：镜头自己的 end 必须落在下一镜 start 上（from/to 同源派生的比对是恒真死代码，评审 P0-1）
+  if (i + 1 < shots.length && Math.round(shots[i].end * fps) !== Math.round(shots[i + 1].start * fps)) {
+    console.error(`FAIL: ${shots[i].id} end(${shots[i].end}) 与 ${shots[i + 1].id} start(${shots[i + 1].start}) 不衔接——分镜表有缝或重叠`);
     process.exit(1);
   }
 }
@@ -105,18 +134,20 @@ const probeFrames = (f) =>
 const queue = [...todo];
 const worker = async () => {
   for (;;) {
-    const seg = queue.shift();
+    const seg = queue.shift();   // 单线程事件循环里同步执行，无竞态
     if (!seg) return;
     const st = Date.now();
+    const tmp = seg.file.replace(/\.mp4$/, '.rendering.mp4');   // 先写临时名：中断的半截文件不许被当缓存
     await renderMedia({
-      composition, serveUrl, codec: 'h264', outputLocation: seg.file,
+      composition, serveUrl, codec: 'h264', outputLocation: tmp,
       frameRange: [seg.from, seg.to], muted: true, concurrency: 1,   // 纪律 A：视频段一律无声
     });
-    const got = probeFrames(seg.file);
+    const got = probeFrames(tmp);
     if (got !== seg.frames) {                                        // 纪律 C：帧数断言
       console.error(`FAIL: ${seg.id} 帧数 ${got} != 期望 ${seg.frames}`);
       process.exit(1);
     }
+    fs.renameSync(tmp, seg.file);   // 断言过了才转正
     console.log(`${seg.id}  帧 ${seg.from}-${seg.to} (${seg.frames})  ${((Date.now() - st) / 1000).toFixed(0)}s ✓`);
   }
 };
@@ -127,8 +158,18 @@ const concatOut = opt('concat', null);
 if (concatOut) {
   const missing = segs.filter((s) => !fs.existsSync(s.file));
   if (missing.length) { console.error(`FAIL: 缺段无法拼装：${missing.map((s) => s.id).join(',')}`); process.exit(1); }
+  // 缓存段逐一复验（评审 P1-1）：shots.json 边界改动后旧缓存段帧数会与新段表不符——
+  // 只靠拼装总帧断言兜不住"边界互相挪移、总长不变"的错位
+  for (const s of segs) {
+    const got = probeFrames(s.file);
+    if (got !== s.frames) {
+      console.error(`FAIL: 缓存段 ${s.id} 帧数 ${got} != 段表期望 ${s.frames}——分镜边界改过？用 --only ${s.id} 重渲该段`);
+      process.exit(1);
+    }
+  }
   const listFile = path.join(segDir, 'concat.txt');
-  fs.writeFileSync(listFile, segs.map((s) => `file '${path.resolve(s.file)}'`).join('\n'));
+  // concat 列表的 file '...' 语法：路径内单引号需转义
+  fs.writeFileSync(listFile, segs.map((s) => `file '${path.resolve(s.file).replace(/'/g, "'\\''")}'`).join('\n'));
   execFileSync('ffmpeg', ['-y', '-v', 'error', '-f', 'concat', '-safe', '0', '-i', listFile, '-c', 'copy', concatOut]);
   const got = probeFrames(concatOut);
   if (got !== TOTAL) { console.error(`FAIL: 拼装总帧数 ${got} != ${TOTAL}`); process.exit(1); }

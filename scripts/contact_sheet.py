@@ -41,6 +41,9 @@ def main() -> int:
     ap.add_argument("--sort", choices=["name", "time"], default="name")
     a = ap.parse_args()
 
+    if os.path.realpath(a.frames_dir) == os.path.realpath(a.out_dir):
+        print("out_dir 不能等于 frames_dir（旧 sheet 会被拼进新图）", file=sys.stderr)
+        return 2
     files = sorted(glob.glob(os.path.join(a.frames_dir, a.pattern)),
                    key=(os.path.getmtime if a.sort == "time" else str))
     if not files:
@@ -50,9 +53,16 @@ def main() -> int:
     font = load_font()
     per = a.cols * a.rows
 
-    # 以第一张定格高（同一批 QA 帧同尺寸；混尺寸时按各自比例缩放，格高取首张）
+    # 以第一张定格高；混尺寸帧等比缩放居中留白（强行 resize 会把横图拉成竖格，
+    # 原版卡对比帧混入时变形图会诱发"与原版卡不符"的假 P1——评审实测）
     with Image.open(files[0]) as im0:
         cell_h = round(im0.height * a.width / im0.width) + LABEL_H
+
+    def truncate(text: str, max_px: int) -> str:
+        length = getattr(font, "getlength", lambda s: len(s) * 8)  # 老 Pillow 无 getlength 时粗估
+        while text and length(text) > max_px:
+            text = text[:-1]
+        return text
 
     sheets = 0
     for start in range(0, len(files), per):
@@ -61,12 +71,14 @@ def main() -> int:
         draw = ImageDraw.Draw(sheet)
         for k, f in enumerate(batch):
             cx, cy = (k % a.cols) * a.width, (k // a.cols) * cell_h
+            box_w, box_h = a.width, cell_h - LABEL_H
             with Image.open(f) as im:
-                thumb = im.convert("RGB").resize((a.width, cell_h - LABEL_H))
-            sheet.paste(thumb, (cx, cy + LABEL_H))
+                sc = min(box_w / im.width, box_h / im.height)
+                thumb = im.convert("RGB").resize((max(1, round(im.width * sc)), max(1, round(im.height * sc))))
+            sheet.paste(thumb, (cx + (box_w - thumb.width) // 2, cy + LABEL_H + (box_h - thumb.height) // 2))
             draw.rectangle([cx, cy, cx + a.width, cy + LABEL_H], fill="#1d1d1f")
-            label = f"#{start + k:03d} {os.path.basename(f)}"
-            draw.text((cx + 6, cy + 5), label[:52], fill="#ffffff", font=font)
+            label = truncate(f"#{start + k:03d} {os.path.basename(f)}", a.width - 12)
+            draw.text((cx + 6, cy + 5), label, fill="#ffffff", font=font)
         sheets += 1
         out = os.path.join(a.out_dir, f"sheet-{sheets:02d}.png")
         sheet.save(out)

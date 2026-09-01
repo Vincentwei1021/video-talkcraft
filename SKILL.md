@@ -144,7 +144,7 @@ anime.js v4 / three.js 走 `anime-remotion.ts` / `three-anime.ts` 桥（seek-saf
 - **人物在场**：人脸安全区用 `scripts/face_bbox.py` 实测 bbox 定（不目测、不用亮度阈值猜），
   任何文字/卡片/字幕**及其背景**全时刻不得进入；主信息面板放人物对侧（2026-08-28 用户定版）
 
-## ⑥⑦ 渲染 + 三重验收（循环到全过）
+## ⑥⑦ 渲染 + 三重验收（机器闸全过 → 1 轮审片 → 交付，制度见本节末）
 
 **⑥-0 渲染前静态预检（零渲染成本，2026-09-02 定版）**——两张清单把返修拦在渲染前
 （竖屏 v4 的 3 处返修全部属于这两类可预测缺陷，每处多付一轮全渲）：
@@ -160,18 +160,19 @@ python3 scripts/beat_gap_check.py remotion/beats.json remotion/shots.json   # �
 **⑥-1 静帧抽样**（批量渲染器：一次 bundle 循环渲，43 张 ~1min；`npx remotion still` 逐张
 重打包要 11min，2026-09-02 实测）：
 ```bash
-node scripts/render_stills.mjs --times 2.0,7.2,...   # 抽样点=每镜入/出+关键锚点+状态切换窗
+# 两个 node 渲染脚本都必须在工程 remotion/ 目录下执行（Remotion 模块从工程自己的 node_modules 解析）
+node <skill根>/scripts/render_stills.mjs --times 2.0,7.2,...   # 抽样点=每镜入/出+关键锚点+状态切换窗
 ```
 
 **⑥-2 分段渲染母版制（2026-09-02 定版，代替整片渲染）**——按镜头切段、段内单进程连续渲
 （段内光栅自洽，防多 tab 相位抖动病：conc=4 整渲实测帧差 1.4→3.1→4.0→0.9 周期振荡，
 2026-08-31 用户肉眼抓到后定版单进程），段边界都是切镜点，K 段并行：
 ```bash
-# 首渲：29 段并行4 + 拼装 + 整条音轨 + 混音 ≈ 9min（201s 片实测；整渲 13min）
-node scripts/render_shots.mjs --shots shots.json --all --parallel 4 \
+# 在工程 remotion/ 目录下执行。首渲：29 段并行4 + 拼装 + 整条音轨 + 混音 ≈ 9min（201s 片实测；整渲 13min）
+node <skill根>/scripts/render_shots.mjs --shots shots.json --all --parallel 4 \
      --concat out/assembled.mp4 --audio out/full-mix.wav --mux out/vN.mp4
 # 改一个镜头 → 只重渲该段±邻段（lead/tail 交叠波及邻镜边缘）再拼装，53s 出新片（实测）
-node scripts/render_shots.mjs --shots shots.json --changed s14 \
+node <skill根>/scripts/render_shots.mjs --shots shots.json --changed s14 \
      --concat out/assembled.mp4 --audio out/full-mix.wav --mux out/vN+1.mp4
 npx remotion render src/entry.ts <Comp> out/sfx-solo.wav --props='{"sfxSolo":true}' --codec=wav
 ```
@@ -228,8 +229,9 @@ P2 = 质感瑕疵——密度/留白/样式，记录但不挡验收。修完 P0+
 **只按句抽帧看不见的三类缺陷，必须给对应材料（v4 实战教训，2026-08-28）**：
 - **短命动效的错位**（标注/箭头只活 1~2s，句级抽帧大概率错过）→ 用**动效锚点帧**
   （每个重音 +0.25s 的定妆帧）逐个核"框住/指向/圈住目标了没有"；
-- **抖动/闪烁**（时域缺陷，单帧永远看不见）→ 用**连拍三帧对**，三帧间只该有设计内的连续运动，
-  出现来回振荡、细纹理爬行即缺陷；
+- **抖动/闪烁**（时域缺陷，单帧永远看不见）→ 由 motion_check 的并发光栅抖动判定机器化覆盖
+  （2026-09-02 起默认不抽连拍帧）；抖动闸报警需人眼定位病灶时，用 `qa_extract --bursts`
+  补抽连拍三帧对——三帧间只该有设计内的连续运动，出现来回振荡、细纹理爬行即缺陷；
 - **设计没落地**（SHOTBOOK §0 计划的背景/音效/常驻件默默缺席——评审不知道"应该有"就不会报）
   → 把 SHOTBOOK §0 的**设计清单**（背景资产落位表、音效 cue 数、人物形态表）发给 subagent
   做逐项"计划 vs 成片"核对。
