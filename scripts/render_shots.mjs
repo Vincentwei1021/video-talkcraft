@@ -1,0 +1,154 @@
+#!/usr/bin/env node
+// 分镜分段渲染母版制：按镜头切段渲染 → 段文件缓存 → concat 拼装 → 整条音轨混入。
+//
+// 解决两件事（2026-09-02 定版）：
+//   1) 全片首渲提速：K 段并行、每段内部单进程连续渲——段内光栅自洽（防多 tab 相位抖动病），
+//      段边界都是切镜点。201s 的片 13min → ~3-4min（K=4 实测口径见 SKILL.md ⑥）。
+//   2) 单镜头迭代：改一个镜头只重渲该段 ±邻段（镜头衔接有 lead/tail 交叠，波及邻镜边缘几帧），
+//      再拼装，~2-3min 出新片，不必整渲。
+//
+// 音画对齐三条硬纪律（缺一必错位）：
+//   A. 音轨整条不分段——视频段一律 muted 渲染，音轨单独渲一次整条（--audio），交付时一次性混入。
+//      每段各带音频再拼 = 每个 AAC 段头 ~2112 采样编码器前导延迟，拼 29 次错 29 次。
+//   B. 段边界取整用 Math.round(start*fps)，与合成内 Sequence 同规则——差 1 帧就是画面节拍整体偏 33ms。
+//   C. 帧数断言——每段 ffprobe 实数帧 == 期望帧数，拼装后总帧数 == composition.durationInFrames，
+//      不相等直接 FAIL 退出，禁止"看起来对了"。
+//
+// 用法（在工程 remotion/ 目录下执行）：
+//   node <skill>/scripts/render_shots.mjs --shots shots.json [--entry src/entry.ts] [--comp id]
+//        [--seg-dir out/segments] [--parallel 4]
+//        [--all | --changed s14 | --only s13,s14,s15]     # 缺省 = 只渲 seg-dir 里缺失的段
+//        [--concat out/assembled.mp4]                      # 拼装（video-only）
+//        [--audio out/full-mix.wav]                        # 整条音轨（不存在才渲）
+//        [--mux out/preview.mp4]                           # assembled + audio → 有声预览
+// shots.json = 分镜表导出的 [{"id","start","end"}]（与 shots.ts 同源，beat_lint --shots 同一份）。
+import {createRequire} from 'node:module';
+import {execFileSync} from 'node:child_process';
+import path from 'node:path';
+import fs from 'node:fs';
+
+const args = process.argv.slice(2);
+const opt = (name, dflt) => {
+  const i = args.indexOf(`--${name}`);
+  return i >= 0 ? args[i + 1] : dflt;
+};
+const has = (name) => args.includes(`--${name}`);
+const projDir = process.cwd();
+const entry = opt('entry', 'src/entry.ts');
+const shotsPath = opt('shots', 'shots.json');
+const segDir = opt('seg-dir', 'out/segments');
+const parallel = Number(opt('parallel', '4'));
+
+const require = createRequire(path.join(projDir, 'package.json'));
+const {bundle} = require('@remotion/bundler');
+const {selectComposition, renderMedia, getCompositions} = require('@remotion/renderer');
+
+const shots = JSON.parse(fs.readFileSync(shotsPath, 'utf8'));
+if (!Array.isArray(shots) || !shots.length || shots.some((s) => !s.id || s.start == null)) {
+  console.error('shots.json 需为 [{"id","start","end"}] 数组');
+  process.exit(2);
+}
+
+const t0 = Date.now();
+const serveUrl = await bundle({entryPoint: path.join(projDir, entry), onProgress: () => {}});
+const compId = opt('comp', null);
+const composition = compId
+  ? await selectComposition({serveUrl, id: compId, inputProps: {}})
+  : (await getCompositions(serveUrl, {inputProps: {}}))[0];
+const fps = composition.fps;
+const TOTAL = composition.durationInFrames;
+console.log(`bundle ${((Date.now() - t0) / 1000).toFixed(1)}s · ${composition.id} ${composition.width}x${composition.height}@${fps} · ${TOTAL} 帧`);
+
+// —— 段表：边界取整与 Sequence 同规则（纪律 B）——
+const lastEndFrame = Math.round(shots[shots.length - 1].end * fps);
+if (Math.abs(lastEndFrame - TOTAL) > 1) {
+  console.error(`FAIL: shots.json 末镜 end(${lastEndFrame}帧) 与 composition 时长(${TOTAL}帧) 差 >1 帧——分镜表与合成不同源`);
+  process.exit(1);
+}
+const segs = shots.map((s, i) => {
+  const from = Math.round(s.start * fps);
+  const to = (i + 1 < shots.length ? Math.round(shots[i + 1].start * fps) : TOTAL) - 1;
+  return {id: s.id, from, to, frames: to - from + 1, file: path.join(segDir, `${s.id}.mp4`)};
+});
+for (let i = 1; i < segs.length; i++) {
+  if (segs[i].from !== segs[i - 1].to + 1) {
+    console.error(`FAIL: 段 ${segs[i - 1].id}/${segs[i].id} 边界不连续`);
+    process.exit(1);
+  }
+}
+
+// —— 选段 ——
+let todo;
+if (has('all')) todo = segs;
+else if (opt('changed', null)) {
+  const id = opt('changed');
+  const k = segs.findIndex((s) => s.id === id);
+  if (k < 0) { console.error(`未找到镜头 ${id}`); process.exit(2); }
+  // 镜头衔接的 lead/tail 交叠会波及邻镜边缘几帧 → 邻段一并重渲
+  todo = segs.slice(Math.max(0, k - 1), Math.min(segs.length, k + 2));
+} else if (opt('only', null)) {
+  const ids = opt('only').split(',');
+  todo = segs.filter((s) => ids.includes(s.id));
+  if (todo.length !== ids.length) { console.error('--only 里有未知镜头 id'); process.exit(2); }
+} else {
+  todo = segs.filter((s) => !fs.existsSync(s.file));
+}
+fs.mkdirSync(segDir, {recursive: true});
+console.log(`待渲 ${todo.length}/${segs.length} 段（并行 ${parallel}）：${todo.map((s) => s.id).join(' ') || '（无）'}`);
+
+const probeFrames = (f) =>
+  // csv=p=0 的输出带尾逗号（"129,"），Number() 会 NaN——只留数字位
+  Number(execFileSync('ffprobe', ['-v', 'error', '-select_streams', 'v:0', '-count_packets',
+    '-show_entries', 'stream=nb_read_packets', '-of', 'csv=p=0', f], {encoding: 'utf8'}).replace(/[^0-9]/g, ''));
+
+// —— K 段并行，每段 concurrency:1（段内单进程连续渲，防光栅相位抖动）——
+const queue = [...todo];
+const worker = async () => {
+  for (;;) {
+    const seg = queue.shift();
+    if (!seg) return;
+    const st = Date.now();
+    await renderMedia({
+      composition, serveUrl, codec: 'h264', outputLocation: seg.file,
+      frameRange: [seg.from, seg.to], muted: true, concurrency: 1,   // 纪律 A：视频段一律无声
+    });
+    const got = probeFrames(seg.file);
+    if (got !== seg.frames) {                                        // 纪律 C：帧数断言
+      console.error(`FAIL: ${seg.id} 帧数 ${got} != 期望 ${seg.frames}`);
+      process.exit(1);
+    }
+    console.log(`${seg.id}  帧 ${seg.from}-${seg.to} (${seg.frames})  ${((Date.now() - st) / 1000).toFixed(0)}s ✓`);
+  }
+};
+await Promise.all(Array.from({length: Math.min(parallel, todo.length || 1)}, worker));
+
+// —— 拼装 ——
+const concatOut = opt('concat', null);
+if (concatOut) {
+  const missing = segs.filter((s) => !fs.existsSync(s.file));
+  if (missing.length) { console.error(`FAIL: 缺段无法拼装：${missing.map((s) => s.id).join(',')}`); process.exit(1); }
+  const listFile = path.join(segDir, 'concat.txt');
+  fs.writeFileSync(listFile, segs.map((s) => `file '${path.resolve(s.file)}'`).join('\n'));
+  execFileSync('ffmpeg', ['-y', '-v', 'error', '-f', 'concat', '-safe', '0', '-i', listFile, '-c', 'copy', concatOut]);
+  const got = probeFrames(concatOut);
+  if (got !== TOTAL) { console.error(`FAIL: 拼装总帧数 ${got} != ${TOTAL}`); process.exit(1); }
+  console.log(`concat → ${concatOut}  ${got} 帧 ✓`);
+}
+
+// —— 整条音轨（只在不存在时渲；改了 SFX/cue 后手动删掉让它重渲）——
+const audioOut = opt('audio', null);
+if (audioOut && !fs.existsSync(audioOut)) {
+  const st = Date.now();
+  await renderMedia({composition, serveUrl, codec: 'wav', outputLocation: audioOut});
+  console.log(`audio → ${audioOut}  ${((Date.now() - st) / 1000).toFixed(0)}s ✓`);
+}
+
+// —— 混入音轨（预览口径；交付仍走 SKILL.md ⑧ 的 loudnorm）——
+const muxOut = opt('mux', null);
+if (muxOut) {
+  if (!concatOut || !audioOut) { console.error('--mux 需要同时给 --concat 与 --audio'); process.exit(2); }
+  execFileSync('ffmpeg', ['-y', '-v', 'error', '-i', concatOut, '-i', audioOut,
+    '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '256k', muxOut]);
+  console.log(`mux → ${muxOut} ✓`);
+}
+console.log(`总耗时 ${((Date.now() - t0) / 1000).toFixed(0)}s`);
