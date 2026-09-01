@@ -91,7 +91,7 @@ const MeshCanvas: React.FC<{
 
 export const bgMeshCard: CardDef = {
   id: "bg-mesh",
-  name: "pastel mesh（片头尾）",
+  name: "pastel mesh（默认）",
   category: "背景",
   durationInFrames: 300,
   accent: "#c9a6ff",
@@ -142,11 +142,12 @@ export const bgSpotlightCard: CardDef = {
   ],
 };
 
+// mesh 排第一：skill 默认幕底（2026-09-02 用户定版）
 export const BG_CARDS: CardDef[] = [
+  bgMeshCard,
   bgCanvasLightCard,
   bgCanvasPaperCard,
   bgCanvasDarkCard,
   bgGridCard,
-  bgMeshCard,
   bgSpotlightCard,
 ];
