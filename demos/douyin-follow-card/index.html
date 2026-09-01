@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>douyin-follow-card · 抖音主页关注卡</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 产品皮 = 内容本身（2026-08-25+ 用户定版：完全还原抖音对外主页样式）——
+        背景默认蓝渐变（界面3.jpg 取样 #BBD7EF→#75A4D0）；关注未关注红 #EB455B（JZ 未关注.png 取样）；
+        已关注钮浅灰 #F1F1F2 + 黑字；数据/简介正文黑 #161823，次级灰 #9299A4；@ 蓝链 #1E9FFF。
+        可编辑的是内容（昵称/抖音号/数据/简介/头像/背景），外观必须一眼认出是抖音。 —— */
+
+  /* 竖卡按逻辑宽 900 写死，再加 .scaler 整体缩放放 960×540 舞台（demo 预览；成片用 meta 即卡尺寸） */
+  .scaler {
+    position: absolute;
+    left: 50%; top: 50%;
+    transform: translate(-50%, -50%) scale(0.556);
+    transform-origin: 50% 50%;
+  }
+
+  .card {
+    position: relative;
+    width: 900px; height: auto;
+    background: #ffffff;
+    border-radius: 28px;
+    overflow: hidden;
+    box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.45);
+    transform-origin: 50% 0%;
+    font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    color: #161823;
+    display: flex; flex-direction: column;
+  }
+
+  .cover {
+    position: relative;
+    height: 560px; flex: 0 0 auto;
+    background: linear-gradient(180deg, #bbd7ef 0%, #8fb7e8 46%, #75a4d0 100%);
+  }
+  .cover img.bgimg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+
+  /* 顶部 app 导航（返回 / 求更新 / 搜索 / 更多）——半透明深底 + 白色 */
+  .topnav { position: absolute; left: 0; right: 0; top: 22px; display: flex; align-items: center; padding: 0 28px; }
+  .topnav .back { width: 44px; height: 44px; border-radius: 100%; background: rgba(0,0,0,0.22); display: flex; align-items: center; justify-content: center; }
+  .topnav .back svg { width: 22px; height: 22px; fill: #fff; }
+  .topnav .spacer { flex: 1; }
+  .topnav .pill { display: flex; align-items: center; gap: 8px; height: 42px; padding: 0 18px; border-radius: 22px; background: rgba(0,0,0,0.22); color: #fff; font-size: 20px; font-weight: 600; }
+  .topnav .pill svg { width: 24px; height: 24px; fill: #fff; }
+  .topnav .ico { width: 44px; height: 44px; border-radius: 100%; background: rgba(0,0,0,0.22); margin-left: 14px; display: flex; align-items: center; justify-content: center; }
+  .topnav .ico svg { width: 22px; height: 22px; fill: #fff; }
+
+  /* 头像（左） + 昵称/抖音号（右） */
+  .head { position: absolute; top: 216px; left: 56px; right: 40px; display: flex; align-items: flex-start; gap: 34px; }
+  .avatar { flex: 0 0 auto; width: 200px; height: 200px; border-radius: 100%; border: 6px solid rgba(255,255,255,0.9); overflow: hidden; box-sizing: border-box; background: #c7ccd3; position: relative; }
+  .avatar::after { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse 22% 22% at 50% 33%, #eef0f3 60%, transparent 61%), radial-gradient(ellipse 40% 36% at 50% 97%, #eef0f3 60%, transparent 61%); }
+  .idcol { padding-top: 36px; min-width: 0; }
+  .nick { display: flex; align-items: center; gap: 12px; }
+  .nick .name { font-size: 48px; font-weight: 700; color: #fff; letter-spacing: 0.5px; }
+  .nick .vbadge { width: 34px; height: 34px; fill: #25f4ee; }
+  .dvid { display: flex; align-items: center; gap: 10px; margin-top: 18px; font-size: 26px; color: rgba(255,255,255,0.92); }
+  .dvid .copy { width: 26px; height: 26px; fill: rgba(255,255,255,0.92); }
+
+  /* 白卡区：数据 + 简介 + 按钮 */
+  .body { position: relative; flex: 1 0 auto; background: #ffffff; border-radius: 30px 30px 0 0; padding: 30px 36px 34px; }
+  .stats { display: flex; gap: 46px; font-size: 34px; color: #9299a4; }
+  .stats b { color: #161823; font-weight: 700; font-size: 38px; }
+  .bio { margin-top: 20px; font-size: 27px; line-height: 40px; color: #161823; }
+  .bio .at { color: #1e9fff; }
+
+  .btnrow { display: flex; gap: 18px; margin-top: 34px; }
+  .follow { position: relative; flex: 1.35 0 0; height: 72px; border-radius: 36px; transform-origin: 50% 50%; }
+  .follow > div { position: absolute; inset: 0; border-radius: 36px; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 30px; font-weight: 600; box-sizing: border-box; }
+  .f-off { background: #eb455b; color: #ffffff; }
+  .f-on  { background: #f1f1f2; color: #161823; }
+  .f-on .chev { width: 26px; height: 26px; fill: #161823; }
+  .follow .rip { position: absolute; inset: -8px; border: 3px solid #eb455b; border-radius: 999px; pointer-events: none; }
+  .msgbtn { flex: 0 0 auto; width: 72px; height: 72px; border-radius: 20px; background: #f1f1f2; color: #161823; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 26px; font-weight: 600; overflow: hidden; white-space: nowrap; }
+  .msgbtn svg { width: 30px; height: 30px; fill: #161823; }
+
+  .cursor { position: absolute; left: 0; top: 0; width: 36px; height: 54px; transform-origin: 0% 0%; z-index: 20; pointer-events: none; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="scaler">
+      <div class="card">
+        <div class="cover g0">
+          <div class="topnav g1">
+            <div class="back">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.6 4.4 9 12l7.6 7.6-1.6 1.6L6 12l9-9z"/></svg>
+            </div>
+            <div class="spacer"></div>
+            <div class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.5 2a8.5 8.5 0 1 0 6.4 14.1l4.6 4.6 1.6-1.6-4.6-4.6A8.5 8.5 0 0 0 10.5 2zm0 2a6.5 6.5 0 1 1 0 13 6.5 6.5 0 0 1 0-13z"/></svg></div>
+            <div class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8a2 2 0 1 1 0 4 2 2 0 0 1 0-4zm0-6a8 8 0 0 0-4.6 14.6c.3-1 .5-2.2.4-3.1l-.9-3.4a8 8 0 0 1-1.5-3.3 4 4 0 0 1 0-1.6A8 8 0 1 0 12 2zm0 2.4A5.6 5.6 0 0 1 12 16a5.6 5.6 0 0 1-2.9-.8c.4 1.6.7 3.3.6 5A8 8 0 1 1 12 4.4z"/></svg></div>
+          </div>
+          <div class="head g2">
+            <div class="avatar"></div>
+            <div class="idcol">
+              <div class="nick"><span class="name">Vincent</span></div>
+              <div class="dvid">335248116 <svg class="copy" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6V5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-1v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h3zm2 3a2 2 0 0 0-2 2v9h9v-2H9a2 2 0 0 1-2-2V9H6v9h9V9H8z"/></svg></div>
+            </div>
+          </div>
+        </div>
+        <div class="body">
+          <div class="stats g5">
+            <span><b>3.2万</b> 获赞</span>
+            <span><b>238</b> 关注</span>
+            <span><b>6455</b> 粉丝</span>
+          </div>
+          <div class="bio g6">
+            <div>持续分享 AI 最前沿的应用场景</div>
+            <div>宣传片 skill 已开源，入群获取</div>
+          </div>
+          <div class="btnrow g7">
+            <div class="follow">
+              <div class="f-off">＋关注</div>
+              <div class="f-on">已关注<svg class="chev" viewBox="0 0 24 24"><path d="M7 9l5 5 5-5z"/></svg></div>
+              <div class="rip"></div>
+            </div>
+            <div class="msgbtn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg><span>发私信</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <svg class="cursor" viewBox="0 0 14 21" aria-hidden="true">
+      <path d="M1 1 L1 17.2 L5.3 13.3 L8.1 19.9 L10.8 18.8 L8 12.3 L13.1 12.3 Z"
+            fill="#ffffff" stroke="#1d1d1f" stroke-width="1.4" stroke-linejoin="round"/>
+    </svg>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ===== 可摘走的核心：CONFIG + 四段编排（弹入 → 内容错峰 → 光标点击翻转 + 粉丝数 +1）=====
+    // 三条决策构成"这张卡是可信的社会证明"，缺一条就退化成"一张图淡入"：
+    //  ① 卡整体 spring 弹入与内容**错峰 blur-in** 是两件事：壳先到位，内容再逐层落
+    //  ② 光标必须走过去再点，且**点击那一帧光标必须压在关注按钮上**（见 measureBtn 注释）
+    //  ③ 点击那一刻同帧：＋关注→已关注 两态交叉 + 涟漪 + 粉丝数 +1 滚动 + 副位图标→发私信
+    const CONFIG = {
+      cardIn: 0.62,        // 卡弹入：y 46→0 + scale 0.9→1（back.out ≈ spring 欠阻尼微过冲）
+      layerStagger: 0.07,  // 内容错峰间隔（垂直主列按阅读顺序）
+      layerDur: 0.24,      // 单层 blur-in 时长
+      layerBlur: 8,        // 入场模糊起点 px
+      cursorStart: 1.55,   // 光标起手（卡与内容都已就位，给口播一句话的余量）
+      cursorMove: 0.95,    // 光标弧线移入（瞬移=没有"有人在点"的证据）
+      clickDip: 0.92,      // 点击帧按钮下压
+      flipDur: 0.34,       // 两态交叉：退的缩 1→0.92、进的涨 0.86→1 带回弹
+      hold: 0.85,          // 读结果的停留
+      START: { x: 1010, y: 600 },   // 光标起手位：舞台右下外侧
+      TIP: { x: 1 / 14 * 36, y: 1 / 21 * 54 },   // 光标箭头尖相对元素左上角偏移（渲染 36×54）
+    };
+
+    DemoShell.register(({ speed }) => {
+      const C = CONFIG;
+      const stage = document.getElementById("stage");
+      const card = document.querySelector(".card");
+      const cursor = document.querySelector(".cursor");
+      const follow = document.querySelector(".follow");
+      const fOff = document.querySelector(".f-off");
+      const fOn = document.querySelector(".f-on");
+      const rip = document.querySelector(".rip");
+      const msgbtn = document.querySelector(".msgbtn");
+      const msgSpan = document.querySelector(".msgbtn span");
+      // 层序（垂直主列 + 简介整块 + 按钮行最后——待交互目标最后落位）
+      const layers = ["g0","g1","g2","g5","g6","g7"]
+        .map((c) => document.querySelector("." + c));
+
+      // 元素内相对点 → 舞台设计坐标（外壳缩放与 .scaler 的静态缩放都被 k 抵掉）
+      function P(el, fx, fy) {
+        const s = stage.getBoundingClientRect();
+        const r = el.getBoundingClientRect();
+        const k = stage.offsetWidth / s.width;
+        return { x: (r.left - s.left + r.width * fx) * k, y: (r.top - s.top + r.height * fy) * k };
+      }
+
+      // 光标落点必须在按钮**最终**位置上量：先清掉卡的变换、在终态量一次，再铺重播初始态。
+      gsap.set(card, { clearProps: "transform,opacity" });
+      const pBtn = P(follow, 0.5, 0.5);
+      const target = { x: pBtn.x - C.TIP.x, y: pBtn.y - C.TIP.y };
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // 重播语义：卡收回、层归零、按钮回未关注态、粉丝数回旧值
+      gsap.set(card, { y: 46, scale: 0.9, opacity: 0 });
+      gsap.set(layers, { opacity: 0, y: 8, filter: "blur(" + C.layerBlur + "px)" });
+      gsap.set(fOff, { opacity: 1, scale: 1 });
+      gsap.set(fOn, { opacity: 0, scale: 0.86 });
+      gsap.set(follow, { scale: 1 });
+      gsap.set(rip, { opacity: 0, scale: 0.92 });
+      gsap.set(msgSpan, { opacity: 0, display: "none" });
+
+      // ① 卡弹入：位移/缩放先动，淡入独立时间窗
+      tl.to(card, { y: 0, scale: 1, duration: C.cardIn, ease: "back.out(1.35)" }, 0)
+        .to(card, { opacity: 1, duration: 0.3, ease: "power2.out" }, 0.05);
+
+      // ② 内容错峰 blur-in
+      layers.forEach((el, i) => {
+        tl.to(el, { opacity: 1, y: 0, filter: "blur(0px)", duration: C.layerDur, ease: "power2.out" }, 0.34 + i * C.layerStagger);
+      });
+
+      // ③ 光标弧线移入：x power2.inOut / y sine.inOut 异速叠弧
+      tl.set(cursor, { opacity: 1, x: C.START.x, y: C.START.y, scale: 1 }, C.cursorStart);
+      tl.to(cursor, { x: target.x, duration: C.cursorMove, ease: "power2.inOut" }, C.cursorStart)
+        .to(cursor, { y: target.y, duration: C.cursorMove, ease: "sine.inOut" }, C.cursorStart);
+
+      // ④ 点击帧：光标下压 + 按钮下压 + 两态交叉 + 涟漪 + 粉丝数 +1 + 副位→发私信（同帧起）
+      const tc = C.cursorStart + C.cursorMove + 0.08;
+      tl.to(cursor, { scale: 0.9, duration: 0.09, ease: "power2.out" }, tc);
+      tl.to(cursor, { scale: 1, duration: 0.09, ease: "power2.out" }, tc + 0.09);
+      tl.to(follow, { scale: C.clickDip, duration: 0.08, ease: "power2.in" }, tc)
+        .to(follow, { scale: 1, duration: 0.22, ease: "back.out(3)" }, tc + 0.08);
+      tl.to(fOff, { opacity: 0, scale: 0.92, duration: C.flipDur * 0.7, ease: "power2.in" }, tc)
+        .to(fOn, { opacity: 1, scale: 1, duration: C.flipDur, ease: "back.out(1.7)" }, tc);
+      tl.fromTo(rip, { opacity: 0.55, scale: 0.92 },
+        { opacity: 0, scale: 1.3, duration: 0.5, ease: "power2.out", immediateRender: false }, tc + 0.03);
+      // 副位：点击后从窄方钮（仅图标）变宽成"✈ 发私信"
+      tl.set(msgSpan, { display: "inline" }, tc)
+        .to(msgSpan, { opacity: 1, duration: 0.2, ease: "power2.out" }, tc + 0.12)
+        .to(msgbtn, { width: 200, duration: 0.2, ease: "power2.out" }, tc);
+
+      // ⑤ 光标顺势朝右下滑出并淡出（用完即走）
+      tl.to(cursor, { x: target.x + 92, y: target.y + 56, opacity: 0, duration: 0.45, ease: "power2.in" }, tc + 0.22);
+      tl.to({}, { duration: C.hold }, tc + 0.6);
+    });
+  </script>
+</body>
+</html>
