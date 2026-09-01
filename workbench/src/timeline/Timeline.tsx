@@ -2,6 +2,7 @@ import React, { useRef } from "react";
 import { projectDuration, useStore } from "../store";
 import { Ruler } from "./Ruler";
 import { ClipView } from "./ClipView";
+import { DRAG_MIME, readDragPayload } from "../dnd";
 
 const HEADER_W = 140;
 
@@ -28,6 +29,7 @@ export const Timeline: React.FC = () => {
   const splitClip = useStore((s) => s.splitClip);
   const duplicateClip = useStore((s) => s.duplicateClip);
   const removeClip = useStore((s) => s.removeClip);
+  const addClip = useStore((s) => s.addClip);
 
   const duration = projectDuration(project);
   const contentW = Math.ceil(duration * ppf) + 240;
@@ -140,6 +142,24 @@ export const Timeline: React.FC = () => {
                 }}
                 style={{ width: contentW }}
                 onPointerDown={() => select(null)}
+                onDragOver={(e) => {
+                  if (e.dataTransfer.types.includes(DRAG_MIME)) {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = "copy";
+                  }
+                }}
+                onDrop={(e) => {
+                  const payload = readDragPayload(e);
+                  if (!payload) return;
+                  e.preventDefault();
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const frame = Math.max(0, Math.round((e.clientX - rect.left) / ppf));
+                  addClip(payload.cardId, track.id, frame, {
+                    props: payload.props,
+                    label: payload.label,
+                    duration: payload.duration,
+                  });
+                }}
               >
                 {track.clips.map((clip) => (
                   <ClipView key={clip.id} clip={clip} trackId={track.id} trackIdAt={trackIdAt} />

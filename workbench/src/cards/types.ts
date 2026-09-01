@@ -40,6 +40,10 @@ export interface CardDef {
   /** 中文名（面板展示） */
   name: string;
   category: string;
+  /** "audio"/"video"：媒体卡——不包 TimeRemap（Freeze 会掐死原生播放），
+   *  裁入/变速经 props 传入，由卡内 trimBefore/playbackRate 实现；
+   *  video 保留图层包裹（透明度/缩放/位移），audio 无视觉 */
+  kind?: "visual" | "audio" | "video";
   /** 卡片原始时长（帧，30fps）——新 clip 的默认时长 */
   durationInFrames: number;
   component: React.ComponentType<Record<string, unknown>>;

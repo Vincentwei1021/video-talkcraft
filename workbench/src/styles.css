@@ -66,11 +66,26 @@ body {
   border-bottom: 1px solid var(--line); flex: none;
 }
 
+/* 可调尺寸面板容器 + 分隔条 */
+.panel-wrap { flex: none; display: flex; min-width: 0; min-height: 0; }
+.panel-wrap > * { flex: 1; min-width: 0; min-height: 0; }
+.splitter { flex: none; background: transparent; transition: background 0.15s; z-index: 20; }
+.splitter.v { width: 5px; cursor: col-resize; margin: 0 -1px; }
+.splitter.h { height: 5px; cursor: row-resize; margin: -1px 0; }
+.splitter:hover, .splitter:active { background: var(--accent); }
+
 /* 素材库 */
 .library {
-  width: 224px; flex: none; display: flex; flex-direction: column;
+  width: 100%; display: flex; flex-direction: column;
   background: var(--panel); border-right: 1px solid var(--line);
 }
+.lib-tabs { display: flex; border-bottom: 1px solid var(--line); flex: none; }
+.lib-tab {
+  flex: 1; background: transparent; border: 0; color: var(--text-dim);
+  padding: 10px 0; font-size: 13px; cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+.lib-tab.on { color: var(--text); font-weight: 700; border-bottom-color: var(--accent); }
 .library-list { flex: 1; overflow-y: auto; padding: 8px; }
 .lib-cat { padding: 8px 6px 4px; font-size: 11px; color: var(--text-dim); }
 .lib-card {
@@ -86,6 +101,55 @@ body {
 .lib-dur { color: var(--text-dim); font-size: 11px; }
 .lib-add { opacity: 0; color: var(--accent); font-weight: 700; }
 .lib-foot { padding: 10px 14px; font-size: 11px; border-top: 1px solid var(--line); line-height: 1.6; }
+
+/* 动效库分类折叠 */
+.lib-cat-toggle {
+  display: flex; align-items: center; gap: 6px; width: 100%;
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px;
+  color: var(--text); font-size: 12px; font-weight: 600;
+  padding: 8px 10px; margin: 6px 0; cursor: pointer;
+}
+.lib-cat-toggle:hover { border-color: #3c3c42; }
+.caret { display: inline-block; transition: transform 0.15s; color: var(--text-dim); }
+.caret.open { transform: rotate(90deg); }
+
+/* 动效库网格（循环视频预览） */
+.lib-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+.lib-cell {
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px;
+  overflow: hidden; cursor: grab; padding-bottom: 6px;
+}
+.lib-cell:hover { border-color: var(--accent); }
+.lib-thumb {
+  display: block; width: 100%; aspect-ratio: 16/9; object-fit: cover;
+  background: #101012; border: 0; pointer-events: none;
+}
+.lib-thumb-empty {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700;
+}
+.lib-cell-name {
+  padding: 5px 8px 0; font-size: 11px; font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.lib-cell-meta { padding: 1px 8px 0; font-size: 10px; }
+.lib-thumb-s {
+  width: 42px; height: 26px; object-fit: cover; border-radius: 3px;
+  background: #101012; flex: none; pointer-events: none;
+}
+.lib-card { cursor: grab; }
+.lib-card:active, .lib-cell:active { cursor: grabbing; }
+
+/* 素材预览模式 */
+.preview-media { max-width: 100%; max-height: 100%; }
+.preview-audio {
+  display: flex; flex-direction: column; align-items: center; gap: 16px;
+  color: var(--text); font-size: 16px;
+}
+.preview-tag {
+  background: var(--accent); color: #fff; border-radius: 4px;
+  padding: 2px 8px; font-size: 11px;
+}
 
 /* 预览 */
 .preview-panel {
@@ -107,7 +171,7 @@ body {
 
 /* 属性面板 */
 .inspector {
-  width: 300px; flex: none; display: flex; flex-direction: column;
+  width: 100%; display: flex; flex-direction: column;
   background: var(--panel); border-left: 1px solid var(--line);
 }
 .inspector-empty { padding: 22px 16px; line-height: 1.8; font-size: 12px; }
@@ -147,7 +211,7 @@ body {
 
 /* —— 时间轴 —— */
 .timeline {
-  height: 264px; flex: none; display: flex; flex-direction: column;
+  height: 100%; width: 100%; display: flex; flex-direction: column;
   background: var(--panel); border-top: 1px solid var(--line);
 }
 .tl-toolbar {

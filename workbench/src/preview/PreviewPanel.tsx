@@ -3,7 +3,68 @@ import { Player } from "@remotion/player";
 import { MainComposition } from "./Composition";
 import { playerRef, seekTo, togglePlay } from "../playerRef";
 import { projectDuration, useStore } from "../store";
+import type { PreviewItem } from "../store";
 import { fmtFrames } from "../time";
+import { CARDS } from "../cards/registry";
+import { defaultsOf } from "../cards/types";
+
+/** 素材库点击预览：占据画面区，循环播放；主工程 Player 保持挂载（display:none） */
+const ItemPreview: React.FC<{ item: NonNullable<PreviewItem>; onClose: () => void }> = ({
+  item,
+  onClose,
+}) => {
+  let body: React.ReactNode = null;
+  let title = "";
+  if (item.kind === "card") {
+    const card = CARDS[item.cardId];
+    title = card?.name ?? item.cardId;
+    body =
+      card && card.kind !== "audio" ? (
+        <Player
+          component={card.component}
+          inputProps={defaultsOf(card)}
+          durationInFrames={Math.max(2, card.durationInFrames)}
+          compositionWidth={960}
+          compositionHeight={540}
+          fps={30}
+          autoPlay
+          loop
+          controls={false}
+          clickToPlay
+          style={{ width: "100%", height: "100%" }}
+          acknowledgeRemotionLicense
+        />
+      ) : (
+        <div className="preview-audio">🔊 音频卡</div>
+      );
+  } else {
+    title = item.label;
+    if (item.kind === "video")
+      body = <video className="preview-media" src={`/${item.file}`} controls autoPlay loop />;
+    else if (item.kind === "image")
+      body = <img className="preview-media" src={`/${item.file}`} />;
+    else
+      body = (
+        <div className="preview-audio">
+          🔊 {item.label}
+          <audio src={`/${item.file}`} controls autoPlay />
+        </div>
+      );
+  }
+  return (
+    <>
+      <div className="preview-stage">{body}</div>
+      <div className="transport">
+        <span className="preview-tag">素材预览</span>
+        <b>{title}</b>
+        <span className="dim">拖拽素材到时间轨即可添加</span>
+        <button className="btn" style={{ marginLeft: "auto" }} onClick={onClose}>
+          ✕ 返回工程
+        </button>
+      </div>
+    </>
+  );
+};
 
 /** 走带控制：唯一订阅 playhead 的预览端组件——播放中每帧只重渲染它，
  *  不能让 frameupdate 波及包含 <Player> 的父组件。 */
@@ -58,6 +119,8 @@ const Transport: React.FC<{
 
 export const PreviewPanel: React.FC = () => {
   const project = useStore((s) => s.project);
+  const previewItem = useStore((s) => s.previewItem);
+  const setPreview = useStore((s) => s.setPreview);
   const [loop, setLoop] = useState(true);
 
   const duration = projectDuration(project);
@@ -65,7 +128,8 @@ export const PreviewPanel: React.FC = () => {
 
   return (
     <div className="preview-panel">
-      <div className="preview-stage">
+      {previewItem && <ItemPreview item={previewItem} onClose={() => setPreview(null)} />}
+      <div className="preview-stage" style={previewItem ? { display: "none" } : undefined}>
         <Player
           ref={playerRef}
           component={MainComposition}
@@ -77,16 +141,19 @@ export const PreviewPanel: React.FC = () => {
           loop={loop}
           controls={false}
           clickToPlay
+          numberOfSharedAudioTags={32}
           style={{ width: "100%", height: "100%" }}
           acknowledgeRemotionLicense
         />
       </div>
-      <Transport
-        duration={duration}
-        loop={loop}
-        setLoop={setLoop}
-        sizeLabel={`${project.width}×${project.height} · ${project.fps}fps`}
-      />
+      {!previewItem && (
+        <Transport
+          duration={duration}
+          loop={loop}
+          setLoop={setLoop}
+          sizeLabel={`${project.width}×${project.height} · ${project.fps}fps`}
+        />
+      )}
     </div>
   );
 };

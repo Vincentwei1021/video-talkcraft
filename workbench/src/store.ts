@@ -2,54 +2,11 @@ import { create } from "zustand";
 import type { ClipData, ProjectData, TrackData } from "./types";
 import { uid } from "./types";
 import { CARDS } from "./cards/registry";
+import { demoProject } from "./demoProject";
+
+export { projectDuration } from "./types";
 
 const STORAGE_KEY = "talkcraft-workbench-project-v1";
-
-// —— 初始演示工程：主轨四张卡顺排 + 上层透明文字轨 ——
-const demoProject = (): ProjectData => ({
-  name: "未命名工程",
-  fps: 30,
-  width: 960,
-  height: 540,
-  tracks: [
-    {
-      id: uid("track"),
-      name: "文字层",
-      clips: [
-        {
-          id: uid("clip"),
-          cardId: "text-basic",
-          start: 333,
-          duration: 60,
-          inOffset: 0,
-          speed: 1,
-          opacity: 1,
-          scale: 1,
-          x: 0,
-          y: -170,
-          props: {
-            content: "关键结论",
-            transparentBg: true,
-            fontSize: 44,
-            color: "#e8720c",
-            anim: "slam",
-            delay: 0.5,
-          },
-        },
-      ],
-    },
-    {
-      id: uid("track"),
-      name: "主轨",
-      clips: [
-        { id: uid("clip"), cardId: "impact-open-title", start: 0, duration: 97, inOffset: 0, speed: 1, opacity: 1, scale: 1, x: 0, y: 0, props: {} },
-        { id: uid("clip"), cardId: "chapter-title-card", start: 105, duration: 100, inOffset: 0, speed: 1, opacity: 1, scale: 1, x: 0, y: 0, props: {} },
-        { id: uid("clip"), cardId: "count-badge-title", start: 213, duration: 112, inOffset: 0, speed: 1, opacity: 1, scale: 1, x: 0, y: 0, props: {} },
-        { id: uid("clip"), cardId: "highlighter-sweep", start: 333, duration: 60, inOffset: 0, speed: 1, opacity: 1, scale: 1, x: 0, y: 0, props: {} },
-      ],
-    },
-  ],
-});
 
 const loadInitial = (): ProjectData => {
   try {
@@ -77,13 +34,11 @@ export const findClip = (
   return null;
 };
 
-/** 工程总时长（帧）：最晚 clip 结束 + 1s 余量，最短 5s */
-export const projectDuration = (project: ProjectData): number => {
-  let end = 0;
-  for (const t of project.tracks)
-    for (const c of t.clips) end = Math.max(end, c.start + c.duration);
-  return Math.max(150, end + 30);
-};
+/** 素材库点击预览：卡片走 Player 实时预览，文件走原生 video/img/audio */
+export type PreviewItem =
+  | { kind: "card"; cardId: string }
+  | { kind: "video" | "image" | "audio"; file: string; label: string }
+  | null;
 
 interface WorkbenchState {
   project: ProjectData;
@@ -91,6 +46,7 @@ interface WorkbenchState {
   playhead: number;
   playing: boolean;
   pxPerFrame: number;
+  previewItem: PreviewItem;
   past: ProjectData[];
   future: ProjectData[];
 
@@ -104,12 +60,18 @@ interface WorkbenchState {
   setPlayhead: (f: number) => void;
   setPlaying: (b: boolean) => void;
   setZoom: (pxPerFrame: number) => void;
+  setPreview: (p: PreviewItem) => void;
 
   addTrack: () => void;
   removeTrack: (trackId: string) => void;
   toggleTrackHidden: (trackId: string) => void;
 
-  addClip: (cardId: string, trackId?: string, at?: number) => void;
+  addClip: (
+    cardId: string,
+    trackId?: string,
+    at?: number,
+    extra?: { props?: Record<string, unknown>; label?: string; duration?: number },
+  ) => void;
   updateClip: (clipId: string, patch: Partial<ClipData>) => void;
   updateClipProps: (clipId: string, propPatch: Record<string, unknown>) => void;
   removeClip: (clipId: string) => void;
@@ -133,6 +95,7 @@ export const useStore = create<WorkbenchState>((set, get) => ({
   playhead: 0,
   playing: false,
   pxPerFrame: 2,
+  previewItem: null,
   past: [],
   future: [],
 
@@ -172,6 +135,7 @@ export const useStore = create<WorkbenchState>((set, get) => ({
   setPlaying: (b) => set({ playing: b }),
   setZoom: (pxPerFrame) =>
     set({ pxPerFrame: Math.min(10, Math.max(0.3, pxPerFrame)) }),
+  setPreview: (p) => set({ previewItem: p }),
 
   addTrack: () => {
     get().commit();
@@ -201,7 +165,7 @@ export const useStore = create<WorkbenchState>((set, get) => ({
     }));
   },
 
-  addClip: (cardId, trackId, at) => {
+  addClip: (cardId, trackId, at, extra) => {
     const card = CARDS[cardId];
     if (!card) return;
     get().commit();
@@ -215,14 +179,15 @@ export const useStore = create<WorkbenchState>((set, get) => ({
           id: newId,
           cardId,
           start: Math.max(0, Math.round(at ?? s.playhead)),
-          duration: card.durationInFrames,
+          duration: extra?.duration ?? card.durationInFrames,
           inOffset: 0,
           speed: 1,
           opacity: 1,
           scale: 1,
           x: 0,
           y: 0,
-          props: {},
+          props: extra?.props ?? {},
+          label: extra?.label,
         });
       }),
       selectedClipId: newId,
@@ -315,18 +280,24 @@ export const useStore = create<WorkbenchState>((set, get) => ({
     })),
 }));
 
-// —— 自动保存：project 变化 800ms 后落 localStorage ——
+// —— 自动保存：每次改动 800ms 防抖落 localStorage；关页/切后台时立即落盘 ——
 let saveTimer: ReturnType<typeof setTimeout> | undefined;
+const flushSave = () => {
+  clearTimeout(saveTimer);
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(useStore.getState().project));
+  } catch {
+    /* 存储满/隐私模式：忽略 */
+  }
+};
 useStore.subscribe((s, prev) => {
   if (s.project === prev.project) return;
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(s.project));
-    } catch {
-      /* 存储满/隐私模式：忽略 */
-    }
-  }, 800);
+  saveTimer = setTimeout(flushSave, 800);
+});
+window.addEventListener("beforeunload", flushSave);
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") flushSave();
 });
 
 export const resetProject = () => {

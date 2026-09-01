@@ -6,16 +6,20 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "studio": "remotion studio src/remotion/index.ts"
   },
   "dependencies": {
     "@remotion/player": "^4.0.0",
+    "@remotion/zod-types": "^4.0.519",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "remotion": "^4.0.0",
+    "zod": "^4.5.4",
     "zustand": "^5.0.0"
   },
   "devDependencies": {
+    "@remotion/cli": "^4.0.519",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.0",

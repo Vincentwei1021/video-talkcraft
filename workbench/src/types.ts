@@ -20,6 +20,8 @@ export interface ClipData {
   y: number;
   /** 卡片专属属性覆盖（缺省值来自卡片 schema） */
   props: Record<string, unknown>;
+  /** 时间轨上显示的自定义标签（缺省显示卡片名）——拆解导入的镜头/音效用它标注 */
+  label?: string;
 }
 
 export interface TrackData {
@@ -40,3 +42,11 @@ export interface ProjectData {
 let seq = 0;
 export const uid = (prefix: string) =>
   `${prefix}_${Date.now().toString(36)}${(seq++).toString(36)}`;
+
+/** 工程总时长（帧）：最晚 clip 结束 + 1s 余量，最短 5s */
+export const projectDuration = (project: ProjectData): number => {
+  let end = 0;
+  for (const t of project.tracks)
+    for (const c of t.clips) end = Math.max(end, c.start + c.duration);
+  return Math.max(150, end + 30);
+};

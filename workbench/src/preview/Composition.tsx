@@ -5,13 +5,15 @@ import { CARDS } from "../cards/registry";
 import { defaultsOf } from "../cards/types";
 
 /** 时间重映射：clip 本地帧 → 卡片源帧（inOffset + f × speed）。
- *  卡片全部是 frame 的纯函数（tween 均 clamp），因此变速/裁入/超时长定格都安全。 */
+ *  卡片全部是 frame 的纯函数（tween 均 clamp），因此变速/裁入/超时长定格都安全。
+ *  不变速且不裁入时直通不包 Freeze——含 Audio/Video 的卡需要原生播放（Freeze 会掐掉声音）。 */
 const TimeRemap: React.FC<{
   inOffset: number;
   speed: number;
   children: React.ReactNode;
 }> = ({ inOffset, speed, children }) => {
   const frame = useCurrentFrame();
+  if (speed === 1 && inOffset === 0) return <>{children}</>;
   return <Freeze frame={Math.max(0, inOffset + frame * speed)}>{children}</Freeze>;
 };
 
@@ -28,6 +30,19 @@ export const MainComposition: React.FC<{ project: ProjectData }> = ({ project })
             if (!card) return null;
             const Comp = card.component;
             const props = { ...defaultsOf(card), ...clip.props };
+            // 音频卡：裁入/变速交给卡内 <Audio trimBefore playbackRate>，
+            // 不能包 Freeze（会掐死原生播放），也无需图层包裹
+            if (card.kind === "audio") {
+              return (
+                <Sequence
+                  key={clip.id}
+                  from={clip.start}
+                  durationInFrames={Math.max(1, Math.round(clip.duration))}
+                >
+                  <Comp {...props} inOffset={clip.inOffset} speed={clip.speed} />
+                </Sequence>
+              );
+            }
             return (
               <Sequence
                 key={clip.id}
@@ -40,9 +55,14 @@ export const MainComposition: React.FC<{ project: ProjectData }> = ({ project })
                     transform: `translate(${clip.x}px, ${clip.y}px) scale(${clip.scale})`,
                   }}
                 >
-                  <TimeRemap inOffset={clip.inOffset} speed={clip.speed}>
-                    <Comp {...props} />
-                  </TimeRemap>
+                  {card.kind === "video" ? (
+                    // 视频卡：同音频卡走原生播放通道，保留图层包裹
+                    <Comp {...props} inOffset={clip.inOffset} speed={clip.speed} />
+                  ) : (
+                    <TimeRemap inOffset={clip.inOffset} speed={clip.speed}>
+                      <Comp {...props} />
+                    </TimeRemap>
+                  )}
                 </AbsoluteFill>
               </Sequence>
             );
