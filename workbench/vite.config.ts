@@ -68,17 +68,11 @@ const renderExportPlugin = (): Plugin => {
               status: "running",
               progress: 0,
               output,
-              lastLine: "启动渲染…",
+              lastLine: "同步素材…",
               logTail: [],
             };
             jobs.set(id, job);
 
-            const bin = path.join(root, "node_modules", ".bin", "remotion");
-            const child = spawn(
-              bin,
-              ["render", "src/remotion/index.ts", "Main", output, `--props=${propsFile}`],
-              { cwd: root },
-            );
             const onChunk = (buf: Buffer) => {
               const lines = stripAnsi(buf.toString()).split(/[\r\n]+/).filter((l) => l.trim());
               for (const line of lines) {
@@ -89,11 +83,47 @@ const renderExportPlugin = (): Plugin => {
                 if (m && Number(m[2]) > 0) job.progress = Number(m[1]) / Number(m[2]);
               }
             };
-            child.stdout.on("data", onChunk);
-            child.stderr.on("data", onChunk);
-            child.on("close", (code) => {
-              job.status = code === 0 ? "done" : "error";
-              if (code === 0) job.progress = 1;
+
+            // Remotion 静态服务器默认拒绝服务符号链接（lstat 到 symlink 一律 404），
+            // 而机器本地素材（dh/sfx/full.wav…）全是符号链接——渲染前先解引用同步成
+            // 真实文件目录，再用 --public-dir 指过去。cardpreviews/cardthumbs 仅 UI 用，排除。
+            const renderPublic = path.join(root, ".render-public");
+            const rsync = spawn(
+              "rsync",
+              ["-aL", "--delete", "--exclude=cardpreviews", "--exclude=cardthumbs", "public/", `${renderPublic}/`],
+              { cwd: root },
+            );
+            rsync.stderr.on("data", onChunk);
+            rsync.on("close", (rc) => {
+              if (rc !== 0) {
+                job.status = "error";
+                job.lastLine = `素材同步失败（rsync 退出码 ${rc}）：${job.lastLine}`;
+                return;
+              }
+              const bin = path.join(root, "node_modules", ".bin", "remotion");
+              const child = spawn(
+                bin,
+                [
+                  "render",
+                  "src/remotion/index.ts",
+                  "Main",
+                  output,
+                  `--props=${propsFile}`,
+                  `--public-dir=${renderPublic}`,
+                ],
+                { cwd: root },
+              );
+              child.stdout.on("data", onChunk);
+              child.stderr.on("data", onChunk);
+              child.on("close", (code) => {
+                job.status = code === 0 ? "done" : "error";
+                if (code === 0) job.progress = 1;
+                else {
+                  // 把最有信息量的错误行顶到 UI（否则 lastLine 常是堆栈尾行）
+                  const err = job.logTail.find((l) => l.includes("Error"));
+                  if (err) job.lastLine = err;
+                }
+              });
             });
             send(200, { id });
           });

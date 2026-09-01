@@ -79,4 +79,6 @@ exports/                导出成片输出目录（不进库）
 - 同轨允许 clip 重叠（层级用多轨表达）；变速为匀速重映射（无曲线变速）
 - 口播拆解后相邻动效镜头各自带 8 帧重叠——这是原片的交叠转场设计（前后镜头在换幕期间同时在场），不是 bug；对齐首尾会丢转场交叠
 - 口播镜头改文案不改节拍——动效时机锚在原配音词级时间戳上；换口播词需重新走生产管线（配音+时间戳）
-- 导出成片走 dev server（`npm run dev` 时可用）；也可命令行 `npx remotion render src/remotion/index.ts Main out.mp4 --props=<工程JSON包一层 {"project":…,"renderExact":true}>`
+- 导出成片走 dev server（`npm run dev` 时可用）。Remotion 静态服务器**拒绝服务符号链接**（默认 404），
+  所以导出前会自动把 `public/` 解引用同步到 `.render-public/` 再渲染；命令行手动渲染同理：
+  `npx remotion render src/remotion/index.ts Main out.mp4 --props=<{"project":…,"renderExact":true}> --public-dir=.render-public`
