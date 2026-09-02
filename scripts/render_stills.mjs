@@ -14,6 +14,7 @@
 import {createRequire} from 'node:module';
 import path from 'node:path';
 import fs from 'node:fs';
+import {loadProjectBundleOptions} from './remotion_project_config.mjs';
 
 const args = process.argv.slice(2);
 const opt = (name, dflt) => {
@@ -50,7 +51,9 @@ const {bundle} = require('@remotion/bundler');
 const {selectComposition, renderStill, openBrowser, getCompositions} = require('@remotion/renderer');
 
 const t0 = Date.now();
-const serveUrl = await bundle({entryPoint: path.join(projDir, entry), onProgress: () => {}});
+// 必须带上工程 remotion.config.ts 里的 webpack alias / publicDir 等（bundle() 自己不读配置文件，评审 P1）
+const bundleOpts = await loadProjectBundleOptions(require, projDir);
+const serveUrl = await bundle({entryPoint: path.join(projDir, entry), ...bundleOpts, onProgress: () => {}});
 console.log(`bundle 完成 ${(Date.now() - t0) / 1000}s`);
 
 const compId = opt('comp', null);

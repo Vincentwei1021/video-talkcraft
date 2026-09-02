@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -29,6 +29,14 @@ const renderExportPlugin = (): Plugin => {
   return {
     name: "wb-render-export",
     configureServer(server) {
+      // 上一版导出完不删 props 文件，每次导出都在 exports/ 里永久留一份完整工程 JSON（评审 P2）：
+      // 启动时清掉历史残留；本版每个任务结束（成功/失败/同步失败）都即时删除
+      const exportsDir = path.join(root, "exports");
+      if (existsSync(exportsDir)) {
+        for (const f of readdirSync(exportsDir)) {
+          if (/^\.props-[a-z0-9]+\.json$/.test(f)) rmSync(path.join(exportsDir, f), { force: true });
+        }
+      }
       server.middlewares.use("/api/export", (req, res) => {
         const send = (code: number, body: unknown) => {
           res.statusCode = code;
@@ -63,6 +71,7 @@ const renderExportPlugin = (): Plugin => {
             const output = `exports/${safeName}-${stamp}.mp4`;
             const propsFile = path.join(outDir, `.props-${id}.json`);
             writeFileSync(propsFile, JSON.stringify({ project, renderExact: true }));
+            const dropProps = () => rmSync(propsFile, { force: true });
 
             const job: ExportJob = {
               status: "running",
@@ -96,6 +105,7 @@ const renderExportPlugin = (): Plugin => {
             rsync.stderr.on("data", onChunk);
             rsync.on("close", (rc) => {
               if (rc !== 0) {
+                dropProps();
                 job.status = "error";
                 job.lastLine = `素材同步失败（rsync 退出码 ${rc}）：${job.lastLine}`;
                 return;
@@ -116,6 +126,7 @@ const renderExportPlugin = (): Plugin => {
               child.stdout.on("data", onChunk);
               child.stderr.on("data", onChunk);
               child.on("close", (code) => {
+                dropProps(); // Remotion CLI 启动时已读完 props，成功失败都不再需要
                 job.status = code === 0 ? "done" : "error";
                 if (code === 0) job.progress = 1;
                 else {

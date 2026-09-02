@@ -160,7 +160,8 @@ python3 scripts/beat_gap_check.py remotion/beats.json remotion/shots.json   # �
 **⑥-1 静帧抽样**（批量渲染器：一次 bundle 循环渲，43 张 ~1min；`npx remotion still` 逐张
 重打包要 11min，2026-09-02 实测）：
 ```bash
-# 两个 node 渲染脚本都必须在工程 remotion/ 目录下执行（Remotion 模块从工程自己的 node_modules 解析）
+# 两个 node 渲染脚本都必须在工程 remotion/ 目录下执行（Remotion 模块从工程自己的 node_modules 解析，
+# 并自动加载工程的 remotion.config.ts——webpack alias / publicDir 等与 CLI 渲染一致）
 node <skill根>/scripts/render_stills.mjs --times 2.0,7.2,...   # 抽样点=每镜入/出+关键锚点+状态切换窗
 ```
 

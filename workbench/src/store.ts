@@ -157,6 +157,7 @@ export const useStore = create<WorkbenchState>((set, get) => ({
   },
 
   toggleTrackHidden: (trackId) => {
+    get().commit();
     set((s) => ({
       project: mutateProject(s.project, (d) => {
         const t = d.tracks.find((t) => t.id === trackId);

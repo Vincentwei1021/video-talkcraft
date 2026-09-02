@@ -21,11 +21,13 @@
 //        [--concat out/assembled.mp4]                      # 拼装（video-only）
 //        [--audio out/full-mix.wav]                        # 整条音轨（不存在才渲）
 //        [--mux out/preview.mp4]                           # assembled + audio → 有声预览
-// shots.json = 分镜表导出的 [{"id","start","end"}]（与 shots.ts 同源，beat_lint --shots 同一份）。
+// shots.json = 分镜表导出的 [{"id","start","end"}]（与 shots.ts 同源，beat_lint --shots 同一份）；
+//   id 必须唯一且不含路径分隔符——它直接就是段缓存文件名 <seg-dir>/<id>.mp4。
 import {createRequire} from 'node:module';
 import {execFileSync} from 'node:child_process';
 import path from 'node:path';
 import fs from 'node:fs';
+import {loadProjectBundleOptions} from './remotion_project_config.mjs';
 
 const args = process.argv.slice(2);
 const opt = (name, dflt) => {
@@ -59,6 +61,19 @@ if (!Array.isArray(shots) || !shots.length ||
   console.error('shots.json 需为 [{"id","start","end"}] 数组（start/end 必须是数字）');
   process.exit(2);
 }
+// 镜头 id 直接当段缓存文件名：重复 id 会后段覆盖前段、concat 把同一文件拼两次，总帧数照样相等、
+// 全部断言照样通过，最终静默错片（独立评审 P1）；含路径分隔符的 id 则会写到 seg-dir 之外
+const ids = shots.map((s) => String(s.id));
+const dupIds = [...new Set(ids.filter((id, i) => ids.indexOf(id) !== i))];
+if (dupIds.length) {
+  console.error(`FAIL: shots.json 镜头 id 重复：${dupIds.join(', ')}——id 是段缓存文件名，必须唯一`);
+  process.exit(1);
+}
+const badIds = ids.filter((id) => /[\/\\]/.test(id) || id === '.' || id === '..');
+if (badIds.length) {
+  console.error(`FAIL: 镜头 id 含路径分隔符，不能作段文件名：${badIds.join(', ')}`);
+  process.exit(1);
+}
 // 乱序分镜表会静默渲错段（评审 P0-1 实测复现：对调两行后 --only 渲出 3 倍长的段仍打绿勾）
 for (let i = 1; i < shots.length; i++) {
   if (!(shots[i].start > shots[i - 1].start)) {
@@ -68,7 +83,9 @@ for (let i = 1; i < shots.length; i++) {
 }
 
 const t0 = Date.now();
-const serveUrl = await bundle({entryPoint: path.join(projDir, entry), onProgress: () => {}});
+// 必须带上工程 remotion.config.ts 里的 webpack alias / publicDir 等（bundle() 自己不读配置文件，评审 P1）
+const bundleOpts = await loadProjectBundleOptions(require, projDir);
+const serveUrl = await bundle({entryPoint: path.join(projDir, entry), ...bundleOpts, onProgress: () => {}});
 const compId = opt('comp', null);
 let composition;
 if (compId) {
