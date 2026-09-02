@@ -32,6 +32,9 @@
   schema 属性面板 + 实时预览 + 一键「导出成片」。79 张动效卡 100% 参数化（文案 / 颜色 / 字号 / 位置可调，
   节奏命门固定不暴露）；口播成片可一键拆成字幕 / 转场 / 环境 / 数字人 / 镜头 / 配音 / 音效七类多轨单元逐项微调。
   skill 交付成片后会主动打开它。→ [**图文指南 workbench/GUIDE.md**](workbench/GUIDE.md)
+
+  [![口播成片一键拆解为多轨工程](workbench/docs/img/12-koubo-import.png)](workbench/GUIDE.md)
+
 - **渲染提速：分段渲染母版制**——`scripts/render_shots.mjs` 按镜头切段并行渲、段内单进程保光栅一致，
   拼装 + 整条音轨混入 + 帧数断言；改一个镜头只重渲该段±邻段。`scripts/render_stills.mjs` 一次 bundle 批量出静帧。
 - **评审 token 减量**——`scripts/contact_sheet.py` 把 QA 帧拼成 3×4 网格给评审子代理整版浏览；连拍三帧对只对标了

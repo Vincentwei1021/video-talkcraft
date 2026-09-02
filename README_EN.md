@@ -39,6 +39,9 @@ camera moves, plain-cut subtitles, and film-grade SFX, all locked to the voice.
   All 79 motion cards are parameterized (copy, colors, sizes, positions editable; timing vitals stay fixed).
   A narration video can be split into seven kinds of editable units — subtitles / transitions / environment /
   avatar / shots / voiceover / SFX. The skill opens it for you after delivery. → [**Illustrated guide (zh)**](workbench/GUIDE.md)
+
+  [![A narration video split into a multi-track project](workbench/docs/img/12-koubo-import.png)](workbench/GUIDE.md)
+
 - **Faster renders: shot-segmented master rendering** — `scripts/render_shots.mjs` renders per-shot segments in
   parallel (single-process inside each segment to keep rasterization consistent), then concatenates, mixes in the
   full audio track and asserts frame counts; changing one shot re-renders only that segment ± neighbours.
