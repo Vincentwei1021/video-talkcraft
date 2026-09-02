@@ -5,11 +5,11 @@ import { AbsoluteFill, useCurrentFrame } from "remotion";
 // 参考 x-follow-card 骨架；产品皮 = 抖音对外主页（产品皮 = 内容本身）。
 // 本卡无主持人占位；复制本文件进你的工程即可用。
 
-// ===== 可摘走的核心：CONFIG + 四段编排（弹入 → 内容错峰 → 光标点击翻转 + 粉丝数 +1）=====
+// ===== 可摘走的核心：CONFIG + 四段编排（弹入 → 内容错峰 → 光标点击翻转 + 副位→发私信；粉丝数静态）=====
 // 三条决策构成"这张卡是可信的社会证明"，缺一条就退化成"一张图淡入"：
 //  ① 卡整体 spring 弹入与内容**错峰 blur-in** 是两件事：壳先到位，内容再逐层落
 //  ② 光标必须走过去再点，且**点击那一帧光标必须压在关注按钮上**
-//  ③ 点击那一刻同帧：＋关注→已关注 两态交叉 + 涟漪 + **粉丝数 +1 滚动** + 副位图标→发私信
+//  ③ 点击那一刻同帧：＋关注→已关注 两态交叉 + 涟漪 + 副位图标→发私信（粉丝数静态，同原版 X：约数看不出 +1）
 const CONFIG = {
   cardIn: 0.62,        // 卡弹入：y 46→0 + scale 0.9→1（back.out，弹簧感）
   layerStagger: 0.07,  // 内容错峰间隔（垂直主列按阅读顺序；简介每行一档）
@@ -25,7 +25,16 @@ const CONFIG = {
 // ===== 内容（产品皮 = 内容本身，2026-08-25+ 用户定版：完全还原抖音对外主页样式）=====
 // demo 样例 = 你提供的"界面3.jpg"（Vincent 号，已关注态）；未关注态由"＋关注→已关注"自动演绎。
 // 换账号只改 CONTENT；时序在 CONFIG，改内容不碰任何时刻。
-const CONTENT = {
+type Content = {
+  bg: { type: "gradient" } | { type: "image"; src: string };
+  topNav: boolean;
+  nickname: string;
+  verified: boolean;
+  douyinId: string;
+  stats: { like: string; follow: string; fans: string };
+  bio: string[];
+};
+const CONTENT: Content = {
   bg: { type: "gradient" },                 // 默认：抖音蓝渐变；上传头图用 { type:"image", src }
   topNav: true,                              // 保留顶部 app 导航（返回/求更新/搜索/更多）
   nickname: "Vincent",
@@ -64,7 +73,7 @@ const TIP = { x: 1 / 14 * 30, y: 1 / 21 * 45 };   // 光标箭头尖相对元素
 //   0.00–0.62  卡弹入 y46→0 / scale .9→1（back.out 1.35），0.05–0.35 淡入
 //   0.34–0.34+stagger*(n-1)+0.24  内容/简介逐层错峰 blur-in
 //   1.55–2.50  光标弧线移入（x power2.inOut / y sine.inOut）
-//   2.58       点击帧 tc：光标下压 + 按钮下压 + 两态交叉 + 涟漪 + 粉丝数 +1 + 副位图标→发私信
+//   2.58       点击帧 tc：光标下压 + 按钮下压 + 两态交叉 + 涟漪 + 副位图标→发私信
 //   2.80–3.25  光标顺势右下滑出
 //   3.18–4.03  停留读结果 → 总 4.03s
 const TC = CONFIG.cursorStart + CONFIG.cursorMove + 0.08;
@@ -180,6 +189,9 @@ const CSS = `
   background: radial-gradient(ellipse 22% 22% at 50% 33%, #eef0f3 60%, transparent 61%),
               radial-gradient(ellipse 40% 36% at 50% 97%, #eef0f3 60%, transparent 61%);
 }
+/* 传了 avatar prop：真头像铺满，剪影占位不再叠在上面 */
+.avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.avatar.has-img::after { content: none; }
 .idcol { padding-top: 36px; min-width: 0; }
 .nick { display: flex; align-items: center; gap: 12px; }
 .nick .name { font-size: 48px; font-weight: 700; color: #fff; letter-spacing: 0.5px; }
@@ -243,7 +255,7 @@ const CSS = `
 }
 `;
 
-export default function DouyinFollowCard(_props: { avatar?: string }) {
+export default function DouyinFollowCard({ avatar }: { avatar?: string }) {
   const t = useCurrentFrame() / FPS;
   const C = CONFIG;
   const content = CONTENT;
@@ -278,7 +290,7 @@ export default function DouyinFollowCard(_props: { avatar?: string }) {
     ? lerp(1, 0.9, tw(t, TC, 0.09, power2Out))
     : lerp(0.9, 1, tw(t, TC + 0.09, 0.09, power2Out));
 
-  // ④ 点击帧：按钮下压回弹 + 两态交叉 + 涟漪 + 粉丝数 +1 + 副位图标→发私信
+  // ④ 点击帧：按钮下压回弹 + 两态交叉 + 涟漪 + 副位图标→发私信（粉丝数静态）
   const followS = t < TC + 0.08
     ? lerp(1, C.clickDip, tw(t, TC, 0.08, power2In))
     : lerp(C.clickDip, 1, tw(t, TC + 0.08, 0.22, backOut(3)));
@@ -312,7 +324,7 @@ export default function DouyinFollowCard(_props: { avatar?: string }) {
               </div>
             ) : null}
             <div className="head" style={layer(2)}>
-              <div className="avatar"></div>
+              <div className={avatar ? "avatar has-img" : "avatar"}>{avatar ? <img src={avatar} alt="" /> : null}</div>
               <div className="idcol">
                 <div className="nick">
                   <span className="name">{content.nickname}</span>

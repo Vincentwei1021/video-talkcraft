@@ -8,7 +8,7 @@
 [![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial-blue)](LICENSE)
 [![WeChat](https://img.shields.io/badge/WeChat-%E8%AE%A8%E8%AE%BA%E7%BE%A4-07C160?logo=wechat&logoColor=white)](assets/wechat-group.jpg)
 
-**口播视频的 agent skill：字级配音同步 · 78 张动效配方卡 · 七层反 PPT 镜头系统 · 三重验收**
+**口播视频的 agent skill：字级配音同步 · 79 张动效配方卡 · 七层反 PPT 镜头系统 · 三重验收**
 
 [中文](README.md) | [English](README_EN.md)
 
@@ -20,7 +20,7 @@
 分镜，然后用 [Remotion](https://www.remotion.dev/) 渲出高质量的解说成片——动态字卡、
 证据截图、运镜、素排字幕、影视级音效，全部锁在人声上。
 
-🖼️ [**在线画廊：78 张动效预览一页全览 »**](https://vincentwei1021.github.io/video-talkcraft/)
+🖼️ [**在线画廊：79 张动效预览一页全览 »**](https://vincentwei1021.github.io/video-talkcraft/)
 
 [![video-talkcraft 在线画廊](assets/gallery-zh.png)](https://vincentwei1021.github.io/video-talkcraft/)
 
@@ -30,7 +30,7 @@
   （默认 FireRedASR2-CTC int8，备选 faster-whisper 免手动下载）。110s 中英混合口播
   对照 GPU 强制对齐器实测：字级偏差中位 20–40ms、最差 200ms、质检零误报。
   每个动效节拍都锚在确切的字上。
-- **78 张动效配方卡**——每张有意图、参数、已知坑、可直接复制的自包含 Remotion tsx 源码和可跑的 HTML 预览，
+- **79 张动效配方卡**——每张有意图、参数、已知坑、可直接复制的自包含 Remotion tsx 源码和可跑的 HTML 预览，
   [在线画廊](https://vincentwei1021.github.io/video-talkcraft/)一页全览
   （本地 `open gallery/index.html` 同款）。动态字卡、数据镜头、证据巡游、
   六式运动承接转场、长镜头世界画布、人物合成等。
@@ -92,8 +92,8 @@ ln -s "$(pwd)" ~/.codex/skills/video-talkcraft    # Codex
 
 | 内容 | 说明 |
 | --- | --- |
-| 78 张动效配方卡 | 意图、能量档、参数、实现要点、已知坑——每张都配自包含 Remotion tsx 源码（`template/cards/`，复制单文件即用）+ 可跑的 HTML demo |
-| 画廊 | [在线版](https://vincentwei1021.github.io/video-talkcraft/)或本地 `open gallery/index.html`——78 个预览一页自动播放，按名称/关键词搜索 |
+| 79 张动效配方卡 | 意图、能量档、参数、实现要点、已知坑——每张都配自包含 Remotion tsx 源码（`template/cards/`，复制单文件即用）+ 可跑的 HTML demo |
+| 画廊 | [在线版](https://vincentwei1021.github.io/video-talkcraft/)或本地 `open gallery/index.html`——79 个预览一页自动播放，按名称/关键词搜索 |
 | 动效系统 | CameraRig、视差平面、idle/让位生命周期、环境层、六式转场、长镜头世界画布（`template/motion-systems/`） |
 | 组件 | 素排字幕、花字、砸字、荧光笔、铅笔手绘、数字滚动（`template/components/`） |
 | 管线脚本 | 字级时间戳（双 ASR 后端）、人脸安全区检测、静止检测、音效在场检查、QA 抽帧（`scripts/`） |
@@ -110,15 +110,15 @@ video-talkcraft/
 │   ├── shot-design.md          # 三面工作单 + 七型镜头预设
 │   ├── cinematography.md       # 七层模型、转场、排版预算、验收关卡
 │   ├── shotbook-example.md     # 完整分镜范例
-│   ├── cards/                  # 78 张动效配方卡
+│   ├── cards/                  # 79 张动效配方卡
 │   ├── taxonomy.md             # 按类别与来源的卡片索引
 │   ├── broll-sources.md        # 免署名素材源（API、授权坑）
 │   ├── host-footage.md         # 人物素材：输入规格、抠像、人脸安全区
 │   └── demo-spec.md            # 卡片/demo 编写规范
-├── demos/                      # 78 个可跑的 HTML 预览（共享库内嵌音效）
+├── demos/                      # 79 个可跑的 HTML 预览（共享库内嵌音效）
 ├── gallery/                    # 单页本地画廊
 ├── template/                   # 即取即用的 Remotion 代码
-│   ├── cards/                  # 78 卡逐卡自包含 tsx 源码（skill 首选引用）
+│   ├── cards/                  # 79 卡逐卡自包含 tsx 源码（skill 首选引用）
 │   ├── motion-systems/         # 相机/视差/让位/环境/转场/长镜头系统
 │   └── components/             # 字幕/花字/砸字/铅笔等组件
 └── scripts/                    # 时间戳、人脸检测、QA 工具

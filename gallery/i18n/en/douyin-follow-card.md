@@ -38,7 +38,7 @@ Three vital points. **First: shell and content in two beats** — the card sprin
 | flipDur | 0.34s | <0.18s hard icon swap; >0.6s button melts |
 | rollDur | 0.42s | <0.2s number flicker; >0.7s pulls all attention |
 | follower count | static (like the original X) | default no +1; only add a readable change (`6454→6455`) if you want |
-| bio lines | 2~4 | card height adapts (width fixed 900); >6 lines may hit the vertical caption zone |
+| bio lines | 2~4 | card height adapts (logical width 900 → output width 500); >6 lines may hit the vertical caption zone |
 
 ## Reuse
 - Remotion/tsx (skill first): template/cards/douyin-follow-card.tsx — self-contained; CONFIG top, CONTENT mid, meta for size/timing.

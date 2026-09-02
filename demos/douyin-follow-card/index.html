@@ -130,11 +130,11 @@
   <script src="../_lib/gsap.min.js"></script>
   <script src="../_lib/demo-shell.js"></script>
   <script>
-    // ===== 可摘走的核心：CONFIG + 四段编排（弹入 → 内容错峰 → 光标点击翻转 + 粉丝数 +1）=====
+    // ===== 可摘走的核心：CONFIG + 四段编排（弹入 → 内容错峰 → 光标点击翻转 + 副位→发私信；粉丝数静态）=====
     // 三条决策构成"这张卡是可信的社会证明"，缺一条就退化成"一张图淡入"：
     //  ① 卡整体 spring 弹入与内容**错峰 blur-in** 是两件事：壳先到位，内容再逐层落
     //  ② 光标必须走过去再点，且**点击那一帧光标必须压在关注按钮上**（见 measureBtn 注释）
-    //  ③ 点击那一刻同帧：＋关注→已关注 两态交叉 + 涟漪 + 粉丝数 +1 滚动 + 副位图标→发私信
+    //  ③ 点击那一刻同帧：＋关注→已关注 两态交叉 + 涟漪 + 副位图标→发私信（粉丝数静态，同原版 X）
     const CONFIG = {
       cardIn: 0.62,        // 卡弹入：y 46→0 + scale 0.9→1（back.out ≈ spring 欠阻尼微过冲）
       layerStagger: 0.07,  // 内容错峰间隔（垂直主列按阅读顺序）
@@ -203,7 +203,7 @@
       tl.to(cursor, { x: target.x, duration: C.cursorMove, ease: "power2.inOut" }, C.cursorStart)
         .to(cursor, { y: target.y, duration: C.cursorMove, ease: "sine.inOut" }, C.cursorStart);
 
-      // ④ 点击帧：光标下压 + 按钮下压 + 两态交叉 + 涟漪 + 粉丝数 +1 + 副位→发私信（同帧起）
+      // ④ 点击帧：光标下压 + 按钮下压 + 两态交叉 + 涟漪 + 副位→发私信（同帧起；粉丝数静态）
       const tc = C.cursorStart + C.cursorMove + 0.08;
       tl.to(cursor, { scale: 0.9, duration: 0.09, ease: "power2.out" }, tc);
       tl.to(cursor, { scale: 1, duration: 0.09, ease: "power2.out" }, tc + 0.09);
