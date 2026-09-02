@@ -33,7 +33,7 @@
   节奏命门固定不暴露）；口播成片可一键拆成字幕 / 转场 / 环境 / 数字人 / 镜头 / 配音 / 音效七类多轨单元逐项微调。
   skill 交付成片后会主动打开它。→ [**图文指南 workbench/GUIDE.md**](workbench/GUIDE.md)
 
-  [![口播成片一键拆解为多轨工程](workbench/docs/img/12-koubo-import.png)](workbench/GUIDE.md)
+  <a href="workbench/GUIDE.md"><img src="workbench/docs/img/01-overview.png" alt="动效工作台总览" width="720"></a>
 
 - **渲染提速：分段渲染母版制**——`scripts/render_shots.mjs` 按镜头切段并行渲、段内单进程保光栅一致，
   拼装 + 整条音轨混入 + 帧数断言；改一个镜头只重渲该段±邻段。`scripts/render_stills.mjs` 一次 bundle 批量出静帧。
