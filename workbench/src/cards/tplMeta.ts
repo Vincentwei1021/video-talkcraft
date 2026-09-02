@@ -18,6 +18,7 @@ export const TPL_META: Record<string, { name: string; category: string }> = {
   "host-shrink-to-chip": { name: "人物缩位让台", category: "人物互动" },
   "subscribe-cta": { name: "多平台关注 CTA", category: "人物互动" },
   "x-follow-card": { name: "关注卡弹出", category: "人物互动" },
+  "douyin-follow-card": { name: "抖音主页关注卡", category: "人物互动" },
   "bar-chart-growth": { name: "柱状增长", category: "数据信息图" },
   "chart-grow": { name: "图表生长", category: "数据信息图" },
   "line-chart-story-draw": { name: "折线分段推演", category: "数据信息图" },

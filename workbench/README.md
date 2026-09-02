@@ -1,6 +1,6 @@
 # TalkCraft Workbench · 动效工作台
 
-剪映式的动效编辑工作台：多轨时间线 + 素材库 + schema 属性面板。78 张动效卡与口播成片的每个单元（镜头/字幕句/音效/转场/环境）都能拆成独立 clip 编排，文字内容、颜色、字号、位置逐项可调。
+剪映式的动效编辑工作台：多轨时间线 + 素材库 + schema 属性面板。79 张动效卡与口播成片的每个单元（镜头/字幕句/音效/转场/环境）都能拆成独立 clip 编排，文字内容、颜色、字号、位置逐项可调。
 
 ```bash
 cd workbench
@@ -10,7 +10,7 @@ npm run dev        # http://localhost:5199
 
 ## 能做什么
 
-- **素材库四 tab**：素材（成片/拆解单元/实拍文件，网格自动循环预览）· 动效库（**78 张卡全量**，按画廊 7 分类折叠，循环视频预览）· 音效（33 个全量）· 背景（design-language §1.1 预设背景 6 款：**pastel mesh（skill 默认幕底）**/浅底白/羊皮纸/深底近黑/细网格/居中追光，均可调参）。**点击=中屏预览，拖拽到时间轨=添加**
+- **素材库四 tab**：素材（成片/拆解单元/实拍文件，网格自动循环预览）· 动效库（**79 张卡全量**，按画廊 7 分类折叠，循环视频预览）· 音效（33 个全量）· 背景（design-language §1.1 预设背景 6 款：**pastel mesh（skill 默认幕底）**/浅底白/羊皮纸/深底近黑/细网格/居中追光，均可调参）。**点击=中屏预览，拖拽到时间轨=添加**
 - **时间轨**：多轨道（上层覆盖下层）、拖拽移动、两端裁剪、跨轨拖动、吸附、分割（S）、复制（⌘D）、缩放/适配；三栏与时间轨均可拖拽分隔条调整尺寸
 - **属性面板（schema 驱动）**：79 张动效卡 100% 参数化——全部文案（多条内容用逐行 DSL）、颜色、字号（派生几何等比联动）、内容块位置 posX/posY、语境节奏；动效节奏命门保持 FIXED 不暴露，保动效品相
 - **通用 clip 属性**：起点/时长（裁剪/定格延长）、**变速 0.25×–4×**（`<Freeze>` 时间重映射）、**裁入点**、不透明度/缩放/位移。音频与视频素材卡走 `trimBefore`/`playbackRate` 原生通道，裁剪变速不哑音
@@ -30,7 +30,11 @@ mkdir -p public
 for f in /path/to/<口播工程>/remotion/public/*; do ln -sfn "$f" "public/$(basename "$f")"; done
 ```
 
-未链接时工程照常构建运行（`@kbsrc` 自动落到 `kbsrc-stub/` 降级实现），口播相关卡显示占位提示。
+链接后跑一次 `npm run gen`（`npm install` 的 prepare 与 dev/build/studio 的前置钩子也会跑）：它扫描 `public/`
+生成素材清单 `src/mediaManifest.ts`，并从工程读出换幕时刻表生成 `src/kbMeta.ts`——两个文件按本机链接生成、不进库。
+换幕时刻表的取值顺序：工程 `Environment.tsx` 导出的 `WIPE_TIMES`（推荐显式导出）→ 其中 ShapeWipes 的 `times = [...]`
+字面量 → `beats.json` 里 `what` 含 wipe/换幕 的 `t`；都没有则转场轨为空并在控制台提示。
+未链接时工程照常构建运行（`@kbsrc` 自动落到 `kbsrc-stub/` 降级实现），口播相关卡显示占位提示，素材清单为空。
 
 ## 快捷键
 
@@ -58,7 +62,7 @@ src/
   remotion/             Remotion CLI 入口（Studio + 渲染导出共用 Main 合成）
   cards/
     registry.ts         注册表：手写核心卡 + gen 参数化卡 + 模板卡兜底
-    gen/                批量参数化产物（78 卡 + 23 口播镜头 kscene-*）
+    gen/                批量参数化产物（79 卡 + 23 口播镜头 kscene-*）
     gen-index.ts        静态索引（scripts/gen-index.mjs 生成，webpack/Vite 双兼容）
     background-cards.tsx 预设背景 6 款（design-language §1 色板 + §1.1 背景菜单）
     templateCards.ts    template/cards 全量接入（tplcards 相对符号链接 + @tpl 别名）

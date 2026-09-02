@@ -182,7 +182,9 @@ npx remotion render src/entry.ts <Comp> out/sfx-solo.wav --props='{"sfxSolo":tru
 音画对齐三条硬纪律（脚本内建断言，缺一必错位）：**音轨整条不分段**（视频段全 muted，
 音轨单渲一次交付时混入——每段各带 AAC 再拼，段头 ~2112 采样编码器前导延迟拼一次错一次）；
 **段边界取整与 Sequence 同规则**（差 1 帧=画面节拍整体偏 33ms）；**帧数断言**（每段实数帧+
-拼装总帧数精确相等，不等即 FAIL）。改了 SFX/cue 要删 full-mix.wav 让它重渲。
+拼装总帧数精确相等，不等即 FAIL）。音轨缓存过三关才复用：时长 == 合成时长、素材/inputProps/时序配置文件
+（beats.json、cues.json、src/sfx.ts 等文件名含 sfx|cue|beat|audio|sound|timing）三项指纹未变、非半截临时文件；
+指纹看不见的改动（音量常量写在组件里）用 `--force-audio`。
 验证口径（上线前已做过一次全套对照，2026-09-02）：分段拼装 vs 整渲全帧 PSNR 均值 42.6dB、
 低分帧不聚段边界（纯编码噪声）；sfx_check --mix 的 FFT 人声延迟测量 = 音画整体位移探测器；
 motion_check 确认段边界无光栅相位问题。

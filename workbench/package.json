@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "gen": "node scripts/gen-index.mjs",
+    "prepare": "node scripts/gen-index.mjs",
     "predev": "node scripts/gen-index.mjs",
     "dev": "vite",
     "prebuild": "node scripts/gen-index.mjs",

@@ -4,6 +4,7 @@ import { CARDS } from "./cards/registry";
 import { OVERLAP, WIPE_PRE, WIPE_POST, halfAt, kouboPhrases } from "./cards/koubo-units";
 import { SHOTS, FPS, TOTAL_FRAMES, darkAt } from "@kbsrc/shots";
 import { SFX_CUES } from "@kbsrc/sfx";
+import { KB_LINKED, WIPE_TIMES, WIPE_SOURCE } from "./kbMeta";
 
 /** 音效素材清单（去重 + 使用次数），素材库「音效」tab 用 */
 export const SFX_FILES: { file: string; count: number }[] = (() => {
@@ -12,8 +13,12 @@ export const SFX_FILES: { file: string; count: number }[] = (() => {
   return [...m].map(([file, count]) => ({ file, count })).sort((a, b) => b.count - a.count);
 })();
 
-// 原 Environment.tsx ShapeWipes 的换幕时刻表（源码内联字面量，此处对照抄录）
-const WIPE_TIMES = [30.6, 80.32, 112, 139.24, 146.5, 171.74];
+// 换幕时刻表来自接入工程（scripts/gen-index.mjs 生成 kbMeta.ts：优先工程导出的 WIPE_TIMES，
+// 其次抓 Environment.tsx 里 ShapeWipes 的 times 字面量，再次 beats.json 里 what 含 wipe/换幕 的 t）。
+// 曾经是抄录示例工程的六个硬编码时刻——换工程后转场时间全错（独立评审 P1）。
+if (KB_LINKED && WIPE_TIMES.length === 0) {
+  console.warn("[kouboImport] 接入工程没有可读的换幕时刻表：在 Environment.tsx 导出 WIPE_TIMES，或在 beats.json 给换幕事件写 what 含 wipe");
+}
 
 const baseClip = (): Omit<ClipData, "id" | "cardId" | "start" | "duration"> => ({
   inOffset: 0, speed: 1, opacity: 1, scale: 1, x: 0, y: 0, props: {},
@@ -49,7 +54,7 @@ export const buildKouboProject = (): ProjectData => {
     cardId: "koubo-wipe",
     start: Math.round((at - WIPE_PRE) * FPS),
     duration: Math.ceil((WIPE_PRE + WIPE_POST) * FPS),
-    label: `转场 @${at}s`,
+    label: `转场 @${at}s${WIPE_SOURCE === "beats" ? "（beats）" : ""}`,
   }));
 
   // 音效：一 cue 一 clip，贪心装箱进若干音效轨（同轨不重叠，便于单独挪动）

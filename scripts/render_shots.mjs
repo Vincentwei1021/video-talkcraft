@@ -204,39 +204,68 @@ if (concatOut) {
   console.log(`concat → ${concatOut}  ${got} 帧 ✓`);
 }
 
-// —— 整条音轨（纪律 A）——缓存要过三关才准复用，否则静默错音（独立评审 P1）：
+// —— 整条音轨（纪律 A）——缓存要过三关才准复用，否则静默错音（独立评审 P1 ×2）：
 //   1) 时长 == 合成时长（±1 帧）：中断渲染留下的半截 WAV、合成改长后的旧 WAV 都在这里被抓
-//   2) 指纹 == 当前音频素材：public/ 下所有音频文件的 路径:大小:mtime 摘要（换了配音/SFX 文件即失效）
+//   2) 指纹 == 当前输入，分三项各自比对、报错时指名是哪项变了：
+//      assets  public/ 下所有音频文件的 路径:大小:mtime（换了配音/SFX 文件）
+//      props   规范化（键排序）后的 inputProps——工作台工程 JSON 里挪音效/改音量/换 --props 文件都在这里
+//      timing  工程里文件名含 sfx/cue/beat/audio/sound/timing 的 json/ts 源（本 skill 约定 beats.json / cues.json / src/sfx.ts）
 //   3) 写临时名 .rendering.wav，断言过了才转正——不存在"看起来有个 wav"就拿去 mux 的路径
-// 代码里改了 cue 时序 / 音量这类指纹看不见的改动：--force-audio（比"手动删文件"少一次静默复用的机会）
+// 指纹看不见的改动（cue 写在别的文件名里、音量常量在组件内）：--force-audio
 const AUDIO_EXT = /\.(wav|mp3|m4a|aac|ogg|flac|opus)$/i;
-const audioFingerprint = (dir) => {
+const TIMING_FILE = /(sfx|cue|beat|audio|sound|timing)/i;
+const sha1 = (s) => crypto.createHash('sha1').update(s).digest('hex');
+// 键排序的稳定序列化：同一份 props 换个键序不算变
+const stableStringify = (v) => JSON.stringify(v, (_k, val) =>
+  val && typeof val === 'object' && !Array.isArray(val)
+    ? Object.fromEntries(Object.entries(val).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)))
+    : val);
+const listFiles = (root, accept, skipDirs, maxDepth = 6) => {
   const items = [];
-  const walk = (d) => {
+  const walk = (d, depth) => {
+    if (depth > maxDepth) return;
     let ents;
     try { ents = fs.readdirSync(d, {withFileTypes: true}); } catch { return; }
     for (const ent of ents) {
+      if (ent.name.startsWith('.')) continue;
       const p = path.join(d, ent.name);
       let st;
       try { st = fs.statSync(p); } catch { continue; }   // 断掉的符号链接：跳过（素材多为符号链接，statSync 跟随）
-      if (st.isDirectory()) walk(p);
-      else if (AUDIO_EXT.test(ent.name)) items.push(`${path.relative(dir, p)}:${st.size}:${Math.round(st.mtimeMs)}`);
+      if (st.isDirectory()) { if (!skipDirs.has(ent.name) && !skipDirs.has(path.resolve(p))) walk(p, depth + 1); }
+      else if (accept(ent.name)) items.push(`${path.relative(root, p)}:${st.size}:${Math.round(st.mtimeMs)}`);
     }
   };
-  walk(dir);
-  return crypto.createHash('sha1').update(items.sort().join('\n')).digest('hex') + ` (${items.length} 个音频文件)`;
+  walk(root, 0);
+  return items.sort();
 };
+const audioFingerprint = () => {
+  const publicDir = bundleOpts.publicDir ?? path.join(projDir, 'public');
+  const assets = listFiles(publicDir, (n) => AUDIO_EXT.test(n), new Set());
+  const timing = listFiles(projDir, (n) => TIMING_FILE.test(n) && /\.(json|ts|tsx|js|mjs)$/.test(n),
+    new Set(['node_modules', 'out', 'dist', 'public', path.resolve(publicDir), path.resolve(segDir)]));
+  return {
+    assets: sha1(assets.join('\n')), nAssets: assets.length,
+    props: sha1(stableStringify(inputProps)),
+    timing: sha1(timing.join('\n')), nTiming: timing.length,
+  };
+};
+const FP_LABEL = {assets: 'public/ 音频素材变了（换过配音/SFX 文件）', props: 'inputProps 变了（--props 内容不同：工程 JSON 里的音效位置/音量等）', timing: '音频时序配置文件变了（beats/cues/sfx 等）'};
 const audioOut = opt('audio', null);
 if (audioOut) {
   const fpFile = `${audioOut}.fp.json`;
-  const fp = audioFingerprint(bundleOpts.publicDir ?? path.join(projDir, 'public'));
+  const fp = audioFingerprint();
   let reason = null;
   if (has('force-audio')) reason = '--force-audio';
   else if (!fs.existsSync(audioOut)) reason = '无缓存';
   else {
     const got = probeDurationFrames(audioOut);
     if (!(Math.abs(got - TOTAL) <= 1)) reason = `缓存时长 ${got} 帧 != 合成 ${TOTAL} 帧（半截文件或合成改过长度）`;
-    else if (!fs.existsSync(fpFile) || fs.readFileSync(fpFile, 'utf8') !== fp) reason = 'public/ 音频素材指纹变了（换过配音/SFX 文件）';
+    else {
+      let old = null;
+      try { old = JSON.parse(fs.readFileSync(fpFile, 'utf8')); } catch { /* 无/旧格式指纹：按变了处理 */ }
+      const changed = ['assets', 'props', 'timing'].filter((k) => !old || old[k] !== fp[k]);
+      if (changed.length) reason = old ? changed.map((k) => FP_LABEL[k]).join('；') : '无指纹文件（首次或旧格式）';
+    }
   }
   if (reason) {
     const st = Date.now();
@@ -249,10 +278,10 @@ if (audioOut) {
       process.exit(1);
     }
     fs.renameSync(tmp, audioOut);
-    fs.writeFileSync(fpFile, fp);
+    fs.writeFileSync(fpFile, JSON.stringify(fp));
     console.log(`audio → ${audioOut}  ${got} 帧  ${((Date.now() - st) / 1000).toFixed(0)}s ✓`);
   } else {
-    console.log(`audio 复用缓存 ${audioOut}（时长/素材指纹校验通过；代码里改了 cue/SFX 时序请 --force-audio）`);
+    console.log(`audio 复用缓存 ${audioOut}（时长 + 素材/props/时序配置指纹均未变；${fp.nAssets} 个音频文件、${fp.nTiming} 个时序配置文件在册——指纹看不见的改动请 --force-audio）`);
   }
 }
 
