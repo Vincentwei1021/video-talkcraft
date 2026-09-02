@@ -13,9 +13,15 @@ B) 并发光栅抖动（2026-08-30/31 两次实战确认）：`remotion render -
    FAIL 处方：--concurrency=1 重渲。
 
 用法：
-  python3 scripts/motion_check.py <video.mp4> [freeze_dur=0.8] [noise=0.003] [--window t,crop]...
+  python3 scripts/motion_check.py <video.mp4> [freeze_dur=0.8] [noise=0.003] [--window t,crop]... [--anchors anchors.json]
   --window 46,1100:80:140:205   # 指定抖动判定窗（t秒,crop=W:H:X:Y）；缺省每 ~18s 自动采样
+  --anchors anchors.json        # 每个动效锚点 t+0.6s 再加一窗（锚点可带 "crop"），状态切换点不靠运气撞上
 任一判定 FAIL → exit 1。
+
+覆盖边界（诚实声明，独立评审 P1 修订）：B 只量它抽到的那些 0.87s 窗（缺省 ≤12 窗、间隔 18s、固定标题带裁剪），
+快速运动窗还会跳过——窗与窗之间的短闪烁、非周期抖动、裁剪区外的抖动它看不见。所以它是"并发光栅病"的
+专项闸，不是时域缺陷的全覆盖；状态切换点要靠 qa_extract 的连拍三帧（anchors "burst": true）给人眼看。
+结尾会打印本次实际判定/跳过的窗数，别把 PASS 读成"全片无抖动"。
 """
 import glob
 import os
@@ -79,44 +85,59 @@ def judge(d, np):
     return d.mean(), (r.max() if len(r) else 0.0), int((r > 0.5).sum())
 
 
-def check_jitter(video: str, windows) -> bool:
+def check_jitter(video: str, windows, anchor_windows=()) -> bool:
     try:
         import numpy as np
         import imageio.v2 as iio
     except ImportError:
         sys.exit("pip install numpy imageio（抖动判定依赖）")
+    dur = probe_duration(video)
     if not windows:
-        dur = probe_duration(video)
         t = 3.0
         while t < dur - 3 and len(windows) < 12:
             windows.append((t, DEFAULT_CROP))
             t += 18.0
+    # 锚点窗叠加在缺省/指定窗之上（不是替代）：状态切换点不靠 18s 采样运气撞上
+    windows = sorted(set(windows) | {w for w in anchor_windows if 0 <= w[0] < dur - 1})
     fail = False
+    n_ok = n_fast = n_short = 0
     for t, crop in windows:
         d = window_diffs(video, t, crop, np, iio)
         if d is None:
+            n_short += 1
             print(f"[抖动] t={t:7.1f}s  抽帧不足，跳过")
             continue
         mean, osc, cnt = judge(d, np)
         if mean > 6.0:
+            n_fast += 1
             print(f"[抖动] t={t:7.1f}s  raw_mean={mean:6.2f}  快速运动窗，跳过判定")
             continue
+        n_ok += 1
         bad = osc > 0.5 and cnt >= 6
         fail |= bad
         print(f"[抖动] t={t:7.1f}s  raw_mean={mean:6.2f}  osc_max={osc:5.2f}  超阈帧={cnt:2d}  {'FAIL' if bad else 'ok'}")
-    print("[抖动]", "FAIL：静态文字区周期振荡=并发光栅病，用 --concurrency=1 重渲" if fail else "PASS")
+    covered = n_ok * FRAMES / 30.0
+    print(f"[抖动] 覆盖：判定 {n_ok} 窗 ≈ {covered:.1f}s / 片长 {dur:.1f}s（{100 * covered / max(dur, 1e-6):.0f}%），"
+          f"快速运动窗跳过 {n_fast}，抽帧不足 {n_short}——窗外时段不在本闸内（状态切换点看 qa_extract 连拍）")
+    print("[抖动]", "FAIL：静态文字区周期振荡=并发光栅病，用 --concurrency=1 重渲" if fail else "PASS（仅限上述窗）")
     return fail
 
 
 def main():
     video = sys.argv[1]
     rest = sys.argv[2:]
-    windows, pos = [], []
+    windows, anchor_windows, pos = [], [], []
     i = 0
     while i < len(rest):
         if rest[i] == "--window":
             t, _, crop = rest[i + 1].partition(",")
             windows.append((float(t), crop or DEFAULT_CROP))
+            i += 2
+        elif rest[i] == "--anchors":
+            import json
+            with open(rest[i + 1]) as fh:
+                for a in json.load(fh):
+                    anchor_windows.append((round(float(a["t"]) + 0.6, 2), a.get("crop") or DEFAULT_CROP))
             i += 2
         else:
             pos.append(rest[i])
@@ -125,7 +146,7 @@ def main():
     noise = pos[1] if len(pos) > 1 else "0.003"
 
     fail = check_freeze(video, dur, noise)
-    fail |= check_jitter(video, windows)
+    fail |= check_jitter(video, windows, anchor_windows)
     print("== 画面健康", "FAIL ==" if fail else "PASS ==")
     sys.exit(1 if fail else 0)
 

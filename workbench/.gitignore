@@ -1,0 +1,18 @@
+node_modules/
+dist/
+*.tsbuildinfo
+exports/
+.render-public/
+
+# 按本机链接生成（scripts/gen-index.mjs：prepare / predev / prebuild / prestudio 都会跑）
+src/mediaManifest.ts
+src/kbMeta.ts
+
+# 机器本地符号链接：指向外部口播成片工程（绝对路径，不进库）。
+# 链接方法见 README「接入口播成片工程」；未链接时自动使用 kbsrc-stub 降级。
+kbsrc
+public/dh
+public/broll
+public/sfx
+public/shots
+public/full.wav
