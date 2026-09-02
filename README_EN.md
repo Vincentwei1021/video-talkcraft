@@ -55,8 +55,8 @@ camera moves, plain-cut subtitles, and film-grade SFX, all locked to the voice.
   (`scripts/face_bbox.py`), not by eye.
 - **Triple-gate QA** — automated stillness detection, per-cue SFX energy
   verification on a solo track, and an independent-reviewer pass armed with
-  anchor frames and burst triples that catch time-domain defects single
-  frames can't show.
+  anchor frames (plus burst triples at state-switch anchors, which catch
+  time-domain defects single frames can't show).
 
 ## 🚀 Quick start
 
@@ -104,7 +104,7 @@ Make a 100-second explainer about <topic>; here is the script and the audio.
 | Narration script | Word-level timestamp alignment, with per-sentence QA flags |
 | Finished voiceover — any TTS or human recording | SHOTBOOK storyboarding: semantic beats, layer matrices, layout budgets |
 | Optional host footage — ordinary video works (keying + face-zone tooling included; green screen keys cleanest) | Remotion implementation on four global systems (camera / parallax / yield / environment), transitions, SFX placement |
-| Optional B-roll / screenshots | Render + triple-gate QA loop until clean, loudness-normalized delivery |
+| Optional B-roll / screenshots | Render + triple-gate QA (machine gates all green + one independent review round with P0/P1 fixed, then deliver; optional extra rounds, 3 max), loudness-normalized delivery |
 
 ## 📦 What's included
 

@@ -19,15 +19,18 @@
 //        [--seg-dir out/segments] [--parallel 4]
 //        [--all | --changed s14 | --only s13,s14,s15]     # 缺省 = 只渲 seg-dir 里缺失的段
 //        [--concat out/assembled.mp4]                      # 拼装（video-only）
-//        [--audio out/full-mix.wav]                        # 整条音轨（不存在才渲）
+//        [--audio out/full-mix.wav] [--force-audio]        # 整条音轨（缓存过时长+指纹校验才复用）
 //        [--mux out/preview.mp4]                           # assembled + audio → 有声预览
+//        [--props '{"k":1}' | --props @props.json]         # 合成 inputProps（工作台 Main 等吃工程 JSON 的合成必须给）
+//        [--public-dir .render-public]                     # 覆盖 public/（Remotion 静态服务器拒绝符号链接素材时先解引用同步）
 // shots.json = 分镜表导出的 [{"id","start","end"}]（与 shots.ts 同源，beat_lint --shots 同一份）；
 //   id 必须唯一且不含路径分隔符——它直接就是段缓存文件名 <seg-dir>/<id>.mp4。
 import {createRequire} from 'node:module';
 import {execFileSync} from 'node:child_process';
 import path from 'node:path';
 import fs from 'node:fs';
-import {loadProjectBundleOptions} from './remotion_project_config.mjs';
+import crypto from 'node:crypto';
+import {loadProjectBundleOptions, projectRenderOptions, parseInputProps} from './remotion_project_config.mjs';
 
 const args = process.argv.slice(2);
 const opt = (name, dflt) => {
@@ -85,13 +88,17 @@ for (let i = 1; i < shots.length; i++) {
 const t0 = Date.now();
 // 必须带上工程 remotion.config.ts 里的 webpack alias / publicDir 等（bundle() 自己不读配置文件，评审 P1）
 const bundleOpts = await loadProjectBundleOptions(require, projDir);
+const publicDirFlag = opt('public-dir', null);
+if (publicDirFlag) bundleOpts.publicDir = path.resolve(projDir, publicDirFlag);   // 命令行覆盖 remotion.config.ts 的 setPublicDir
+const inputProps = parseInputProps(opt('props', null), projDir);
+const renderOpts = projectRenderOptions(require);   // browserExecutable / gl / chromeMode（配置文件里设了才有）
 const serveUrl = await bundle({entryPoint: path.join(projDir, entry), ...bundleOpts, onProgress: () => {}});
 const compId = opt('comp', null);
 let composition;
 if (compId) {
-  composition = await selectComposition({serveUrl, id: compId, inputProps: {}});
+  composition = await selectComposition({serveUrl, id: compId, inputProps, ...renderOpts});
 } else {
-  const comps = await getCompositions(serveUrl, {inputProps: {}});
+  const comps = await getCompositions(serveUrl, {inputProps, ...renderOpts});
   if (comps.length > 1) console.warn(`工程有 ${comps.length} 个 composition（${comps.map((c) => c.id).join(', ')}），默认取第一个——如不对请 --comp 指定`);
   composition = comps[0];
 }
@@ -146,6 +153,10 @@ const probeFrames = (f) =>
   // csv=p=0 的输出带尾逗号（"129,"），Number() 会 NaN——只留数字位
   Number(execFileSync('ffprobe', ['-v', 'error', '-select_streams', 'v:0', '-count_packets',
     '-show_entries', 'stream=nb_read_packets', '-of', 'csv=p=0', f], {encoding: 'utf8'}).replace(/[^0-9]/g, ''));
+// 音轨用容器时长折成帧数（WAV 无 packet 计数可言）
+const probeDurationFrames = (f) =>
+  Math.round(Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration',
+    '-of', 'csv=p=0', f], {encoding: 'utf8'}).replace(/[^0-9.]/g, '')) * fps);
 
 // —— K 段并行，每段 concurrency:1（段内单进程连续渲，防光栅相位抖动）——
 const queue = [...todo];
@@ -156,7 +167,7 @@ const worker = async () => {
     const st = Date.now();
     const tmp = seg.file.replace(/\.mp4$/, '.rendering.mp4');   // 先写临时名：中断的半截文件不许被当缓存
     await renderMedia({
-      composition, serveUrl, codec: 'h264', outputLocation: tmp,
+      composition, serveUrl, codec: 'h264', outputLocation: tmp, inputProps, ...renderOpts,
       frameRange: [seg.from, seg.to], muted: true, concurrency: 1,   // 纪律 A：视频段一律无声
     });
     const got = probeFrames(tmp);
@@ -193,12 +204,56 @@ if (concatOut) {
   console.log(`concat → ${concatOut}  ${got} 帧 ✓`);
 }
 
-// —— 整条音轨（只在不存在时渲；改了 SFX/cue 后手动删掉让它重渲）——
+// —— 整条音轨（纪律 A）——缓存要过三关才准复用，否则静默错音（独立评审 P1）：
+//   1) 时长 == 合成时长（±1 帧）：中断渲染留下的半截 WAV、合成改长后的旧 WAV 都在这里被抓
+//   2) 指纹 == 当前音频素材：public/ 下所有音频文件的 路径:大小:mtime 摘要（换了配音/SFX 文件即失效）
+//   3) 写临时名 .rendering.wav，断言过了才转正——不存在"看起来有个 wav"就拿去 mux 的路径
+// 代码里改了 cue 时序 / 音量这类指纹看不见的改动：--force-audio（比"手动删文件"少一次静默复用的机会）
+const AUDIO_EXT = /\.(wav|mp3|m4a|aac|ogg|flac|opus)$/i;
+const audioFingerprint = (dir) => {
+  const items = [];
+  const walk = (d) => {
+    let ents;
+    try { ents = fs.readdirSync(d, {withFileTypes: true}); } catch { return; }
+    for (const ent of ents) {
+      const p = path.join(d, ent.name);
+      let st;
+      try { st = fs.statSync(p); } catch { continue; }   // 断掉的符号链接：跳过（素材多为符号链接，statSync 跟随）
+      if (st.isDirectory()) walk(p);
+      else if (AUDIO_EXT.test(ent.name)) items.push(`${path.relative(dir, p)}:${st.size}:${Math.round(st.mtimeMs)}`);
+    }
+  };
+  walk(dir);
+  return crypto.createHash('sha1').update(items.sort().join('\n')).digest('hex') + ` (${items.length} 个音频文件)`;
+};
 const audioOut = opt('audio', null);
-if (audioOut && !fs.existsSync(audioOut)) {
-  const st = Date.now();
-  await renderMedia({composition, serveUrl, codec: 'wav', outputLocation: audioOut});
-  console.log(`audio → ${audioOut}  ${((Date.now() - st) / 1000).toFixed(0)}s ✓`);
+if (audioOut) {
+  const fpFile = `${audioOut}.fp.json`;
+  const fp = audioFingerprint(bundleOpts.publicDir ?? path.join(projDir, 'public'));
+  let reason = null;
+  if (has('force-audio')) reason = '--force-audio';
+  else if (!fs.existsSync(audioOut)) reason = '无缓存';
+  else {
+    const got = probeDurationFrames(audioOut);
+    if (!(Math.abs(got - TOTAL) <= 1)) reason = `缓存时长 ${got} 帧 != 合成 ${TOTAL} 帧（半截文件或合成改过长度）`;
+    else if (!fs.existsSync(fpFile) || fs.readFileSync(fpFile, 'utf8') !== fp) reason = 'public/ 音频素材指纹变了（换过配音/SFX 文件）';
+  }
+  if (reason) {
+    const st = Date.now();
+    console.log(`audio 重渲（${reason}）…`);
+    const tmp = audioOut.replace(/(\.[^./\\]+)?$/, '.rendering$1');   // out/full-mix.wav → out/full-mix.rendering.wav
+    await renderMedia({composition, serveUrl, codec: 'wav', outputLocation: tmp, inputProps, ...renderOpts});
+    const got = probeDurationFrames(tmp);
+    if (!(Math.abs(got - TOTAL) <= 1)) {
+      console.error(`FAIL: 音轨时长 ${got} 帧 != 合成 ${TOTAL} 帧（临时文件留在 ${tmp}）`);
+      process.exit(1);
+    }
+    fs.renameSync(tmp, audioOut);
+    fs.writeFileSync(fpFile, fp);
+    console.log(`audio → ${audioOut}  ${got} 帧  ${((Date.now() - st) / 1000).toFixed(0)}s ✓`);
+  } else {
+    console.log(`audio 复用缓存 ${audioOut}（时长/素材指纹校验通过；代码里改了 cue/SFX 时序请 --force-audio）`);
+  }
 }
 
 // —— 混入音轨（预览口径；交付仍走 SKILL.md ⑧ 的 loudnorm）——

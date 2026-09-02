@@ -16,7 +16,7 @@ description: 终极口播视频 skill：中文口播稿 + 成品配音 → CPU �
 
 ```
 ① 文案 → ② 配音输入+时间戳(本机CPU) → ③ 素材 → ④ SHOTBOOK 层矩阵 → ⑤ 实现(全局系统先行)
-                                → ⑥ 渲染 → ⑦ 三重验收循环 → ⑧ 交付
+                                → ⑥ 渲染 → ⑦ 三重验收（机器闸全过 + 1 轮审片修 P0/P1）→ ⑧ 交付（可选续审 ≤3 轮）
 ```
 
 ## ⓪ 画幅与视觉语言（开工先定，全流程引用）
@@ -161,7 +161,9 @@ python3 scripts/beat_gap_check.py remotion/beats.json remotion/shots.json   # �
 重打包要 11min，2026-09-02 实测）：
 ```bash
 # 两个 node 渲染脚本都必须在工程 remotion/ 目录下执行（Remotion 模块从工程自己的 node_modules 解析，
-# 并自动加载工程的 remotion.config.ts——webpack alias / publicDir 等与 CLI 渲染一致）
+# 并自动加载工程的 remotion.config.ts——webpack alias / publicDir / browserExecutable 与 CLI 渲染一致；
+# 吃 inputProps 的合成给 --props @props.json；素材是符号链接时 --public-dir 指向解引用同步后的目录）。
+# 首跑没装浏览器会联网下载 Chrome Headless Shell（~95MB）；离线机先 npx remotion browser ensure
 node <skill根>/scripts/render_stills.mjs --times 2.0,7.2,...   # 抽样点=每镜入/出+关键锚点+状态切换窗
 ```
 
@@ -195,9 +197,12 @@ python3 scripts/card_lint.py remotion/src <slug,slug,...>                # 卡�
 python3 scripts/beat_lint.py remotion/beats.json audio/timestamps.json --shots remotion/shots.json
                                                   # 词落点 |Δ|≤0.1s + 镜尾保护带 ≥0.5s
 # 评审材料抽帧：每句 2 帧 + 动效锚点帧（anchors.json 从 beats.json 导出）
-# 连拍三帧对默认不抽（--bursts 才开）：时域抖动已由 motion_check 机器化，270 张连拍占材料 2/3
-# 却极少产出新缺陷（2026-09-01 实测）；只在抖动闸报警需人眼定位时开
+# 连拍三帧对只抽 anchors.json 里标了 "burst": true 的锚点——状态切换（两态翻转/换场/砸入落位）
+# 与高风险区域必须标；其余锚点只抽定妆帧（全抽=270 张占材料 2/3 却极少产出新缺陷，2026-09-01 实测）。
+# motion_check 的抖动闸只量 ≤12 个 18s 间隔的固定裁剪窗、快速运动窗还跳过——窗外的短闪烁它看不见，
+# 所以连拍不是可选项；--bursts 全抽只在抖动闸报警需人眼定位时用。同一份 anchors.json 也喂给 motion_check
 python3 scripts/qa_extract.py out/vN.mp4 audio/timestamps.json /tmp/qa_vN 540 anchors.json
+python3 scripts/motion_check.py out/vN.mp4 --anchors anchors.json   # 锚点 t+0.6s 各加一窗，结尾打印实际覆盖窗数
 # 评审拼图：帧目录拼 3×4 网格（评审先整版浏览、可疑帧再回原目录单张放大——
 # 逐张读 160 帧 ≈ 16 万 token/21min，拼图 ≈ 4 万/7min，2026-09-01 实测）
 python3 scripts/contact_sheet.py /tmp/qa_vN /tmp/qa_vN_sheets
@@ -230,9 +235,11 @@ P2 = 质感瑕疵——密度/留白/样式，记录但不挡验收。修完 P0+
 **只按句抽帧看不见的三类缺陷，必须给对应材料（v4 实战教训，2026-08-28）**：
 - **短命动效的错位**（标注/箭头只活 1~2s，句级抽帧大概率错过）→ 用**动效锚点帧**
   （每个重音 +0.25s 的定妆帧）逐个核"框住/指向/圈住目标了没有"；
-- **抖动/闪烁**（时域缺陷，单帧永远看不见）→ 由 motion_check 的并发光栅抖动判定机器化覆盖
-  （2026-09-02 起默认不抽连拍帧）；抖动闸报警需人眼定位病灶时，用 `qa_extract --bursts`
-  补抽连拍三帧对——三帧间只该有设计内的连续运动，出现来回振荡、细纹理爬行即缺陷；
+- **抖动/闪烁**（时域缺陷，单帧永远看不见）→ 两道并用：motion_check 的并发光栅抖动判定
+  （只量 ≤12 个 18s 间隔的固定裁剪窗、快速运动窗跳过——它是"并发光栅病"专项闸，不是时域全覆盖，
+  `--anchors` 把锚点也纳入窗）+ `qa_extract` 对 anchors.json 里 `"burst": true` 的锚点（状态切换/高风险）
+  抽连拍三帧对——三帧间只该有设计内的连续运动，出现来回振荡、细纹理爬行即缺陷；
+  `--bursts` 全抽只在抖动闸报警需人眼定位病灶时用；
 - **设计没落地**（SHOTBOOK §0 计划的背景/音效/常驻件默默缺席——评审不知道"应该有"就不会报）
   → 把 SHOTBOOK §0 的**设计清单**（背景资产落位表、音效 cue 数、人物形态表）发给 subagent
   做逐项"计划 vs 成片"核对。

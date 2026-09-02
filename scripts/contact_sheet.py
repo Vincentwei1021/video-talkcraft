@@ -50,6 +50,12 @@ def main() -> int:
         print(f"目录里没有 {a.pattern}", file=sys.stderr)
         return 1
     os.makedirs(a.out_dir, exist_ok=True)
+    # 复用输出目录时旧的 sheet-NN.png 会留下来（7 页 → 2 页，sheet-03..07 仍在），评审把旧画面当当前版本（独立评审 P2）
+    stale = sorted(glob.glob(os.path.join(a.out_dir, "sheet-[0-9]*.png")))
+    for f in stale:
+        os.remove(f)
+    if stale:
+        print(f"清理旧拼图 {len(stale)} 张")
     font = load_font()
     per = a.cols * a.rows
 

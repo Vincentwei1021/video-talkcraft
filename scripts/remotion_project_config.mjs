@@ -11,6 +11,7 @@
 //       const serveUrl = await bundle({entryPoint, ...bundleOpts, onProgress: () => {}});
 // require 必须是 createRequire(工程/package.json) 得到的——模块要从工程自己的 node_modules 解析，
 // 这样配置文件里 `import {Config} from '@remotion/cli/config'` 与这里读到的是同一个模块实例。
+import fs from 'node:fs';
 import path from 'node:path';
 
 export const loadProjectBundleOptions = async (require, projDir) => {
@@ -51,4 +52,42 @@ export const loadProjectBundleOptions = async (require, projDir) => {
     /* 老版本没有 renderer/client 子路径：publicDir 用默认 public/ */
   }
   return opts;
+};
+
+// 渲染侧配置：Config.setBrowserExecutable / setChromiumOpenGlRenderer / setChromeMode 同样只有 CLI 读。
+// 这里从 renderer 的 option 表取出来给 renderMedia / renderStill / openBrowser；没设的不传（用 Remotion 默认）。
+// 必须在 loadProjectBundleOptions（执行配置文件）之后调用。
+// 注意：Remotion 没装浏览器时会自动下载 Chrome Headless Shell（~95MB，需联网）；离线机器先
+// `npx remotion browser ensure`，或在 remotion.config.ts 里 Config.setBrowserExecutable 指向本机 Chrome。
+export const projectRenderOptions = (require) => {
+  const out = {};
+  try {
+    const {BrowserSafeApis} = require('@remotion/renderer/client');
+    const o = BrowserSafeApis?.options ?? {};
+    const get = (k) => o[k]?.getValue?.({commandLine: {}}) ?? null;
+    const exe = get('browserExecutableOption')?.value;
+    if (exe) out.browserExecutable = exe;
+    const gl = get('glOption')?.value;
+    if (gl) out.chromiumOptions = {gl};
+    const mode = get('chromeModeOption');
+    if (mode && mode.source !== 'default' && mode.value) out.chromeMode = mode.value;
+  } catch {
+    /* 老版本没有 renderer/client 子路径：全用默认 */
+  }
+  return out;
+};
+
+// --props 三种写法：内联 JSON / @file.json / 直接给 .json 路径（相对工程目录）。
+// 需要 inputProps 的合成（如工作台 Main 吃工程 JSON）没有它根本渲不出正确内容。
+export const parseInputProps = (raw, baseDir) => {
+  if (!raw) return {};
+  let text = raw;
+  if (raw.startsWith('@')) text = fs.readFileSync(path.resolve(baseDir, raw.slice(1)), 'utf8');
+  else if (/\.json$/i.test(raw) && fs.existsSync(path.resolve(baseDir, raw))) text = fs.readFileSync(path.resolve(baseDir, raw), 'utf8');
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    console.error(`--props 不是合法 JSON（支持 内联 JSON / @file.json / file.json）：${e.message}`);
+    process.exit(2);
+  }
 };

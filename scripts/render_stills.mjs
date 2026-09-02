@@ -10,11 +10,13 @@
 //        [--comp <id>] [--out ../qa/stills] [--prefix t]
 //   --times      逗号分隔的绝对秒；或 @file.txt（每行一个秒数，# 开头行忽略）
 //   --comp       省略时取工程第一个 composition
+//   --props      合成 inputProps：内联 JSON / @props.json / props.json（工作台 Main 等吃工程 JSON 的合成必须给）
+//   --public-dir 覆盖 public/（Remotion 静态服务器拒绝符号链接素材时，先解引用同步到一个真实目录再指过来）
 // 输出文件名：<out>/<prefix><秒原文>.png（"2.0" 不归一成 "2"，避免 2 与 2.0 相互覆盖）
 import {createRequire} from 'node:module';
 import path from 'node:path';
 import fs from 'node:fs';
-import {loadProjectBundleOptions} from './remotion_project_config.mjs';
+import {loadProjectBundleOptions, projectRenderOptions, parseInputProps} from './remotion_project_config.mjs';
 
 const args = process.argv.slice(2);
 const opt = (name, dflt) => {
@@ -53,16 +55,19 @@ const {selectComposition, renderStill, openBrowser, getCompositions} = require('
 const t0 = Date.now();
 // 必须带上工程 remotion.config.ts 里的 webpack alias / publicDir 等（bundle() 自己不读配置文件，评审 P1）
 const bundleOpts = await loadProjectBundleOptions(require, projDir);
+const publicDirFlag = opt('public-dir', null);
+if (publicDirFlag) bundleOpts.publicDir = path.resolve(projDir, publicDirFlag);   // 命令行覆盖 remotion.config.ts 的 setPublicDir
+const inputProps = parseInputProps(opt('props', null), projDir);
+const renderOpts = projectRenderOptions(require);   // browserExecutable / gl / chromeMode（配置文件里设了才有）
 const serveUrl = await bundle({entryPoint: path.join(projDir, entry), ...bundleOpts, onProgress: () => {}});
 console.log(`bundle 完成 ${(Date.now() - t0) / 1000}s`);
 
 const compId = opt('comp', null);
-const inputProps = {};
 let composition;
 if (compId) {
-  composition = await selectComposition({serveUrl, id: compId, inputProps});
+  composition = await selectComposition({serveUrl, id: compId, inputProps, ...renderOpts});
 } else {
-  const comps = await getCompositions(serveUrl, {inputProps});
+  const comps = await getCompositions(serveUrl, {inputProps, ...renderOpts});
   if (comps.length > 1) console.warn(`工程有 ${comps.length} 个 composition（${comps.map((c) => c.id).join(', ')}），默认取第一个——如不对请 --comp 指定`);
   composition = comps[0];
 }
@@ -75,7 +80,7 @@ if (bad.length) {
   process.exit(2);
 }
 
-const browser = await openBrowser('chrome');
+const browser = await openBrowser('chrome', renderOpts);
 fs.mkdirSync(outDir, {recursive: true});
 try {
   for (const t of times) {
