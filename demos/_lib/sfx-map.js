@@ -365,4 +365,9 @@ window.SFX_MAP = {
     {"t": 0.05, "name": "pk:ui-pop", "vol": 0.5, "rate": 0.94, "note": "卡弹入"},
     {"t": 2.68, "name": "pk:mech-lock-quick", "vol": 0.3, "clip": 0.4, "note": "粉丝数滚动"},
   ],
+  "douyin-follow-card": [
+    {"t": 0.05, "name": "pk:ui-pop", "vol": 0.5, "rate": 0.94, "note": "卡弹入"},
+    {"t": 0.34, "name": "paper", "vol": 0.26, "rate": 1.12, "note": "内容错峰铺底"},
+    {"t": 2.58, "name": "click", "vol": 0.55, "note": "点击关注"},
+  ],
 };

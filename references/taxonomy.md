@@ -30,7 +30,7 @@ kinetic-center-build 逐词推挤居中）。
 | 数据信息图 | 让数字和结论"长"出来而不是贴出来 | number-counter, chart-grow, info-term-card, map-route-pin, line-chart-story-draw◆, ui-prop-theater◆, step-timeline-vertical◈, numbered-step-stack◈, metric-with-sparkline◈, bar-chart-growth◈, number-slab-pop◈ |
 | 素材呈现 | 证据（截图/照片/聊天记录/梗图）的入场仪式感；也含「界面按脚本自演」的界面剧场卡 | ui-flow-theater◇, media-pop-in, news-card-desk, **pencil-sketch-draw★**, cursor-actor-demo◆, evidence-scroll-tour◆, motion-blur-slam-in◆, terminal-typing-log◇, chat-message-flow◇, logo-enter◇, chat-gpt◇, claude-code◇, glass-code-walk◇, gooey-morph◇ |
 | 转场结构 | 章节感与节奏切分 | chapter-title-card, shape-wipe-transition, **push-through-transition★**, **overexpose-flip-transition★**, **whip-pan-transition★**, **black-slam-transition★**, **pullback-cool-transition★**, **particle-weld-transition★**, **long-take-world★**, color-slam-beat-card◆, caret-wipe-transition◇, chapter-progress-list◈ |
-| 人物互动 | 真人出镜画面里的信息层与互动引导 | lower-third-nameplate, behind-text-title, subscribe-cta, host-shrink-to-chip◆, x-follow-card◇, chevron-lower-third◈, danmu-bubble-praise◈ |
+| 人物互动 | 真人出镜画面里的信息层与互动引导 | lower-third-nameplate, behind-text-title, subscribe-cta, douyin-follow-card, host-shrink-to-chip◆, x-follow-card◇, chevron-lower-third◈, danmu-bubble-praise◈ |
 | 运镜 | 静态素材（截图/图片/文档/UI）不死板：相机替素材动起来 | slow-push-in, slow-pull-reveal, tilt-3d-page, sway-parallax, orbit-drift, stage-keyframe-tour◇, cursor-locked-zoom◇, pip-zoom-box◈ |
 
 ★ = 实战卡；◆ = 真实视频挖掘卡（第三批）；◇ = remocn 适配卡（第四批，原型是 Remotion 组件，
@@ -442,6 +442,15 @@ ChatGPT 对话框 · P1 · AI 聊天产品自演（**单行药丸 + 首屏三件
 - spec：**产品皮 = 内容本身**（2026-08-25 用户定版：完全还原 X 的样式——深色卡 `#16181c` / 品牌蓝 `#1d9bf0` 的封面渐变与认证印章与关注按钮 / 右上 X 标，照抄源码 `THEMES.dark`；灰阶化之后那张卡"不是任何平台"，社会证明的出处就断了）；光标落点要在按钮**终态**位置上量并减掉箭头尖偏移（否则点击帧压在按钮下方的空处——2026-08-25 实修的 bug，验收要**截点击那一帧**）；十层 blur-in 是 `blur 8→0` + `opacity` + `y 8→0` **三属性同动**（只做淡入是普通 stagger，加上 blur 才有"从虚焦里对上焦"的落位感）；层序按阅读顺序且**按钮行排最后**（待交互的目标最后落位，光标才有东西可点）；内容铺完后留 0.34s 静置给口播介绍这个人；粉丝数 +1 用**纸带上推**（窗口固定 `overflow:hidden` 只露一行高、纸带在里面推——动窗口会把整行文字一起挪；直接换值读作"数据刷新了"）
 - pitfalls：两态用改 `textContent` 实现（读作"字变了"不是"按钮换了状态"——两层叠着交叉、退的缩进的涨）；计数增幅小到看不见（`128,431 → 128,432` 那一位观众看不见，等于没滚）；`fromTo` 忘了 `immediateRender: false`（涟漪环建表时就刷上 from 态，"还没被点"时环已挂在按钮外圈）；卡的 `transform-origin` 用默认 center（整卡上下同时长大，读作弹窗不是卡片落位——锚在卡顶）；把 X 的皮灰阶化（观众读不出这是哪儿的账号，社会证明的出处就没了——这类卡产品皮属于内容）；只跑 verify 的 t0/t1 两帧就算验收过（那两帧大概率不在点击时刻上，光标没点到按钮会一路漏过去）；光标常驻不走；同一张卡出现两次（第二次观众直接跳过）
 - 与 subscribe-cta 的分工：那张是**语法合集**（三种平台式样串演、落地只留一段），目标是"**示范观众去点**"，用在**收尾的价值兑现点**，overlay 只有控件没有卡；本卡是**单卡精做的社会证明道具**（十层内容 + 一次关注交互 + 计数变化），目标是"**证明这个人值得看**"，用在**介绍嘉宾/账号的时刻**。两张共享"控件弹入 → 光标弧线移入 → 点击反馈链 → 状态翻转"这套机制，差别是**卡还是控件**、**证明还是号召**、**中段还是收尾**；同一条视频里可以都出现，但不要挨着放。**vs lower-third-nameplate**：那张是"这个人是谁"的最小信息（自己出镜报身份），本卡是"这个人凭什么"的完整档案 + 一次交互
+
+### douyin-follow-card
+抖音主页关注卡 · P1 · 介绍**别人**的社会证明道具（抖音版）。见 references/cards/douyin-follow-card.md。
+- 一句话：抖音用户主页卡整体 spring 弹入（0.62s 微过冲），头像/昵称/抖音号/数据/简介按阅读顺序 0.07s 错峰 **blur-in** 逐层落位，光标弧线移入点"＋关注"，同帧按钮两态交叉 + 涟漪 + 副位图标→"发私信"；粉丝数静态（同原版 X，不做 +1）
+- 定位：同 x-follow-card 的"社会证明"逻辑，但皮是**抖音对外主页**——背景默认蓝渐变、关注钮未关注红 `#EB455B`、已关注钮浅灰 `#F1F1F2` + 黑字、正文黑 `#161823`、`@` 蓝链 `#1E9FFF`。介绍"某人在抖音上"、要观众记住这个账号时用它
+- 命门：**壳与内容分两拍**（卡先弹入、内容再错峰 blur-in）；**光标必须走过去**（瞬移点击社会证明说服力归零）；**点击帧同帧反馈**（按钮两态交叉 + 涟漪 + 副位图标→"发私信"；粉丝数静态）；**多行简介整块一层**（行数只改卡高、不改错峰节奏）；**无标签栏**（IP/性别年龄/MCN/实名整栏不显示）**无入口区**（群聊/橱窗/直播/频道整块不显示，用户定版）
+- spec：**产品皮 = 内容本身**（完全还原抖音对外主页，灰阶化后"不是任何平台"）；宽度固定 900、**高度自适应**（简介行数决定）；光标落点要在按钮**终态**位置量并减箭头尖偏移、验收截点击帧（纪律同 x-follow-card）；`fromTo` 必须 `immediateRender:false`
+- 两种输入：**别人视角截图**（全提取最准）或**"我的页"截图**（删互关、去编辑主页/主播中心/订单/钱包等自管项、自动补 ＋关注/已关注∨/发私信、粉丝数取截图值为基准点击 +1）
+- 与 x-follow-card 的分工：那张是 X 资料卡（深色卡 + 蓝关注钮，介绍"某人在 X 上"）；本卡是抖音主页（渐变背景 + 红关注钮，介绍"某人在抖音上"）。同一条视频可各表其人，但勿挨着放；也不与 subscribe-cta 挨着放
 
 ### chevron-lower-third ◈
 动态人名条 · P1 · 比 lower-third-nameplate 多一档"节目感"。见 references/cards/chevron-lower-third.md。

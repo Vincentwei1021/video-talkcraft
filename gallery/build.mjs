@@ -29,7 +29,7 @@ const GITHUB = "https://github.com/Vincentwei1021/video-talkcraft";
 
 function parseCard(file) {
   const raw = readFileSync(resolve(cardsDir, file), "utf8");
-  const m = raw.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
+  const m = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
   if (!m) return null;
   const meta = {};
   for (const line of m[1].split("\n")) {
@@ -48,7 +48,7 @@ function parseEnCard(slug) {
   const p = resolve(i18nEnDir, `${slug}.md`);
   if (!existsSync(p)) return null;
   const raw = readFileSync(p, "utf8");
-  const m = raw.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
+  const m = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
   if (!m) return null;
   const meta = {};
   for (const line of m[1].split("\n")) {
