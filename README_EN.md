@@ -7,7 +7,7 @@
 [![Gallery](https://img.shields.io/badge/Gallery-live%20previews-7A5AF8)](https://vincentwei1021.github.io/video-talkcraft/)
 [![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial-blue)](LICENSE)
 
-**An agent skill for crafting high-quality voiceover-driven videos: word-level voiceover sync · 78 motion recipe cards · a 7-layer anti-slideshow shot system · triple-gate QA**
+**An agent skill for crafting high-quality voiceover-driven videos: word-level voiceover sync · 79 motion recipe cards · a 7-layer anti-slideshow shot system · triple-gate QA**
 
 [中文](README.md) | [English](README_EN.md)
 
@@ -26,7 +26,7 @@ camera moves, plain-cut subtitles, and film-grade SFX, all locked to the voice.
 > built Chinese-narration-first (mixed Chinese/English narration is fully
 > supported). Agents read them natively.
 
-🖼️ [**Browse all 78 motion previews in the live Gallery »**](https://vincentwei1021.github.io/video-talkcraft/)
+🖼️ [**Browse all 79 motion previews in the live Gallery »**](https://vincentwei1021.github.io/video-talkcraft/)
 
 [![video-talkcraft live gallery](assets/gallery-en.png)](https://vincentwei1021.github.io/video-talkcraft/)
 
@@ -38,7 +38,7 @@ camera moves, plain-cut subtitles, and film-grade SFX, all locked to the voice.
   110s mixed-language narration: median per-character offset 20–40 ms,
   worst case 200 ms, zero false QA flags. Every motion beat anchors to the
   exact word.
-- **78 motion recipe cards** — each with intent, parameters, known pitfalls,
+- **79 motion recipe cards** — each with intent, parameters, known pitfalls,
   a copy-paste self-contained Remotion tsx source, and a runnable HTML
   preview — browse them all in the
   [online Gallery](https://vincentwei1021.github.io/video-talkcraft/) or
@@ -110,8 +110,8 @@ Make a 100-second explainer about <topic>; here is the script and the audio.
 
 | Content | Description |
 | --- | --- |
-| 78 motion recipe cards | Intent, energy, parameters, implementation notes, and known pitfalls — every card ships a self-contained Remotion tsx source (`template/cards/`, copy one file and go) plus a runnable HTML demo |
-| Gallery | [Online](https://vincentwei1021.github.io/video-talkcraft/) or local (`open gallery/index.html`) — browse and autoplay all 78 previews, search by name/keyword |
+| 79 motion recipe cards | Intent, energy, parameters, implementation notes, and known pitfalls — every card ships a self-contained Remotion tsx source (`template/cards/`, copy one file and go) plus a runnable HTML demo |
+| Gallery | [Online](https://vincentwei1021.github.io/video-talkcraft/) or local (`open gallery/index.html`) — browse and autoplay all 79 previews, search by name/keyword |
 | Motion systems | CameraRig, parallax planes, idle/yield lifecycle, environment layer, six transitions, long-take world canvas (`template/motion-systems/`) |
 | Components | Plain-cut subtitles, flower-word titles, smash words, highlight sweeps, pencil draw, number rolls (`template/components/`) |
 | Pipeline scripts | Word-level timestamps (2 ASR backends), face-zone detection, stillness check, SFX presence check, QA frame extraction (`scripts/`) |
@@ -128,12 +128,12 @@ video-talkcraft/
 │   ├── shot-design.md          # 3-plane worksheet + 7 shot-type presets
 │   ├── cinematography.md       # 7-layer model, transitions, layout budget, QA gates
 │   ├── shotbook-example.md     # A full storyboard example
-│   ├── cards/                  # 78 motion recipe cards
+│   ├── cards/                  # 79 motion recipe cards
 │   ├── taxonomy.md             # Card index by category and source
 │   ├── broll-sources.md        # Attribution-free stock sources (APIs, license traps)
 │   ├── host-footage.md         # Host footage: input spec, keying, face safety zone
 │   └── demo-spec.md            # Card/demo authoring spec
-├── demos/                      # 78 runnable HTML previews (+ shared lib with embedded SFX)
+├── demos/                      # 79 runnable HTML previews (+ shared lib with embedded SFX)
 ├── gallery/                    # One-page local gallery
 ├── template/                   # Copy-paste Remotion code
 │   ├── cards/                  # Per-card self-contained tsx sources (the skill's primary reference)

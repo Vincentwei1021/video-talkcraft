@@ -28,7 +28,7 @@ const SITE = "https://vincentwei1021.github.io/video-talkcraft/";
 const GITHUB = "https://github.com/Vincentwei1021/video-talkcraft";
 
 function parseCard(file) {
-  const raw = readFileSync(resolve(cardsDir, file), "utf8");
+  const raw = readFileSync(resolve(cardsDir, file), "utf8").replace(/\r\n?/g, "\n");   // CRLF 检出（Windows autocrlf）时 `(.*)$` 吃不到 \r → 整份 frontmatter 解析为空、79 张卡中文标题全丢（PR #6 入库的 index.html 即此状态）
   const m = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
   if (!m) return null;
   const meta = {};
@@ -47,7 +47,7 @@ const i18nEnDir = resolve(root, "gallery", "i18n", "en");
 function parseEnCard(slug) {
   const p = resolve(i18nEnDir, `${slug}.md`);
   if (!existsSync(p)) return null;
-  const raw = readFileSync(p, "utf8");
+  const raw = readFileSync(p, "utf8").replace(/\r\n?/g, "\n");   // CRLF 检出（Windows autocrlf）时 `(.*)$` 吃不到 \r → 整份 frontmatter 解析为空、79 张卡中文标题全丢（PR #6 入库的 index.html 即此状态）
   const m = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
   if (!m) return null;
   const meta = {};
