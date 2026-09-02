@@ -146,9 +146,11 @@ const categories = [...new Set(cards.map((c) => c.category))];
 
 // SEO：Pages 版的 meta / Open Graph / JSON-LD（中英双语描述，画廊正文是 JS 渲染，
 // meta 层是搜索引擎与 AI 爬虫的主要抓取面）
-const DESC = "video-talkcraft 口播视频动效库：78 张动效配方卡在线预览——动态字卡、数据镜头、证据巡游、运动承接转场。" +
-  "78 motion recipe cards for voiceover-driven explainer videos — an agent skill for Claude Code / Codex, rendered with Remotion.";
-const SEO_TITLE = "video-talkcraft · 口播视频动效库 | 78 Motion Recipe Cards for Explainer Videos";
+// 卡数一律取 cards.length（曾在 78→79 时文案漏改，搜索/AI 抓取面继续显示旧数）
+const N_CARDS = cards.length;
+const DESC = `video-talkcraft 口播视频动效库：${N_CARDS} 张动效配方卡在线预览——动态字卡、数据镜头、证据巡游、运动承接转场。` +
+  `${N_CARDS} motion recipe cards for voiceover-driven explainer videos — an agent skill for Claude Code / Codex, rendered with Remotion.`;
+const SEO_TITLE = `video-talkcraft · 口播视频动效库 | ${N_CARDS} Motion Recipe Cards for Explainer Videos`;
 const OG_IMAGE = SITE + "thumbs/hand-drawn-ellipse.png";
 const JSONLD = JSON.stringify({
   "@context": "https://schema.org",
@@ -755,12 +757,12 @@ if (PAGES) {
   writeFileSync(resolve(siteDir, "llms.txt"),
     `# video-talkcraft
 
-> 口播视频生成 agent skill：字级配音同步、78 张动效配方卡、七层反 PPT 镜头系统，配合 Claude Code / Codex 用 Remotion 渲出高质量解说成片。
-> An agent skill that turns Claude Code / Codex into a motion-design studio for voiceover-driven explainer videos: word-level voiceover sync, 78 motion recipe cards, a 7-layer anti-slideshow camera system, rendered with Remotion.
+> 口播视频生成 agent skill：字级配音同步、${N_CARDS} 张动效配方卡、七层反 PPT 镜头系统，配合 Claude Code / Codex 用 Remotion 渲出高质量解说成片。
+> An agent skill that turns Claude Code / Codex into a motion-design studio for voiceover-driven explainer videos: word-level voiceover sync, ${N_CARDS} motion recipe cards, a 7-layer anti-slideshow camera system, rendered with Remotion.
 
 ## Links
 
-- Gallery (live previews of all 78 motion cards): ${SITE}
+- Gallery (live previews of all ${N_CARDS} motion cards): ${SITE}
 - GitHub repository: ${GITHUB}
 - README (中文, default): ${GITHUB}/blob/main/README.md
 - README (English): ${GITHUB}/blob/main/README_EN.md
