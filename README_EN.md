@@ -30,6 +30,33 @@ camera moves, plain-cut subtitles, and film-grade SFX, all locked to the voice.
 
 [![video-talkcraft live gallery](assets/gallery-en.png)](https://vincentwei1021.github.io/video-talkcraft/)
 
+## 🆕 What's new
+
+**2026-09-02**
+
+- **Motion workbench `workbench/`** — a CapCut-style post-production desk for finished videos: multi-track timeline,
+  library (media / motion cards / SFX / backgrounds), schema-driven inspector, live preview and one-click **Export**.
+  All 79 motion cards are parameterized (copy, colors, sizes, positions editable; timing vitals stay fixed).
+  A narration video can be split into seven kinds of editable units — subtitles / transitions / environment /
+  avatar / shots / voiceover / SFX. The skill opens it for you after delivery. → [**Illustrated guide (zh)**](workbench/GUIDE.md)
+- **Faster renders: shot-segmented master rendering** — `scripts/render_shots.mjs` renders per-shot segments in
+  parallel (single-process inside each segment to keep rasterization consistent), then concatenates, mixes in the
+  full audio track and asserts frame counts; changing one shot re-renders only that segment ± neighbours.
+  `scripts/render_stills.mjs` renders batches of stills from a single bundle.
+- **Fewer review tokens** — `scripts/contact_sheet.py` tiles QA frames into 3×4 sheets for the reviewer subagent;
+  burst triples are extracted only at anchors flagged `"burst": true` (they used to be 2/3 of the review material).
+- **One review round, then deliver** — after the machine gates pass, a single independent review round fixes
+  P0/P1 and the video ships; further rounds are opt-in (3 max) instead of "loop until clean".
+
+| Measured (201 s vertical video) | Before | Now |
+|---|---|---|
+| Full first render | 13 min | 9 min |
+| New video with audio after changing one shot | full re-render | 53 s |
+| 43 sampled stills | 11 min | ~1 min |
+| Reviewer reading 160 QA frames | ≈160k tokens / 21 min | ≈40k tokens / 7 min (sheets) |
+
+- New card: community-contributed **douyin-follow-card** ([@scpcn01vision-oss](https://github.com/scpcn01vision-oss)) — 79 cards total.
+
 ## ✨ Highlights
 
 - **Word-level voiceover sync** — `scripts/timestamps_cpu.py` aligns

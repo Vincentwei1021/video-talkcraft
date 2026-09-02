@@ -24,6 +24,30 @@
 
 [![video-talkcraft 在线画廊](assets/gallery-zh.png)](https://vincentwei1021.github.io/video-talkcraft/)
 
+## 🆕 更新（What's new）
+
+**2026-09-02**
+
+- **动效工作台 `workbench/`**——剪映式的成片后期台：多轨时间线 + 素材库（素材 / 动效库 / 音效 / 背景）+
+  schema 属性面板 + 实时预览 + 一键「导出成片」。79 张动效卡 100% 参数化（文案 / 颜色 / 字号 / 位置可调，
+  节奏命门固定不暴露）；口播成片可一键拆成字幕 / 转场 / 环境 / 数字人 / 镜头 / 配音 / 音效七类多轨单元逐项微调。
+  skill 交付成片后会主动打开它。→ [**图文指南 workbench/GUIDE.md**](workbench/GUIDE.md)
+- **渲染提速：分段渲染母版制**——`scripts/render_shots.mjs` 按镜头切段并行渲、段内单进程保光栅一致，
+  拼装 + 整条音轨混入 + 帧数断言；改一个镜头只重渲该段±邻段。`scripts/render_stills.mjs` 一次 bundle 批量出静帧。
+- **评审 token 减量**——`scripts/contact_sheet.py` 把 QA 帧拼成 3×4 网格给评审子代理整版浏览；连拍三帧对只对标了
+  `"burst": true` 的状态切换锚点抽（曾占评审材料 2/3）。
+- **一轮审片即交付**——机器闸全过后只做 1 轮独立审片、修完 P0/P1 即交付，再询问是否续审（累计封顶 3 轮），
+  替代旧的"循环到全过"。
+
+| 实测（201s 竖屏片） | 之前 | 现在 |
+|---|---|---|
+| 全片首渲 | 13 min | 9 min |
+| 改一个镜头出有声新片 | 整渲 | 53 s |
+| 43 张静帧抽样 | 11 min | ~1 min |
+| 评审读 160 张 QA 帧 | ≈16 万 token / 21 min | ≈4 万 token / 7 min（拼图） |
+
+- 新卡：社区贡献 **douyin-follow-card 抖音主页关注卡**（[@scpcn01vision-oss](https://github.com/scpcn01vision-oss)），库存 79 张。
+
 ## ✨ 亮点
 
 - **字级配音同步**——`scripts/timestamps_cpu.py` 把口播稿对齐到音频
