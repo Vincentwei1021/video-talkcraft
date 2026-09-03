@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>素材呈现拓展 · 镜头卡实验室（2026-09-04）</title>
+<script src="../../_lib/gsap.min.js"></script>
+<style>
+  /* ============ 实验室外壳（非 demo-shell：一页多舞台） ============ */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: #0e0e12; color: #e6e6ea;
+    font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", -apple-system, sans-serif;
+    line-height: 1.6;
+  }
+  a { color: #2997ff; text-decoration: none; }
+  code { font-family: "SF Mono", Menlo, monospace; font-size: 0.86em; background: #1b1b22; padding: 1px 6px; border-radius: 5px; color: #b9c8ff; }
+  header {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(14,14,18,.86); backdrop-filter: blur(14px);
+    border-bottom: 1px solid #23232b; padding: 14px 32px;
+    display: flex; align-items: center; gap: 22px; flex-wrap: wrap;
+  }
+  header h1 { font-size: 17px; font-weight: 700; letter-spacing: -0.2px; }
+  header h1 small { color: #8a8a94; font-weight: 500; margin-left: 10px; font-size: 12px; }
+  header nav { display: flex; gap: 8px; margin-left: auto; }
+  header nav a, header button {
+    font-size: 12.5px; padding: 6px 12px; border-radius: 999px; border: 1px solid #2b2b34;
+    background: #16161c; color: #d0d0d8; cursor: pointer; font-family: inherit;
+  }
+  header button.on { background: #2997ff; color: #fff; border-color: #2997ff; }
+  .intro { max-width: 1180px; margin: 30px auto 6px; padding: 0 32px; color: #b6b6c0; font-size: 14px; }
+  .intro p { margin-bottom: 8px; }
+  .intro b { color: #fff; }
+  section { max-width: 1180px; margin: 0 auto; padding: 26px 32px 10px; }
+  section > h2 { font-size: 22px; font-weight: 700; margin: 26px 0 6px; letter-spacing: -0.3px; }
+  section > h2 span { color: #2997ff; margin-right: 10px; }
+  section > .lead { color: #a9a9b4; font-size: 14px; margin-bottom: 22px; max-width: 980px; }
+  section > .lead li { margin-left: 18px; margin-bottom: 3px; }
+
+  .lab-card {
+    display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 22px;
+    padding: 22px 0 30px; border-top: 1px solid #1e1e26;
+  }
+  @media (max-width: 1000px) { .lab-card { grid-template-columns: 1fr; } }
+  .stage-wrap { position: relative; width: 100%; border-radius: 12px; overflow: hidden; background: #000; }
+  .stage-scaler { transform-origin: top left; }
+  .stage {
+    position: relative; width: 960px; height: 540px; overflow: hidden; background: #0b0b0f;
+    font-family: inherit;
+  }
+  .hud {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 9;
+    display: flex; gap: 8px; align-items: center; padding: 8px 12px;
+    background: linear-gradient(180deg, transparent, rgba(0,0,0,.55));
+    opacity: 0; transition: opacity .2s;
+    font-size: 12px; color: #fff;
+  }
+  .stage-wrap:hover .hud { opacity: 1; }
+  .hud button {
+    font: inherit; font-size: 12px; color: #fff; background: rgba(255,255,255,.14);
+    border: 1px solid rgba(255,255,255,.25); border-radius: 999px; padding: 3px 10px; cursor: pointer;
+  }
+  .hud button.on { background: #2997ff; border-color: #2997ff; }
+  .hud .t { margin-left: auto; font-variant-numeric: tabular-nums; opacity: .8; }
+  .stage.media-missing::after {
+    content: "素材未就位：运行 fetch-media.sh 或联网后刷新"; position: absolute; inset: auto 12px 12px auto;
+    font-size: 12px; color: #ffb4b4; background: rgba(0,0,0,.6); padding: 4px 10px; border-radius: 6px;
+  }
+  .notes h3 { font-size: 15px; font-weight: 700; margin-bottom: 6px; line-height: 1.4; }
+  .notes h3 code { margin-left: 6px; }
+  .notes .one { color: #d8d8e0; font-size: 13.5px; margin-bottom: 10px; }
+  .notes ul { list-style: none; font-size: 12.5px; color: #a9a9b4; }
+  .notes li { margin-bottom: 6px; padding-left: 12px; position: relative; }
+  .notes li::before { content: ""; position: absolute; left: 0; top: 9px; width: 4px; height: 4px; border-radius: 50%; background: #2997ff; }
+  .notes li b { color: #e6e6ea; font-weight: 600; }
+  .notes .tag { display: inline-block; font-size: 11px; color: #8fb8ff; border: 1px solid #27405f; border-radius: 999px; padding: 1px 8px; margin: 0 4px 8px 0; }
+  footer { max-width: 1180px; margin: 30px auto 60px; padding: 0 32px; color: #77777f; font-size: 12px; line-height: 1.8; }
+
+  /* ============ 舞台内通用件 ============ */
+  .fill { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+  .cam { position: absolute; inset: 0; will-change: transform; transform-origin: 0 0; }
+  .world { position: absolute; inset: 0; perspective: 1000px; perspective-origin: 50% 46%; }
+  .photo {
+    position: absolute; background: #fff; padding: 10px; border-radius: 12px;
+    box-shadow: 0 12px 60px rgba(0,0,0,.22);
+  }
+  .photo img, .photo video { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: 5px; }
+  .cap { position: absolute; font-size: 11px; letter-spacing: .4px; color: rgba(255,255,255,.62); }
+  .sub {
+    position: absolute; left: 50%; bottom: 34px; transform: translateX(-50%);
+    font-size: 22px; font-weight: 600; color: #fff; white-space: nowrap;
+    text-shadow: 0 1px 2px rgba(0,0,0,.6), 0 0 18px rgba(0,0,0,.5);
+  }
+  .poi { position: absolute; width: 26px; height: 26px; border: 2px solid rgba(255,255,255,.75); border-radius: 50%; margin: -13px 0 0 -13px; }
+  .poi::after { content: attr(data-l); position: absolute; left: 30px; top: 1px; font-size: 12px; color: #fff; text-shadow: 0 1px 2px #000; }
+
+  /* ---- A1 ---- */
+  #a1 .bed { filter: brightness(.42) saturate(.55); }
+  #a1 .scrim { position: absolute; inset: 0;
+    background:
+      linear-gradient(180deg, rgba(8,8,12,.10) 0%, rgba(8,8,12,0) 32%, rgba(8,8,12,.78) 100%),
+      radial-gradient(ellipse at 50% 45%, rgba(0,0,0,0) 52%, rgba(0,0,0,.55) 100%); }
+  #a1 .title { position: absolute; left: 90px; color: #fff; font-weight: 700; letter-spacing: -0.5px; }
+  #a1 .t1 { top: 150px; font-size: 58px; line-height: 1.15; }
+  #a1 .t2 { top: 226px; font-size: 58px; line-height: 1.15; }
+  #a1 .w { display: inline-block; margin-right: 12px; }
+  #a1 .acc { color: #2997ff; }
+  #a1 .meta { position: absolute; left: 92px; top: 316px; font-size: 16px; color: rgba(255,255,255,.72); letter-spacing: .5px; }
+
+  /* ---- A2 ---- */
+  #a2 .bed { filter: grayscale(1) contrast(1.15) brightness(.62); }
+  #a2 .tint-shadow { position: absolute; inset: 0; background: #0a1f45; mix-blend-mode: lighten; }
+  #a2 .tint-high { position: absolute; inset: 0; background: #2f7fdc; mix-blend-mode: multiply; opacity: .9; }
+  #a2 .vig { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 50%, transparent 50%, rgba(0,0,0,.5) 100%); }
+  #a2 .stat { position: absolute; left: 90px; top: 140px; color: #fff; }
+  #a2 .num { font-size: 132px; font-weight: 800; letter-spacing: -4px; line-height: 1; font-variant-numeric: tabular-nums; display: flex; align-items: baseline; }
+  #a2 .num small { font-size: 44px; font-weight: 700; letter-spacing: -1px; margin-left: 10px; }
+  #a2 .lbl { font-size: 24px; font-weight: 600; margin-top: 14px; color: rgba(255,255,255,.92); }
+  #a2 .chips { position: absolute; left: 90px; top: 380px; display: flex; gap: 12px; }
+  #a2 .chip { font-size: 15px; color: #fff; border: 1px solid rgba(255,255,255,.45); border-radius: 999px; padding: 6px 16px; backdrop-filter: blur(6px); background: rgba(255,255,255,.08); }
+
+  /* ---- A3 ---- */
+  #a3 .echo { filter: blur(26px) brightness(.45) saturate(1.15); transform: scale(1.25); }
+  #a3 .fgcard { left: 372px; top: 88px; width: 530px; height: 340px; }
+  #a3 .ttl { position: absolute; left: 70px; top: 150px; width: 280px; color: #fff; }
+  #a3 .ttl h4 { font-size: 34px; font-weight: 700; line-height: 1.25; letter-spacing: -0.6px; }
+  #a3 .ttl p { font-size: 15px; color: rgba(255,255,255,.72); margin-top: 14px; line-height: 1.65; }
+  #a3 .ttl .line { display: block; }
+
+  /* ---- A4 ---- */
+  #a4 .bed { filter: brightness(var(--b, .5)) saturate(.7) blur(var(--bl, 0px)); transform: scale(1.1); }
+  #a4 .fg { position: absolute; inset: 0; }
+  #a4 .photo { width: 420px; height: 290px; }
+  #a4 .c1 { left: 300px; top: 100px; }
+  #a4 .c2 { left: 330px; top: 130px; transform: rotate(3deg); }
+  #a4 .hint { position: absolute; left: 60px; top: 44px; font-size: 14px; color: rgba(255,255,255,.65); letter-spacing: 1px; }
+
+  /* ---- B1 ---- */
+  #b1 .path { position: absolute; inset: 0; pointer-events: none; }
+  /* ---- B2 ---- */
+  #b2 .layer { position: absolute; inset: -6% -8%; width: 116%; height: 112%; object-fit: cover; }
+  #b2 .far  { -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 40%, transparent 50%); mask-image: linear-gradient(180deg, #000 0%, #000 40%, transparent 50%); }
+  #b2 .mid  { -webkit-mask-image: linear-gradient(180deg, transparent 36%, #000 46%, #000 70%, transparent 80%); mask-image: linear-gradient(180deg, transparent 36%, #000 46%, #000 70%, transparent 80%); }
+  #b2 .near { -webkit-mask-image: linear-gradient(180deg, transparent 66%, #000 78%); mask-image: linear-gradient(180deg, transparent 66%, #000 78%); }
+  #b2 .lbl { position: absolute; right: 40px; font-size: 12px; color: rgba(255,255,255,.7); text-shadow: 0 1px 2px #000; }
+
+  /* ---- B3 / B4 ---- */
+  .desk { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 30%, #2a2a33 0%, #131318 70%); }
+  .p3d { position: absolute; left: 50%; top: 50%; transform-style: preserve-3d; will-change: transform; }
+  .p3d .photo { position: absolute; inset: 0; }
+  .p3d .shadow { position: absolute; inset: 0; border-radius: 12px; background: #000; filter: blur(30px); opacity: .55; transform: translateZ(-40px) translateY(24px) scale(.96); }
+
+  /* ---- B5 ---- */
+  #b5 .lbl { position: absolute; top: 30px; left: 40px; font-size: 13px; color: rgba(255,255,255,.7); text-shadow: 0 1px 2px #000; }
+
+  /* ---- C1 ---- */
+  #c1 { background: #f5f5f7; }
+  #c1 .photo { box-shadow: 0 12px 60px rgba(0,0,0,.22); }
+  #c1 .hero { left: 62px; top: 66px; width: 546px; height: 388px; }
+  #c1 .s1 { left: 650px; top: 66px; width: 250px; height: 180px; }
+  #c1 .s2 { left: 650px; top: 274px; width: 250px; height: 180px; }
+  #c1 .c { color: #6e6e73; font-size: 12px; position: absolute; }
+  #c1 .ring { position: absolute; inset: -6px; border: 3px solid #0066cc; border-radius: 16px; opacity: 0; }
+
+  /* ---- C2 ---- */
+  #c2 .pane { position: absolute; inset: 0; }
+  #c2 .divider { position: absolute; top: 0; bottom: 0; width: 3px; background: #fff; box-shadow: 0 0 18px rgba(0,0,0,.6); margin-left: -1.5px; }
+  #c2 .knob { position: absolute; top: 50%; left: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; background: #fff; box-shadow: 0 6px 20px rgba(0,0,0,.4); display: flex; align-items: center; justify-content: center; color: #111; font-size: 14px; font-weight: 800; letter-spacing: -2px; }
+  #c2 .lbl { position: absolute; top: 34px; font-size: 20px; font-weight: 700; color: #fff; padding: 6px 16px; border-radius: 999px; background: rgba(0,0,0,.45); backdrop-filter: blur(6px); }
+  #c2 .lbl.l { left: 40px; } #c2 .lbl.r { right: 40px; }
+
+  /* ---- C3 ---- */
+  #c3 .world { perspective: 1200px; perspective-origin: 50% 50%; background: radial-gradient(ellipse at 50% 40%, #26262e, #0f0f13 75%); }
+  #c3 .wall { position: absolute; left: 0; top: 0; height: 540px; width: 1700px; transform-style: preserve-3d; }
+  #c3 .photo { width: 430px; height: 290px; top: 125px; }
+  #c3 .floor { position: absolute; left: -400px; right: -400px; top: 430px; height: 300px; background: linear-gradient(180deg, rgba(255,255,255,.06), transparent 60%); transform: rotateX(80deg); transform-origin: top; }
+
+  /* ---- C4 ---- */
+  #c4 { background: #101014; }
+  #c4 .strip { position: absolute; left: 0; top: 190px; display: flex; gap: 24px; will-change: transform; }
+  #c4 .item { flex: 0 0 240px; height: 160px; border-radius: 10px; overflow: hidden; background: #fff; padding: 6px; position: relative; }
+  #c4 .item img { width: 100%; height: 100%; object-fit: cover; border-radius: 5px; display: block; }
+  #c4 .item .n { position: absolute; left: 14px; bottom: 12px; font-size: 12px; color: #fff; background: rgba(0,0,0,.55); padding: 2px 8px; border-radius: 4px; }
+  #c4 .center { position: absolute; left: 50%; top: 170px; width: 280px; height: 200px; margin-left: -140px; border: 1px dashed rgba(255,255,255,.18); border-radius: 14px; }
+  #c4 .hdr { position: absolute; left: 60px; top: 70px; font-size: 26px; font-weight: 700; color: #fff; }
+  #c4 .hdr small { display: block; font-size: 13px; color: rgba(255,255,255,.55); font-weight: 500; margin-top: 4px; }
+
+  /* ---- C5 ---- */
+  #c5 { background: #f5f5f7; }
+  #c5 .tile { position: absolute; background: #fff; padding: 8px; border-radius: 12px; box-shadow: 0 12px 60px rgba(0,0,0,.22); overflow: hidden; }
+  #c5 .tile img, #c5 .tile video { width: 100%; height: 100%; object-fit: cover; border-radius: 6px; display: block; }
+  #c5 .tile .k { position: absolute; left: 18px; bottom: 16px; font-size: 13px; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.7); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>素材呈现拓展 · 镜头卡实验室 <small>2026-09-04 · 14 张原型 · 尚未定版入库</small></h1>
+  <nav>
+    <a href="#secA">A 视频底床</a><a href="#secB">B 图片运镜</a><a href="#secC">C 多素材同屏</a>
+    <button id="spd1" class="on">1x</button><button id="spd03">0.3x</button>
+  </nav>
+</header>
+
+<div class="intro">
+  <p><b>怎么看</b>：每张卡是一个 960×540 舞台，滚到可见处自动循环播放；悬停出控制条（重播 / 慢放）。右侧说明写的是<b>机制 · 关键参数 · 命门 · 与已有卡的分界</b>。
+  素材：视频取 Mixkit <b>Free License</b>（逐条核过授权标签），图片取 Lorem Picsum 稳定 ID；均不进库，`fetch-media.sh` 可重下，缺素材时自动回落到远程直链。</p>
+  <p><b>三个问题</b>：① 找到的 video 素材能不能当低存在感的<b>动态背景</b>，在上面叠字幕动效和核心素材的呈现动效；② <b>图片运镜</b>能不能比推拉更丰富（对角、横移、2.5D、3D 各角度）；③ <b>多素材同屏</b>时排版、入场、运镜怎么配合。每组卡后附「定版建议」。</p>
+</div>
+
+<!-- =============================== A =============================== -->
+<section id="secA">
+  <h2><span>A</span>视频素材做低存在感动态背景（底床）</h2>
+  <div class="lead">
+    调研结论（详见 README.md §A）：业界不靠单一"调低透明度"——透明度叠在浅底上会把画面洗成灰雾。标准处理链是
+    <b>压暗（brightness .35~.5）+ 去饱和（.5~.7）+ 渐变遮罩带（scrim）压住文字区 + 极慢运动（≤0.6%/s 缩放）</b>，
+    可选<b>模糊</b>（同源模糊底床 20~30px）或<b>双色调</b>（统一到主题色）。底床是 L5/L6 环境层：
+    前景核心素材入场时它要<b>再让一档</b>（压暗 + 失焦），前景走了再回来。
+    <ul>
+      <li>选片：慢内容（延时、光斑、俯拍、人流虚化），<b>避开可读文字与正脸</b>——它们会抢字幕的视线。</li>
+      <li>视差：底床 0.5 / 内容 1.0（对应 G2 Plane），底床相机运动只做缩放或极慢横移，不做摇移。</li>
+      <li>循环：底床片长 &lt; 段落时长时用交叉淡化接缝（0.5s），不硬跳。</li>
+    </ul>
+  </div>
+
+  <article class="lab-card" data-card="bed-scrim-typo">
+    <div class="stage-wrap"><div class="stage-scaler"><div class="stage" id="a1">
+      <div class="cam bedcam"><video class="fill bed" data-v="tokyo"></video></div>
+      <div class="scrim"></div>
+      <div class="title t1"><span class="w">今年</span><span class="w">一半的</span><span class="w acc">短视频</span><span class="w">开头</span></div>
+      <div class="title t2"><span class="w">都长成了</span><span class="w">同一个样子</span></div>
+      <div class="meta">数据来源：抖音创作者报告 · 二〇二六</div>
+      <div class="sub">这不是巧合 是算法在替你选开头</div>
+    </div></div></div>
+    <aside class="notes">
+      <h3>A1 · 压暗底床 + 标题逐词升起<code>bed-scrim-typo</code></h3>
+      <span class="tag">底床基准式</span><span class="tag">深底</span>
+      <p class="one">实拍夜景退成底床：brightness .42 + saturate .55 + 底部 78% 渐变遮罩带；底床 12s 只缩放 1→1.06。标题逐词 26px 升起（错峰 70ms），底部字幕素排。</p>
+      <ul>
+        <li><b>命门</b>：文字区必须有 scrim——底床上任何亮斑一穿到字后面就不可读；scrim 是渐变带不是整屏罩（整屏罩＝又回到"调透明度"）。</li>
+        <li><b>参数</b>：深底 brightness .40~.50 / 浅底方案改用 A3 同源模糊或白色 scrim .75；底床缩放 ≤0.6%/s。</li>
+        <li><b>坑</b>：底床里有街牌、正脸；底床与强调色同色系（蓝夜景 + 蓝关键词要么换色要么加白）。</li>
+        <li><b>分界</b>：这是"背景面"卡，不是主体卡——同屏主体仍按 ≤3 组算，底床不计入。</li>
+      </ul>
+    </aside>
+  </article>
+
+  <article class="lab-card" data-card="bed-duotone-wash">
+    <div class="stage-wrap"><div class="stage-scaler"><div class="stage" id="a2">
+      <div class="cam bedcam"><video class="fill bed" data-v="crowd"></video></div>
+      <div class="tint-shadow"></div><div class="tint-high"></div><div class="vig"></div>
+      <div class="stat">
+        <div class="num"><span class="n">0</span><small>亿</small></div>
+        <div class="lbl">每天在通勤路上刷视频的人</div>
+      </div>
+      <div class="chips"><div class="chip">地铁 41%</div><div class="chip">公交 27%</div><div class="chip">步行 19%</div></div>
+    </div></div></div>
+    <aside class="notes">
+      <h3>A2 · 双色调底床 + 数字生长<code>bed-duotone-wash</code></h3>
+      <span class="tag">统一到主题色</span><span class="tag">数据镜头背景</span>
+      <p class="one">人流实拍 grayscale → 两层混合（深色 lighten 提黑 + 主题色 multiply 染白）成双色调，任何素材都被拉进同一色板；上面白字数字滚动 + chips 错峰。</p>
+      <ul>
+        <li><b>命门</b>：先去色再着色（直接叠半透明色块会脏）；两层混合的深色取主题色的暗调，不是纯黑。</li>
+        <li><b>参数</b>：grayscale 1 / contrast 1.15 / brightness .62；multiply 层 opacity .85~.95。底床横移 ±20px/14s。</li>
+        <li><b>用处</b>：换素材不换气质——一段里连用三条不同来源的 B-roll 底床仍像同一部片。</li>
+        <li><b>坑</b>：双色调 + 彩色前景图片会打架（前景照片要么白边卡隔开，要么也去色）。</li>
+      </ul>
+    </aside>
+  </article>
+
+  <article class="lab-card" data-card="bed-echo-blur">
+    <div class="stage-wrap"><div class="stage-scaler"><div class="stage" id="a3">
+      <video class="fill echo" data-v="typing"></video>
+      <div class="ttl">
+        <h4><span class="line">同一段素材</span><span class="line">既是主角</span><span class="line">也是背景</span></h4>
+        <p><span class="line">前景清晰 · 背景同源模糊 26px</span><span class="line">色彩天然统一，竖屏素材放横屏也成立</span></p>
+      </div>
+      <div class="photo fgcard"><video class="fill" data-v="typing"></video></div>
+    </div></div></div>
+    <aside class="notes">
+      <h3>A3 · 同源模糊底床<code>bed-echo-blur</code></h3>
+      <span class="tag">核心视频素材呈现</span><span class="tag">浅/深底皆可</span>
+      <p class="one">前景核心视频装白边卡摆在右侧，同一条视频放大 1.25 + blur 26px + brightness .45 铺满当底床——不用找第二条素材，颜色一定和谐。</p>
+      <ul>
+        <li><b>命门</b>：两条 video 同一 src 同起播（demo 里重播时一起归零）；底床 blur ≥20px 才读作"氛围"而不是"糊了"。</li>
+        <li><b>参数</b>：卡宽 55%，白边 10 + 唯一投影；底床 12s 里 1.25→1.32 慢推，前景卡只 1→1.03。</li>
+        <li><b>用处</b>：竖屏手机录屏/竖拍素材放横屏（代替黑边）；只有一条可用素材的镜头。</li>
+        <li><b>坑</b>：前景卡与底床同速运动（读作整屏在缩放，深度感全丢——两层速度必须错开）。</li>
+      </ul>
+    </aside>
+  </article>
+
+  <article class="lab-card" data-card="bed-dim-on-focus">
+    <div class="stage-wrap"><div class="stage-scaler"><div class="stage" id="a4">
+      <div class="cam bedcam"><video class="fill bed" data-v="ocean"></video></div>
+      <div class="hint">底床让位 · 视差 0.5 / 1.0</div>
+      <div class="cam fg">
+        <div class="photo c1"><img data-p="1074" alt=""></div>
+        <div class="photo c2"><img data-p="1069" alt=""></div>
+      </div>
+      <div class="sub">证据一张一张上来 底床每次都退一步</div>
+    </div></div></div>
+    <aside class="notes">
+      <h3>A4 · 底床让位 + 视差<code>bed-dim-on-focus</code></h3>
+      <span class="tag">G3 让位用在背景上</span><span class="tag">G2 视差</span>
+      <p class="one">海面实拍底床 brightness .55 慢横移；每张证据照片弹入那一帧底床再压到 .28 并失焦 5px（0.5s），照片退场底床回到 .55；前景层横移速度是底床的 2 倍。</p>
+      <ul>
+        <li><b>命门</b>：让位与入场同帧起（延后即读作"背景坏了"）；回来的速度要比让位慢一点（.6s vs .5s）。</li>
+        <li><b>参数</b>：底床 .55 → 让位 .28 / blur 5px；视差比 0.5 : 1.0（底床 30px 对前景 60px / 9s）。选片教训：城市夜景原片本身太暗，.5 再压就是黑屏——底床选片要看原片平均亮度。</li>
+        <li><b>用处</b>：一段口播里连出多张证据，底床全程在，但每次证据上来它都知道退一步。</li>
+        <li><b>坑</b>：底床让位用透明度（透出底色变灰）——用 brightness 才是"暗下去"。</li>
+      </ul>
+    </aside>
+  </article>
+
+  <div class="lead"><b>定版建议</b>：A1 作为"底床基准式"进 shot-design.md 背景面菜单（空间基底新增「实拍底床」一项）；A3 单独成卡（它同时解决竖屏素材问题）；A2/A4 的处理链写进 design-language 环境层参数表，不必各自成卡。</div>
+</section>
+
+<!-- =============================== B =============================== -->
+<section id="secB">
+  <h2><span>B</span>图片运镜拓展（在已有六式之外）</h2>
+  <div class="lead">
+    已有：缓推 / 缓拉 / 横向摇移 / 3D 立面倾斜 / 环绕漂移 / 长页兴趣点巡游。调研结论（README §B）：缺的不是更多"姿态"，而是
+    <b>①带方向的复合运动</b>（推与移同时，两点之间）、<b>②假深度</b>（单图 2.5D）、<b>③有事件感的 3D 姿态变化</b>（从一个角度"拿起来/转过来"），
+    <b>④变速</b>（速度曲线本身是语言）。所有卡沿用运镜共有纪律：相机层唯一被 transform、末速非零、≤1.2 倍、素材分辩率 ≥ 画幅 × 最大缩放。
+  </div>
+
+  <article class="lab-card" data-card="diagonal-dolly-pan">
+    <div class="stage-wrap"><div class="stage-scaler"><div class="stage" id="b1">
+      <div class="cam"><img class="fill" data-p="1015" alt="">
+        <div class="poi" data-l="A 水面" style="left:300px;top:330px"></div>
+        <div class="poi" data-l="B 山脊" style="left:700px;top:170px"></div>
+      </div>
+      <div class="sub">镜头从水面推向山脊 一条对角线</div>
+    </div></div></div>
+    <aside class="notes">
+      <h3>B1 · 对角推移<code>diagonal-dolly-pan</code></h3>
+      <span class="tag">两点之间</span><span class="tag">推 + 移复合</span>
+      <p class="one">镜头从兴趣点 A（1.08 倍）沿对角线推到兴趣点 B（1.22 倍）：缩放与位移同一条曲线（camEase 末速 0.6），到 B 后按末速续走。位移量由"把 B 搬到画面正中"反解，不手敲。</p>
+      <ul>
+        <li><b>命门</b>：位移与缩放必须同一进度驱动（分两条 tween 会在中途甩出一段横漂）；B 点由反解得出并钳制在不露边范围内。</li>
+        <li><b>参数</b>：zoom 1.08→1.22 / 7s / 末速比 .6；两点距离 ≤ 画面对角 45%。</li>
+        <li><b>分界</b>：slow-push-in 是一点原地推；sway-parallax 是不变焦横移；本卡是"从这儿到那儿"——有叙事方向。</li>
+        <li><b>坑</b>：A、B 挑在同一水平线（那就是横移）；推到 B 后停死。</li>
+      </ul>
+    </aside>
+  </article>
+
+  <article class="lab-card" data-card="sliced-parallax-2.5d">
+    <div class="stage-wrap"><div class="stage-scaler"><div class="stage" id="b2">
+      <div class="cam">
+        <img class="layer far"  data-p="1018" alt="">
+        <img class="layer mid"  data-p="1018" alt="">
+        <img class="layer near" data-p="1018" alt="">
+      </div>
+      <div class="lbl" style="top:40px">远景 ×0.65</div>
+      <div class="lbl" style="top:270px">中景 ×1.0</div>
+      <div class="lbl" style="top:470px">近景 ×1.55</div>
+    </div></div></div>
+    <aside class="notes">
+      <h3>B2 · 切片视差 2.5D<code>sliced-parallax-2.5d</code></h3>
+      <span class="tag">单图假深度</span><span class="tag">不需抠像</span>
+      <p class="one">同一张风景图叠三层，用渐变蒙版切成远/中/近三个横带；横移时三层速度 0.65 : 1 : 1.55，近层再多推 4%。蒙版重叠区做 8~10% 的柔边，把三层错位藏进过渡带。</p>
+      <ul>
+        <li><b>命门</b>：柔边宽度 ≥ 两层最大错位量（否则过渡带出现双影）；层的外扩量 ≥ 该层位移量（不露底）。</li>
+        <li><b>适用</b>：有明确远中近分层的风景/街景；<b>不适用</b>人物、建筑立面（水平切会切断竖直结构）。</li>
+        <li><b>进阶</b>：真 2.5D 要抠前景主体（host-footage.md 的 CPU 分割可直接复用于照片主体）+ 背景补全，深度图工具见 README。</li>
+        <li><b>坑</b>：速度比拉到 2 以上（过渡带撕裂）；三层都加缩放（变成呼吸）。</li>
+      </ul>
+    </aside>
+  </article>
+
+  <article class="lab-card" data-card="flatlay-rise">
+    <div class="stage-wrap"><div class="stage-scaler"><div class="stage" id="b3">
+      <div class="desk"></div>
+      <div class="world"><div class="p3d" style="width:660px;height:400px;margin:-232px 0 0 -330px">
+        <div class="shadow"></div>
+        <div class="photo"><img data-p="1057" alt=""></div>
+      </div></div>
+      <div class="sub">先看见它躺在桌上 再把它拿起来看</div>
+    </div></div></div>
+    <aside class="notes">
+      <h3>B3 · 俯拍起身<code>flatlay-rise</code></h3>
+      <span class="tag">3D 姿态事件</span><span class="tag">俯 → 正</span>
+      <p class="one">照片以 58° 俯角"躺"在桌面（带接触阴影）静置 0.4s，1.3s 内起身到正视并推近，之后缓推续走 5s；结尾 1.1s 放回去。起身是事件，允许收住；hold 期不许停。</p>
+      <ul>
+        <li><b>命门</b>：阴影跟姿态走（躺着时阴影大而近、立起来后小而远）；起身与推近同一条 inOut。</li>
+        <li><b>参数</b>：rotateX 58°→0 / 1.3s power2.inOut；scale .9→1.0→1.06；perspective 1000。</li>
+        <li><b>分界</b>：tilt-3d-page 是"立面姿态 + 静态展示"，本卡是"从俯到正"的动作——讲"我们拿到了这份东西"时用。</li>
+        <li><b>坑</b>：俯角 &gt;65°（读作一条线）；起身太快 &lt;0.8s（像弹起）。</li>
+      </ul>
+    </aside>
+  </article>
+
+  <article class="lab-card" data-card="swing-to-face">
+    <div class="stage-wrap"><div class="stage-scaler"><div class="stage" id="b4">
+      <div class="desk"></div>
+      <div class="world" style="perspective:1100px"><div class="p3d" style="width:620px;height:390px;margin:-228px 0 0 -310px">
+        <div class="shadow"></div>
+        <div class="photo"><img data-p="1074" alt=""></div>
+      </div></div>
+      <div class="sub">从侧面走到正面 然后一直看着它</div>
+    </div></div></div>
+    <aside class="notes">
+      <h3>B4 · 侧角转正<code>swing-to-face</code></h3>
+      <span class="tag">3D 姿态事件</span><span class="tag">侧 → 正</span>
+      <p class="one">照片从 −38° 侧角、偏左 140px 起，2.2s 转到正对镜头并推到 1.0，随后继续极慢推到 1.05 并带 +3° 的反向余摆——转正是事件，余摆是"永不静止"。</p>
+      <ul>
+        <li><b>命门</b>：转正后必须过 0°一点再回（余摆），停在 0° 那帧就是 PPT；阴影随角度往反侧偏移。</li>
+        <li><b>参数</b>：rotateY −38°→0→+3° / 2.2s + 5s；translateX −140→0；perspective 1100。</li>
+        <li><b>分界</b>：orbit-drift 是围着素材小幅漂（无始无终）；本卡有明确"来到正面"的一拍——讲"现在正式看它"。</li>
+        <li><b>坑</b>：起始角 &gt;45°（看不清是什么）；转正与推近分两条曲线（先到位再放大，读作两个动作）。</li>
+      </ul>
+    </aside>
+  </article>
+
+  <article class="lab-card" data-card="ramp-pan-sweep">
+    <div class="stage-wrap"><div class="stage-scaler"><div class="stage" id="b5">
+      <div class="cam"><img class="fill" data-p="1067" alt=""></div>
+      <div class="lbl">变速摇移 · 停 → 甩 → 停</div>
+      <div class="sub">这一头是老城 那一头是新区</div>
+    </div></div></div>
+    <aside class="notes">
+      <h3>B5 · 变速摇移<code>ramp-pan-sweep</code></h3>
+      <span class="tag">速度曲线即语言</span><span class="tag">同图两点</span>
+      <p class="one">宽幅素材放大到 1.5 倍，镜头在左端停 1.2s（带漂）→ 0.55s 甩到右端（运动模糊随速度 0→8px→0）→ 停 1.6s → 0.9s 慢一点回到中段。停是讲，甩是"看那边"。</p>
+      <ul>
+        <li><b>命门</b>：模糊量跟速度走（峰值在中点），到位帧模糊必须为 0；停留段仍有 ≤6px 漂移。</li>
+        <li><b>参数</b>：甩 0.55s power3.inOut / 峰值 blur 8px；停留 1.2~1.8s；素材放大 1.5 保证两端不露边。</li>
+        <li><b>分界</b>：sway-parallax 是匀速 ≤190px/s 的慢摇；whip-pan-transition 是两镜之间的转场；本卡是同一张图里两处之间的"甩看"。</li>
+        <li><b>坑</b>：甩两次以上（晕）；甩完不停留（观众没看到落点）。</li>
+      </ul>
+    </aside>
+  </article>
+
+  <div class="lead"><b>定版建议</b>：B1、B5 直接补进「运镜」类（各自有独立语义：方向 / 变速）；B3、B4 合并成一张「3D 姿态事件卡」（俯→正 / 侧→正两个 preset）；B2 先留在实验室，等抠像版 2.5D 一起定。</div>
+</section>
+
+<!-- =============================== C =============================== -->
+<section id="secC">
+  <h2><span>C</span>多素材同屏：排版 × 入场 × 运镜</h2>
+  <div class="lead">
+    调研结论（README §C）：多素材的问题不是"怎么摆下"，而是<b>观众该看哪</b>。三条原则：
+    <b>①排版先定关系</b>（并列→等大网格 / 主次→一主两辅 / 对比→双分屏 / 序列→传送带 / 汇聚→网格收成一个）；
+    <b>②入场有先后有方向</b>（错峰 100~150ms、同向、全组同时同速淡入＝PPT）；
+    <b>③任一时刻只有一个主角</b>——焦点接力靠"其余降权"（brightness .55 / scale .98）而不是主角放大很多。
+    运镜在多素材上只做两种：横向巡览停靠、推入单个再拉回全景。同屏主体组 ≤3、留一个空象限的预算不变。
+  </div>
+
+  <article class="lab-card" data-card="hero-duo-layout">
+    <div class="stage-wrap"><div class="stage-scaler"><div class="stage" id="c1">
+      <div class="photo hero"><img data-p="1069" alt=""><div class="ring"></div></div>
+      <div class="photo s1"><img data-p="1074" alt=""><div class="ring"></div></div>
+      <div class="photo s2"><img data-p="1080" alt=""><div class="ring"></div></div>
+      <div class="c" style="left:64px;top:466px">主图 · 深海水母（主角）</div>
+      <div class="c" style="left:652px;top:252px">佐证一</div>
+      <div class="c" style="left:652px;top:460px">佐证二</div>
+    </div></div></div>
+    <aside class="notes">
+      <h3>C1 · 一主两辅 + 焦点接力<code>hero-duo-layout</code></h3>
+      <span class="tag">主次关系</span><span class="tag">浅底</span>
+      <p class="one">主图先落（0.6s），两张佐证从右侧错峰 150ms 滑入；讲到谁谁亮：主图退到 brightness .6、佐证放大 1.04 + 描边环 —— 接力两次后全部回位；主图内部全程 1→1.06 慢推。</p>
+      <ul>
+        <li><b>命门</b>：焦点接力靠"其余降权"，主角本身只动 4%；接力切换 0.4s，两次之间留 ≥1.5s。</li>
+        <li><b>排版</b>：主图占 57% 宽；右列两张等大；底部 60px 留给字幕；右下不放东西（空象限）。</li>
+        <li><b>分界</b>：media-pop-in 是"拍上来堆着"（证据感）；本卡是"摆好了讲"（讲解感），三张都全程可见。</li>
+        <li><b>坑</b>：三张同时淡入；佐证入场方向不一致；三张白边/圆角/投影不统一。</li>
+      </ul>
+    </aside>
+  </article>
+
+  <article class="lab-card" data-card="split-compare-slider">
+    <div class="stage-wrap"><div class="stage-scaler"><div class="stage" id="c2">
+      <div class="pane r"><img class="fill" data-p="1036" alt=""></div>
+      <div class="pane l"><img class="fill" data-p="1043" alt=""></div>
+      <div class="divider"><div class="knob">‹›</div></div>
+      <div class="lbl l">夏天</div><div class="lbl r">冬天</div>
+    </div></div></div>
+    <aside class="notes">
+      <h3>C2 · 对比双分屏（滑动揭示）<code>split-compare-slider</code></h3>
+      <span class="tag">对比关系</span><span class="tag">同机位两图</span>
+      <p class="one">左图整屏起手 0.6s，分割线 1.1s 滑到中线揭出右图；停 1.5s 后向左 nudge 到 42% 再回中（强调"看右边"），再滑到 8% 几乎全露右图，最后回中线。两图共用一条极慢推。</p>
+      <ul>
+        <li><b>命门</b>：分割线用 clip-path 裁上层（不是移动两张图）——两图机位不变，观众才在比"内容"而不是比"位置"。</li>
+        <li><b>参数</b>：滑动 1.1s power3.inOut；停留 ≥1.5s；nudge 8%；标签在该侧露出 ≥40% 时才亮。</li>
+        <li><b>用处</b>：before/after、两个版本、两个时间点；两图必须同构图（同机位/同版式），否则用 C1。</li>
+        <li><b>坑</b>：分割线来回扫不停（观众读不完任何一边）；两图比例不一致露底。</li>
+      </ul>
+    </aside>
+  </article>
+
+  <article class="lab-card" data-card="gallery-wall-dolly">
+    <div class="stage-wrap"><div class="stage-scaler"><div class="stage" id="c3">
+      <div class="world"><div class="cam" style="transform-style:preserve-3d">
+        <div class="wall">
+          <div class="floor"></div>
+          <div class="photo w1" style="left:140px"><img data-p="1015" alt=""></div>
+          <div class="photo w2" style="left:640px"><img data-p="1050" alt=""></div>
+          <div class="photo w3" style="left:1140px"><img data-p="1057" alt=""></div>
+        </div>
+      </div></div>
+      <div class="sub">三条海岸线 一条一条走过去</div>
+    </div></div></div>
+    <aside class="notes">
+      <h3>C3 · 照片墙推轨<code>gallery-wall-dolly</code></h3>
+      <span class="tag">序列 / 并列</span><span class="tag">相机在多素材上巡览</span>
+      <p class="one">三张照片挂在一面 −12° 的 3D 墙上；镜头先全景 0.8s，再依次推轨停靠每一张（1.0s 移动 + 0.9s 停靠，停靠时其余两张压暗 .5），最后拉回全景。</p>
+      <ul>
+        <li><b>命门</b>：每一站的缩放绕当前照片发生（transform-origin 反解到该照片中心，同 stage-keyframe-tour）；停靠段照片内部有 1→1.03 微推防死。</li>
+        <li><b>参数</b>：全景 z .72 / 停靠 z 1.15；墙 rotateY −12°；移动 1.0s power2.inOut。</li>
+        <li><b>分界</b>：stage-keyframe-tour 巡的是一张长页里的兴趣点；本卡巡的是多张独立素材——"接下来三个例子"。</li>
+        <li><b>坑</b>：站与站之间不停（观众读不完）；照片尺寸不一（墙面读作乱）。</li>
+      </ul>
+    </aside>
+  </article>
+
+  <article class="lab-card" data-card="filmstrip-conveyor">
+    <div class="stage-wrap"><div class="stage-scaler"><div class="stage" id="c4">
+      <div class="hdr">去年爆款封面的六种构图<small>传送带匀速经过 · 讲到第四种减速</small></div>
+      <div class="center"></div>
+      <div class="strip"></div>
+    </div></div></div>
+    <aside class="notes">
+      <h3>C4 · 传送带列举 + 减速停靠<code>filmstrip-conveyor</code></h3>
+      <span class="tag">序列关系</span><span class="tag">列举镜头</span>
+      <p class="one">六张素材接成一条传送带匀速左行（一组 9s），经过中线的那张按距离放大到 1.08 并提亮；讲到关键一张时传送带减速到 0.25 倍停 1.4s 再恢复——速度就是讲述节奏。</p>
+      <ul>
+        <li><b>命门</b>：放大/提亮按"离中线的距离"每帧算（不是到点触发），经过是连续的；减速用 timeScale 缓动，不是硬停。</li>
+        <li><b>参数</b>：匀速 176px/s（240 卡 + 24 间隙 ÷ 1.5s）；中线放大 1.08；减速 0.25× / 1.4s。</li>
+        <li><b>分界</b>：shot-design ② 提过"列举用传送带流"但无卡；本卡补上，且带"减速停靠"语法（对齐 evidence-scroll-tour 的滚动纪律）。</li>
+        <li><b>坑</b>：传送带速度 &gt;220px/s（扫读跟不上）；一组少于 5 张（循环接缝太频）。</li>
+      </ul>
+    </aside>
+  </article>
+
+  <article class="lab-card" data-card="grid-to-hero">
+    <div class="stage-wrap"><div class="stage-scaler"><div class="stage" id="c5">
+      <div class="tile t1" style="left:40px;top:40px;width:430px;height:220px"><img data-p="1018" alt=""><div class="k">候选一</div></div>
+      <div class="tile t2" style="left:490px;top:40px;width:430px;height:220px"><video data-v="bokeh"></video><div class="k">候选二</div></div>
+      <div class="tile t3" style="left:40px;top:280px;width:430px;height:220px"><img data-p="1050" alt=""><div class="k">候选三</div></div>
+      <div class="tile t4" style="left:490px;top:280px;width:430px;height:220px"><img data-p="1059" alt=""><div class="k">候选四</div></div>
+    </div></div></div>
+    <aside class="notes">
+      <h3>C5 · 网格收成主角<code>grid-to-hero</code></h3>
+      <span class="tag">汇聚 → 聚焦</span><span class="tag">图 + 视频混排</span>
+      <p class="one">2×2 网格错峰 120ms 落位（先并列），停 1.2s；讲到候选三时它 0.8s 长成 620×460 的主图，其余三张收成右侧一列小图（不消失，保留"是从这四个里选的"）；停 2s 后回到网格。</p>
+      <ul>
+        <li><b>命门</b>：主图长大与其余收缩同一条 inOut（一起动才读作"版式在重排"）；收缩后的小图仍等大等距。</li>
+        <li><b>参数</b>：网格错峰 120ms；重排 0.8s power3.inOut；主图占 65% 宽；小图列宽 220。</li>
+        <li><b>用处</b>："四个方案里我们选了这个"、"这几条评论里最狠的是这条"。</li>
+        <li><b>坑</b>：四张同时淡入；重排时小图直接消失（关系断了）；Remotion 实现请用 transform 不要动 left/top（demo 为直观用了布局属性）。</li>
+      </ul>
+    </aside>
+  </article>
+
+  <div class="lead"><b>定版建议</b>：C1、C2、C4 各自成卡（三种关系语义互斥）；C3 并入 stage-keyframe-tour 作"多素材墙"变体；C5 成卡并写明 Remotion 用 FLIP 式 transform 实现。多素材总纲（关系→版式表 + 三原则）写进 shot-design.md 新节「多素材镜头」。</div>
+</section>
+
+<footer>
+  素材授权：视频 Mixkit Stock Video Free License（ID 4455 / 4180 / 1811 / 1767 / 30，2026-09-04 逐条核对页面标签）；图片 Lorem Picsum（Unsplash License）ID 1015 / 1018 / 1036 / 1043 / 1050 / 1057 / 1059 / 1067 / 1069 / 1074 / 1080 / 1039 / 1044 / 1047 / 1053 / 1061。
+  素材不进库；`./fetch-media.sh` 重下。本页为实验室原型，未经 verify-demo / tsx 化，不计入 79 卡。
+</footer>
+
+<script>
+/* ============================ 运行时 ============================ */
+const MEDIA_V = { city:[1767,'city',720], tokyo:[4455,'tokyo',720], ocean:[2091,'ocean',720], clouds:[1609,'clouds',720],
+                  typing:[1811,'typing',1080], crowd:[4180,'crowd',720], bokeh:[30,'bokeh',720], forest:[613,'forest',720] };
+const vSrc = k => { const [id,n,r] = MEDIA_V[k]; return { local:`media/v-${n}.mp4`, remote:`https://assets.mixkit.co/videos/${id}/${id}-${r}.mp4` }; };
+const pSrc = id => ({ local:`media/p-${id}.jpg`, remote:`https://picsum.photos/id/${id}/1600/1000` });
+function hydrate(stage) {
+  stage.querySelectorAll('video[data-v]').forEach(v => {
+    const s = vSrc(v.dataset.v);
+    v.muted = true; v.loop = true; v.playsInline = true; v.preload = 'auto'; v.setAttribute('muted', '');
+    v.addEventListener('error', () => { if (!v.dataset.fb) { v.dataset.fb = 1; v.src = s.remote; } else stage.classList.add('media-missing'); });
+    v.src = s.local;
+  });
+  stage.querySelectorAll('img[data-p]').forEach(im => {
+    const s = pSrc(im.dataset.p);
+    im.onerror = () => { if (!im.dataset.fb) { im.dataset.fb = 1; im.src = s.remote; } else stage.classList.add('media-missing'); };
+    im.src = s.local;
+  });
+}
+// 运镜专用 ease（与 slow-push-in 同源）：末速 = r × 平均速，非零 ⇒ hold 期可无缝续走
+const camEase = r => p => p + (1 - r) * p * p * (1 - p);
+// 把舞台坐标 (px,py) 以 zoom z 搬到画面正中的相机变换（transform-origin 0 0），并钳制不露边
+function camTo(z, px, py, W = 960, H = 540) {
+  let x = W / 2 - z * px, y = H / 2 - z * py;
+  x = Math.min(0, Math.max(W - W * z, x)); y = Math.min(0, Math.max(H - H * z, y));
+  return { scale: z, x, y };
+}
+const CARDS = {};
+let GLOBAL_SPEED = 1;
+const registry = [];
+
+function setupCard(card) {
+  const slug = card.dataset.card, stage = card.querySelector('.stage'), scaler = card.querySelector('.stage-scaler'), wrap = card.querySelector('.stage-wrap');
+  hydrate(stage);
+  const fit = () => { const s = wrap.clientWidth / 960; scaler.style.transform = `scale(${s})`; wrap.style.height = (540 * s) + 'px'; };
+  new ResizeObserver(fit).observe(wrap); fit();
+  const hud = document.createElement('div'); hud.className = 'hud';
+  hud.innerHTML = `<button data-a="replay">重播</button><button data-a="s1" class="on">1x</button><button data-a="s03">0.3x</button><span class="t">0.0s</span>`;
+  wrap.appendChild(hud);
+  const rec = { card, stage, slug, tl: null, speed: 1, visible: false };
+  const videos = [...stage.querySelectorAll('video')];
+  const restartVideos = () => videos.forEach(v => { try { v.currentTime = 0; } catch (e) {} v.play().catch(() => {}); });
+  rec.play = () => {
+    if (rec.tl) rec.tl.kill();
+    restartVideos();
+    const tl = CARDS[slug](stage);
+    tl.repeat(-1).repeatDelay(0.9);          // 底床视频不随动画循环重置（重置就是"loop 接缝"这个坑本身）
+    tl.timeScale(rec.speed * GLOBAL_SPEED);
+    rec.tl = tl;
+  };
+  rec.setSpeed = s => { rec.speed = s; if (rec.tl) rec.tl.timeScale(s * GLOBAL_SPEED); hud.querySelector('[data-a=s1]').classList.toggle('on', s === 1); hud.querySelector('[data-a=s03]').classList.toggle('on', s !== 1); };
+  hud.addEventListener('click', e => {
+    const a = e.target.dataset.a; if (!a) return;
+    if (a === 'replay') rec.play(); if (a === 's1') rec.setSpeed(1); if (a === 's03') rec.setSpeed(0.3);
+  });
+  rec.tick = () => { if (rec.tl && rec.visible) hud.querySelector('.t').textContent = rec.tl.time().toFixed(1) + 's'; };
+  registry.push(rec);
+  return rec;
+}
+const io = new IntersectionObserver(entries => {
+  entries.forEach(en => {
+    const rec = registry.find(r => r.card === en.target); if (!rec) return;
+    if (en.isIntersecting && en.intersectionRatio >= 0.35) {
+      if (!rec.visible) { rec.visible = true; if (rec.tl) { rec.tl.play(); rec.stage.querySelectorAll('video').forEach(v => v.play().catch(() => {})); } else rec.play(); }
+    } else if (rec.visible) {
+      rec.visible = false; if (rec.tl) rec.tl.pause(); rec.stage.querySelectorAll('video').forEach(v => v.pause());
+    }
+  });
+}, { threshold: [0, 0.35, 0.6] });
+gsap.ticker.add(() => registry.forEach(r => r.tick()));
+const btn1 = document.getElementById('spd1'), btn03 = document.getElementById('spd03');
+btn1.onclick = () => { GLOBAL_SPEED = 1; registry.forEach(r => r.tl && r.tl.timeScale(r.speed)); btn1.classList.add('on'); btn03.classList.remove('on'); };
+btn03.onclick = () => { GLOBAL_SPEED = 0.3; registry.forEach(r => r.tl && r.tl.timeScale(r.speed * 0.3)); btn03.classList.add('on'); btn1.classList.remove('on'); };
+
+/* ============================ A · 视频底床 ============================ */
+CARDS['bed-scrim-typo'] = stage => {
+  const CFG = { bedZoomTo: 1.06, bedDur: 12, wordRise: 26, wordDur: .55, stagger: .07, exitAt: 6.6 };
+  const bed = stage.querySelector('.bedcam'), w1 = stage.querySelectorAll('.t1 .w'), w2 = stage.querySelectorAll('.t2 .w'), meta = stage.querySelector('.meta'), sub = stage.querySelector('.sub');
+  const tl = gsap.timeline();
+  tl.set(bed, { scale: 1, transformOrigin: '50% 50%' })
+    .set([w1, w2], { y: CFG.wordRise, opacity: 0 }).set(meta, { opacity: 0, y: 10 }).set(sub, { opacity: 0 })
+    .to(bed, { scale: CFG.bedZoomTo, duration: CFG.bedDur, ease: 'none' }, 0)   // 底床：只做极慢缩放（0.5%/s）
+    .to(w1, { y: 0, opacity: 1, duration: CFG.wordDur, stagger: CFG.stagger, ease: 'power3.out' }, .4)
+    .to(w2, { y: 0, opacity: 1, duration: CFG.wordDur, stagger: CFG.stagger, ease: 'power3.out' }, 1.3)
+    .to(meta, { opacity: 1, y: 0, duration: .5 }, 2.2)
+    .to(sub, { opacity: 1, duration: .01 }, .4)     // 底部字幕：整句硬现，素排
+    .to([w1, w2, meta], { opacity: 0, y: -12, duration: .45, stagger: .02, ease: 'power2.in' }, CFG.exitAt)
+    .to(sub, { opacity: 0, duration: .01 }, CFG.exitAt + .3)
+    .to({}, { duration: .5 }, 7.4);
+  return tl;
+};
+
+CARDS['bed-duotone-wash'] = stage => {
+  const CFG = { panPx: 20, panDur: 14, target: 3.2, countDur: 1.4 };
+  const bed = stage.querySelector('.bedcam'), num = stage.querySelector('.n'), numWrap = stage.querySelector('.num'), lbl = stage.querySelector('.lbl'), chips = stage.querySelectorAll('.chip');
+  const o = { v: 0 };
+  const tl = gsap.timeline();
+  tl.set(bed, { x: -CFG.panPx, scale: 1.08, transformOrigin: '50% 50%' })
+    .set(numWrap, { opacity: 0, y: 18 }).set(lbl, { opacity: 0, y: 14 }).set(chips, { opacity: 0, y: 14 }).set(o, { v: 0 })
+    .to(bed, { x: CFG.panPx, duration: CFG.panDur, ease: 'none' }, 0)
+    .to(numWrap, { opacity: 1, y: 0, duration: .5, ease: 'power3.out' }, .4)
+    .to(o, { v: CFG.target, duration: CFG.countDur, ease: 'power2.out', onUpdate: () => { num.textContent = o.v.toFixed(1); } }, .4)
+    .to(lbl, { opacity: 1, y: 0, duration: .5, ease: 'power3.out' }, 1.4)
+    .to(chips, { opacity: 1, y: 0, duration: .45, stagger: .12, ease: 'power3.out' }, 2.1)
+    .to([numWrap, lbl, chips], { opacity: 0, y: -10, duration: .4, stagger: .03, ease: 'power2.in' }, 6.6)
+    .to({}, { duration: .4 }, 7.3);
+  return tl;
+};
+
+CARDS['bed-echo-blur'] = stage => {
+  const CFG = { echoFrom: 1.25, echoTo: 1.32, dur: 12, cardPush: 1.03 };
+  const echo = stage.querySelector('.echo'), card = stage.querySelector('.fgcard'), lines = stage.querySelectorAll('.ttl .line');
+  const tl = gsap.timeline();
+  tl.set(echo, { scale: CFG.echoFrom }).set(card, { opacity: 0, scale: .92, y: 22, transformOrigin: '50% 50%' }).set(lines, { opacity: 0, y: 16 })
+    .to(echo, { scale: CFG.echoTo, duration: CFG.dur, ease: 'none' }, 0)
+    .to(card, { opacity: 1, scale: 1, y: 0, duration: .6, ease: 'power3.out' }, .3)
+    .to(card, { scale: CFG.cardPush, duration: 8, ease: 'none' }, .9)           // 前景卡与底床速度错开
+    .to(lines, { opacity: 1, y: 0, duration: .5, stagger: .11, ease: 'power3.out' }, .8)
+    .to([card, lines], { opacity: 0, duration: .5, ease: 'power2.in' }, 7.2)
+    .to({}, { duration: .3 }, 7.7);
+  return tl;
+};
+
+CARDS['bed-dim-on-focus'] = stage => {
+  const CFG = { bedB: .55, dimB: .28, dimBlur: 5, dimDur: .5, backDur: .6, bedPan: -30, fgPan: -60, dur: 9 };
+  const bedcam = stage.querySelector('.bedcam'), bed = stage.querySelector('.bed'), fg = stage.querySelector('.fg'), c1 = stage.querySelector('.c1'), c2 = stage.querySelector('.c2'), sub = stage.querySelector('.sub');
+  const tl = gsap.timeline();
+  const pop = (el, at) => tl.fromTo(el, { opacity: 0, scale: .8 }, { opacity: 1, scale: 1, duration: .38, ease: 'back.out(1.7)' }, at);
+  const dim = at => tl.to(bed, { '--b': CFG.dimB, '--bl': CFG.dimBlur + 'px', duration: CFG.dimDur, ease: 'power2.out' }, at);
+  const back = at => tl.to(bed, { '--b': CFG.bedB, '--bl': '0px', duration: CFG.backDur, ease: 'power2.inOut' }, at);
+  tl.set(bed, { '--b': CFG.bedB, '--bl': '0px' }).set(bedcam, { x: 0 }).set(fg, { x: 0 }).set([c1, c2], { opacity: 0 }).set(sub, { opacity: 0 })
+    .to(bedcam, { x: CFG.bedPan, duration: CFG.dur, ease: 'none' }, 0)
+    .to(fg, { x: CFG.fgPan, duration: CFG.dur, ease: 'none' }, 0)
+    .to(sub, { opacity: 1, duration: .01 }, .6);
+  pop(c1, 1.0); dim(1.0);
+  tl.to(c1, { opacity: 0, scale: .9, duration: .3, ease: 'power2.in' }, 3.6); back(3.6);
+  pop(c2, 4.5); dim(4.5);
+  tl.to(c2, { opacity: 0, scale: .9, duration: .3, ease: 'power2.in' }, 7.3); back(7.3);
+  tl.to(sub, { opacity: 0, duration: .01 }, 8.2).to({}, { duration: .3 }, 8.6);
+  return tl;
+};
+
+/* ============================ B · 图片运镜 ============================ */
+CARDS['diagonal-dolly-pan'] = stage => {
+  const CFG = { A: { x: 300, y: 330, z: 1.08 }, B: { x: 700, y: 170, z: 1.22 }, dur: 7, endRate: .6, hold: 2 };
+  const cam = stage.querySelector('.cam'), pois = stage.querySelectorAll('.poi'), sub = stage.querySelector('.sub');
+  const a = camTo(CFG.A.z, CFG.A.x, CFG.A.y), b = camTo(CFG.B.z, CFG.B.x, CFG.B.y);
+  // hold 期按末速续走：把 A→B 的运动向量再延长 hold/dur × endRate
+  const k = CFG.hold / CFG.dur * CFG.endRate;
+  const c = { scale: b.scale + (b.scale - a.scale) * k, x: b.x + (b.x - a.x) * k, y: b.y + (b.y - a.y) * k };
+  const tl = gsap.timeline();
+  tl.set(cam, a).set(pois, { opacity: .9 }).set(sub, { opacity: 0 })
+    .to(cam, { ...b, duration: CFG.dur, ease: camEase(CFG.endRate) }, 0)    // 缩放与位移同一条曲线
+    .to(cam, { ...c, duration: CFG.hold, ease: 'none' }, CFG.dur)
+    .to(pois, { opacity: 0, duration: .6 }, 1.2)
+    .to(sub, { opacity: 1, duration: .01 }, .3).to(sub, { opacity: 0, duration: .01 }, CFG.dur + CFG.hold - .4);
+  return tl;
+};
+
+CARDS['sliced-parallax-2.5d'] = stage => {
+  const CFG = { pan: 56, ratio: { far: .65, mid: 1, near: 1.55 }, dur: 8, nearPush: 1.04 };
+  const far = stage.querySelector('.far'), mid = stage.querySelector('.mid'), near = stage.querySelector('.near'), cam = stage.querySelector('.cam');
+  const tl = gsap.timeline();
+  tl.set([far, mid, near], { x: 0, scale: 1, transformOrigin: '50% 100%' }).set(cam, { scale: 1, transformOrigin: '50% 50%' })
+    .to(far,  { x: -CFG.pan * CFG.ratio.far,  duration: CFG.dur, ease: 'none' }, 0)
+    .to(mid,  { x: -CFG.pan * CFG.ratio.mid,  duration: CFG.dur, ease: 'none' }, 0)
+    .to(near, { x: -CFG.pan * CFG.ratio.near, scale: CFG.nearPush, duration: CFG.dur, ease: 'none' }, 0)
+    .to(cam, { scale: 1.03, duration: CFG.dur, ease: 'none' }, 0);
+  return tl;
+};
+
+CARDS['flatlay-rise'] = stage => {
+  const CFG = { lieRx: 58, lieScale: .9, riseDur: 1.3, pushTo: 1.06, pushDur: 5, putBackAt: 7.6 };
+  const p = stage.querySelector('.p3d'), sh = stage.querySelector('.shadow'), sub = stage.querySelector('.sub');
+  const lie = { rotateX: CFG.lieRx, scale: CFG.lieScale, y: 40, z: -120 }, up = { rotateX: 0, scale: 1, y: 0, z: 0 };
+  const tl = gsap.timeline();
+  tl.set(p, lie).set(sh, { opacity: .6, y: 40, z: -40, scale: 1.02, filter: 'blur(18px)' }).set(sub, { opacity: 0 })
+    .to(sub, { opacity: 1, duration: .01 }, .2)
+    .to(p, { ...up, duration: CFG.riseDur, ease: 'power2.inOut' }, .4)                     // 起身：事件，允许收住
+    .to(sh, { opacity: .38, y: 24, scale: .96, filter: 'blur(30px)', duration: CFG.riseDur, ease: 'power2.inOut' }, .4)
+    .to(p, { scale: CFG.pushTo, duration: CFG.pushDur, ease: camEase(.6) }, .4 + CFG.riseDur)   // hold：缓推不停
+    .to(p, { ...lie, duration: 1.1, ease: 'power2.inOut' }, CFG.putBackAt)
+    .to(sh, { opacity: .6, y: 40, scale: 1.02, filter: 'blur(18px)', duration: 1.1, ease: 'power2.inOut' }, CFG.putBackAt)
+    .to(sub, { opacity: 0, duration: .01 }, CFG.putBackAt + .6)
+    .to({}, { duration: .3 }, CFG.putBackAt + 1.1);
+  return tl;
+};
+
+CARDS['swing-to-face'] = stage => {
+  const CFG = { fromRy: -38, fromX: -140, fromScale: .92, turnDur: 2.2, overRy: 3, pushTo: 1.05, pushDur: 5 };
+  const p = stage.querySelector('.p3d'), sh = stage.querySelector('.shadow'), sub = stage.querySelector('.sub');
+  const tl = gsap.timeline();
+  tl.set(p, { rotateY: CFG.fromRy, x: CFG.fromX, scale: CFG.fromScale, opacity: 1 }).set(sh, { x: 40, y: 24, z: -40, scale: .96, opacity: .5 }).set(sub, { opacity: 0 })
+    .to(sub, { opacity: 1, duration: .01 }, .2)
+    .to(p, { rotateY: 0, x: 0, scale: 1, duration: CFG.turnDur, ease: 'power2.inOut' }, .3)     // 转正 + 推近同一条曲线
+    .to(sh, { x: 0, opacity: .38, duration: CFG.turnDur, ease: 'power2.inOut' }, .3)
+    .to(p, { rotateY: CFG.overRy, scale: CFG.pushTo, duration: CFG.pushDur, ease: 'none' }, .3 + CFG.turnDur)   // 余摆：永不静止
+    .to(sh, { x: -8, duration: CFG.pushDur, ease: 'none' }, .3 + CFG.turnDur)
+    .to(sub, { opacity: 0, duration: .01 }, 7.2)
+    .to(p, { opacity: 0, duration: .4 }, 7.4).to({}, { duration: .2 }, 7.8).set(p, { opacity: 1 }, 8);
+  return tl;
+};
+
+CARDS['ramp-pan-sweep'] = stage => {
+  const CFG = { zoom: 1.5, L: { x: 240, y: 300 }, R: { x: 760, y: 250 }, M: { x: 500, y: 280 }, whip: .55, peakBlur: 8, hold1: 1.2, hold2: 1.6, back: .9 };
+  const cam = stage.querySelector('.cam'), img = stage.querySelector('img'), sub = stage.querySelector('.sub');
+  const L = camTo(CFG.zoom, CFG.L.x, CFG.L.y), R = camTo(CFG.zoom, CFG.R.x, CFG.R.y), M = camTo(CFG.zoom, CFG.M.x, CFG.M.y);
+  const tl = gsap.timeline();
+  const drift = (from, dx, dur, at) => tl.to(cam, { x: from.x + dx, duration: dur, ease: 'none' }, at);
+  tl.set(cam, L).set(img, { filter: 'blur(0px)' }).set(sub, { opacity: 0 }).to(sub, { opacity: 1, duration: .01 }, .1);
+  drift(L, -6, CFG.hold1, 0);
+  const t1 = CFG.hold1;
+  tl.to(cam, { x: R.x, y: R.y, duration: CFG.whip, ease: 'power3.inOut' }, t1)               // 甩
+    .to(img, { filter: `blur(${CFG.peakBlur}px)`, duration: CFG.whip / 2, ease: 'power2.in' }, t1)   // 模糊随速度：中点峰值
+    .to(img, { filter: 'blur(0px)', duration: CFG.whip / 2, ease: 'power2.out' }, t1 + CFG.whip / 2);
+  drift(R, -6, CFG.hold2, t1 + CFG.whip);
+  const t2 = t1 + CFG.whip + CFG.hold2;
+  tl.to(cam, { x: M.x, y: M.y, duration: CFG.back, ease: 'power2.inOut' }, t2)
+    .to(img, { filter: 'blur(4px)', duration: CFG.back / 2, ease: 'power2.in' }, t2)
+    .to(img, { filter: 'blur(0px)', duration: CFG.back / 2, ease: 'power2.out' }, t2 + CFG.back / 2);
+  drift(M, -8, 1.6, t2 + CFG.back);
+  tl.to(sub, { opacity: 0, duration: .01 }, t2 + CFG.back + 1.2);
+  return tl;
+};
+
+/* ============================ C · 多素材同屏 ============================ */
+CARDS['hero-duo-layout'] = stage => {
+  const CFG = { stagger: .15, dimB: .6, focusScale: 1.04, switchDur: .4, heroPush: 1.06 };
+  const hero = stage.querySelector('.hero'), s1 = stage.querySelector('.s1'), s2 = stage.querySelector('.s2'), caps = stage.querySelectorAll('.c');
+  const img = hero.querySelector('img'), all = [hero, s1, s2];
+  const ring = el => el.querySelector('.ring');
+  const tl = gsap.timeline();
+  const focus = (target, at) => {
+    all.forEach(el => tl.to(el, { filter: `brightness(${el === target ? 1 : CFG.dimB})`, scale: el === target ? CFG.focusScale : .985, duration: CFG.switchDur, ease: 'power2.inOut' }, at));
+    all.forEach(el => tl.to(ring(el), { opacity: el === target ? 1 : 0, duration: .25 }, at));
+  };
+  const reset = at => { all.forEach(el => tl.to(el, { filter: 'brightness(1)', scale: 1, duration: CFG.switchDur, ease: 'power2.inOut' }, at)); all.forEach(el => tl.to(ring(el), { opacity: 0, duration: .25 }, at)); };
+  tl.set(all, { opacity: 0, y: 30, x: 0, scale: .96, filter: 'brightness(1)', transformOrigin: '50% 50%' }).set([s1, s2], { y: 0, x: 40 }).set(caps, { opacity: 0 }).set(img, { scale: 1 })
+    .to(hero, { opacity: 1, y: 0, scale: 1, duration: .6, ease: 'power3.out' }, .3)
+    .to([s1, s2], { opacity: 1, x: 0, scale: 1, duration: .55, stagger: CFG.stagger, ease: 'power3.out' }, .8)   // 同向、错峰
+    .to(caps, { opacity: 1, duration: .4, stagger: .1 }, 1.3)
+    .to(img, { scale: CFG.heroPush, duration: 8, ease: 'none' }, .3);
+  focus(s1, 2.4); focus(s2, 4.2); reset(6.0);
+  tl.to([...all, ...caps], { opacity: 0, duration: .45, ease: 'power2.in' }, 7.6).to({}, { duration: .2 }, 8.05);
+  return tl;
+};
+
+CARDS['split-compare-slider'] = stage => {
+  const CFG = { slide: 1.1, hold: 1.5, nudge: 42, farLeft: 8 };
+  const l = stage.querySelector('.pane.l'), div = stage.querySelector('.divider'), ll = stage.querySelector('.lbl.l'), lr = stage.querySelector('.lbl.r'), imgs = stage.querySelectorAll('img');
+  const o = { p: 100 };
+  const apply = () => { l.style.clipPath = `inset(0 ${100 - o.p}% 0 0)`; div.style.left = o.p + '%'; ll.style.opacity = o.p >= 40 ? 1 : 0; lr.style.opacity = (100 - o.p) >= 40 ? 1 : 0; };
+  const tl = gsap.timeline({ onUpdate: apply });
+  tl.set(o, { p: 100 }).set(imgs, { scale: 1, transformOrigin: '50% 50%' })
+    .to(imgs, { scale: 1.04, duration: 9, ease: 'none' }, 0)
+    .to(o, { p: 50, duration: CFG.slide, ease: 'power3.inOut' }, .6)
+    .to(o, { p: CFG.nudge, duration: .45, ease: 'power2.inOut' }, .6 + CFG.slide + CFG.hold)
+    .to(o, { p: 50, duration: .45, ease: 'power2.inOut' }, .6 + CFG.slide + CFG.hold + .5)
+    .to(o, { p: CFG.farLeft, duration: 1.0, ease: 'power3.inOut' }, 4.4)
+    .to(o, { p: 50, duration: 1.0, ease: 'power3.inOut' }, 4.4 + 1.0 + CFG.hold)
+    .to({}, { duration: 1 }, 8);
+  return tl;
+};
+
+CARDS['gallery-wall-dolly'] = stage => {
+  const CFG = { wallRy: -12, wideZ: .72, stopZ: 1.15, move: 1.0, hold: .9, dim: .5 };
+  const cam = stage.querySelector('.cam'), wall = stage.querySelector('.wall'), photos = [...stage.querySelectorAll('.photo')], sub = stage.querySelector('.sub');
+  gsap.set(wall, { rotateY: CFG.wallRy, transformOrigin: '850px 270px' });
+  const centers = photos.map(p => ({ x: parseFloat(p.style.left) + 215, y: 270 }));
+  const wide = { scale: CFG.wideZ, x: 480 - CFG.wideZ * 850, y: 270 - CFG.wideZ * 270 };
+  const stop = c => ({ scale: CFG.stopZ, x: 480 - CFG.stopZ * c.x, y: 270 - CFG.stopZ * c.y });
+  const tl = gsap.timeline();
+  tl.set(cam, { ...wide, transformOrigin: '0 0' }).set(photos, { filter: 'brightness(1)' }).set(photos.map(p => p.querySelector('img')), { scale: 1 }).set(sub, { opacity: 0 })
+    .to(sub, { opacity: 1, duration: .01 }, .2);
+  let t = .8;
+  centers.forEach((c, i) => {
+    tl.to(cam, { ...stop(c), duration: CFG.move, ease: 'power2.inOut' }, t);
+    photos.forEach((p, j) => tl.to(p, { filter: `brightness(${i === j ? 1 : CFG.dim})`, duration: .5 }, t + CFG.move * .5));
+    tl.to(photos[i].querySelector('img'), { scale: 1.03, duration: CFG.hold + .3, ease: 'none' }, t + CFG.move * .7);   // 停靠段内部微推防死
+    t += CFG.move + CFG.hold;
+  });
+  tl.to(cam, { ...wide, duration: 1.2, ease: 'power2.inOut' }, t);
+  photos.forEach(p => tl.to(p, { filter: 'brightness(1)', duration: .6 }, t + .3));
+  tl.to(sub, { opacity: 0, duration: .01 }, t + 1.0).to({}, { duration: .5 }, t + 1.2);
+  return tl;
+};
+
+CARDS['filmstrip-conveyor'] = stage => {
+  const CFG = { ids: [1039, 1044, 1047, 1053, 1061, 1080], w: 240, gap: 24, loopDur: 9, slowAt: 3.5, slowTo: .25, slowDur: 1.4, maxScale: 1.08 };
+  const strip = stage.querySelector('.strip');
+  if (!strip.children.length) {
+    [...CFG.ids, ...CFG.ids].forEach((id, i) => {
+      const d = document.createElement('div'); d.className = 'item';
+      d.innerHTML = `<img data-p="${id}" alt=""><div class="n">构图 ${'一二三四五六'[i % 6]}</div>`;
+      strip.appendChild(d);
+    });
+    hydrate(strip);
+  }
+  const items = [...strip.children], pitch = CFG.w + CFG.gap, setW = CFG.ids.length * pitch;
+  // 速度曲线按"位置-时间"分段积分：匀速 v → 减速 .5s → 慢速段 → 加速 .6s → 匀速到一组走完（循环无缝：后 6 张是前 6 张的副本）
+  const v = setW / CFG.loopDur;                                 // 176px/s
+  const slowIdx = 3;                                            // 讲到"第四种"减速
+  const centerX = slowIdx * pitch + CFG.w / 2 + 6 - 480;        // 该项居中时的 pos.x
+  const dDecel = v * .5 * (1 + CFG.slowTo) / 2, dSlow = v * CFG.slowTo * CFG.slowDur, dAccel = v * .6 * (1 + CFG.slowTo) / 2;
+  const x0 = Math.max(0, centerX - dDecel);                     // 减速结束时刚好居中
+  const pos = { x: 0 };
+  const tl = gsap.timeline();
+  tl.set(pos, { x: 0 })
+    .to(pos, { x: x0, duration: x0 / v, ease: 'none' })
+    .to(pos, { x: x0 + dDecel, duration: .5, ease: 'power2.out' })                       // 减速
+    .to(pos, { x: x0 + dDecel + dSlow, duration: CFG.slowDur, ease: 'none' })            // 慢速停靠（0.25×）
+    .to(pos, { x: x0 + dDecel + dSlow + dAccel, duration: .6, ease: 'power2.in' })       // 加速
+    .to(pos, { x: setW, duration: (setW - (x0 + dDecel + dSlow + dAccel)) / v, ease: 'none' });
+  // 经过中线的连续放大/提亮：按"离中线的距离"每帧算，不是到点触发
+  tl.eventCallback('onUpdate', () => {
+    strip.style.transform = `translateX(${-pos.x}px)`;
+    items.forEach((it, i) => {
+      const cx = -pos.x + i * pitch + CFG.w / 2 + 6;
+      const d = Math.min(1, Math.abs(cx - 480) / 420);
+      const k = (1 - d) * (1 - d);
+      it.style.transform = `scale(${1 + (CFG.maxScale - 1) * k})`;
+      it.style.filter = `brightness(${.5 + .5 * k})`;
+      it.style.zIndex = Math.round(k * 10);
+    });
+  });
+  return tl;
+};
+
+CARDS['grid-to-hero'] = stage => {
+  const CFG = { stagger: .12, reflow: .8, holdGrid: 1.2, holdHero: 2.0, hero: { left: 40, top: 40, width: 620, height: 460 }, colX: 700, colW: 220, colH: 140, colGap: 20 };
+  const tiles = ['t1', 't2', 't3', 't4'].map(c => stage.querySelector('.' + c));
+  const grid = tiles.map(t => ({ left: parseFloat(t.style.left), top: parseFloat(t.style.top), width: parseFloat(t.style.width), height: parseFloat(t.style.height) }));
+  const heroIdx = 2, others = tiles.filter((_, i) => i !== heroIdx);
+  const heroImg = tiles[heroIdx].querySelector('img');
+  const tl = gsap.timeline();
+  tl.set(tiles, { opacity: 0, y: 24, scale: .97 }).set(heroImg, { scale: 1 });
+  tiles.forEach((t, i) => tl.set(t, grid[i], 0));
+  tl.to(tiles, { opacity: 1, y: 0, scale: 1, duration: .55, stagger: CFG.stagger, ease: 'power3.out' }, .3);   // 错峰落位：先并列
+  const t1 = .3 + .55 + CFG.stagger * 3 + CFG.holdGrid;
+  tl.to(tiles[heroIdx], { ...CFG.hero, duration: CFG.reflow, ease: 'power3.inOut' }, t1);                       // 主图长大
+  others.forEach((t, i) => tl.to(t, { left: CFG.colX, top: 40 + i * (CFG.colH + CFG.colGap), width: CFG.colW, height: CFG.colH, duration: CFG.reflow, ease: 'power3.inOut' }, t1));   // 其余收成一列
+  tl.to(heroImg, { scale: 1.05, duration: CFG.holdHero + CFG.reflow, ease: 'none' }, t1);
+  const t2 = t1 + CFG.reflow + CFG.holdHero;
+  tiles.forEach((t, i) => tl.to(t, { ...grid[i], duration: CFG.reflow, ease: 'power3.inOut' }, t2));
+  tl.to(heroImg, { scale: 1, duration: CFG.reflow, ease: 'power2.inOut' }, t2)
+    .to(tiles, { opacity: 0, duration: .4, stagger: .04, ease: 'power2.in' }, t2 + CFG.reflow + .8)
+    .to({}, { duration: .2 }, t2 + CFG.reflow + 1.4);
+  return tl;
+};
+
+/* ============================ 启动 ============================ */
+document.querySelectorAll('.lab-card').forEach(c => { setupCard(c); io.observe(c); });
+window.LAB = { registry, CARDS };   // 供截帧脚本定点冻结时钟核对
+</script>
+</body>
+</html>
