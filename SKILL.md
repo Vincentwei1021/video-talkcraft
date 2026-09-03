@@ -65,6 +65,17 @@ python3 scripts/make_timing.py audio/timestamps.json remotion/src/timing.json
   `getBoundingClientRect`、成图用逐像素量测——目测偏 ±30px 曾把停靠环框到标题下方的缩略图上，
   返工两轮；**会滚动/移动的真图，标注（环/框/pill）必须钉在内容坐标系上随内容动**，
   钉屏幕固定位就是错位根源
+- **网页拍摄不贴图（2026-09-04 用户定版）**：找资料/找素材时判定可用的网页，成片里**禁止以静态截图贴屏**，
+  必须像手持镜头一样"拍"它——**滚**（`evidence-scroll-tour◆`：匀速上滚 ≈10% 页高/s，讲到关键条提前减速停 1~2s）/
+  **巡**（`stage-keyframe-tour◇`：长页躺台上不动，相机挨个停靠兴趣点）/ **放大**（`magnifier-detail` 圆形放大镜
+  看一眼就撤，`pip-zoom-box◈` 拎出来长期挂着）/ **划**（`highlighter-sweep` 扫整句、`ink-underline◇` 划一个词、
+  `scribble-annotation` 圈注箭头、`corner-bracket-frame◈` 框区域）；一屏装完的页面至少走 `slow-push-in` 底噪。
+  **一镜一主式**：滚动/巡游段内不弹放大镜、不现场划线，顺序是「滚到 → 停 → 划/放大 → 再滚」；
+  拍法选型表见 shot-design.md §2④「网页拍摄」。素材按 broll-sources.md「网页拍摄素材采集」规格落盘：
+  Playwright **全页 2× 长截图 + 同一会话 DOM 实测的目标坐标 JSON**（放大镜/划线/停点全吃这份坐标，接上一条"禁目测"）。
+  拍摄一律由 Remotion 在长截图上完成（seek-safe、可对词锚），**不用浏览器录屏**（帧率不稳、懒加载与粘性头穿帮、
+  对不上字级时间戳）。唯一放行：一屏装得下且只当配角（media-pop-in 多张堆叠里的一张）的小截图可静态入卡，
+  但仍带 Ken Burns，不得是该拍主体
 - 标了 B-roll 的镜头列 2–3 个英文视觉概念词跑 **Pexels + Pixabay API 双源并行**，候选落 `assets/broll/`；
   源分层与授权红线（**只用免署名源**）见 `references/broll-sources.md`
 - **调研记账**：承载关键事实的来源页逐一截图存档，`sources.md` 里链接与本地截图一一对应
@@ -229,7 +240,8 @@ subagent 按 rubric（可读性/构图/信息传达/质感/事实一致 + 保真
 出 [P0/P1/P2] 缺陷清单（提醒它：入场中间态不是缺陷）。
 **缺陷分级定义（2026-08-30 补，此前无定义）**：
 P0 = 观众必然察觉且伤害理解——事实/文字/字形错误、不可读、声画错位、元素相撞遮正文、标注指错目标；
-P1 = 违反硬规则或明显走样——错峰残影、词落点偏差 >0.3s、整镜头音效缺席、与原版卡对比帧明显不符；
+P1 = 违反硬规则或明显走样——错峰残影、词落点偏差 >0.3s、整镜头音效缺席、与原版卡对比帧明显不符、
+网页证据静态贴屏未拍摄（§③）；
 P2 = 质感瑕疵——密度/留白/样式，记录但不挡验收。修完 P0+P1 才算过关。自查盯的是**成片质量缺陷**，不是规则合规
 （规则项在关卡 3）：元素重叠/覆盖/堆积、动效位置不准（标注没落在目标上、强调错位、元素出画）、
 画面噪点/压缩伪影/渲染残影、非有意的抖动或闪烁、文字贴边裁切、**排版凌乱**（同屏主体组 >3、
@@ -303,7 +315,7 @@ X [`@VincentWei93`](https://x.com/VincentWei93) ·
 | 镜头方法论/反PPT/SHOTBOOK格式/验收 | `references/cinematography.md`（+ shotbook-example.md） |
 | 转场（六式代码）/ 长镜头 | `template/motion-systems/transitions.tsx` / `longtake.tsx`（cinematography.md §3、§3.5） |
 | 选动效/查参数和坑 | `references/taxonomy.md` → `references/cards/` → `template/cards/`（tsx 源码）+ `demos/`/`gallery/`（预览） |
-| 找素材 | `references/broll-sources.md` |
+| 找素材 · 网页拍摄素材采集（全页 2× 长图 + DOM 坐标 JSON） | `references/broll-sources.md` |
 | 人物素材（输入规格 / CPU 抠像 / 人脸安全区）· 与 B-roll 同屏怎么摆 | `references/host-footage.md` + `scripts/face_bbox.py` |
 | 新增配方卡 | `references/demo-spec.md`，验证 `node scripts/verify-demo.mjs <slug>` |
 | 可复制代码 | `template/cards/`（79 卡逐卡自包含 tsx）、`template/motion-systems/`（相机/让位/环境/桥）、`template/components/`（字幕/花字/铅笔/吉祥物） |

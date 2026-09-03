@@ -26,6 +26,13 @@
 
 ## 🆕 更新（What's new）
 
+**2026-09-04**
+
+- **网页拍摄不贴图**——调研中判定可用的网页，成片里不再以静态截图贴屏，而是被镜头"拍"：匀速滚动
+  （`evidence-scroll-tour`）、兴趣点巡游（`stage-keyframe-tour`）、局部放大镜 / 画中画（`magnifier-detail` / `pip-zoom-box`）、
+  荧光笔与墨线划重点（`highlighter-sweep` / `ink-underline`）。素材采集定为 Playwright 全页 2× 长图 + 同会话 DOM 实测坐标 JSON，
+  放大与划线全吃实测坐标。→ SKILL.md §③、`references/shot-design.md` §2④、`references/broll-sources.md`
+
 **2026-09-02**
 
 - **动效工作台 `workbench/`**——剪映式的成片后期台：多轨时间线 + 素材库（素材 / 动效库 / 音效 / 背景）+

@@ -32,6 +32,15 @@ camera moves, plain-cut subtitles, and film-grade SFX, all locked to the voice.
 
 ## 🆕 What's new
 
+**2026-09-04**
+
+- **Web pages are filmed, not pasted** — a page judged usable during research no longer appears as a static
+  screenshot; the camera "shoots" it: steady scroll (`evidence-scroll-tour`), point-of-interest tour
+  (`stage-keyframe-tour`), magnifier / picture-in-picture (`magnifier-detail` / `pip-zoom-box`), highlighter and
+  ink underline (`highlighter-sweep` / `ink-underline`). Capture spec: Playwright full-page 2× screenshot plus a
+  same-session DOM-measured coordinate JSON that every zoom and underline reads from. → SKILL.md §③,
+  `references/shot-design.md` §2④, `references/broll-sources.md`
+
 **2026-09-02**
 
 - **Motion workbench `workbench/`** — a CapCut-style post-production desk for finished videos: multi-track timeline,
