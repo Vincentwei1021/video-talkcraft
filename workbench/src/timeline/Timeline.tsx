@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import { projectDuration, useStore } from "../store";
 import { Ruler } from "./Ruler";
 import { ClipView } from "./ClipView";
@@ -26,6 +26,7 @@ export const Timeline: React.FC = () => {
   const addTrack = useStore((s) => s.addTrack);
   const removeTrack = useStore((s) => s.removeTrack);
   const toggleTrackHidden = useStore((s) => s.toggleTrackHidden);
+  const moveTrack = useStore((s) => s.moveTrack);
   const splitClip = useStore((s) => s.splitClip);
   const duplicateClip = useStore((s) => s.duplicateClip);
   const removeClip = useStore((s) => s.removeClip);
@@ -49,8 +50,72 @@ export const Timeline: React.FC = () => {
     if (w) setZoom((w - HEADER_W - 80) / duration);
   };
 
+  // —— 轨道拖拽排序：按住轨道头上下拖，蓝线标出插入位，松手落位（一步撤销）——
+  const rowRefs = useRef(new Map<string, HTMLDivElement>());
+  /** 拖动中：被拖轨道 id + 目标插入位（原数组下标，0..tracks.length） */
+  const [trackDrag, setTrackDrag] = useState<{ id: string; to: number } | null>(null);
+
+  const onTrackHeadDown = (trackId: string) => (e: React.PointerEvent) => {
+    if (e.button !== 0) return;
+    if ((e.target as HTMLElement).closest("button")) return; // 👁 / ✕ 照常点击
+    e.preventDefault();
+    const startY = e.clientY;
+    const from = useStore.getState().project.tracks.findIndex((t) => t.id === trackId);
+    if (from < 0) return;
+    let to = from;
+    let dragging = false;
+    const onMove = (ev: PointerEvent) => {
+      if (!dragging) {
+        if (Math.abs(ev.clientY - startY) < 4) return; // 抖动阈值：点一下不算拖
+        dragging = true;
+        setTrackDrag({ id: trackId, to });
+      }
+      // 插入位 = 中线在指针上方的轨道数
+      let idx = 0;
+      for (const t of useStore.getState().project.tracks) {
+        const el = rowRefs.current.get(t.id);
+        if (!el) continue;
+        const r = el.getBoundingClientRect();
+        if (ev.clientY > r.top + r.height / 2) idx++;
+      }
+      // 指针贴近时间轨上下边时自动滚动，轨道多时能拖到看不见的位置
+      const sc = scrollerRef.current;
+      if (sc) {
+        const r = sc.getBoundingClientRect();
+        if (ev.clientY < r.top + 40) sc.scrollTop -= 10;
+        else if (ev.clientY > r.bottom - 30) sc.scrollTop += 10;
+      }
+      if (idx !== to) {
+        to = idx;
+        setTrackDrag({ id: trackId, to: idx });
+      }
+    };
+    const onUp = () => {
+      window.removeEventListener("pointermove", onMove);
+      setTrackDrag(null);
+      if (dragging) moveTrack(trackId, to); // 原位落下时 store 内部忽略
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp, { once: true });
+  };
+
+  /** 插入线在 tl-content 内的 top；落回原位时不画 */
+  const dropLineTop = (): number | null => {
+    if (!trackDrag) return null;
+    const tracks = project.tracks;
+    const from = tracks.findIndex((t) => t.id === trackDrag.id);
+    if (trackDrag.to === from || trackDrag.to === from + 1) return null;
+    if (trackDrag.to < tracks.length) {
+      const el = rowRefs.current.get(tracks[trackDrag.to].id);
+      return el ? el.offsetTop : null;
+    }
+    const last = tracks.length ? rowRefs.current.get(tracks[tracks.length - 1].id) : null;
+    return last ? last.offsetTop + last.offsetHeight : null;
+  };
+  const dropTop = dropLineTop();
+
   return (
-    <div className="timeline">
+    <div className={`timeline${trackDrag ? " track-dragging" : ""}`}>
       <div className="tl-toolbar">
         <button
           className="btn"
@@ -106,8 +171,23 @@ export const Timeline: React.FC = () => {
           </div>
 
           {project.tracks.map((track) => (
-            <div className="tl-row" key={track.id}>
-              <div className="tl-track-head" style={{ width: HEADER_W }}>
+            <div
+              className={`tl-row${trackDrag?.id === track.id ? " dragging" : ""}`}
+              key={track.id}
+              ref={(el) => {
+                if (el) rowRefs.current.set(track.id, el);
+                else rowRefs.current.delete(track.id);
+              }}
+            >
+              <div
+                className="tl-track-head"
+                style={{ width: HEADER_W }}
+                title="按住上下拖动调整轨道层序（上层盖住下层）"
+                onPointerDown={onTrackHeadDown(track.id)}
+              >
+                <span className="track-grip" aria-hidden>
+                  ⋮⋮
+                </span>
                 <span className="track-name" title={track.name}>
                   {track.name}
                 </span>
@@ -168,6 +248,7 @@ export const Timeline: React.FC = () => {
             </div>
           ))}
 
+          {dropTop !== null && <div className="track-drop-line" style={{ top: dropTop - 1 }} />}
           <PlayheadLine />
         </div>
       </div>

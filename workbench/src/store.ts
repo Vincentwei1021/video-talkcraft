@@ -65,6 +65,8 @@ interface WorkbenchState {
   addTrack: () => void;
   removeTrack: (trackId: string) => void;
   toggleTrackHidden: (trackId: string) => void;
+  /** 拖拽排序：把轨道移到插入位 toIndex（按原数组下标：0 = 最上层，tracks.length = 最下层） */
+  moveTrack: (trackId: string, toIndex: number) => void;
 
   addClip: (
     cardId: string,
@@ -162,6 +164,21 @@ export const useStore = create<WorkbenchState>((set, get) => ({
       project: mutateProject(s.project, (d) => {
         const t = d.tracks.find((t) => t.id === trackId);
         if (t) t.hidden = !t.hidden;
+      }),
+    }));
+  },
+
+  moveTrack: (trackId, toIndex) => {
+    const tracks = get().project.tracks;
+    const from = tracks.findIndex((t) => t.id === trackId);
+    const to = Math.max(0, Math.min(tracks.length, Math.round(toIndex)));
+    // 插到自己前面或紧跟自己后面 = 原位，不记撤销
+    if (from < 0 || to === from || to === from + 1) return;
+    get().commit();
+    set((s) => ({
+      project: mutateProject(s.project, (d) => {
+        const [t] = d.tracks.splice(from, 1);
+        d.tracks.splice(to > from ? to - 1 : to, 0, t);
       }),
     }));
   },
