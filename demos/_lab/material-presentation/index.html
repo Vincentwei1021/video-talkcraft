@@ -122,7 +122,7 @@
   #a2 .chip { font-size: 15px; color: #fff; border: 1px solid rgba(255,255,255,.45); border-radius: 999px; padding: 6px 16px; backdrop-filter: blur(6px); background: rgba(255,255,255,.08); }
 
   /* ---- A3 ---- */
-  #a3 .echo { filter: blur(26px) brightness(.45) saturate(1.15); transform: scale(1.25); }
+  #a3 .echo { filter: blur(26px) brightness(.45) saturate(.8); transform: scale(1.25); }
   #a3 .fgcard { left: 372px; top: 88px; width: 530px; height: 340px; }
   #a3 .ttl { position: absolute; left: 70px; top: 150px; width: 280px; color: #fff; }
   #a3 .ttl h4 { font-size: 34px; font-weight: 700; line-height: 1.25; letter-spacing: -0.6px; }
@@ -282,10 +282,10 @@
     <aside class="notes">
       <h3>A3 · 同源模糊底床<code>bed-echo-blur</code></h3>
       <span class="tag">核心视频素材呈现</span><span class="tag">浅/深底皆可</span>
-      <p class="one">前景核心视频装白边卡摆在右侧，同一条视频放大 1.25 + blur 26px + brightness .45 铺满当底床——不用找第二条素材，颜色一定和谐。</p>
+      <p class="one">前景核心视频装白边卡摆在右侧，同一条视频放大 1.25 + blur 26px + brightness .45 + saturate .8 铺满当底床，且慢放 0.5×——不用找第二条素材，颜色一定和谐。</p>
       <ul>
-        <li><b>命门</b>：两条 video 同一 src 同起播（demo 里重播时一起归零）；底床 blur ≥20px 才读作"氛围"而不是"糊了"。</li>
-        <li><b>参数</b>：卡宽 55%，白边 10 + 唯一投影；底床 12s 里 1.25→1.32 慢推，前景卡只 1→1.03。</li>
+        <li><b>命门</b>：底床 blur ≥20px 才读作"氛围"而不是"糊了"；底床要<b>慢放或定帧</b>——与前景同步的同源运动会读作重影（YouTube blur-fill 原配方不压暗不慢放，是它常被嫌"闹"的原因）。</li>
+        <li><b>参数</b>：卡宽 55%，白边 10 + 唯一投影；底床 12s 里 1.25→1.32 慢推 + 0.5× 慢放，前景卡只 1→1.03；再叠 ~30% 黑与去饱和。</li>
         <li><b>用处</b>：竖屏手机录屏/竖拍素材放横屏（代替黑边）；只有一条可用素材的镜头。</li>
         <li><b>坑</b>：前景卡与底床同速运动（读作整屏在缩放，深度感全丢——两层速度必须错开）。</li>
       </ul>
@@ -305,10 +305,10 @@
     <aside class="notes">
       <h3>A4 · 底床让位 + 视差<code>bed-dim-on-focus</code></h3>
       <span class="tag">G3 让位用在背景上</span><span class="tag">G2 视差</span>
-      <p class="one">海面实拍底床 brightness .55 慢横移；每张证据照片弹入那一帧底床再压到 .28 并失焦 5px（0.5s），照片退场底床回到 .55；前景层横移速度是底床的 2 倍。</p>
+      <p class="one">海面实拍底床 brightness .55 慢横移；每张证据照片弹入那一帧底床再压到 .28 并失焦 8px（0.4s），照片退场底床回到 .55；前景层横移速度是底床的 2 倍。</p>
       <ul>
-        <li><b>命门</b>：让位与入场同帧起（延后即读作"背景坏了"）；回来的速度要比让位慢一点（.6s vs .5s）。</li>
-        <li><b>参数</b>：底床 .55 → 让位 .28 / blur 5px；视差比 0.5 : 1.0（底床 30px 对前景 60px / 9s）。选片教训：城市夜景原片本身太暗，.5 再压就是黑屏——底床选片要看原片平均亮度。</li>
+        <li><b>命门</b>：让位与入场同帧起（延后即读作"背景坏了"）；回来的速度要比让位慢一点（.55s vs .4s）。</li>
+        <li><b>参数</b>：底床 .55 → 让位 .28 / blur 8px / 0.4s（对齐 UI 模态 scrim 口径：Material 3 加 32%、Apple 加 35%，300~400ms，blur 8~12px）；视差比 0.5 : 1.0（底床 30px 对前景 60px / 9s）。选片教训：城市夜景原片本身太暗，.5 再压就是黑屏——底床选片要看原片平均亮度。</li>
         <li><b>用处</b>：一段口播里连出多张证据，底床全程在，但每次证据上来它都知道退一步。</li>
         <li><b>坑</b>：底床让位用透明度（透出底色变灰）——用 brightness 才是"暗下去"。</li>
       </ul>
@@ -481,10 +481,10 @@
     <aside class="notes">
       <h3>C2 · 对比双分屏（滑动揭示）<code>split-compare-slider</code></h3>
       <span class="tag">对比关系</span><span class="tag">同机位两图</span>
-      <p class="one">左图整屏起手 0.6s，分割线 1.1s 滑到中线揭出右图；停 1.5s 后向左 nudge 到 42% 再回中（强调"看右边"），再滑到 8% 几乎全露右图，最后回中线。两图共用一条极慢推。</p>
+      <p class="one">左图整屏起手 0.6s，分割线 1.4s 滑到中线揭出右图；停 1.5s 后向左 nudge 到 42% 再回中（强调"看右边"），再滑到 8% 几乎全露右图，最后回中线。两图共用一条极慢推。</p>
       <ul>
-        <li><b>命门</b>：分割线用 clip-path 裁上层（不是移动两张图）——两图机位不变，观众才在比"内容"而不是比"位置"。</li>
-        <li><b>参数</b>：滑动 1.1s power3.inOut；停留 ≥1.5s；nudge 8%；标签在该侧露出 ≥40% 时才亮。</li>
+        <li><b>命门</b>：分割线用 clip-path 裁上层（不是移动两张图）——两图机位不变，观众才在比"内容"而不是比"位置"；分割线必须动过（静态中缝读作两张贴图）。</li>
+        <li><b>参数</b>：揭示 1.4s power3.inOut（行业口径 2~4s 扫过，口播节奏取下限）；停留 ≥1.5s；nudge 8%；中缝 3px；标签在该侧露出 ≥40% 时才亮。</li>
         <li><b>用处</b>：before/after、两个版本、两个时间点；两图必须同构图（同机位/同版式），否则用 C1。</li>
         <li><b>坑</b>：分割线来回扫不停（观众读不完任何一边）；两图比例不一致露底。</li>
       </ul>
@@ -506,7 +506,7 @@
     <aside class="notes">
       <h3>C3 · 照片墙推轨<code>gallery-wall-dolly</code></h3>
       <span class="tag">序列 / 并列</span><span class="tag">相机在多素材上巡览</span>
-      <p class="one">三张照片挂在一面 −12° 的 3D 墙上；镜头先全景 0.8s，再依次推轨停靠每一张（1.0s 移动 + 0.9s 停靠，停靠时其余两张压暗 .5），最后拉回全景。</p>
+      <p class="one">三张照片挂在一面 −12° 的 3D 墙上；镜头先全景 0.8s，再依次推轨停靠每一张（1.0s 移动 + 0.9s 停靠，停靠时其余两张压暗 .5 + 景深虚化 3px），最后拉回全景。</p>
       <ul>
         <li><b>命门</b>：每一站的缩放绕当前照片发生（transform-origin 反解到该照片中心，同 stage-keyframe-tour）；停靠段照片内部有 1→1.03 微推防死。</li>
         <li><b>参数</b>：全景 z .72 / 停靠 z 1.15；墙 rotateY −12°；移动 1.0s power2.inOut。</li>
@@ -675,6 +675,7 @@ CARDS['bed-duotone-wash'] = stage => {
 CARDS['bed-echo-blur'] = stage => {
   const CFG = { echoFrom: 1.25, echoTo: 1.32, dur: 12, cardPush: 1.03 };
   const echo = stage.querySelector('.echo'), card = stage.querySelector('.fgcard'), lines = stage.querySelectorAll('.ttl .line');
+  echo.playbackRate = 0.5;    // 底床慢放：与前景同步的同源运动会"重影"（调研结论），慢放或定帧才读作氛围
   const tl = gsap.timeline();
   tl.set(echo, { scale: CFG.echoFrom }).set(card, { opacity: 0, scale: .92, y: 22, transformOrigin: '50% 50%' }).set(lines, { opacity: 0, y: 16 })
     .to(echo, { scale: CFG.echoTo, duration: CFG.dur, ease: 'none' }, 0)
@@ -687,7 +688,7 @@ CARDS['bed-echo-blur'] = stage => {
 };
 
 CARDS['bed-dim-on-focus'] = stage => {
-  const CFG = { bedB: .55, dimB: .28, dimBlur: 5, dimDur: .5, backDur: .6, bedPan: -30, fgPan: -60, dur: 9 };
+  const CFG = { bedB: .55, dimB: .28, dimBlur: 8, dimDur: .4, backDur: .55, bedPan: -30, fgPan: -60, dur: 9 };
   const bedcam = stage.querySelector('.bedcam'), bed = stage.querySelector('.bed'), fg = stage.querySelector('.fg'), c1 = stage.querySelector('.c1'), c2 = stage.querySelector('.c2'), sub = stage.querySelector('.sub');
   const tl = gsap.timeline();
   const pop = (el, at) => tl.fromTo(el, { opacity: 0, scale: .8 }, { opacity: 1, scale: 1, duration: .38, ease: 'back.out(1.7)' }, at);
@@ -811,7 +812,7 @@ CARDS['hero-duo-layout'] = stage => {
 };
 
 CARDS['split-compare-slider'] = stage => {
-  const CFG = { slide: 1.1, hold: 1.5, nudge: 42, farLeft: 8 };
+  const CFG = { slide: 1.4, hold: 1.5, nudge: 42, farLeft: 8 };
   const l = stage.querySelector('.pane.l'), div = stage.querySelector('.divider'), ll = stage.querySelector('.lbl.l'), lr = stage.querySelector('.lbl.r'), imgs = stage.querySelectorAll('img');
   const o = { p: 100 };
   const apply = () => { l.style.clipPath = `inset(0 ${100 - o.p}% 0 0)`; div.style.left = o.p + '%'; ll.style.opacity = o.p >= 40 ? 1 : 0; lr.style.opacity = (100 - o.p) >= 40 ? 1 : 0; };
@@ -835,17 +836,17 @@ CARDS['gallery-wall-dolly'] = stage => {
   const wide = { scale: CFG.wideZ, x: 480 - CFG.wideZ * 850, y: 270 - CFG.wideZ * 270 };
   const stop = c => ({ scale: CFG.stopZ, x: 480 - CFG.stopZ * c.x, y: 270 - CFG.stopZ * c.y });
   const tl = gsap.timeline();
-  tl.set(cam, { ...wide, transformOrigin: '0 0' }).set(photos, { filter: 'brightness(1)' }).set(photos.map(p => p.querySelector('img')), { scale: 1 }).set(sub, { opacity: 0 })
+  tl.set(cam, { ...wide, transformOrigin: '0 0' }).set(photos, { filter: 'brightness(1) blur(0px)' }).set(photos.map(p => p.querySelector('img')), { scale: 1 }).set(sub, { opacity: 0 })
     .to(sub, { opacity: 1, duration: .01 }, .2);
   let t = .8;
   centers.forEach((c, i) => {
     tl.to(cam, { ...stop(c), duration: CFG.move, ease: 'power2.inOut' }, t);
-    photos.forEach((p, j) => tl.to(p, { filter: `brightness(${i === j ? 1 : CFG.dim})`, duration: .5 }, t + CFG.move * .5));
+    photos.forEach((p, j) => tl.to(p, { filter: `brightness(${i === j ? 1 : CFG.dim}) blur(${i === j ? 0 : 3}px)`, duration: .5 }, t + CFG.move * .5));   // 其余：压暗 + 景深虚化
     tl.to(photos[i].querySelector('img'), { scale: 1.03, duration: CFG.hold + .3, ease: 'none' }, t + CFG.move * .7);   // 停靠段内部微推防死
     t += CFG.move + CFG.hold;
   });
   tl.to(cam, { ...wide, duration: 1.2, ease: 'power2.inOut' }, t);
-  photos.forEach(p => tl.to(p, { filter: 'brightness(1)', duration: .6 }, t + .3));
+  photos.forEach(p => tl.to(p, { filter: 'brightness(1) blur(0px)', duration: .6 }, t + .3));
   tl.to(sub, { opacity: 0, duration: .01 }, t + 1.0).to({}, { duration: .5 }, t + 1.2);
   return tl;
 };

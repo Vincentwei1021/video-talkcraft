@@ -120,5 +120,67 @@ C1、C2、C4 各自成卡（三种关系语义互斥）；C3 并入 stage-keyfra
 - tsx 化时：底床视频用 `<OffthreadVideo muted>`；C5 布局重排改 transform；B2 蒙版用 `maskImage`；A4 的 CSS 变量改为 interpolate 直接算 filter 字串。
 - 素材规格：底床 720p 足够（被压暗/模糊）；前景核心视频 1080p；图片 ≥ 画幅 × 最大缩放（B5 需 ≥2900px 宽）。
 
+## 调研对原型的修正（子代理结论 vs 我先做的版本）
+三题各派一个全新上下文的子代理做网络调研（搜索引擎多被反爬，改走 Bing/Yahoo + 直读一手来源），回来后按"有出处的才改"改了四处：
+- **A3 同源底床**：原型 saturate 1.15 且两条视频同步播。调研指出 blur-fill 原配方不压暗、不慢放，同源同步运动会读作**重影**，
+  且要再叠 ~30% 黑 + 去饱和 → 改为 saturate .8 + 底床 **playbackRate 0.5**；"两条同步"从命门里删掉。
+- **A4 让位量**：调研给出 UI 模态 scrim 口径（Material 3 `ScrimTokens` 0.32 / Apple 亮底 +35%，300~400ms，blur 8~12px）
+  → blur 5→8px、时长 .5→.4s。
+- **C2 揭示时长**：行业口径 2~4s 扫过，原型 1.1s 偏急 → 1.4s（口播节奏取下限）；补"分割线必须动过"。
+- **C3 其余照片**：调研建议 3D 巡览用景深虚化 4~8px 区分层次 → 非当前照片 brightness .5 之外再加 blur 3px。
+
+没改但要记着的出入：
+- **摇移速度**：RED「7 秒横穿一帧」＝ 960 宽约 137px/s、1920 宽 275px/s，比本库 sway-parallax 的 190px/s@960 更严；
+  它针对的是实拍细节画面在 24fps 下的 judder。C4 传送带 176px/s 在本库上限内，若成片 24fps 出现抖动先降到 ~150。
+- **Scrim 浓度**：NN/g 案例 30% 黑不够、50% 才够；A1 的 brightness .42 ≈ 58% 压暗 + 底部 floor-fade 到 78%，在口径内。
+- **错峰**：叙事级 50~100ms/项、戏剧化 100~200ms，总时长 <600ms，≥3 元素时同时在动的 ≤1/3——C1/C5 的 120~150ms 在范围内。
+- **降权幅度**：调研给 scale 0.8~0.9 / 亮度 −20~30% / blur 4~8px；本页 C1 用 brightness .6 / scale .985（更轻的缩放、更重的压暗），两套都成立，入库时统一一套。
+- **反例**：MKBHD 实测分屏占 0%，对比全靠"顺序镜头 + 标签"——**不是每次多素材都要同屏**，SHOTBOOK 里先问"能不能顺着讲"。
+- **Loop**：底床 8~20s 一循环、首尾 ~1s 叠化、验收"连播三遍盯画面中心"（ffmpeg xfade 可程序化生成）。
+- **2.5D 真做法**：开源链 DepthFlow + Depth Anything V2（深度图位移 x≈3% 画幅、z≈7%、边缘外推 60px）；AE 链 Z 分布
+  背景 +6000~10000 / 中景 +2000~3500 / 前景 −500~+100、源图 ≥5000px。B2 切片视差是无深度图时的替代。
+- **3D 可读性**：带文字的面倾角 ≤15°（密排文字 ≤8° 为经验值，未见文献定量）；perspective 800~1000 常规、<500 激进、>2000 近正交。
+- **字幕避让**（Netflix / DCMP）：字幕不压脸、嘴、画内文字，避不开就上移——与本库"文字不叠截图文字"同一条。
+
 ## 调研来源
-（三题的网络调研由独立子代理完成，来源链接见下；本页结论以"能落成参数"为筛选标准，泛论未收。）
+**A · 底床**
+- Material 3 scrim 0.32：https://m3.material.io/styles/color/roles ·
+  https://raw.githubusercontent.com/androidx/androidx/androidx-main/compose/material3/material3/src/commonMain/kotlin/androidx/compose/material3/tokens/ScrimTokens.kt
+- Apple HIG Materials（亮底 +35%）：https://developer.apple.com/design/human-interface-guidelines/materials
+- NN/g 图上文字（30% 不够 / 50%）：https://www.nngroup.com/articles/text-over-images/
+- 白字压亮景 / 双色调两步：https://www.premiumbeat.com/blog/white-text-over-bright-footage-tips/ ·
+  https://www.premiumbeat.com/blog/davinci-resolve-tip-create-a-duotone-look-in-2-steps/
+- 渐变遮罩：https://www.storyblocks.com/resources/tutorials/how-to-create-a-gradient-overlay-in-premiere-pro · https://bitcut.app/guide/subtitle-gradient
+- WCAG 对比度 / G18 邻近像素：https://www.w3.org/WAI/WCAG21/Understanding/contrast-minimum.html · https://www.w3.org/WAI/WCAG21/Techniques/general/G18
+- 字幕规范 DCMP：https://dcmp.org/learn/captioningkey/597
+- 视差层速 / Vox 背景 / 无缝 loop：https://motioncircles.com/knowledge/how-to-create-parallax-scrolling-animation-in-after-effects/ ·
+  https://www.premiumbeat.com/blog/replicating-vox-motion-graphic/ · https://anfx.co/blog/seamless-video-loops-guide/
+- 同源模糊（blur fill / echo pillarboxing）配方：https://www.junian.dev/tech/ffmpeg-vertical-video-blur/ · https://stackoverflow.com/questions/30789367
+
+**B · 图片运镜**
+- Ken Burns 参数：https://frameo.ai/blog/use-ken-burns-effect-images/ · https://www.provideocoalition.com/next-level-ken-burns-effects-in-final-cut-pro/ ·
+  https://echowave.io/tools/ken-burns-effect/
+- RED 摇移速度：https://www.reddigitalcinema.com/red-101/camera-panning-speed
+- GSAP SlowMo（起步缓 → 匀速 → 带速切走）：https://gsap.com/docs/v3/Eases/SlowMo/
+- 2.5D：https://designkkashi.com/en/after-effects-parallax-2-5d-depth-map-expression-guide/ · https://www.junoschool.org/article/parallax-effect-single-photo-after-effects/ ·
+  https://community.adobe.com/questions-529/fake-parallax-effect-with-2d-layers-and-a-null-60701 ·
+  https://github.com/vt-vl-lab/3d-photo-inpainting/blob/master/DOCUMENTATION.md · https://www.schoolofmotion.com/blog/3d-photo-after-effects
+- 3D 透视 / 翻面 / 倾角：https://developer.mozilla.org/en-US/docs/Web/CSS/perspective · https://3dtransforms.desandro.com/card-flip ·
+  https://github.com/micku7zu/vanilla-tilt.js · https://en.wikipedia.org/wiki/Dolly_zoom
+- 串联 / cut on action：https://en.wikipedia.org/wiki/Cutting_on_action · https://www.backstage.com/magazine/article/ken-burns-effect-12862/
+- 分辨率 / 亚像素抖动：https://docs.pteavstudio.com/en-us/9.0/techniques/kenburns ·
+  https://www.ffmpeg-micro.com/blog/ffmpeg-zoompan-filter-ken-burns-zoom-and-pan-without-the-jitter
+
+**C · 多素材同屏**
+- 视觉层级 / 共同区域：https://artofstyleframe.com/blog/visual-hierarchy-motion-graphics/ · https://www.nngroup.com/articles/common-region/
+- 编排（错峰 / 同向 / 一个焦点）：https://m1.material.io/motion/choreography.html ·
+  https://design-language-website.netlify.app/design/language/motion-ui/choreography/ ·
+  https://github.com/LottieFiles/motion-design-skill/blob/main/skills/motion-design/SKILL.md
+- 案例：Johnny Harris 节奏 https://blog.editorduel.com/blog/johnny-harris-documentary-editing-formula-vox-emmy-independent ·
+  MKBHD 分屏 0% https://www.writepanda.ai/blog/mkbhd-editing-style-measured/
+- 对比分屏：https://try.wideframe.com/blog/how-to-create-before-and-after-comparison-videos/ · https://localeyesit.com/blog/split-screen-in-film/ ·
+  https://nofilmschool.com/elevate-split-screen-in-post
+- 前庭安全（运动面积 / 距离 / 视差不一致）：https://alistapart.com/article/designing-safer-web-animation-for-motion-sensitivity/
+- 工作记忆 ≈4：https://en.wikipedia.org/wiki/Working_memory · 解说类每场 1~2 图形 https://www.vyond.com/blog/explainer-video-best-practices/
+- 横竖混合填充：https://jpgtomp4.com/blog/jpg-to-mp4-aspect-ratio-guide/
+- 字幕避让画内文字（Netflix）：https://partnerhelp.netflixstudios.com/hc/en-us/articles/215758617-Timed-Text-Style-Guide-General-Requirements
