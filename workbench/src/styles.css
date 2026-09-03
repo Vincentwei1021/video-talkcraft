@@ -302,9 +302,24 @@ body {
   height: 56px; padding: 0 8px 0 12px;
   background: var(--panel); border-bottom: 1px solid var(--line); border-right: 1px solid var(--line);
 }
-.track-name { font-size: 12px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tl-track-head { cursor: grab; }
+.track-grip { flex: none; font-size: 10px; letter-spacing: -3px; color: var(--text-dim); opacity: 0.5; margin-right: 4px; }
+.track-name { flex: 1; min-width: 0; font-size: 12px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .track-actions { display: flex; gap: 2px; flex: none; }
 .track-actions .mini { padding: 2px 6px; }
+
+/* 轨道拖拽排序 */
+.tl-row.dragging { opacity: 0.45; }
+.timeline.track-dragging, .timeline.track-dragging * { cursor: grabbing !important; user-select: none; }
+.track-drop-line {
+  position: absolute; left: 0; right: 0; height: 2px;
+  background: var(--accent); z-index: 7; pointer-events: none;
+  box-shadow: 0 0 6px rgba(10, 132, 255, 0.6);
+}
+.track-drop-line::before {
+  content: ""; position: absolute; left: 6px; top: -3px;
+  width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
+}
 
 .tl-lane {
   position: relative; height: 56px; flex: none;
