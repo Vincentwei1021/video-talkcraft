@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>动态幕底实验室 · 16 款（2026-09-04）</title>
+<title>动态幕底实验室 · 12 款（2026-09-05 用户选定）</title>
 <script src="../../_lib/gsap.min.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -60,22 +60,22 @@
 </head>
 <body>
 <header>
-  <h1>动态幕底实验室 <small>2026-09-04 · 16 款 · 深 8 / 浅 8 · 全部帧号可复现</small></h1>
+  <h1>动态幕底实验室 <small>2026-09-05 用户选定 12 款 · 深 6 / 浅 6 · 全部帧号可复现</small></h1>
   <nav>
     <a href="#dark">深色</a><a href="#light">浅色</a>
     <button id="tfg" class="on">前景样片</button><button id="tgrain" class="on">噪点抗色带</button>
-    <span style="font-size:12px;color:#8a8a94;margin-left:6px">运动</span><button data-m="1">1×</button><button data-m="1.6" class="on">1.6×</button><button data-m="2.2">2.2×</button>
+    <span style="font-size:12px;color:#8a8a94;margin-left:6px">运动</span><button data-m="1">1×</button><button data-m="1.5" class="on">1.5×</button><button data-m="2">2×</button>
   </nav>
 </header>
 <div class="intro">
   <p><b>怎么看</b>：每个舞台都叠了同一套前景样片（标题 + 说明行 + 白边卡 + 底部素排字幕），先看字读不读得清，再关掉前景看背景本身。所有背景都由一个时间变量驱动（<code>t = 帧号 / fps</code>），没有 Math.random、没有物理模拟，Remotion 里逐帧可复现。</p>
-  <p><b>运动口径</b>：背景是"空间基底"，允许自带极慢流动，但它不是运动系统的一部分——运动系统只剩场景相机的极缓推拉（2026-09-04 定版）。各卡说明里的周期 / time 系数是 <b>1× 基准值</b>；2026-09-05 用户反馈"运动稍微明显一点点"，本页<b>默认 1.6×</b>（页头可切 1× / 2.2× 对比）。判据不变：盯字幕 3 秒，眼睛不该被背景带走。</p>
+  <p><b>运动口径</b>：背景是"空间基底"，允许自带极慢流动，但它不是运动系统的一部分——运动系统只剩场景相机的极缓推拉（2026-09-04 定版）。各卡说明里的周期 / time 系数是 <b>1× 基准值</b>；2026-09-05 用户看过后定版 <b>1.5×</b> 为默认（页头可切 1× / 2× 对比）。判据不变：盯字幕 3 秒，眼睛不该被背景带走。</p>
 </div>
 
 <!-- ============================ 深色 ============================ -->
 <section id="dark">
-  <h2><span>深</span>深色幕底 8 款</h2>
-  <div class="lead">替换掉"纯黑 + 圆形追光"那一款。深色的通病是 H.264 压出色带——每款都默认叠一层静态噪点（opacity .06、overlay），这是抗色带的标准解法。</div>
+  <h2><span>深</span>深色幕底 6 款</h2>
+  <div class="lead">替换掉"纯黑 + 圆形追光"那一款。用户 2026-09-05 从 8 款里选定 6 款（去掉绸缎噪声、抖动波纹）。深色的通病是 H.264 压出色带——每款都默认叠一层静态噪点（opacity .06、overlay），这是抗色带的标准解法。</div>
 
   <article class="lab-card" data-bg="mesh-flow-dark" data-mode="dark">
     <div class="stage-wrap"><div class="stage-scaler"><div class="stage dark"><canvas class="bg"></canvas><div class="grain"></div><div class="fg"><div class="h">把你的调研<br>变成一条<em>能播</em>的片子</div><div class="p">Stripe 式网格渐变 · 四色 · 域扭曲 fbm</div><div class="card"><div class="pic"></div><i></i><i class="s"></i></div><div class="sub">这里是底部素排字幕 看看读不读得清</div></div></div></div></div>
@@ -92,10 +92,10 @@
   </article>
 
   <article class="lab-card" data-bg="beams-grid" data-mode="dark">
-    <div class="stage-wrap"><div class="stage-scaler"><div class="stage dark"><div class="fill grid"></div><div class="fill beam b1"></div><div class="fill beam b2"></div><div class="fill spot"></div><div class="grain"></div><div class="fg"><div class="h">把你的调研<br>变成一条<em>能播</em>的片子</div><div class="p">Linear / Vercel 式 · 透视网格 + 两道光束</div><div class="card"><div class="pic"></div><i></i><i class="s"></i></div><div class="sub">这里是底部素排字幕 看看读不读得清</div></div></div></div></div>
-    <aside class="notes"><h3>D3 · 光束网格<code>beams-grid</code></h3><span class="tag">纯 CSS + GSAP</span><span class="tag ok">Remotion 可复现</span>
-      <p class="one">Linear / Vercel 黑底语法：透视地面网格向远处消隐 + 两道斜向光束每 18s 慢扫一次 + 顶部一盏冷光。网格线距 100px、线 1px 只在中心可见。</p>
-      <ul><li><b>参数</b>：网格 rgba(255,255,255,.06)；光束宽 220px、亮 .10、skew −18°；光束周期 18s / 26s 不同步。</li><li><b>Remotion</b>：三层 div，位置由 frame 线性映射。</li><li><b>用处</b>：技术 / 产品 / 数据幕。</li><li><b>坑</b>：网格是"细密纹理"——**必须放屏幕空间静态层，不进相机缩放层**（亚像素爬行）。</li></ul></aside>
+    <div class="stage-wrap"><div class="stage-scaler"><div class="stage dark"><div class="fill grid"></div><div class="fill spot"></div><div class="grain"></div><div class="fg"><div class="h">把你的调研<br>变成一条<em>能播</em>的片子</div><div class="p">Linear / Vercel 式 · 透视网格 + 顶部冷光</div><div class="card"><div class="pic"></div><i></i><i class="s"></i></div><div class="sub">这里是底部素排字幕 看看读不读得清</div></div></div></div></div>
+    <aside class="notes"><h3>D3 · 光束网格<code>beams-grid</code></h3><span class="tag">纯 CSS（静态）</span><span class="tag ok">Remotion 可复现</span>
+      <p class="one">Linear / Vercel 黑底语法：透视地面网格向远处消隐 + 顶部一盏冷光。斜向光束慢扫已按用户意见去掉（2026-09-05）——这一款是静态幕底，画面的活由场景相机极缓推拉负责。网格线距 100px、线 1px 只在中心可见。</p>
+      <ul><li><b>参数</b>：网格 rgba(255,255,255,.06)，perspective 700 / rotateX 48°；顶光 rgba(120,170,255,.18) 直径 60%。</li><li><b>Remotion</b>：两层静态 div。</li><li><b>用处</b>：技术 / 产品 / 数据幕。</li><li><b>坑</b>：网格是"细密纹理"——**必须放屏幕空间静态层，不进相机缩放层**（亚像素爬行）。</li></ul></aside>
   </article>
 
   <article class="lab-card" data-bg="spotlight-stage" data-mode="dark">
@@ -105,39 +105,27 @@
       <ul><li><b>参数</b>：底 #101116；主光 rgba(41,151,255,.14) 直径 65%；副光 rgba(255,200,150,.05)；尘埃 1.2~2.2px、亮 .25、上升 6px/s。</li><li><b>用处</b>：金句幕 / 人物幕（光斑圆心跟主体落位）。</li><li><b>坑</b>：两盏光同色（没有层次）；尘埃粒子 &gt;100 粒读作下雪。</li></ul></aside>
   </article>
 
-  <article class="lab-card" data-bg="silk-noise" data-mode="dark">
-    <div class="stage-wrap"><div class="stage-scaler"><div class="stage dark"><canvas class="bg"></canvas><div class="grain"></div><div class="fg"><div class="h">把你的调研<br>变成一条<em>能播</em>的片子</div><div class="p">单色绸缎 · fbm 域扭曲 · 低对比</div><div class="card"><div class="pic"></div><i></i><i class="s"></i></div><div class="sub">这里是底部素排字幕 看看读不读得清</div></div></div></div></div>
-    <aside class="notes"><h3>D5 · 绸缎噪声<code>silk-noise</code></h3><span class="tag">WebGL GLSL</span><span class="tag ok">Remotion 可复现</span>
-      <p class="one">react-bits Silk 一路：单色（蓝灰）fbm 域扭曲（f(p)=fbm(p+fbm(p+fbm(p)))），像慢慢翻动的深色绸缎；对比压在 L 8~22 之间，全画面都能叠白字。</p>
-      <ul><li><b>参数</b>：5 个八度、lacunarity 2、gain .5；time 系数 0.03；色 hsl(222, 30%, ·)。</li><li><b>用处</b>：万能深底——任何题材都不抢戏，尤其文字密集幕。</li><li><b>坑</b>：对比一拉高就变"烟雾特效"；一定要噪点抗色带（渐变最细腻的一款）。</li></ul></aside>
-  </article>
 
   <article class="lab-card" data-bg="dot-field-wave" data-mode="dark">
     <div class="stage-wrap"><div class="stage-scaler"><div class="stage dark"><canvas class="bg"></canvas><div class="grain"></div><div class="fg"><div class="h">把你的调研<br>变成一条<em>能播</em>的片子</div><div class="p">点阵 · 一道亮度波慢慢经过</div><div class="card"><div class="pic"></div><i></i><i class="s"></i></div><div class="sub">这里是底部素排字幕 看看读不读得清</div></div></div></div></div>
-    <aside class="notes"><h3>D6 · 点阵亮波<code>dot-field-wave</code></h3><span class="tag">Canvas 2D</span><span class="tag ok">Remotion 可复现</span>
+    <aside class="notes"><h3>D5 · 点阵亮波<code>dot-field-wave</code></h3><span class="tag">Canvas 2D</span><span class="tag ok">Remotion 可复现</span>
       <p class="one">Magic UI Dot Pattern + Ripple 的合体：36px 间距、2.6px 点径的点阵，一道斜向亮度波每 14s 经过一次，点被照亮时微放大到 3.4px。</p>
       <ul><li><b>参数</b>：点 rgba(255,255,255,.10) → 波峰 .55；波宽 280px；径向遮罩让四角隐去。</li><li><b>Remotion</b>：Canvas 逐帧全量重画（demo-spec 允许）。</li><li><b>用处</b>：数据 / 技术幕；比网格更耐看。</li><li><b>坑</b>：点距 &lt;32px 或点径 &lt;2.5px 在相机缩放下爬行——这款也只放屏幕空间层。</li></ul></aside>
   </article>
 
   <article class="lab-card" data-bg="orbs-dark" data-mode="dark">
     <div class="stage-wrap"><div class="stage-scaler"><div class="stage dark"><div class="fill base"></div><div class="blob o1"></div><div class="blob o2"></div><div class="blob o3"></div><div class="grain"></div><div class="fg"><div class="h">把你的调研<br>变成一条<em>能播</em>的片子</div><div class="p">Apple 发布会式 · 三团柔光缓慢绕行</div><div class="card"><div class="pic"></div><i></i><i class="s"></i></div><div class="sub">这里是底部素排字幕 看看读不读得清</div></div></div></div></div>
-    <aside class="notes"><h3>D7 · 柔光球<code>orbs-dark</code></h3><span class="tag">纯 CSS + GSAP</span><span class="tag ok">Remotion 可复现</span>
+    <aside class="notes"><h3>D6 · 柔光球<code>orbs-dark</code></h3><span class="tag">纯 CSS + GSAP</span><span class="tag ok">Remotion 可复现</span>
       <p class="one">Apple 发布会深底语法：三团 blur 70px 的大光球（蓝 / 紫 / 青）各按 30~45s 的椭圆轨道绕行，永不重合到一处；底 #0b0d14。</p>
       <ul><li><b>参数</b>：球径 420~560px，opacity .55，blur 70px；轨道半径 120~200px。</li><li><b>Remotion</b>：三个 div，位置 = 椭圆参数方程(frame)。</li><li><b>用处</b>：片头 / 品牌 / 情绪幕；与 pastel mesh 是同一语法的深色版。</li><li><b>坑</b>：球亮度过 .65 会把白字洗灰；三球同速同向读作旋转木马。</li></ul></aside>
   </article>
 
-  <article class="lab-card" data-bg="dither-wave" data-mode="dark">
-    <div class="stage-wrap"><div class="stage-scaler"><div class="stage dark"><canvas class="bg"></canvas><div class="fg"><div class="h">把你的调研<br>变成一条<em>能播</em>的片子</div><div class="p">有序抖动 · 复古半调 · 低速</div><div class="card"><div class="pic"></div><i></i><i class="s"></i></div><div class="sub">这里是底部素排字幕 看看读不读得清</div></div></div></div></div>
-    <aside class="notes"><h3>D8 · 抖动波纹<code>dither-wave</code></h3><span class="tag">WebGL GLSL</span><span class="tag ok">Remotion 可复现</span><span class="tag warn">风格强</span>
-      <p class="one">react-bits Dither 一路：低频噪声波经 4×4 Bayer 有序抖动量化成两色点阵，像复古印刷 / 老屏幕；这款自带纹理，不需再叠噪点。</p>
-      <ul><li><b>参数</b>：像素块 6px；两色 #0c0e14 / #3a4b6e；time 系数 0.05。</li><li><b>用处</b>：复古 / 黑客 / 反转幕，一片限一幕。</li><li><b>坑</b>：块 &lt;4px 压缩后变噪；配衬线字体才成立。</li></ul></aside>
-  </article>
 </section>
 
 <!-- ============================ 浅色 ============================ -->
 <section id="light">
-  <h2><span>浅</span>浅色幕底 8 款</h2>
-  <div class="lead">现有默认是静态 pastel mesh；这里第一款就是它的"会流动"版本。浅底的通病是字幕对比不够（白底基线 ≈237，字必须是 #1d1d1f 级实色）与"底花抢字"——所有款都把彩度压在 pastel 档。</div>
+  <h2><span>浅</span>浅色幕底 6 款</h2>
+  <div class="lead">现有默认是静态 pastel mesh；这里第一款就是它的"会流动"版本。用户 2026-09-05 从 8 款里选定 6 款（去掉底部柔波、细线束）。浅底的通病是字幕对比不够（白底基线 ≈237，字必须是 #1d1d1f 级实色）与"底花抢字"——所有款都把彩度压在 pastel 档。</div>
 
   <article class="lab-card" data-bg="pastel-mesh-flow" data-mode="light">
     <div class="stage-wrap"><div class="stage-scaler"><div class="stage light"><canvas class="bg"></canvas><div class="grain"></div><div class="fg"><div class="h">把你的调研<br>变成一条<em>能播</em>的片子</div><div class="p">现默认幕底的流动版 · 四团粉彩缓慢换位</div><div class="card"><div class="pic"></div><i></i><i class="s"></i></div><div class="sub">这里是底部素排字幕 看看读不读得清</div></div></div></div></div>
@@ -160,40 +148,28 @@
       <ul><li><b>参数</b>：底 #f5f6f8；线 rgba(29,29,31,.055) 距 100px；光 rgba(120,180,255,.22) 直径 60% blur 60px。</li><li><b>用处</b>：数据 / 技术幕（浅色版）。</li><li><b>坑</b>：与 D3 同——网格进屏幕空间静态层；文字密集镜头别用（网格跟笔画打架）。</li></ul></aside>
   </article>
 
-  <article class="lab-card" data-bg="soft-waves" data-mode="light">
-    <div class="stage-wrap"><div class="stage-scaler"><div class="stage light"><canvas class="bg"></canvas><div class="grain"></div><div class="fg"><div class="h">把你的调研<br>变成一条<em>能播</em>的片子</div><div class="p">底部三层柔波 · 上 60% 干净留白</div><div class="card"><div class="pic"></div><i></i><i class="s"></i></div><div class="sub">这里是底部素排字幕 看看读不读得清</div></div></div></div></div>
-    <aside class="notes"><h3>L4 · 柔波<code>soft-waves</code></h3><span class="tag">Canvas 2D</span><span class="tag ok">Remotion 可复现</span>
-      <p class="one">Aceternity Wavy Background 的 pastel 版：三层不同频率的正弦叠 fbm 扰动，只占画面下 40%，上半干净留给标题；每层 20~32s 一个周期。</p>
-      <ul><li><b>参数</b>：三色 rgba(120,180,255,.35) / (180,150,255,.28) / (150,235,215,.30)；波高 40~70px；blur 6px。</li><li><b>用处</b>：片头 / 转场幕 / 轻松题材。</li><li><b>坑</b>：字幕落在波峰上（字幕带 bottom 100 必须在波谷以下或波要更矮）。</li></ul></aside>
-  </article>
 
   <article class="lab-card" data-bg="iridescent-sheen" data-mode="light">
     <div class="stage-wrap"><div class="stage-scaler"><div class="stage light"><canvas class="bg"></canvas><div class="grain"></div><div class="fg"><div class="h">把你的调研<br>变成一条<em>能播</em>的片子</div><div class="p">极淡薄膜虹彩 · 白底</div><div class="card"><div class="pic"></div><i></i><i class="s"></i></div><div class="sub">这里是底部素排字幕 看看读不读得清</div></div></div></div></div>
-    <aside class="notes"><h3>L5 · 薄膜虹彩<code>iridescent-sheen</code></h3><span class="tag">WebGL GLSL</span><span class="tag ok">Remotion 可复现</span><span class="tag warn">彩度要压</span>
+    <aside class="notes"><h3>L4 · 薄膜虹彩<code>iridescent-sheen</code></h3><span class="tag">WebGL GLSL</span><span class="tag ok">Remotion 可复现</span><span class="tag warn">彩度要压</span>
       <p class="one">react-bits Iridescence 的极淡版：白底上一层 fbm 驱动的薄膜干涉色（cos 调色板），饱和度压到 18%，像珠光纸；time 系数 0.04。</p>
       <ul><li><b>参数</b>：色带 amplitude .12；底 #fafafc；对比不超过 L 88~99。</li><li><b>用处</b>：品牌 / 设计 / 高级感题材。</li><li><b>坑</b>：饱和度一高就成"泡泡"；accent 换色词在虹彩上可能撞色（选深 accent）。</li></ul></aside>
   </article>
 
   <article class="lab-card" data-bg="glass-blobs" data-mode="light">
     <div class="stage-wrap"><div class="stage-scaler"><div class="stage light"><div class="fill base"></div><div class="blob g1"></div><div class="blob g2"></div><div class="blob g3"></div><div class="fill frost"></div><div class="grain"></div><div class="fg"><div class="h">把你的调研<br>变成一条<em>能播</em>的片子</div><div class="p">彩团 + 磨砂玻璃 · Figma / Arc 一路</div><div class="card"><div class="pic"></div><i></i><i class="s"></i></div><div class="sub">这里是底部素排字幕 看看读不读得清</div></div></div></div></div>
-    <aside class="notes"><h3>L6 · 磨砂彩团<code>glass-blobs</code></h3><span class="tag">纯 CSS + GSAP</span><span class="tag ok">Remotion 可复现</span>
+    <aside class="notes"><h3>L5 · 磨砂彩团<code>glass-blobs</code></h3><span class="tag">纯 CSS + GSAP</span><span class="tag ok">Remotion 可复现</span>
       <p class="one">三团高彩色球在一层 backdrop-blur 磨砂玻璃后面缓慢游走：玻璃把彩度压成柔雾，球本身可以很艳；周期 28~40s。</p>
       <ul><li><b>参数</b>：球 #7aa7ff / #ffa3c4 / #8fe3cf，opacity .8；玻璃 rgba(255,255,255,.55) + blur 40px。</li><li><b>Remotion</b>：backdrop-filter 在 Chrome 渲染稳定；也可直接对球层 filter blur。</li><li><b>用处</b>：产品 / 设计 / 轻松题材。</li><li><b>坑</b>：玻璃透明度低于 .45 时彩团抢字。</li></ul></aside>
   </article>
 
   <article class="lab-card" data-bg="ink-wash" data-mode="light">
     <div class="stage-wrap"><div class="stage-scaler"><div class="stage light"><canvas class="bg"></canvas><div class="grain paper"></div><div class="fg"><div class="h">把你的调研<br>变成一条<em>能播</em>的片子</div><div class="p">宣纸淡墨 · 云气缓行</div><div class="card"><div class="pic"></div><i></i><i class="s"></i></div><div class="sub">这里是底部素排字幕 看看读不读得清</div></div></div></div></div>
-    <aside class="notes"><h3>L7 · 淡墨云气<code>ink-wash</code></h3><span class="tag">WebGL GLSL</span><span class="tag ok">Remotion 可复现</span>
+    <aside class="notes"><h3>L6 · 淡墨云气<code>ink-wash</code></h3><span class="tag">WebGL GLSL</span><span class="tag ok">Remotion 可复现</span>
       <p class="one">Aceternity Cloud Shader 的国风版：米白宣纸底上一层 fbm 云气（灰墨，alpha ≤ .16）从右向左缓行，边缘用 smoothstep 做出墨晕。</p>
       <ul><li><b>参数</b>：底 #f6f3ea；墨 rgba(40,44,52,·)；time 系数 0.025（最慢的一款）。</li><li><b>用处</b>：人文 / 历史 / 国风题材；配 chinese-aesthetics 方向。</li><li><b>坑</b>：墨 alpha &gt;.2 就抢标题；云气不要有硬边。</li></ul></aside>
   </article>
 
-  <article class="lab-card" data-bg="threads-light" data-mode="light">
-    <div class="stage-wrap"><div class="stage-scaler"><div class="stage light"><canvas class="bg"></canvas><div class="grain"></div><div class="fg"><div class="h">把你的调研<br>变成一条<em>能播</em>的片子</div><div class="p">噪声驱动的细线束 · 慢慢呼吸</div><div class="card"><div class="pic"></div><i></i><i class="s"></i></div><div class="sub">这里是底部素排字幕 看看读不读得清</div></div></div></div></div>
-    <aside class="notes"><h3>L8 · 细线束<code>threads-light</code></h3><span class="tag">Canvas 2D</span><span class="tag ok">Remotion 可复现</span>
-      <p class="one">react-bits Threads / Aceternity Background Lines 一路：40 条 1px 灰蓝细线横贯画面，纵向位移由二维噪声驱动，整束像在缓慢呼吸；只占中下部。</p>
-      <ul><li><b>参数</b>：线 rgba(60,80,120,.16)；振幅 60px；time 系数 0.05；线间距 9px。</li><li><b>用处</b>：数据 / 流程 / 连接类题材。</li><li><b>坑</b>：线穿过标题行（线束限制在 y &gt; 300）；线太密（&lt;6px）在缩放层爬行。</li></ul></aside>
-  </article>
 </section>
 
 <footer>
@@ -203,7 +179,7 @@
 <script>
 /* ============================ 运行时 ============================ */
 const registry = [];
-let MOTION = 1.6;                                      // 全局运动倍率（2026-09-05 用户："稍微明显一点点"）
+let MOTION = 1.5;                                      // 全局运动倍率（2026-09-05 用户定版 1.5×）
 let VT = 0, lastTick = performance.now();              // 虚拟时钟：按倍率累加，切换倍率不跳帧
 const now = () => VT;                                  // 实拍里换成 frame / fps × 倍率
 function setup(card) {
@@ -284,13 +260,11 @@ BG['aurora-veil'] = stage => glsl(stage.querySelector('canvas.bg'), `
   }`);
 
 BG['beams-grid'] = stage => {
-  const grid = stage.querySelector('.grid'), b1 = stage.querySelector('.b1'), b2 = stage.querySelector('.b2'), spot = stage.querySelector('.spot');
+  const grid = stage.querySelector('.grid'), spot = stage.querySelector('.spot');
   stage.style.background = '#08090d';
   Object.assign(grid.style, { background: 'linear-gradient(rgba(255,255,255,.06) 1px, transparent 1px) 0 0 / 100px 100px, linear-gradient(90deg, rgba(255,255,255,.06) 1px, transparent 1px) 0 0 / 100px 100px', maskImage: 'radial-gradient(120% 90% at 50% 60%, #000 25%, transparent 80%)', WebkitMaskImage: 'radial-gradient(120% 90% at 50% 60%, #000 25%, transparent 80%)', transform: 'perspective(700px) rotateX(48deg) translateY(120px) scale(1.6)', transformOrigin: '50% 100%' });
-  const beam = (el, alpha) => Object.assign(el.style, { background: `linear-gradient(90deg, transparent, rgba(120,170,255,${alpha}) 50%, transparent)`, width: '220px', left: '0', transform: 'skewX(-18deg)', filter: 'blur(6px)' });
-  beam(b1, .10); beam(b2, .07);
   Object.assign(spot.style, { background: 'radial-gradient(60% 45% at 50% 0%, rgba(120,170,255,.18), transparent 70%)' });
-  return t => { b1.style.transform = `translateX(${-300 + ((t % 18) / 18) * 1500}px) skewX(-18deg)`; b2.style.transform = `translateX(${-300 + (((t + 9) % 26) / 26) * 1500}px) skewX(-18deg)`; };
+  return () => {};   // 静态款：斜向光束已去掉（2026-09-05 用户定版）
 };
 
 BG['spotlight-stage'] = stage => {
@@ -306,17 +280,6 @@ BG['spotlight-stage'] = stage => {
     ctx.globalAlpha = 1;
   };
 };
-
-BG['silk-noise'] = stage => glsl(stage.querySelector('canvas.bg'), `
-  void main(){
-    vec2 uv = gl_FragCoord.xy / u_res; vec2 p = uv * vec2(2.4, 1.35); float t = u_time * 0.03;
-    vec2 q = vec2(fbm(p + t), fbm(p + vec2(3.1, 2.7) - t * 0.7));
-    float f = 0.5 + 0.5 * fbm(p + 1.6 * q + vec2(t * 0.5, -t * 0.3));   // 重映射到 0~1
-    float l = mix(0.07, 0.30, smoothstep(0.25, 0.8, f));             // 明度只在 7%~30%
-    vec3 col = vec3(l * 0.74, l * 0.84, l * 1.12);                    // 蓝灰
-    col *= 0.9 + 0.1 * (1.0 - length(uv - vec2(0.5, 0.45)));
-    gl_FragColor = vec4(col, 1.0);
-  }`);
 
 BG['dot-field-wave'] = stage => {
   const ctx = c2d(stage.querySelector('canvas.bg'));
@@ -340,21 +303,6 @@ BG['orbs-dark'] = stage => {
   o.forEach((el, i) => Object.assign(el.style, { width: spec[i].s + 'px', height: spec[i].s + 'px', background: spec[i].c, left: '0', top: '0' }));
   return t => o.forEach((el, i) => { const s = spec[i], a = (t / s.T) * 6.283 * (i % 2 ? -1 : 1) + i; el.style.transform = `translate(${s.cx + Math.cos(a) * s.rx - s.s / 2}px, ${s.cy + Math.sin(a) * s.ry - s.s / 2}px)`; });
 };
-
-BG['dither-wave'] = stage => glsl(stage.querySelector('canvas.bg'), `
-  float bayer(vec2 p){ int x = int(mod(p.x, 4.0)), y = int(mod(p.y, 4.0)); int i = x + y * 4;
-    // 4x4 Bayer
-    float m[16]; m[0]=0.; m[1]=8.; m[2]=2.; m[3]=10.; m[4]=12.; m[5]=4.; m[6]=14.; m[7]=6.; m[8]=3.; m[9]=11.; m[10]=1.; m[11]=9.; m[12]=15.; m[13]=7.; m[14]=13.; m[15]=5.;
-    for (int k = 0; k < 16; k++) if (k == i) return (m[k] + 0.5) / 16.0; return 0.5; }
-  void main(){
-    float px = 6.0; vec2 cell = floor(gl_FragCoord.xy / px); vec2 uv = cell * px / u_res;
-    float t = u_time * 0.05;
-    float v = 0.5 + 0.5 * sin(uv.x * 6.0 + fbm(uv * 3.0 + t) * 4.0 - t * 2.0);
-    v = v * 0.55 * (1.0 - smoothstep(0.35, 1.0, length(uv - vec2(0.5, 0.45))));
-    float on = step(bayer(cell), v);
-    vec3 col = mix(vec3(0.047, 0.055, 0.078), vec3(0.23, 0.29, 0.43), on);
-    gl_FragColor = vec4(col, 1.0);
-  }`);
 
 /* ============================ 浅色 ============================ */
 BG['pastel-mesh-flow'] = stage => glsl(stage.querySelector('canvas.bg'), `
@@ -391,20 +339,6 @@ BG['grid-spot-light'] = stage => {
   return t => { const a = t / 45 * 6.283; const x = 50 + Math.cos(a) * 26, y = 45 + Math.sin(a) * 18; grid.style.maskImage = grid.style.WebkitMaskImage = `radial-gradient(60% 70% at ${x}% ${y}%, #000 20%, transparent 75%)`; spot.style.background = `radial-gradient(55% 60% at ${x}% ${y}%, rgba(120,180,255,.22), transparent 70%)`; };
 };
 
-BG['soft-waves'] = stage => {
-  const ctx = c2d(stage.querySelector('canvas.bg'));
-  const layers = [{ c: 'rgba(120,180,255,.35)', T: 32, amp: 70, base: 340, f: 1.2 }, { c: 'rgba(180,150,255,.28)', T: 26, amp: 55, base: 380, f: 1.7 }, { c: 'rgba(150,235,215,.30)', T: 20, amp: 40, base: 420, f: 2.3 }];
-  return t => {
-    ctx.fillStyle = '#fbfbfd'; ctx.fillRect(0, 0, 960, 540); ctx.filter = 'blur(6px)';
-    for (const L of layers) {
-      ctx.beginPath(); ctx.moveTo(-20, 560);
-      for (let x = -20; x <= 980; x += 10) { const ph = t / L.T * 6.283; const y = L.base + Math.sin(x / 960 * 6.283 * L.f + ph) * L.amp + Math.sin(x / 960 * 6.283 * L.f * 2.3 - ph * 1.6) * L.amp * .25; ctx.lineTo(x, y); }
-      ctx.lineTo(980, 560); ctx.closePath(); ctx.fillStyle = L.c; ctx.fill();
-    }
-    ctx.filter = 'none';
-  };
-};
-
 BG['iridescent-sheen'] = stage => glsl(stage.querySelector('canvas.bg'), `
   vec3 pal(float x){ return vec3(0.5) + 0.5 * cos(6.2831 * (vec3(1.0, 1.0, 1.0) * x + vec3(0.0, 0.33, 0.67))); }
   void main(){
@@ -438,20 +372,6 @@ BG['ink-wash'] = stage => { const g = stage.querySelector('.grain.paper'); g.sty
     vec3 paper = vec3(0.965, 0.953, 0.918), inkc = vec3(0.16, 0.17, 0.20);
     gl_FragColor = vec4(mix(paper, inkc, ink), 1.0);
   }`); };
-
-BG['threads-light'] = stage => {
-  const ctx = c2d(stage.querySelector('canvas.bg'));
-  const N = 40, n2 = (x, y) => { const s = Math.sin(x * 1.7 + y * 0.9) + Math.sin(x * 0.6 - y * 1.9) * 0.6 + Math.sin(x * 2.9 + y * 0.4) * 0.3; return s / 1.9; };
-  return t => {
-    ctx.fillStyle = '#fbfbfd'; ctx.fillRect(0, 0, 960, 540);
-    ctx.strokeStyle = 'rgba(60,80,120,.22)'; ctx.lineWidth = 1;
-    for (let i = 0; i < N; i++) {
-      const y0 = 320 + i * 9 - (i - N / 2) * 0.6; ctx.beginPath();
-      for (let x = -10; x <= 970; x += 12) { const y = y0 + n2(x / 300 + t * 0.05, i / 14 + t * 0.03) * 60 * (0.6 + 0.4 * Math.sin(x / 960 * 3.14)); x < 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); }
-      ctx.stroke();
-    }
-  };
-};
 
 /* ============================ 启动 ============================ */
 document.querySelectorAll('.lab-card').forEach(c => { setup(c); io.observe(c); });
