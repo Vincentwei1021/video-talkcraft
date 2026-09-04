@@ -22,3 +22,7 @@ export const gridBg: React.CSSProperties = {
     `linear-gradient(90deg, ${C.line} 1px, transparent 1px)`,
   backgroundSize: '72px 72px',
 };
+
+/** 幕底 token（design-language §1.1，2026-09-05 用户选定 12 款）：场景整幕 `<Backdrop kind={bg.light} />`；
+ *  按幕替换时在 SHOTBOOK §0 声明。全部 kind 见 backdrop.tsx 的 BackdropKind。 */
+export const bg = {light: 'pastel-mesh-flow', dark: 'mesh-flow-dark'} as const;

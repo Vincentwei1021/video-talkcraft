@@ -23,7 +23,7 @@ description: 终极口播视频 skill：中文口播稿 + 成品配音 → CPU �
 - **画幅默认横屏 1920×1080**（用户偏好）；明确要发抖音/竖屏渠道才用 1080×1920
 - 视觉语言：**用户明确点了风格就按用户的来**（整套 token 替换）；没点时才走默认的
   `references/design-language.md`（Apple 范式：一个强调色/一个投影/底色交替分幕/两档字重/
-  默认幕底 pastel mesh），
+  默认幕底：浅 `pastel-mesh-flow` / 深 `mesh-flow-dark`——12 款幕底见 §1.1，代码 `template/motion-systems/backdrop.tsx`），
   派生本片 token 落成 `theme.ts`。对任何风格都成立的只有一条：禁止逐场景随手取色
 
 ## ① 口播稿
@@ -109,6 +109,13 @@ whoosh 落在已静止的画面上，静帧 QA 与 beat_lint 都看不见。
 **排版预算（2026-08-28 用户定版，细则 cinematography.md §4）**：分镜按语义段落切、每镜一个 primary visual job；
 枢轴句（"但这次不是X"式转折/设问）的动效归它**开启**的下一镜，上清过场的舞台；任一时刻同屏主体组 ≤3
 （降权留守的元素**计入**）、每镜至少留一个空象限；人物在场先跑 `scripts/face_bbox.py` 定人脸安全区。
+**排版规范（2026-09-05 用户定版，细则 `references/layout.md`）**：预算管"放多少"，规范管"放哪、多大、怎么对齐"——
+12 栏栅格吸附、安全边 96 / 贴边 <64 判缺陷、外边距 ≥ 组间距 ≥ 组内间距、以字形边对齐而非容器盒、无人物时主体组包围盒居中、
+标注几何由目标包围盒实测反推（偏差 >8px 返工）、字阶最小档（body 28 / 条目 chip ≥40 / 独句 hero 居中）、包围盒不相交、
+同组底板淡色系区分、章节卡按章换色。SHOTBOOK 每镜写**版式行**（栏跨度 + 组包围盒 + 对齐基准 + 字阶），定妆帧开 `debugOverlay` 核九项，任一失败 = P1。
+**选卡必读卡经验（2026-09-05 用户定版）**：每张选中的卡，把 `references/cards/<slug>.md` 的「已知坑」与「落位自检」**逐条抄进该镜层矩阵的自检列**，
+实现后按条核（例：取景框 / 圈注 / 下划线类卡必核标注是否套住目标；`gooey-morph` 只用于图不用于字且无人物时居中；`chapter-title-card` 按章换色）——
+卡经验不进 SHOTBOOK 就等于没读。
 动效词汇从 **79 张配方卡** 里选：`references/taxonomy.md` 索引 → `references/cards/<slug>.md` 参数与坑 → `template/cards/<slug>.tsx` **自包含 Remotion 源码（实现以它为准，复制进工程改 CONFIG 即用）**；`demos/<slug>/index.html` 是同画面的 HTML 预览（`open gallery/index.html` 一屏浏览、demo 滚入即自动播放；带★实战卡的生产母本另在 template/motion-systems|components）。
 **保真铁律（2026-08-30 实战教训）**：每张用到的卡在工程里必须真实存在 `src/cards/<slug>.tsx`
 （自 template 复制改 CONFIG）——只读 md 文档就凭卡名手写"神似"简化版，是已发生过的最大翻车
@@ -147,7 +154,7 @@ SHOTBOOK 抄来的 cue 表落成一张 `sfx.ts`（绝对秒），场景里 `<Aud
 音效电平比人声低 ~12dB、同帧最多一条 cue。
 anime.js v4 / three.js 走 `anime-remotion.ts` / `three-anime.ts` 桥（seek-safe，工程铁律见 cinematography.md §6：零 Math.random、初始 opacity:0、lead 补偿收敛一处）。
 
-### 布局红线（按画幅，详表见 design-language.md §5）
+### 布局红线（按画幅，详表见 design-language.md §5；几何总纲 `references/layout.md`——栅格 / 间距令牌 / 对齐 / 居中 / 字阶 / 碰撞 / 底板配色 / 校验九项）
 - **横屏（默认）**：字幕 bottom 100、maxWidth 66%、字号 44/600（>24 字降 38）；内容主列 ≤1440px 居中；
   边距 action-safe 96px / 标题 160px；常驻件任一下角
 - **竖屏（抖音）**：字幕 bottom 350、maxWidth 90%、>15 字缩字号；吉祥物/常驻件放**左下**（右缘是抖音点赞栏）
@@ -157,6 +164,38 @@ anime.js v4 / three.js 走 `anime-remotion.ts` / `three-anime.ts` 桥（seek-saf
   任何文字/卡片/字幕**及其背景**全时刻不得进入；主信息面板放人物对侧（2026-08-28 用户定版）
 
 ## ⑥⑦ 渲染 + 三重验收（机器闸全过 → 1 轮审片 → 交付，制度见本节末）
+
+### 迭代纪律（2026-09-04 定版，管着本节全部循环）
+
+一条实测账：某片做到交付共 **12 个母版，其中只有 5 个是独立审片带来的，7 个是自己烧的**。
+两条纪律各能省掉 3~4 个版本。
+
+**① 闸报 FAIL 时，先读闸怎么量的，再动手改。**
+不要凭机制猜、渲一版看结果、再换一个招——那是每次一版的烧法。
+- 反例（motion_check 静止段，连烧 5 版）：依次试了 mesh 加动画 → 内容层漂移 → 背景层漂移 →
+  相机补中间键 → 底色脉动 → `Live` idle。第 5 版后才去读源码，看到它就是
+  `ffmpeg freezedetect=n=0.003:d=0.8`（要求**逐帧平均像素差 >0.3%**），当场就明白了两件事：
+  **平滑渐变对位移/缩放近似不变**，漂背景根本不产生像素变化；而**相机缩放会改每一个像素**。
+  这个认知放在第 1 版之前，中间 3 版都不必发生。
+  （同时也解释了另一件事：黑震切「入场必须自带运动」在只有匀质深底的那 0.4s 里
+  **运动存在但不产生像素变化**，得让主体与硬切同帧登场才有着力点。）
+- 反例（sfx_check --mix，烧 1 版）：按 **0.15s** 窗给转场 cue 重新择点，渲完 AUDIBLE 反而从 6 掉到 2
+  ——闸实际量的是 `[t−0.05, t+0.45]` 共 **0.5s** 窗。读一眼 `peak_rms()` 的成本远低于一次渲染。
+- 读闸还能直接判出**闸本身够不够得着**：同一次读源码后算出——量测窗 0.5s，而该条配音全片
+  句间气口最长仅 0.28s、人声中位 −14.8dB 而 vol ≤0.35 的音效上限约 −22dB，
+  ⇒ UNMASKED **在数学上不可达**。这种"输入决定、不是本片可修"的结论必须早下，
+  否则会为一个过不了的闸反复返工。
+
+**② 静帧优先：10s 的静帧能答掉九成"这个改动对不对"。**
+`render_stills.mjs` 一次 bundle 批量抽帧约 **10s**，整片分段渲染 **100~180s**。
+改完先抽帧看，别直接整渲；整渲只留给"跑机器闸"这一件事。
+- 静帧能查的：落点/遮挡/文案/配色/层级/取景——本片 10 个自查缺陷全是静帧抓到的
+  （卡飞出画幅、`Live` 包整卡塌成 0×0、chip 压字幕、画面文字与字幕重复、demo 残留色）。
+- 静帧查不了的：时域缺陷（抖动/闪烁）、音画、freezedetect —— 这些才需要整渲。
+- **改哪段渲哪段**：`--only s2,s4,s7` / `--changed sNN` 只渲改动段（本片实测 5 段 182s vs
+  9 段整渲 ~300s+），复核时逐段对时间戳确认"改的段是新的、没改的段正确沿用缓存"。
+  别习惯性 `--all`。
+- 复审改动**攒批再渲**：7 个 P0 + 14 条 P1 若分 5 批渲就是 5 个版本，攒成 2 批就是 2 个。
 
 **⑥-0 渲染前静态预检（零渲染成本，2026-09-02 定版）**——两张清单把返修拦在渲染前
 （竖屏 v4 的 3 处返修全部属于这两类可预测缺陷，每处多付一轮全渲）：
@@ -242,7 +281,7 @@ subagent 按 rubric（可读性/构图/信息传达/质感/事实一致 + 保真
 **缺陷分级定义（2026-08-30 补，此前无定义）**：
 P0 = 观众必然察觉且伤害理解——事实/文字/字形错误、不可读、声画错位、元素相撞遮正文、标注指错目标；
 P1 = 违反硬规则或明显走样——错峰残影、词落点偏差 >0.3s、整镜头音效缺席、与原版卡对比帧明显不符、
-网页证据静态贴屏未拍摄（§③）；
+网页证据静态贴屏未拍摄（§③）、排版规范九项任一失败（layout.md §9：贴边 / 间距倒挂 / 未对齐 / 未居中 / 标注未套住 / 字号低于档 / 包围盒相交 / 同组同色 / 390 宽不可读）；
 P2 = 质感瑕疵——密度/留白/样式，记录但不挡验收。修完 P0+P1 才算过关。自查盯的是**成片质量缺陷**，不是规则合规
 （规则项在关卡 3）：元素重叠/覆盖/堆积、动效位置不准（标注没落在目标上、强调错位、元素出画）、
 画面噪点/压缩伪影/渲染残影、非有意的抖动或闪烁、文字贴边裁切、**排版凌乱**（同屏主体组 >3、
@@ -311,7 +350,8 @@ X [`@VincentWei93`](https://x.com/VincentWei93) ·
 
 | 要做什么 | 看哪里 |
 |---|---|
-| 定视觉语言（色板/字阶/间距/字幕规范） | `references/design-language.md`（Apple 范式默认版） |
+| 定视觉语言（色板/字阶/间距/字幕规范）· 幕底 12 款 | `references/design-language.md`（Apple 范式默认版；§1.1 幕底菜单 → `template/motion-systems/backdrop.tsx`） |
+| 排版：放哪 / 多大 / 怎么对齐（栅格 · 间距令牌 · 居中 · 字阶 · 碰撞 · 校验九项） | `references/layout.md` |
 | 给镜头做背景/主体/文字分层设计 | `references/shot-design.md`（三面工作单 + 七型预设） |
 | 镜头方法论/反PPT/SHOTBOOK格式/验收 | `references/cinematography.md`（+ shotbook-example.md） |
 | 转场（六式代码）/ 长镜头 | `template/motion-systems/transitions.tsx` / `longtake.tsx`（cinematography.md §3、§3.5） |
@@ -322,6 +362,7 @@ X [`@VincentWei93`](https://x.com/VincentWei93) ·
 | 可复制代码 | `template/cards/`（79 卡逐卡自包含 tsx）、`template/motion-systems/`（极缓推拉相机/让位/桥）、`template/components/`（字幕/花字/铅笔/吉祥物） |
 | 成片后人工微调 / 导出 | `workbench/`（剪映式工作台：多轨时间线 + 全卡参数化 + 成片拆解 + Remotion 渲染导出） |
 | 字级时间戳（本机 CPU） | `scripts/timestamps_cpu.py`（FireRedASR2-CTC 默认 / faster-whisper 备选，+ 口播稿逐字对齐）→ `scripts/make_timing.py` |
+| **闸报 FAIL 了怎么办 · 怎么少烧母版** | `SKILL.md` ⑥⑦「迭代纪律」——① 先读闸怎么量的再改 ② 静帧优先（10s vs 整渲 100~180s）、改哪段渲哪段、复审改动攒批 |
 | 机器闸（画面健康 / 保真 / 词落点+镜尾 / 音效） | `scripts/motion_check.py`（静止段+并发光栅抖动双判定）/ `scripts/card_lint.py`（卡片须复制自 template/cards）/ `scripts/beat_lint.py`（词落点对 timestamps + `--shots` 镜尾保护带）/ `scripts/sfx_check.py`（solo 在场 + `--mix` 可听度） |
 | 渲染提速（分段母版 / 批量静帧 / 空台预检 / 评审拼图） | `scripts/render_shots.mjs`（段渲+拼装+音轨混入+帧数断言；`--changed sNN` 单镜头迭代 53s）/ `scripts/render_stills.mjs`（一次 bundle 批量 still）/ `scripts/beat_gap_check.py`（渲染前空台预检）/ `scripts/contact_sheet.py`（QA 帧拼 3×4 网格） |
 | 动效配套音效 | 逐卡 cue 表 `demos/_lib/sfx-map.js`（口味纪律见 `references/demo-spec.md` §8）；制作端 `node scripts/sfx_dump.mjs` 导出采样 |

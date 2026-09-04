@@ -32,6 +32,17 @@ camera moves, plain-cut subtitles, and film-grade SFX, all locked to the voice.
 
 ## 🆕 What's new
 
+**2026-09-05**
+
+- **Layout spec `references/layout.md`** — a review of one delivered video surfaced 10 defects, all layout: edge-hugging cards, block/title
+  misalignment, a bracket frame missing its text, a lone sentence shrunk into a corner, tiny list items, off-center groups, inverted spacing,
+  text colliding with a neighbouring column, same-colour chapter cards. Borrowing the shared patterns of three slide/card skills: 12-column grid
+  snapping, spacing tokens with margin ≥ group gap ≥ inner gap, glyph-edge alignment, centred bounding boxes, measured annotation geometry,
+  minimum type sizes (list items ≥40 / lone sentence = hero), no overlapping boxes, pastel-differentiated chips, per-chapter colours, a 9-point
+  check on debug-overlay stills. **Card experience is mandatory reading**: every chosen card's pitfalls / placement checks go into the SHOTBOOK.
+- **12 dynamic backdrops shipped** — `template/motion-systems/backdrop.tsx` (6 dark / 6 light; GLSL / Canvas / CSS, frame-driven, zero randomness,
+  default 1.5× speed, static grain against banding); design-language §1.1 rewritten, defaults are light `pastel-mesh-flow` / dark `mesh-flow-dark`.
+
 **2026-09-04**
 
 - **Motion system slimmed down** — narration videos keep only one very slow push-in / pull-out camera curve per
