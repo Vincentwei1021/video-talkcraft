@@ -64,11 +64,12 @@
   <nav>
     <a href="#dark">深色</a><a href="#light">浅色</a>
     <button id="tfg" class="on">前景样片</button><button id="tgrain" class="on">噪点抗色带</button>
+    <span style="font-size:12px;color:#8a8a94;margin-left:6px">运动</span><button data-m="1">1×</button><button data-m="1.6" class="on">1.6×</button><button data-m="2.2">2.2×</button>
   </nav>
 </header>
 <div class="intro">
   <p><b>怎么看</b>：每个舞台都叠了同一套前景样片（标题 + 说明行 + 白边卡 + 底部素排字幕），先看字读不读得清，再关掉前景看背景本身。所有背景都由一个时间变量驱动（<code>t = 帧号 / fps</code>），没有 Math.random、没有物理模拟，Remotion 里逐帧可复现。</p>
-  <p><b>运动口径</b>：背景是"空间基底"，允许自带极慢流动（周期 20~40s，GLSL time 系数 0.03~0.08），但它不是运动系统的一部分——运动系统只剩场景相机的极缓推拉（2026-09-04 定版）。背景动得太快就会抢字幕：判据是盯字幕 3 秒，眼睛不该被背景带走。</p>
+  <p><b>运动口径</b>：背景是"空间基底"，允许自带极慢流动，但它不是运动系统的一部分——运动系统只剩场景相机的极缓推拉（2026-09-04 定版）。各卡说明里的周期 / time 系数是 <b>1× 基准值</b>；2026-09-05 用户反馈"运动稍微明显一点点"，本页<b>默认 1.6×</b>（页头可切 1× / 2.2× 对比）。判据不变：盯字幕 3 秒，眼睛不该被背景带走。</p>
 </div>
 
 <!-- ============================ 深色 ============================ -->
@@ -202,8 +203,9 @@
 <script>
 /* ============================ 运行时 ============================ */
 const registry = [];
-let T0 = performance.now();
-const now = () => (performance.now() - T0) / 1000;    // 实拍里换成 frame / fps
+let MOTION = 1.6;                                      // 全局运动倍率（2026-09-05 用户："稍微明显一点点"）
+let VT = 0, lastTick = performance.now();              // 虚拟时钟：按倍率累加，切换倍率不跳帧
+const now = () => VT;                                  // 实拍里换成 frame / fps × 倍率
 function setup(card) {
   const stage = card.querySelector('.stage'), scaler = card.querySelector('.stage-scaler'), wrap = card.querySelector('.stage-wrap'), slug = card.dataset.bg;
   const fit = () => { const s = wrap.clientWidth / 960; scaler.style.transform = `scale(${s})`; wrap.style.height = (540 * s) + 'px'; };
@@ -218,7 +220,8 @@ function setup(card) {
   registry.push(rec);
 }
 const io = new IntersectionObserver(es => es.forEach(en => { const r = registry.find(r => r.card === en.target); if (r) r.visible = en.isIntersecting && en.intersectionRatio >= 0.25; }), { threshold: [0, .25, .6] });
-(function loop() { registry.forEach(r => { if (r.visible && !r.paused) r.draw(r.time()); }); requestAnimationFrame(loop); })();
+(function loop() { const n = performance.now(); VT += (n - lastTick) / 1000 * MOTION; lastTick = n; registry.forEach(r => { if (r.visible && !r.paused) r.draw(r.time()); }); requestAnimationFrame(loop); })();
+document.querySelectorAll('header [data-m]').forEach(b => b.onclick = () => { MOTION = parseFloat(b.dataset.m); document.querySelectorAll('header [data-m]').forEach(x => x.classList.toggle('on', x === b)); });
 document.getElementById('tfg').onclick = e => { document.body.classList.toggle('nofg'); e.target.classList.toggle('on'); };
 document.getElementById('tgrain').onclick = e => { document.body.classList.toggle('nograin'); e.target.classList.toggle('on'); };
 
