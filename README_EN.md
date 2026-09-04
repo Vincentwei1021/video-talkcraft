@@ -34,6 +34,10 @@ camera moves, plain-cut subtitles, and film-grade SFX, all locked to the voice.
 
 **2026-09-04**
 
+- **Motion system slimmed down** — narration videos keep only one very slow push-in / pull-out camera curve per
+  scene plus the yield lifecycle; subject idle wobble, breathing vignette / light sweep / exposure pulses, camera
+  impulses and x/y/rotation/blur curves are no longer required (template code keeps the capability, off by default).
+  The rest-frame rule changes from "≥2 layers moving" to "camera moving".
 - **Web pages are filmed, not pasted** — a page judged usable during research no longer appears as a static
   screenshot; the camera "shoots" it: steady scroll (`evidence-scroll-tour`), point-of-interest tour
   (`stage-keyframe-tour`), magnifier / picture-in-picture (`magnifier-detail` / `pip-zoom-box`), highlighter and
@@ -84,8 +88,10 @@ camera moves, plain-cut subtitles, and film-grade SFX, all locked to the voice.
   locally with `open gallery/index.html`. Kinetic type, data shots, evidence
   tours, six motion-carry transitions, a long-take world canvas, host
   compositing, and more.
-- **A 7-layer anti-slideshow system** — continuous camera curves, parallax
-  planes, idle/yield lifecycle, breathing environment. Statically frozen
+- **A 7-layer anti-slideshow system** — one very slow push-in or pull-out camera
+  curve per scene, a yield lifecycle and six motion-carry transitions (slimmed
+  down on 2026-09-04: subject idle and the breathing environment are no longer
+  required). Statically frozen
   frames are structurally impossible (and automatically detected if they
   slip through).
 - **Layout discipline that survives review** — semantic-beat storyboarding,
@@ -151,7 +157,7 @@ Make a 100-second explainer about <topic>; here is the script and the audio.
 | --- | --- |
 | 79 motion recipe cards | Intent, energy, parameters, implementation notes, and known pitfalls — every card ships a self-contained Remotion tsx source (`template/cards/`, copy one file and go) plus a runnable HTML demo |
 | Gallery | [Online](https://vincentwei1021.github.io/video-talkcraft/) or local (`open gallery/index.html`) — browse and autoplay all 79 previews, search by name/keyword |
-| Motion systems | CameraRig, parallax planes, idle/yield lifecycle, environment layer, six transitions, long-take world canvas (`template/motion-systems/`) |
+| Motion systems | CameraRig (slow push/pull), yield lifecycle, six transitions, long-take world canvas; parallax and environment layer optional (`template/motion-systems/`) |
 | Components | Plain-cut subtitles, flower-word titles, smash words, highlight sweeps, pencil draw, number rolls (`template/components/`) |
 | Pipeline scripts | Word-level timestamps (2 ASR backends), face-zone detection, stillness check, SFX presence check, QA frame extraction (`scripts/`) |
 | Methodology | Design language (Apple-paradigm default), shot design worksheets, cinematography rules, storyboard format, QA rubrics (`references/`) |
