@@ -16,6 +16,7 @@ name: map-route-pin
 命门：**弧线 + 缓动**（匀速直线立刻读作 PPT 连接线）、**钉要砸下来**（加速下落 +
 落地压扁回弹才有"到达"的重量，淡入的钉是贴纸）、**一次只长一条线**（叙事顺序就是
 路线生长顺序，齐长全丢）。
+
 常见于：Johnny Harris、Wendover、LEMMiNO、Half as Interesting。
 
 ## 动效核心

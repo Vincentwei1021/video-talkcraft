@@ -67,6 +67,7 @@ name: stage-keyframe-tour
 - 忘了 `preserve-3d`，或把 `perspective` 写在被 transform 的元素自己身上——空间会散（与 [tilt-3d-page](tilt-3d-page.md) 同坑，细节见那张卡）。
 - 长页没有真的超出画幅（内容只有一屏半）——那就不需要巡游，`tilt-3d-page` 加一次缓推已经够了。本卡的成本只在长页上才划算。
 - 手持抖动开到 0.3 以上——从"摄影师呼吸"变成"手在抖"，且与本库"不做沸腾/定格抖动"的定版偏好冲突。
+- 兴趣点超过 4 个——观众记不住，巡游读作流水账；多了就拆成两镜。
 
 ## 复用指引
 - Remotion/tsx（skill 首选）：template/cards/stage-keyframe-tour.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。

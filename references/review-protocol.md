@@ -15,7 +15,8 @@
 1. **SHOTBOOK + 评审拼图**（`contact_sheet.py` 产物，整版浏览）+ 原帧目录路径（可疑帧回去单张放大）。
 2. **原版卡对比帧**——SHOTBOOK 每个 slug 从 `gallery/media/<slug>.mp4` 抽 2 帧，与成片对应镜头帧并排，
    评审逐 slug 判"这是同一张卡的实现吗"（保真不进评审视野就永远查不出来）。
-   没有 mp4 的卡用 `scripts/render_stills.mjs` 从 `template/cards/<slug>.tsx` 渲两帧代替。
+   没有 mp4 的卡（新 clone 上 `gallery/media/` 不在库里）用 `node scripts/verify-demo.mjs <slug>` 产出的
+   `tools/.verify/<slug>-t0.png / -t1.png` 代替。
 3. **词落点核对表**——beats.json 每条锚点的定妆帧 + 锚字 + 应落时刻，核"该词说出口时画面是否恰好在响应"。
 4. **音效可听度报告**——`sfx_check.py --mix` 的输出（评审没有耳朵，机器报告就是它的耳朵）。
 

@@ -143,6 +143,7 @@ anime.js v4 / three.js 走 `anime-remotion.ts` / `three-anime.ts` 桥（seek-saf
 
 ### 布局红线（数值表 design-language.md §5；几何总纲 `references/layout.md`）
 - 字幕位置 / 宽度 / 字号 / 常驻件方位按画幅取 design-language §5 表（竖屏常驻件必须**左下**，右缘是抖音点赞栏）
+- 横屏内容主列 ≤1440px 居中、边距 action-safe 96 / 标题 160（design-language §3；栏跨度与吸附见 layout.md §1）
 - 通用：切镜后 ≤10 帧必须有主视觉入场；深色场景隐藏全局顶部标题；
   文字不叠截图文字（加白底卡）；卡片文字防裁切（预留 padding）
 - **人物在场**：先跑 `scripts/face_bbox.py` 实测人脸安全区（口径 host-footage.md §3），
@@ -275,4 +276,4 @@ X [`@VincentWei93`](https://x.com/VincentWei93) ·
 | **闸报 FAIL 了怎么办 · 怎么少烧母版** | ⑥⑦「迭代纪律」三条——先读闸怎么量的再改 · 静帧优先 · 改哪段渲哪段、复审改动攒批 |
 | 机器闸（画面健康 / 保真 / 词落点+镜尾 / 音效） | `scripts/motion_check.py`（静止段+并发光栅抖动双判定）/ `scripts/card_lint.py`（卡片须复制自 template/cards）/ `scripts/beat_lint.py`（词落点对 timestamps + `--shots` 镜尾保护带）/ `scripts/sfx_check.py`（solo 在场 + `--mix` 可听度） |
 | 渲染提速（分段母版 / 批量静帧 / 空台预检 / 评审拼图） | `scripts/render_shots.mjs`（段渲+拼装+音轨混入+帧数断言；`--changed sNN` 单镜头迭代 53s）/ `scripts/render_stills.mjs`（一次 bundle 批量 still）/ `scripts/beat_gap_check.py`（渲染前空台预检）/ `scripts/contact_sheet.py`（QA 帧拼 3×4 网格） |
-| 动效配套音效 | 逐卡 cue 表 `demos/_lib/sfx-map.js`（口味纪律见 `references/demo-spec.md` §8）；制作端 `node scripts/sfx_dump.mjs` 导出采样 |
+| 动效配套音效 | 逐卡 cue 表 `demos/_lib/sfx-map.js`（口味纪律见 `references/demo-spec.md`「Demo 硬性要求」第 8 条）；制作端 `node scripts/sfx_dump.mjs` 导出采样 |
