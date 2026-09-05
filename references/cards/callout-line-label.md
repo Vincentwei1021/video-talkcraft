@@ -14,6 +14,8 @@ name: callout-line-label
 口播说"真正值钱的是这两处"时，观众的眼睛需要被牵到画面的具体位置——callout 把"用手指"翻译成三拍因果：点亮起（在哪）→ 线生长（往哪看）→ 标签揭示（是什么）。
 命门：**三拍必须严格串行**（同时出现就没有引导视线的因果感）；**折线拐点只用 45° 或水平**（工程制图的秩序感，斜率随意像草图）；**标签永远最后出现**（答案不能比手指先到）。
 
+常见于：Johnny Harris、Vox、AE 模板 Call-Out Titles（4.5K 销量）、产品评测。
+
 ## 动效核心
 - 圆点：SVG circle 落在目标上，scale 0→1，0.2s `back.out(2.2)`；同时一圈同色描边涟漪 scale 0.4→3.2、opacity 0.9→0，0.5s `power2.out`
 - 折线：SVG path（1~2 个拐点，全部 45° 或水平），`stroke-dasharray` = 总长，`stroke-dashoffset` 从总长→0 描画 0.4s `power2.out`；**起点排在圆点 pop 结束之后**（t0 + dotIn）

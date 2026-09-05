@@ -17,6 +17,8 @@ name: scribble-annotation
 
 **线要粗且圆头**（4px 以下没有马克笔的"墨量感"）。
 
+常见于：Ali Abdaal、Johnny Harris、Vox、Mrwhosetheboss、LottieFiles arrow/underline 品类。
+
 ## 动效核心
 - 标注层 = 盖在假截图上的全屏 SVG（`viewBox="0 0 960 540"`，`pointer-events:none`），每笔一条 path，`fill:none`、`stroke-linecap/linejoin: round`、线宽 6px
 - **坐标绑定被标注元素，不写死**（命门）：被标注的 DOM 打 `data-ink="xx"`，运行时量它的盒子换算进 viewBox 再算 path——圈心 = 目标中心、下划线 y = 目标 baseline + 4px、箭尖 = 目标边缘外 8px。文字类目标要量**墨迹盒**（canvas `measureText` 的 `actualBoundingBoxAscent/Descent` + baseline），不是行盒：行盒上下带字体留白，照行盒画圈会整体偏高、下划线会飘出去 15px+

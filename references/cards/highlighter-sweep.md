@@ -16,6 +16,8 @@ name: highlighter-sweep
 等于涂掉证据）、**扫速对齐朗读**（0.4~0.8s，跟着语音走才像"现场划"而不是特效）、
 **必须压暗其余文字**（只加高亮不减环境，强调失效一半）。
 
+常见于：Vox、Johnny Harris、Cleo Abram、James Jani。
+
 ## 动效核心
 - 引用截图卡片先在屏（浅纸色 #f7f4ea 卡片 + 微倾斜 -0.4° + 深投影），全程 8s 线性极缓推近到 1.025 倍防呆滞
 - 关键句包一层 `position:relative` 的 span，内部绝对定位色块：#FFE949、opacity 0.6、`mix-blend-mode:multiply`

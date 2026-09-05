@@ -74,6 +74,7 @@ Remotion 对应写法（`template/motion-systems/transitions.tsx`）：
 - 用了交叠淡化（忘了 `hardOut`）：软化了边界，冲击全无。
 - 白底工程照抄白色过曝重音：被底色吞掉（同 [[overexpose-flip-transition]] 的极性约束）。
 - 定格 + 硬切放在一句话中间：本式必须压在句末/停顿处，否则语音连续而画面断裂，读作丢帧。
+- 入场侧前 0.4s 只有匀质深底在"动"：运动存在但不产生像素变化，`motion_check` 的 freezedetect 照样报静止——**主体必须与硬切同帧登场**才有着力点，不能等底色稳住再进。
 
 ## 复用指引
 - Remotion/tsx（skill 首选）：template/cards/black-slam-transition.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。

@@ -15,6 +15,8 @@ name: chart-grow
 命门：**轴先柱后**（没有坐标系柱子就没有量级）、**逐根错峰**（同时长出=没有"逐项列举"的语感）、
 **y 轴满量程全程固定**（中途缩放，柱子间的对比就是骗人）。
 
+常见于：小Lin说（signature）、回形针、Vox、Wendover、Infographics Mega Bundle（2.2K 销量）。
+
 ## 动效核心
 - 第一拍：轴线 + 网格线 + 图题 opacity 0→1，0.3s power2.out
 - 柱子：每根 scaleY 0→1（transform-origin 底部）0.5s power3.out，柱间 stagger 100~150ms

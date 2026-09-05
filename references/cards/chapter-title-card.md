@@ -16,6 +16,8 @@ name: chapter-title-card
 **不呆滞**（hold 期间整组带极缓漂移，完全静止 1 秒读作视频卡帧）、
 **快进快出**（全程 ≤2.5s，转场比内容还长就是喧宾夺主）。
 
+常见于：差评君、小Lin说、LEMMiNO、Johnny Harris、IC实验室。
+
 ## 动效核心
 - 全屏色块 `.chapter-card`（品牌色/深色，flex 居中排编号+文字组）：`xPercent -100 → 0`，0.3s，`power4.inOut`，从左压入盖住口播画面
 - 章节编号 `.chapter-num`（衬线体 Georgia/宋体，216px ≈ 屏高 40%）：色块盖屏后 opacity 0→1 + scale 1.3→1，0.4s，`power3.out`

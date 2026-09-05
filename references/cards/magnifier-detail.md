@@ -16,6 +16,8 @@ name: magnifier-detail
 命门：**对得上位**（放大内容必须和原图逐像素对应，错位一眼假）、
 **弹到空白区**（镜子盖住目标本体等于自己遮自己）、**本体压暗**（不压暗则镜内镜外抢视线，放大失去意义）。
 
+常见于：笔吧评测室等评测类、差评君、剪映标准教程。
+
 ## 动效核心
 - 结构：底层假截图；放大镜 = 圆形容器（`overflow:hidden`，白描边 4px + 大投影）内放同一截图的克隆副本，
   副本 `scale = zoom`，偏移量 `x = magSize/2 − zoom·px`、`y = magSize/2 − zoom·py`（px/py 为目标点在截图内坐标），使目标点正好落在镜心
@@ -24,6 +26,7 @@ name: magnifier-detail
 - 连接线：入场将完时（popIn − 0.05s）SVG line 用 `stroke-dasharray` 从目标点向镜心描出 0.25s `power2.out`——先有镜再有线，线是"指回出处"，顺序反了就没有因果感
 - hold：镜内副本 x 方向 ±(panPx×zoom) 正弦 yoyo 平移（1.4s 半周期），模拟视线扫视，画面不呆
 - 起手留白：截图先静置 0.45s 再弹镜，观众先知道"这是张什么图"再看局部
+- 副本也可用 CSS background 双图技巧实现（`background-size` 放大 + `background-position` 对准目标点），对位公式同上
 
 ## 参数表
 | 参数 | 典型值 | 调节手感 |
