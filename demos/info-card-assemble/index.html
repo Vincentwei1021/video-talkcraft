@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>info-card-assemble · 信息卡逐字段自建</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 信息卡逐字段自建：一张信息卡（书 / 工具 / 人物）像被结构化抽取一样自己长出来——
+     图 → 标题 → 三枚标签 pop → 价格行 → 三行要点逐行揭示（两行被马克底块从左刷过）→ 三块色卡点亮；
+     相邻字段只隔 2 帧是"抓取"的密度，单字段行程 0.5s 远大于间隔所以画面是"涌"不是"点"；整卡全程极慢前推 6%。
+     封面占位（灰调渐变 + 相框图标）是演示语境，不属于动效本体。 —— */
+
+  /* 素材占位（不属于动效）：灰调渐变 + 相框图标（六档色体系之 t4） */
+  .ph { position: absolute; overflow: hidden; }
+  .ph::before { content: ""; position: absolute; inset: 0; background: linear-gradient(160deg, #c2b39a, #9c8f78); }
+  .ph svg { position: absolute; left: 50%; top: 50%; width: 56px; height: 48px; transform: translate(-50%, -56%); opacity: .35; }
+
+  /* 左侧版面说明（画面文字，不是旁白字幕） */
+  .cap { position: absolute; left: 80px; top: 60px; width: 160px; font-size: 20px; color: #7a7a7a; line-height: 1.5; }
+
+  /* 信息卡：420×460 白卡 + 发丝线，整卡 transform-origin 居中（前推 1→1.06） */
+  .pc { position: absolute; left: 270px; top: 40px; width: 420px; height: 460px; background: #ffffff; border: 1px solid #e0e0e0; border-radius: 18px; padding: 18px; transform-origin: 50% 50%; }
+  .pc .img { position: relative; height: 150px; border-radius: 10px; overflow: hidden; }
+  .pc .img .ph { inset: 0; }
+  .pc h5 { font-size: 24px; font-weight: 700; color: #1d1d1f; margin-top: 14px; }
+  .pc .pills { display: flex; gap: 8px; margin-top: 10px; }
+  .pc .pill { font-size: 14px; font-weight: 600; padding: 4px 12px; border-radius: 999px; background: #f2f2f5; color: #1d1d1f; transform-origin: 50% 50%; }
+  .pc .price { display: flex; align-items: baseline; gap: 12px; margin-top: 14px; height: 34px; }
+  .pc .new { font-size: 28px; font-weight: 700; color: #0066cc; font-variant-numeric: tabular-nums; }
+  .pc .lines { margin-top: 12px; }
+  .pc .ln { position: relative; font-size: 17px; color: #1d1d1f; line-height: 1.5; margin-bottom: 4px; }
+  .pc .ln .hl { position: absolute; left: -4px; right: -4px; top: 3px; bottom: 3px; background: #E8F0FF; border-radius: 4px; transform-origin: 0 50%; z-index: -1; }
+  .pc .ln span { position: relative; z-index: 1; }
+  .pc .sw { display: flex; gap: 8px; margin-top: 12px; }
+  .pc .sw i { display: block; width: 26px; height: 26px; border-radius: 8px; transform-origin: 50% 50%; }
+</style>
+</head>
+<body>
+  <div id="stage" style="background:#f5f5f7">
+    <div class="cap">这期推荐的一本书</div>
+    <div class="pc">
+      <div class="img"><div class="ph"></div></div>
+      <h5>《讲故事的科学》</h5>
+      <div class="pills"><span class="pill">叙事</span><span class="pill">心理学</span><span class="pill">2024</span></div>
+      <div class="price"><span class="new">¥ 39.9</span></div>
+      <div class="lines">
+        <div class="ln"><i class="hl"></i><span>三幕结构的现代版：钩子、转折、回收</span></div>
+        <div class="ln"><i class="hl"></i><span>为什么开头 3 秒必须有冲突</span></div>
+        <div class="ln"><span>怎么让数据有画面感</span></div>
+      </div>
+      <div class="sw"><i style="background:#E8F0FF"></i><i style="background:#FFE9F0"></i><i style="background:#E6F7F2"></i></div>
+    </div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ——————————————————————————————————————————————————————————
+    // 可摘走的核心动画：信息卡逐字段自建
+    // 命门：① 字段时间表用"配方帧"写（60 分母折成秒），同类字段隔 2 帧、跨类隔 4~14 帧——间隔的疏密就是信息分组；
+    //      ② 单字段行程 0.5s 远大于间隔 → 同时有五六个字段在动，画面是"涌"不是"点"；③ 小件 pop（0.4→1 back.out）、大件 rise（6px 沉一下）；
+    //      ④ 马克底块 5 帧从左刷过（比字段落位还快，读作"笔一划"）；⑤ 整卡 1→1.06 极慢前推摊在前 75%，让密集小事件之间画面仍在推进。
+    // ——————————————————————————————————————————————————————————
+    const CONFIG = {
+      D: 5.0,              // 配方帧的时间基：F(f) = f / 60 × D（母本 60 分母）
+      frames: { img: 0, title: 4, pills: [8, 10, 12], price: 16, lines: [30, 32, 34], hl: [34, 36], swatches: [40, 42, 44] },   // 字段配方帧
+      fieldDur: 0.5,       // 单字段落位行程 s（远大于 2 帧间隔 → "涌"）
+      riseY: 6,            // 大件 rise 位移 px（只沉一点点，>20 与前推方向打架）
+      popFrom: 0.4,        // 小件 pop 起始缩放（明确的"从无到有"）
+      hlDur: 0.17,         // 马克底块刷过时长 s（≈5 帧）
+      push: 1.06,          // 整卡前推终值
+      pushEnd: 0.75,       // 前推占全卡时间的比例（0→0.75·D）
+      exitAt: 6.4,         // 整体退场起点（0.4s power2.in）
+      end: 6.8,            // 镜头结束
+    };
+
+    // 素材占位里的相框图标（不属于动效）
+    const GLYPH = '<svg viewBox="0 0 48 40" fill="none" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"><rect x="2" y="2" width="44" height="36" rx="4"/><circle cx="16" cy="14" r="4"/><path d="M4 34 L18 22 L27 30 L34 24 L44 34"/></svg>';
+    document.querySelectorAll(".ph").forEach((el) => { el.insertAdjacentHTML("beforeend", GLYPH); });
+
+    const $ = (s) => document.querySelector(s);
+    const $$ = (s) => [...document.querySelectorAll(s)];
+
+    DemoShell.register(({ speed }) => {
+      const F = (f) => (f / 60) * CONFIG.D;
+      const pc = $(".pc"), cap = $(".cap"), img = $(".pc .img"), h5 = $(".pc h5"), price = $(".pc .new");
+      const pills = $$(".pc .pill"), lns = $$(".pc .ln"), hls = $$(".pc .hl"), sws = $$(".pc .sw i");
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+      const rise = (el, at) => tl.fromTo(el, { opacity: 0, y: CONFIG.riseY }, { opacity: 1, y: 0, duration: CONFIG.fieldDur, ease: "power2.out" }, at);            // 大件：沉下去一点点
+      const pop = (el, at) => tl.fromTo(el, { opacity: 0, scale: CONFIG.popFrom }, { opacity: 1, scale: 1, duration: CONFIG.fieldDur, ease: "back.out(1.7)" }, at);   // 小件：从无到有 pop
+      // 复位（重播语义）
+      tl.set(pc, { scale: 1, opacity: 1 }).set([img, h5, price, ...lns], { opacity: 0 }).set([...pills, ...sws], { opacity: 0 }).set(hls, { scaleX: 0 }).set(cap, { opacity: 0 })
+        .to(cap, { opacity: 1, duration: 0.4 }, 0.2)
+        .to(pc, { scale: CONFIG.push, duration: CONFIG.D * CONFIG.pushEnd, ease: "power1.out" }, 0);   // 整卡前推 6%
+      // 字段按配方帧落位
+      rise(img, F(CONFIG.frames.img)); rise(h5, F(CONFIG.frames.title));
+      CONFIG.frames.pills.forEach((f, i) => pop(pills[i], F(f)));
+      rise(price, F(CONFIG.frames.price));   // 价格行普通落位
+      CONFIG.frames.lines.forEach((f, i) => rise(lns[i], F(f)));
+      CONFIG.frames.hl.forEach((f, i) => tl.to(hls[i], { scaleX: 1, duration: CONFIG.hlDur, ease: "power1.out" }, F(f)));   // 马克笔 5f 刷过
+      CONFIG.frames.swatches.forEach((f, i) => pop(sws[i], F(f)));
+      // 整体退场
+      tl.to([pc, cap], { opacity: 0, duration: CONFIG.end - CONFIG.exitAt, ease: "power2.in" }, CONFIG.exitAt);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>error-retype · 打字改口</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 打字改口：句干先在，后半句以打字机节奏打出"错的那半句"→ 停一拍、光标闪两下（犹豫）→ 更快地退掉 →
+     零犹豫重打"对的那半句"。三档速度差（打 / 删 / 重打）是戏的全部；光标就是演员的脸：打删常亮 = 果断、停顿才闪 = 犹豫、完稿闪两下后摘除。
+     白底成立；整句按"句干 + 槽位 + 光标"总宽反推居中，一次算定。 —— */
+
+  /* 整句：40px/700 墨色，flex 只负责基线对齐；left 由脚本按总宽反推 */
+  .ert-tw { position: absolute; top: 240px; height: 60px; display: flex; align-items: center; font-size: 40px; font-weight: 700; letter-spacing: -.5px; color: #1d1d1f; white-space: nowrap; }
+  /* 槽位：每字符固定 44px 等宽（变宽字体整串测宽会逐帧重排抖动）；空槽也占位，光标靠 x 补偿钉在最后一字后 */
+  .ert-slot span { display: inline-block; width: 44px; text-align: center; }
+  /* 光标：6×46 强调色方块；打删常亮、停顿才闪、完稿闪两下后条件摘除 */
+  .ert-cur { display: inline-block; width: 6px; height: 46px; background: #0066cc; margin-left: 4px; border-radius: 2px; will-change: transform, opacity; }
+  .ert-meas { position: absolute; left: 0; top: 0; visibility: hidden; white-space: nowrap; font-size: 40px; font-weight: 700; letter-spacing: -.5px; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="ert-tw"><span class="ert-fixed"></span><span class="ert-slot"></span><span class="ert-cur"></span></div>
+    <span class="ert-meas"></span>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ——————————————————————————————————————————————————————————
+    // 可摘走的核心动画：打字改口（打出错句 → 光标闪两下犹豫 → 更快退掉 → 零犹豫重打对句 → 完稿光标摘除）
+    // 命门：① 三档速度差必须可感（打 0.09 / 删 0.06 / 重打 0.06 s/字）——等速改口读作 bug 不是戏；
+    //      ② 光标三态：打删常亮 = 果断、停顿闪两下 = 犹豫、完稿闪两下后摘除（残留 0.05 opacity 都毁真静止）；
+    //      ③ 字符固定宽槽位左缘锚定（变宽字体整串测宽会逐帧重排抖动）；④ 字符出现是帧确定的硬切，任何缓动打字都读作加载动画。
+    // ——————————————————————————————————————————————————————————
+    const CONFIG = {
+      prefixIn: 0.1,    // 句干淡入起点 s（0.3s）
+      typeAt: 0.7,      // 开始打错句的时刻 s
+      type: 0.09,       // 打：每字 s（母本 2f，中文放慢让观众读得出字）
+      pause: 0.55,      // 打完后的停顿 s（"犹豫"）：光标在这段里闪两下
+      del: 0.06,        // 删：每字 s——比打快，是"果断退掉"
+      gap: 0.12,        // 删完到重打之间的空档 s
+      retype: 0.06,     // 重打：每字 s，与删同速、零犹豫
+      settle: 0.3,      // 重打完到光标闪两下的间隔 s
+      blink: 0.13,      // 光标闪烁半周期 s（4f）：闪两下 = 4 个半周期
+      cursorOff: 0.55,  // 完稿闪两下起、多少秒后光标条件摘除
+      holdEnd: 2.6,     // 完稿后静置 s（≥50f 真静止）
+      exitDur: 0.4,     // 整句同收（power2.in）
+      slotW: 44,        // 每字符槽宽 px
+    };
+    // 文案（演示语境）：句干 + 错的半句 + 对的半句
+    const PREFIX = "口播做得好，靠的是";
+    const FIRST = "模型大小";
+    const SECOND = "讲述方法";
+
+    const $ = (s) => document.querySelector(s);
+    const tw = $(".ert-tw"), fixed = $(".ert-fixed"), slot = $(".ert-slot"), cur = $(".ert-cur"), meas = $(".ert-meas");
+    const N = Math.max(FIRST.length, SECOND.length);
+    fixed.textContent = PREFIX;
+    slot.innerHTML = Array.from({ length: N }, () => "<span></span>").join("");
+    const slots = [...slot.querySelectorAll("span")];
+    // 居中：按"句干 + N 个槽位 + 光标"总宽反推 left（一次算定）
+    meas.textContent = PREFIX;
+    tw.style.left = Math.round((960 - (meas.offsetWidth + N * CONFIG.slotW + 4 + 6)) / 2) + "px";
+    // 写入前 n 个字（文字只能用 call 硬切）；光标 x 补偿用时间轴上的 set（seek 安全），钉在最后一字后（空槽仍占位）
+    const put = (n, word) => slots.forEach((s, k) => (s.textContent = k < n ? word[k] : ""));
+    const curX = (n) => -(N - n) * CONFIG.slotW;
+
+    // 时间表（demo 秒）：0.7 起打 4 字 → 1.06 闪两下 → 1.61 起删 → 1.97 起重打 → 2.51 闪两下 → 3.06 光标摘除 → 5.11 同收
+    const tType = CONFIG.typeAt, tB1 = tType + FIRST.length * CONFIG.type, tDel = tB1 + CONFIG.pause,
+          tRe = tDel + FIRST.length * CONFIG.del + CONFIG.gap, tB2 = tRe + SECOND.length * CONFIG.retype + CONFIG.settle,
+          tOff = tB2 + CONFIG.cursorOff, exitAt = tB2 + CONFIG.holdEnd;
+
+    DemoShell.register(({ speed }) => {
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+      // 复位（重播语义）
+      tl.set(fixed, { opacity: 0 }).set(cur, { opacity: 1, x: curX(0) }).set(slots, { opacity: 1 }).call(() => put(0, FIRST), [], 0.01)
+        .to(fixed, { opacity: 1, duration: 0.3 }, CONFIG.prefixIn);
+      // 打：帧确定硬切，光标常亮
+      for (let i = 1; i <= FIRST.length; i++) tl.call(() => put(i, FIRST), [], tType + (i - 1) * CONFIG.type).set(cur, { x: curX(i) }, tType + (i - 1) * CONFIG.type);
+      // 停顿：闪两下 = 犹豫
+      const blink2 = (t0) => { for (let b = 0; b < 2; b++) tl.to(cur, { opacity: 0, duration: 0.01 }, t0 + b * 2 * CONFIG.blink).to(cur, { opacity: 1, duration: 0.01 }, t0 + (b * 2 + 1) * CONFIG.blink); };
+      blink2(tB1);
+      // 删：更快
+      for (let i = FIRST.length - 1; i >= 0; i--) tl.call(() => put(i, FIRST), [], tDel + (FIRST.length - 1 - i) * CONFIG.del).set(cur, { x: curX(i) }, tDel + (FIRST.length - 1 - i) * CONFIG.del);
+      // 重打：零犹豫
+      for (let i = 1; i <= SECOND.length; i++) tl.call(() => put(i, SECOND), [], tRe + (i - 1) * CONFIG.retype).set(cur, { x: curX(i) }, tRe + (i - 1) * CONFIG.retype);
+      // 完稿：闪两下后摘除光标
+      blink2(tB2);
+      tl.to(cur, { opacity: 0, duration: 0.01 }, tOff)
+        // 整句同收
+        .to([fixed, ...slots], { opacity: 0, duration: CONFIG.exitDur, ease: "power2.in" }, exitAt);
+    });
+  </script>
+</body>
+</html>

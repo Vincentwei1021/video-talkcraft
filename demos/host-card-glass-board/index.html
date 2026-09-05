@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>host-card-glass-board · 人物竖卡玻璃台</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 人物竖卡玻璃台：左 1/3 口播人物装 9:16 竖卡常驻，右 2/3 一块带透视的玻璃道具台——板上先立标题，再按口播节奏接力摆道具
+     （三步 tile → 连接线 → 结果胶囊）。"人一直在、板上换道具"：同一块板能连讲几个道具而不换镜。
+     底色例外：深底演播室调性是科技 / AI 创作领域的风格档皮（design-language §0），玻璃材质在白底上失效；
+     浅底版把玻璃板换白卡 + 发丝线、连接线换强调色即成立，动效不变。人物是演示语境素材（demo-shell 注入），不属于动效本体。 —— */
+
+  #stage { background: #12131a; color: #f5f5f7; }
+  /* 舞台纹理（属于风格档皮，不属于动效）：极淡网格 + 两团冷光 */
+  .bgtex { position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 30% 20%, rgba(255,255,255,.05), transparent 55%), radial-gradient(ellipse at 80% 90%, rgba(120,140,255,.06), transparent 50%),
+      repeating-linear-gradient(0deg, rgba(255,255,255,.025) 0 1px, transparent 1px 28px), repeating-linear-gradient(90deg, rgba(255,255,255,.025) 0 1px, transparent 1px 28px); }
+  /* 地面淡水印词（装饰） */
+  .floor { position: absolute; font-family: "Courier New", monospace; font-size: 22px; letter-spacing: 6px; color: rgba(255,255,255,.09); font-style: italic; }
+
+  /* 人物竖卡 250×444（9:16）：圆角 22、2px 半透白描边、演播室紫底；刻意取景 → data-crop-ok */
+  .hostcard { position: absolute; left: 64px; top: 48px; width: 250px; height: 444px; border-radius: 22px; overflow: hidden;
+    border: 2px solid rgba(255,255,255,.42); box-shadow: 0 20px 60px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.08);
+    background: linear-gradient(180deg, #3a2a58 0%, #1d2140 55%, #12131a 100%); }
+  .hostcard::before { content: ""; position: absolute; left: 20px; right: 20px; top: 40px; height: 160px; border-radius: 50%; background: radial-gradient(ellipse, rgba(214,120,255,.35), transparent 70%); }
+  .hostcard .host-placeholder { background: transparent; }                 /* 演播室底透出来 */
+  .hostcard .host-placeholder::after { width: 150%; height: 100%; }        /* 灰阶剪影兜底也按竖卡取景 */
+  .hostcard video.dh-host { height: 106%; bottom: -6%; }                   /* 人物略大于卡：半身特写 */
+
+  /* 玻璃板 570×408：perspective 1400，以左缘为轴 rotateY −18 → −10 */
+  .persp { position: absolute; inset: 0; perspective: 1400px; perspective-origin: 30% 50%; }
+  .board { position: absolute; left: 340px; top: 58px; width: 570px; height: 408px; border-radius: 18px; transform-origin: 0% 50%; overflow: hidden;
+    background: linear-gradient(135deg, rgba(255,255,255,.11), rgba(255,255,255,.03) 45%, rgba(255,255,255,.07));
+    border: 1.5px solid rgba(255,255,255,.3); box-shadow: 0 30px 80px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.25); }
+  .board .sheen { position: absolute; top: -40%; bottom: -40%; left: -220px; width: 160px; background: linear-gradient(100deg, transparent, rgba(255,255,255,.14), transparent); transform: skewX(-18deg); }
+  /* 板头：期数小字 → 大标题（逐字解糊）→ 英文字距行 */
+  .yr { position: absolute; left: 0; right: 0; top: 18px; text-align: center; font-family: "Courier New", monospace; font-size: 13px; letter-spacing: 4px; color: rgba(255,255,255,.55); }
+  .bt { position: absolute; left: 0; right: 0; top: 42px; text-align: center; font-size: 46px; font-weight: 800; color: #fff; letter-spacing: 6px; text-shadow: 0 2px 18px rgba(255,255,255,.18); }
+  .bt span { display: inline-block; }
+  .be { position: absolute; left: 0; right: 0; top: 106px; text-align: center; font-family: "Courier New", monospace; font-size: 12px; letter-spacing: 5px; color: rgba(255,255,255,.62); }
+  /* 板内道具：三步 tile（140×130 玻璃块）+ 两段连接线（41px，带箭头）+ 结果胶囊 */
+  .tiles { position: absolute; left: 34px; top: 170px; width: 502px; height: 130px; }
+  .tile { position: absolute; top: 0; width: 140px; height: 130px; border-radius: 14px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.3);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 10px 30px rgba(0,0,0,.35); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; transform-origin: 50% 50%; }
+  .tile .ic { width: 44px; height: 44px; border-radius: 50%; background: #8ab4ff; color: #12131a; font-size: 22px; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-bottom: 4px; }
+  .tile .tl { font-size: 20px; font-weight: 700; color: #fff; letter-spacing: 2px; }
+  .tile .ts { font-family: "Courier New", monospace; font-size: 9px; letter-spacing: 2px; color: rgba(255,255,255,.6); }
+  .conn { position: absolute; top: 63px; width: 41px; height: 4px; }
+  .conn i { position: absolute; left: 0; top: 1px; width: 100%; height: 2px; background: #8ab4ff; transform-origin: 0 50%; box-shadow: 0 0 8px rgba(138,180,255,.8); }
+  .conn b { position: absolute; right: -2px; top: -4px; width: 12px; height: 12px; border-top: 2px solid #8ab4ff; border-right: 2px solid #8ab4ff; transform: rotate(45deg); }
+  .result { position: absolute; left: 50%; top: 328px; transform: translateX(-50%); padding: 8px 22px; border-radius: 999px; background: rgba(138,180,255,.16); border: 1px solid rgba(138,180,255,.6);
+    color: #cfe0ff; font-size: 17px; font-weight: 700; letter-spacing: 1px; white-space: nowrap; }
+  .glyph { position: absolute; font-family: "Courier New", monospace; font-size: 26px; color: rgba(255,255,255,.35); }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="bgtex"></div>
+    <div class="floor" style="left:330px;top:498px">COPY</div><div class="floor" style="left:600px;top:498px">19</div><div class="floor" style="left:820px;top:498px">IDEA</div>
+    <!-- 人物竖卡：demo-shell 往 .host-placeholder 注入数字人；竖卡是刻意取景（半身特写），data-crop-ok 豁免截断检查 -->
+    <div class="hostcard" data-crop-ok><div class="host-placeholder"></div></div>
+    <div class="persp"><div class="board">
+      <div class="sheen"></div>
+      <div class="yr">TALKCRAFT · 第 12 期</div>
+      <div class="bt"><span>口</span><span>播</span><span>工</span><span>作</span><span>流</span></div>
+      <div class="be">SCRIPT → VOICE → RENDER</div>
+      <div class="tiles">
+        <div class="tile" style="left:0"><div class="ic">✎</div><div class="tl">文稿</div><div class="ts">SCRIPT · 13 句</div></div>
+        <div class="conn" style="left:140px"><i></i><b></b></div>
+        <div class="tile" style="left:181px"><div class="ic">◉</div><div class="tl">配音</div><div class="ts">VOICE · 95 s</div></div>
+        <div class="conn" style="left:321px"><i></i><b></b></div>
+        <div class="tile" style="left:362px"><div class="ic">▶</div><div class="tl">成片</div><div class="ts">RENDER · 1080p</div></div>
+      </div>
+      <div class="result">一遍过 · 3 分 20 秒</div>
+      <div class="glyph" style="left:16px;bottom:10px">∿</div><div class="glyph" style="right:16px;bottom:10px">∿</div>
+    </div></div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ——————————————————————————————————————————————————————————
+    // 可摘走的核心动画：人物竖卡玻璃台
+    // 命门：① 人物竖卡先立住、全程在场；② 玻璃板以左缘为轴 −18° → −10° 显影，sheen 只扫一次之后不再动；
+    //      ③ 板上道具按口播接力（tile pop → 连接线长出 → 下一个 tile），一拍一主角、同一种入场；④ 全部落定后真静止，字与画同收。
+    // ——————————————————————————————————————————————————————————
+    const CONFIG = {
+      rotFrom: -18,        // 玻璃板起始角（°）
+      rot: -10,            // 玻璃板落定角（−8~−12：更斜板上文字变形不可读）
+      boardAt: 0.2,        // 板显影起点 s（0.7s power3.out）
+      boardIn: 0.7,
+      hostAt: 0.3,         // 人物竖卡从左滑入（x −40→0，0.5s power3.out）
+      hostIn: 0.5,
+      sheenAt: 0.6,        // sheen 扫过一次（0.9s power1.inOut，x 0→900）
+      sheenDur: 0.9,
+      titleAt: 0.9,        // 期数小字；标题逐字 +0.1 起、stagger 0.06；英文行 +0.55
+      charDur: 0.45,
+      charStagger: 0.06,
+      tileAt: [1.6, 2.5, 3.4],   // 三步 tile pop 时刻（按口播讲到每一步的词锚）
+      tilePop: 0.5,        // back.out(1.6)：opacity 0→1、scale .8→1
+      connDelay: 0.45,     // tile 落定后连接线才长（0.35s power2.out）
+      connDur: 0.35,
+      resultAt: 4.1,       // 结果胶囊落定（0.45s power3.out，y 8→0）
+      exitAt: 6.1,         // 板、人、装饰同收（0.5s power2.in）
+      exit: 0.5,
+      end: 6.6,            // 镜头结束
+    };
+
+    const $ = (s) => document.querySelector(s);
+    const $$ = (s) => [...document.querySelectorAll(s)];
+
+    DemoShell.register(({ speed }) => {
+      const host = $(".hostcard"), board = $(".board"), sheen = $(".sheen"), yr = $(".yr"), chars = $$(".bt span"), be = $(".be"),
+        tiles = $$(".tile"), conns = $$(".conn"), result = $(".result"), glyphs = $$(".glyph"), floors = $$(".floor");
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // 复位（重播语义）
+      tl.set(board, { rotateY: CONFIG.rotFrom, opacity: 0, transformOrigin: "0% 50%" }).set(sheen, { x: 0 })
+        .set(host, { x: -40, opacity: 0 }).set([yr, be], { opacity: 0, y: 6 }).set(chars, { opacity: 0, filter: "blur(8px)", y: 8 })
+        .set(tiles, { opacity: 0, scale: 0.8 }).set(conns.map((c) => c.querySelector("i")), { scaleX: 0 }).set(conns.map((c) => c.querySelector("b")), { opacity: 0 })
+        .set(result, { opacity: 0, y: 8 }).set(glyphs, { opacity: 0 }).set(floors, { opacity: 0 })
+        // 舞台装饰淡入
+        .to(floors, { opacity: 1, duration: 0.8 }, 0)
+        // 玻璃板从 −18° 转到 −10° 显影；人物竖卡从左滑入立住
+        .to(board, { rotateY: CONFIG.rot, opacity: 1, duration: CONFIG.boardIn, ease: "power3.out" }, CONFIG.boardAt)
+        .to(host, { x: 0, opacity: 1, duration: CONFIG.hostIn, ease: "power3.out" }, CONFIG.hostAt)
+        // sheen 只扫一次
+        .to(sheen, { x: 900, duration: CONFIG.sheenDur, ease: "power1.inOut" }, CONFIG.sheenAt)
+        .to(glyphs, { opacity: 1, duration: 0.4 }, 0.9)
+        // 板头：期数 → 标题逐字解糊 → 英文行
+        .to(yr, { opacity: 1, y: 0, duration: 0.4 }, CONFIG.titleAt)
+        .to(chars, { opacity: 1, filter: "blur(0px)", y: 0, duration: CONFIG.charDur, stagger: CONFIG.charStagger, ease: "power2.out" }, CONFIG.titleAt + 0.1)
+        .to(be, { opacity: 1, y: 0, duration: 0.4 }, CONFIG.titleAt + 0.55);
+      // 板内道具接力：tile pop → 连接线长出带箭头 → 下一个 tile
+      tiles.forEach((tile, i) => {
+        tl.to(tile, { opacity: 1, scale: 1, duration: CONFIG.tilePop, ease: "back.out(1.6)" }, CONFIG.tileAt[i]);
+        if (i < conns.length) {
+          const at = CONFIG.tileAt[i] + CONFIG.connDelay;
+          tl.to(conns[i].querySelector("i"), { scaleX: 1, duration: CONFIG.connDur, ease: "power2.out" }, at)
+            .to(conns[i].querySelector("b"), { opacity: 1, duration: 0.15 }, at + CONFIG.connDur - 0.1);
+        }
+      });
+      // 结果胶囊落定 → 静置 → 板、人、装饰同收
+      tl.to(result, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" }, CONFIG.resultAt)
+        .to([board, host, ...glyphs, ...floors], { opacity: 0, duration: CONFIG.exit, ease: "power2.in" }, CONFIG.exitAt);
+    });
+  </script>
+</body>
+</html>

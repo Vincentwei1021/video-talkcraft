@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>word-slot-cycle · 词槽轮换</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 词槽轮换：句干钉死不动，句尾深色胶囊每 0.7s 向上翻一格换一个短语（前 8 帧换位、后 13 帧静置读词），
+     胶囊宽度随词长平滑伸缩，上下露两行 13% 的幽灵项暗示"还有一串"；换完 N 个词胶囊上飞、
+     结论带全卡唯一一次过冲落进同一位置。白底成立；句干锚点由"整句结论居中"反推，不用 flex 居中。 —— */
+
+  /* 整句：左端锚死（left 由脚本按结论句总宽反推居中），flex 只负责句干与词槽的基线对齐 */
+  .wsc-sent { position: absolute; top: 238px; height: 64px; display: flex; align-items: center; font-size: 40px; font-weight: 700; letter-spacing: -.5px; color: #1d1d1f; white-space: nowrap; }
+  .wsc-stem { margin-right: 14px; }
+  /* 词槽：宽度随当前词变化（脚本 tween），胶囊 / 幽灵项 / 结论都绝对定位叠在槽内 */
+  .wsc-slot { position: relative; height: 56px; }
+  .wsc-pill { position: absolute; left: 0; top: 0; height: 56px; border-radius: 999px; background: #1d1d1f; color: #ffffff; overflow: hidden; font-size: 30px; font-weight: 700; letter-spacing: 0; will-change: transform, width, filter; }
+  .wsc-reel { position: absolute; left: 0; top: 0; display: flex; flex-direction: column; will-change: transform, filter; }
+  .wsc-reel span { height: 56px; line-height: 56px; padding: 0 24px; white-space: nowrap; }
+  /* 幽灵项：胶囊外上下各一行，13% 透明——"看得见但不抢" */
+  .wsc-ghost { position: absolute; left: 24px; font-size: 30px; font-weight: 700; color: #1d1d1f; opacity: 0; white-space: nowrap; line-height: 56px; letter-spacing: 0; }
+  .wsc-gu { top: -50px; } .wsc-gd { top: 62px; }
+  /* 结论：强调色，落进胶囊原位 */
+  .wsc-final { position: absolute; left: 0; top: 0; height: 56px; line-height: 56px; font-size: 40px; font-weight: 700; letter-spacing: -.5px; color: #0066cc; white-space: nowrap; opacity: 0; }
+  /* 隐形尺子：量词宽 / 句干宽 / 结论宽 */
+  .wsc-meas { position: absolute; left: 0; top: 0; visibility: hidden; white-space: nowrap; font-weight: 700; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="wsc-sent">
+      <span class="wsc-stem"></span>
+      <span class="wsc-slot">
+        <span class="wsc-ghost wsc-gu"></span>
+        <span class="wsc-pill"><span class="wsc-reel"></span></span>
+        <span class="wsc-ghost wsc-gd"></span>
+        <span class="wsc-final"></span>
+      </span>
+    </div>
+    <span class="wsc-meas"></span>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ——————————————————————————————————————————————————————————
+    // 可摘走的核心动画：词槽轮换（句干钉死 → 胶囊每拍上翻一格换词、宽度随词伸缩 → 末拍胶囊上飞、结论过冲落位）
+    // 命门：① 句干绝对定位左端锚死，不能 flex 居中（胶囊变宽会带着句干重排）；② 每拍前 8 帧换位、后 13 帧静置——
+    //      静置段是给观众读词的，读不完的拍等于没换；③ 新词减速落定、旧词加速逃走（方向感 = 向上翻页）；
+    //      ④ 全卡唯一一次过冲留给结论。
+    // ——————————————————————————————————————————————————————————
+    const CONFIG = {
+      beat: 0.7,         // 拍长 s：每 0.7s 换一个词（<0.55 读不完短语，>0.95 节拍器感散掉）
+      swap: 0.27,        // 换位窗 s（≈8 帧）power2.inOut——两头都缓才像滚轮起步与停稳
+      row: 56,           // 胶囊高 = 滚轮行高 px
+      pad: 48,           // 胶囊宽 = 词宽 + pad（左右内边距 24×2；<32 词贴边，>80 胶囊胖成按钮）
+      swapBlur: 4,       // 换位途中滚轮运动模糊峰值 px（去掉读作硬弹，>8 中间帧糊成色块）
+      ghostAlpha: 0.13,  // 幽灵项透明度：看得见但不抢（>0.25 读作三行并列文字）
+      enterAt: 0.2,      // 句干 + 胶囊入场起点 s（0.5s power3.out，y 14→0，胶囊错峰 0.08）
+      firstSwapAt: 1.1,  // 第一次换词时刻：起手静置让观众先认出句式
+      settle: 0.35,      // 末词读完（一拍）后到收束的追加静置 s
+      flyOut: 0.23,      // 末 pill 上飞 s（power2.in：y -130 + blur 10，加速逃走）
+      finalDelay: 0.12,  // 结论相对 pill 起飞的滞后 s
+      finalIn: 0.47,     // 结论落位 s：back.out(1.4)，全卡唯一过冲（>2 像卡通，无过冲结论与列举没档次差）
+      holdEnd: 2.5,      // 结论静置 s（这句话是全段目的，不 hold 等于白列举；≥1.5）
+      exitDur: 0.4,      // 句干 + 结论同收（power2.in）
+      gap: 14,           // 句干与词槽间距 px
+    };
+    // 文案（演示语境）：句干 + 轮换词表 + 结论
+    const STEM = "一个 AI，帮你";
+    const WORDS = ["写代码", "改简历", "做 PPT", "查资料"];
+    const FINAL = "搞定所有事";
+
+    const $ = (s) => document.querySelector(s);
+    const sent = $(".wsc-sent"), stem = $(".wsc-stem"), slot = $(".wsc-slot"), pill = $(".wsc-pill"), reel = $(".wsc-reel"),
+          gu = $(".wsc-gu"), gd = $(".wsc-gd"), fin = $(".wsc-final"), meas = $(".wsc-meas");
+    stem.textContent = STEM; fin.textContent = FINAL;
+    reel.innerHTML = WORDS.map((w) => `<span>${w}</span>`).join("");
+    // 宽度预量（隐形尺子）：胶囊宽 = 词宽 + pad；句干锚点 = 按"句干 + 间距 + 结论"总宽居中反推
+    meas.style.fontSize = "30px"; meas.style.letterSpacing = "0";
+    const WIDTHS = WORDS.map((w) => { meas.textContent = w; return meas.offsetWidth + CONFIG.pad; });
+    const stemW = stem.offsetWidth, finW = fin.offsetWidth;
+    sent.style.left = Math.round((960 - (stemW + CONFIG.gap + finW)) / 2) + "px";
+    const ghost = (i) => { gu.textContent = WORDS[i - 1] || ""; gd.textContent = WORDS[i + 1] || ""; };
+
+    // 时间表：swapAt(i) = firstSwapAt + (i-1)·beat；lastAt = 末次换词 + beat + settle；exitAt = lastAt + holdEnd
+    const swapAt = (i) => CONFIG.firstSwapAt + (i - 1) * CONFIG.beat;
+    const lastAt = swapAt(WORDS.length - 1) + CONFIG.beat + CONFIG.settle;
+    const exitAt = lastAt + CONFIG.holdEnd;
+
+    DemoShell.register(({ speed }) => {
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+      // 复位（重播语义）
+      tl.set(stem, { opacity: 0, y: 14 })
+        .set(pill, { width: WIDTHS[0], opacity: 0, y: 14, filter: "blur(0px)" })
+        .set(slot, { width: WIDTHS[0] })
+        .set(reel, { y: 0, filter: "blur(0px)" })
+        .set([gu, gd], { opacity: 0 })
+        .set(fin, { opacity: 0, y: 90 })
+        .call(() => ghost(0), [], 0.01)
+        // 入场：句干先、胶囊错峰 0.08
+        .to(stem, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, CONFIG.enterAt)
+        .to(pill, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, CONFIG.enterAt + 0.08)
+        .to([gu, gd], { opacity: CONFIG.ghostAlpha, duration: 0.3 }, 0.7);
+      // 每拍换词：滚轮上翻一格 + 运动模糊 + 胶囊宽度插值 + 幽灵项换字
+      WORDS.forEach((w, i) => {
+        if (!i) return;
+        const at = swapAt(i);
+        tl.to([gu, gd], { opacity: 0, duration: 0.1 }, at)
+          .to(reel, { y: -i * CONFIG.row, duration: CONFIG.swap, ease: "power2.inOut" }, at)
+          .to(reel, { filter: `blur(${CONFIG.swapBlur}px)`, duration: CONFIG.swap * 0.45, ease: "power1.in" }, at)
+          .to(reel, { filter: "blur(0px)", duration: CONFIG.swap * 0.55, ease: "power2.out" }, at + CONFIG.swap * 0.45)
+          .to([pill, slot], { width: WIDTHS[i], duration: CONFIG.swap, ease: "power2.inOut" }, at)
+          .call(() => ghost(i), [], at + CONFIG.swap)
+          .to([gu, gd], { opacity: CONFIG.ghostAlpha, duration: 0.15 }, at + CONFIG.swap);
+      });
+      // 收束：幽灵项先隐 → 末 pill 上飞 → 槽宽换成结论宽 → 结论过冲落进同一位置
+      tl.to([gu, gd], { opacity: 0, duration: 0.12 }, lastAt - 0.12)
+        .to(pill, { y: -130, filter: "blur(10px)", opacity: 0, duration: CONFIG.flyOut, ease: "power2.in" }, lastAt)
+        .to(slot, { width: finW, duration: 0.3, ease: "power2.out" }, lastAt)
+        .to(fin, { opacity: 1, y: 0, duration: CONFIG.finalIn, ease: "back.out(1.4)" }, lastAt + CONFIG.finalDelay)
+        // 句干 + 结论同收
+        .to([stem, fin], { opacity: 0, duration: CONFIG.exitDur, ease: "power2.in" }, exitAt);
+    });
+  </script>
+</body>
+</html>

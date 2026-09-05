@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>reticle-lock-on · 准星咬合</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 准星咬合：四个 L 角从四个画外方向扑向截图上的目标（行程 ≥1000px 才是"扑过来"），到位时框还比目标大 2.2 倍，
+     随即收缩过头到 0.94 再回弹到 1——"咔"的咬合感来自超调；咬合那一帧目标白闪 .55→.28、标签同帧 back 弹出，之后钉死。
+     截图占位（CSS 画的假设置页）是演示语境，不属于动效本体。 —— */
+
+  /* 截图占位（不属于动效）：700×420 白卡 + 顶栏 + 灰条 + 一个强调色按钮当目标。成片换真截图，目标 bbox 由实测反推 */
+  .shot { position: absolute; left: 130px; top: 60px; width: 700px; height: 420px; background: #ffffff; border: 1px solid #e0e0e0; border-radius: 12px; overflow: hidden; }
+  .shot .bar { height: 40px; background: #f5f5f7; border-bottom: 1px solid #e0e0e0; display: flex; align-items: center; gap: 8px; padding: 0 14px; }
+  .shot .bar i { width: 10px; height: 10px; border-radius: 50%; background: #d9d9de; }
+  .shot .row { position: absolute; left: 30px; height: 12px; border-radius: 6px; background: #ececf0; }
+  .shot .tg { position: absolute; left: 30px; top: 300px; width: 190px; height: 50px; border-radius: 25px; background: #0066cc; color: #fff; font-size: 18px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+  .shot .tg .tgf { position: absolute; inset: 0; background: #fff; opacity: 0; border-radius: 25px; }   /* 咬合帧目标微亮层 */
+
+  /* 四个 L 角（22×22 / 3px 强调色），几何由目标 bbox 反推（外扩 10），四角绕目标中心同比收缩 */
+  .rt { position: absolute; width: 22px; height: 22px; border: 3px solid #0066cc; opacity: 0; }
+  .rt.a { border-right: 0; border-bottom: 0; } .rt.b { border-left: 0; border-bottom: 0; } .rt.c { border-right: 0; border-top: 0; } .rt.d { border-left: 0; border-top: 0; }
+
+  /* 标签：目标右侧 18px，与目标垂直居中 */
+  .lab { position: absolute; font-size: 22px; font-weight: 700; color: #1d1d1f; background: #ffffff; border: 1.5px solid #0066cc; padding: 6px 14px; border-radius: 8px; white-space: nowrap; opacity: 0; transform-origin: 0 50%; }
+</style>
+</head>
+<body>
+  <div id="stage" style="background:#f5f5f7">
+    <div class="shot">
+      <div class="bar"><i></i><i></i><i></i></div>
+      <div class="row" style="top:70px;width:300px"></div><div class="row" style="top:100px;width:420px"></div><div class="row" style="top:130px;width:360px"></div>
+      <div class="row" style="top:190px;width:520px;height:80px;border-radius:10px;background:#f0f0f3"></div>
+      <div class="tg">立即开通 ¥ 199 / 年<i class="tgf"></i></div>
+      <div class="row" style="top:300px;left:250px;width:200px"></div><div class="row" style="top:370px;width:480px"></div>
+    </div>
+    <div class="rt a"></div><div class="rt b"></div><div class="rt c"></div><div class="rt d"></div>
+    <div class="lab">就是这个按钮</div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ——————————————————————————————————————————————————————————
+    // 可摘走的核心动画：准星咬合
+    // 命门：① 四角从画外 ≥1000px 扑入（行程短读作"角标出现"不是"扑过来"）；② 飞入与收缩解耦——到位时框仍是目标的 2.2 倍，
+    //      再收缩过头到 0.94 回弹到 1（无超调没有"咔"的咬合感）；③ 咬合帧目标微亮 .55→.28 与标签 back 弹出必须同帧（错帧就散了）；④ 之后钉死真静止。
+    // ——————————————————————————————————————————————————————————
+    const CONFIG = {
+      at: 1.3,             // 四角起跳时刻 s（前面留 1.3s 让观众先看到整页）
+      fly: 0.33,           // 飞入时长 s（≈10 帧，power2.out）
+      big: 2.2,            // 到位时框相对目标 bbox 的倍率
+      under: 0.94,         // 收缩过头倍率
+      shrink: 0.2,         // 收缩到 0.94 的时长 s（power2.in）
+      snap: 0.15,          // 回弹到 1 的时长 s（back.out(2)）——"咔"
+      pad: 10,             // 框比目标 bbox 外扩 px
+      off: [[-700, -500], [700, -500], [-700, 500], [700, 500]],   // 四角画外起点（相对终点的位移）
+      flashPeak: 0.55,     // 咬合帧目标白闪峰值，随后落到 flashHold
+      flashHold: 0.28,     // 白闪回落后的驻留值（目标微亮常驻）
+      exitAt: 5.6,         // 整体退场起点（0.4s power2.in）
+      end: 6.0,            // 镜头结束
+      shot: { x: 130, y: 60, w: 700, h: 420 },   // 截图左上角与尺寸（舞台坐标），目标 bbox 相对它
+    };
+
+    const $ = (s) => document.querySelector(s);
+    const $$ = (s) => [...document.querySelectorAll(s)];
+
+    DemoShell.register(({ speed }) => {
+      const shot = $(".shot"), tg = $(".tg"), tgf = $(".tgf"), lab = $(".lab"), rts = [$(".rt.a"), $(".rt.b"), $(".rt.c"), $(".rt.d")];
+      // 四角终点几何由目标 bbox 反推（layout.md §3：不目测）
+      const bx = CONFIG.shot.x + tg.offsetLeft - CONFIG.pad, by = CONFIG.shot.y + tg.offsetTop - CONFIG.pad;
+      const bw = tg.offsetWidth + 2 * CONFIG.pad, bh = tg.offsetHeight + 2 * CONFIG.pad, cx = bx + bw / 2, cy = by + bh / 2;
+      const corner = (k) => [[bx, by], [bx + bw - 22, by], [bx, by + bh - 22], [bx + bw - 22, by + bh - 22]][k];
+      const o = { s: CONFIG.big };
+      const applyS = () => rts.forEach((r, k) => {   // 收缩：四角绕目标中心同比
+        const [x, y] = corner(k), dx = (x + 11 - cx) * o.s, dy = (y + 11 - cy) * o.s;
+        r.style.left = (cx + dx - 11) + "px"; r.style.top = (cy + dy - 11) + "px";
+      });
+      lab.style.left = (bx + bw + 18) + "px"; lab.style.top = (cy - 22) + "px";
+      const LOCK = CONFIG.at + CONFIG.fly + CONFIG.shrink;   // 咬合帧
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+      // 复位（重播语义）
+      tl.set(o, { s: CONFIG.big }).call(applyS, [], 0.01)
+        .set(rts, { opacity: 0, x: 0, y: 0 }).set(lab, { opacity: 0, scale: 0.6 }).set(tgf, { opacity: 0 }).set(shot, { opacity: 1 });
+      // 飞入：四角从画外扑向 2.2 倍框位
+      rts.forEach((r, k) => tl.set(r, { x: CONFIG.off[k][0], y: CONFIG.off[k][1], opacity: 1 }, CONFIG.at).to(r, { x: 0, y: 0, duration: CONFIG.fly, ease: "power2.out" }, CONFIG.at));
+      // 收缩过头 → 回弹咬合
+      tl.to(o, { s: CONFIG.under, duration: CONFIG.shrink, ease: "power2.in", onUpdate: applyS }, CONFIG.at + CONFIG.fly)
+        .to(o, { s: 1, duration: CONFIG.snap, ease: "back.out(2)", onUpdate: applyS }, LOCK)
+        // 咬合帧：目标微亮 + 标签同帧弹出
+        .to(tgf, { opacity: CONFIG.flashPeak, duration: 0.04 }, LOCK).to(tgf, { opacity: CONFIG.flashHold, duration: 0.2 }, LOCK + 0.04)
+        .to(lab, { opacity: 1, scale: 1, duration: 0.35, ease: "back.out(1.8)" }, LOCK)
+        // 整体退场
+        .to([shot, ...rts, lab], { opacity: 0, duration: CONFIG.end - CONFIG.exitAt, ease: "power2.in" }, CONFIG.exitAt);
+    });
+  </script>
+</body>
+</html>

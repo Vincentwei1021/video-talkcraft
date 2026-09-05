@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>chip-grid-single-select · 五选一反黑</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 五选一反黑：N 个候选 chip 3+2 居中铺开让观众读题；选中帧先插 1 帧灰色按压，紧接 5 帧 linear 反黑（底→墨、字→白）+ 极轻正弦回弹，
+     其余 chip 降到 18% 但位置锁死（"没被选中"而不是"消失了"）；停 1.5s 看清选中态后余项归零、黑 chip 上移收窄并横向补偿回中线，
+     下方算式行浮现逐词加深——"选了它，然后……"。问题行是画面文字不是旁白字幕。 —— */
+
+  /* 问题行（画面文字） */
+  .q { position: absolute; left: 0; right: 0; top: 116px; text-align: center; font-size: 30px; font-weight: 700; color: #1d1d1f; }
+
+  /* chip 容器：3+2 两行居中，位置由脚本量宽后摆 */
+  .chips { position: absolute; left: 0; right: 0; top: 200px; height: 130px; }
+  .chip { position: absolute; height: 48px; line-height: 46px; padding: 0 22px; border-radius: 24px; border: 1.5px solid #d6d6dc; background: #ffffff; color: #1d1d1f; font-size: 20px; font-weight: 600; white-space: nowrap; transform-origin: 50% 50%; }
+  .chip .fl { position: absolute; inset: 0; border-radius: 24px; background: rgba(120,120,120,.5); opacity: 0; }   /* 1 帧按压灰闪层 */
+
+  /* 算式行：选中后的因果，逐词加深 */
+  .eq { position: absolute; left: 0; right: 0; top: 300px; text-align: center; font-size: 30px; font-weight: 600; color: #1d1d1f; opacity: 0; font-variant-numeric: tabular-nums; }
+  .eq span { display: inline-block; opacity: .25; margin: 0 4px; }
+  .eq .acc { color: #0066cc; font-weight: 700; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="q">五个方案，我选哪个？</div>
+    <div class="chips">
+      <div class="chip">方案 A · 全手动<i class="fl"></i></div>
+      <div class="chip">方案 B · 半自动<i class="fl"></i></div>
+      <div class="chip sel">方案 C · 全自动<i class="fl"></i></div>
+      <div class="chip">方案 D · 外包<i class="fl"></i></div>
+      <div class="chip">方案 E · 先不做<i class="fl"></i></div>
+    </div>
+    <div class="eq"><span>每期</span><span class="acc">省 6 小时</span><span>×</span><span>每周 3 期</span><span>=</span><span class="acc">每月 72 小时</span></div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ——————————————————————————————————————————————————————————
+    // 可摘走的核心动画：五选一反黑
+    // 命门：① 灰闪只能 1 帧（2 帧以上读作 hover 高亮，不是按下）；② 反黑 5 帧 linear 不加 ease（"变黑"这件事不该有过程感）；
+    //      ③ 余项降到 18% 但位置锁死（transform 恒为 none）——原位才读作"没被选中"而非"消失了"；④ 选中后 ≥1.5s 再收束；
+    //      ⑤ 收束时黑 chip 上移收窄要横向补偿 cx 回到中线，不补读作"被拖走"。
+    // ——————————————————————————————————————————————————————————
+    const CONFIG = {
+      FS: 2.0,             // 选中时刻 s（前半读题、后半看结果；<1.2 观众还没读完选项）
+      flash: 0.033,        // 按压灰闪时长 s（就一帧）
+      black: 0.17,         // 反黑时长 s（≈5 帧，linear）
+      bounce: 0.34,        // 按压回弹窗 s：scale = 1 + sin(p·π)·0.04（正弦保证起止精确回 1）
+      bounceAmp: 0.04,     // 回弹幅度（极轻；0.1 就成弹跳按钮）
+      dim: 0.18,           // 余项降到的透明度（位置不动）
+      lift: 1.5,           // 选中后多久收束 s（看清选中态的最短驻留）
+      liftDur: 0.4,        // 收束时长 s（power2.inOut）
+      liftY: -46,          // 黑 chip 上移 px
+      liftScale: 0.82,     // 黑 chip 收窄倍率
+      eqLag: 0.25,         // 算式行在收束起点之后多久浮现
+      eqStagger: 0.16,     // 算式逐词加深间隔 s
+      rowGap: 14,          // chip 间距 px；行距由 .chips 的 66 定
+      exitAt: 6.4,         // 整体退场起点（0.4s power2.in）
+      end: 6.8,            // 镜头结束
+    };
+
+    const $ = (s) => document.querySelector(s);
+    const $$ = (s) => [...document.querySelectorAll(s)];
+
+    DemoShell.register(({ speed }) => {
+      const q = $(".q"), eq = $(".eq"), eqw = $$(".eq span");
+      const chips = $$(".chip"), sel = $(".chip.sel"), others = chips.filter((c) => c !== sel), fl = sel.querySelector(".fl");
+      // 3+2 居中排布：先量宽再摆（每行最多 3 枚）
+      const layout = (row, y) => {
+        const ws = row.map((c) => c.offsetWidth), tot = ws.reduce((a, b) => a + b, 0) + (row.length - 1) * CONFIG.rowGap;
+        let x = 480 - tot / 2;
+        row.forEach((c, i) => { c.style.left = x + "px"; c.style.top = y + "px"; x += ws[i] + CONFIG.rowGap; });
+      };
+      layout(chips.slice(0, 3), 0); layout(chips.slice(3), 66);
+      const cx = 480 - (sel.offsetLeft + sel.offsetWidth / 2);   // 上移时横向补偿回中线
+      const o = { pr: 0 };
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+      const FS = CONFIG.FS, LIFT = FS + CONFIG.lift;
+      // 复位（重播语义）
+      tl.set(chips, { opacity: 0, x: 0, y: 0, scale: 1, backgroundColor: "#ffffff", color: "#1d1d1f", borderColor: "#d6d6dc" })
+        .set(fl, { opacity: 0 }).set(eq, { opacity: 0 }).set(eqw, { opacity: 0.25 }).set(q, { opacity: 0, y: 8 }).set(o, { pr: 0 })
+        // 读题：问题 + 候选逐个淡入
+        .to(q, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 0.1)
+        .to(chips, { opacity: 1, duration: 0.25, stagger: 0.1, ease: "power1.out" }, 0.5)
+        // 选中：1 帧灰闪 → 5 帧 linear 反黑 → 极轻正弦回弹；余项降到 18% 位置锁死
+        .to(fl, { opacity: 1, duration: 0.01 }, FS).to(fl, { opacity: 0, duration: 0.01 }, FS + CONFIG.flash)
+        .to(sel, { backgroundColor: "#1d1d1f", color: "#ffffff", borderColor: "#1d1d1f", duration: CONFIG.black, ease: "none" }, FS + CONFIG.flash)
+        .to(o, { pr: 1, duration: CONFIG.bounce, ease: "none", onUpdate: () => { sel.style.transform = `scale(${1 + Math.sin(o.pr * Math.PI) * CONFIG.bounceAmp})`; } }, FS + CONFIG.flash)
+        .to(others, { opacity: CONFIG.dim, duration: CONFIG.bounce, ease: "power2.out" }, FS + CONFIG.flash)
+        // 收束：余项归零，黑 chip 上移收窄 + 回中线，算式行逐词加深
+        .to(others, { opacity: 0, duration: 0.3 }, LIFT)
+        .to(sel, { x: cx, y: CONFIG.liftY, scale: CONFIG.liftScale, duration: CONFIG.liftDur, ease: "power2.inOut" }, LIFT)
+        .to(eq, { opacity: 1, duration: 0.3 }, LIFT + CONFIG.eqLag)
+        .to(eqw, { opacity: 1, duration: 0.25, stagger: CONFIG.eqStagger, ease: "none" }, LIFT + CONFIG.eqLag + 0.05)
+        // 整体退场
+        .to([q, sel, eq], { opacity: 0, duration: CONFIG.end - CONFIG.exitAt, ease: "power2.in" }, CONFIG.exitAt);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>word-relay-filmstrip · 动词接力胶片</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 动词接力胶片：左列等高截图卡纵向排列、深浅边框相间（显滚动步进），切词那 12 帧才滚动恰好一卡高、其余时间零位移；
+     右侧衬线两行——名词恒定、动词原位接力（旧词先灰化淡出、新词后落位，不叠影），词块垂直中心 = 当前卡中点。
+     白底成立；截图占位（灰调渐变 + 相框图标）是演示语境，不属于动效本体。 —— */
+
+  /* 素材占位（不属于动效）：灰调渐变 + 相框图标（六档色，与 parallel-items-with-host 同一体系） */
+  .ph { position: absolute; overflow: hidden; }
+  .ph::before { content: ""; position: absolute; inset: 0; }
+  .ph.t1::before { background: linear-gradient(160deg, #a4b0c6, #7d8aa3); }
+  .ph.t2::before { background: linear-gradient(160deg, #bfa5ae, #957c86); }
+  .ph.t3::before { background: linear-gradient(160deg, #9fb9ae, #789389); }
+  .ph.t4::before { background: linear-gradient(160deg, #c2b39a, #9c8f78); }
+  .ph.t5::before { background: linear-gradient(160deg, #a3a9b8, #7f8594); }
+  .ph svg { position: absolute; left: 50%; top: 50%; width: 56px; height: 48px; transform: translate(-50%, -56%); opacity: .35; }
+
+  /* 左列胶片：视窗 360×540，胶片整体只在切词窗内 translateY 一卡高（212 = 200 卡 + 12 间距） */
+  .wrf-win { position: absolute; left: 80px; top: 0; width: 360px; height: 540px; overflow: hidden; }
+  .wrf-strip { position: absolute; left: 0; top: 0; width: 360px; will-change: transform; }
+  .wrf-fc { position: relative; width: 360px; height: 200px; margin-bottom: 12px; border-radius: 10px; overflow: hidden; border: 6px solid #1d1d1f; }
+  .wrf-fc.lt { border-color: #ffffff; box-shadow: 0 0 0 1px #e0e0e0; }   /* 深浅相间：滚动步进的参照 */
+  .wrf-fc .ph { inset: 0; }
+  .wrf-fc .n { position: absolute; left: 12px; bottom: 10px; font-size: 13px; color: #fff; background: rgba(0,0,0,.55); padding: 2px 8px; border-radius: 4px; }
+
+  /* 右侧词块：名词恒定 + 动词原位接力；块高 528 居中 → 中心 y=264 = 当前卡中点（164 + 100） */
+  .wrf-words { position: absolute; left: 520px; top: 0; height: 528px; display: flex; flex-direction: column; justify-content: center; }
+  .wrf-noun { font-family: "Songti SC", "Noto Serif CJK SC", "Source Han Serif SC", serif; font-size: 34px; color: #7a7a7a; font-weight: 600; letter-spacing: 2px; }
+  .wrf-verbwrap { position: relative; height: 72px; margin-top: 8px; }
+  .wrf-verb { position: absolute; left: 0; top: 0; font-family: "Songti SC", "Noto Serif CJK SC", "Source Han Serif SC", serif; font-size: 60px; font-weight: 700; color: #1d1d1f; letter-spacing: 2px; line-height: 72px; white-space: nowrap; opacity: 0; }
+  .wrf-verb.acc { color: #0066cc; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="wrf-win"><div class="wrf-strip"></div></div>
+    <div class="wrf-words">
+      <div class="wrf-noun"></div>
+      <div class="wrf-verbwrap"></div>
+    </div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ——————————————————————————————————————————————————————————
+    // 可摘走的核心动画：动词接力胶片（名词恒定 → 动词原位接力 → 每次切词胶片步进一卡高）
+    // 命门：① 胶片只在切词窗（0.4s）内滚动恰好一卡高，其余时间零位移——持续滚动是违例；
+    //      ② 旧词先灰化淡出（0.18s）、新词后落位（0.25s），同帧交叉必叠影；
+    //      ③ 词块垂直中心 = 当前卡中点（像素级，差 >8px 可感）；④ 末词换强调色收束。
+    // ——————————————————————————————————————————————————————————
+    const CONFIG = {
+      period: 1.4,      // 词期 s（母本 45~60f，口播按句长放到 1.4；词期不必均匀，成片按口播摆）
+      scroll: 0.4,      // 切词窗：胶片滚一卡高的时长 s（power2.inOut；持续滚动 = 违例）
+      cardH: 212,       // 一卡高 = 200 卡 + 12 间距 px
+      startY: 164,      // 胶片初始 y：首卡顶 164 → 卡中点 264 = 词块中心
+      fadeOut: 0.18,    // 旧词灰化淡出 s（power1.in，先出）
+      landIn: 0.25,     // 新词落位 s（power2.out，y 12→0，后进；与旧词淡出间隔 0.02 不叠影）
+      firstAt: 0.4,     // 首词入场时刻 s
+      holdEnd: 0.9,     // 末词落定后静置 s
+      exitDur: 0.45,    // 胶片 + 词块同收 s（power2.in）
+    };
+    // 文案与素材（演示语境）：名词恒定，动词与胶片卡一一对应；第 5 张卡是"下一张"，露在视窗下方
+    const NOUN = "一个 AI，能";
+    const VERBS = ["写文案", "做配图", "剪视频", "配旁白"];
+    const CARDS = [["t1", "文案 · 初稿"], ["t2", "配图 · 3 版"], ["t3", "成片 · 时间线"], ["t4", "旁白 · 波形"], ["t5", "封面 · 候选"]];
+
+    // 素材占位里的相框图标（不属于动效）
+    const GLYPH = '<svg viewBox="0 0 48 40" fill="none" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"><rect x="2" y="2" width="44" height="36" rx="4"/><circle cx="16" cy="14" r="4"/><path d="M4 34 L18 22 L27 30 L34 24 L44 34"/></svg>';
+    const $ = (s) => document.querySelector(s);
+    const strip = $(".wrf-strip"), noun = $(".wrf-noun"), wrap = $(".wrf-verbwrap"), win = $(".wrf-win"), words = $(".wrf-words");
+    noun.textContent = NOUN;
+    strip.innerHTML = CARDS.map(([tone, label], i) => `<div class="wrf-fc${i % 2 ? " lt" : ""}"><div class="ph ${tone}">${GLYPH}</div><div class="n">${label}</div></div>`).join("");
+    wrap.innerHTML = VERBS.map((v, i) => `<div class="wrf-verb${i === VERBS.length - 1 ? " acc" : ""}">${v}</div>`).join("");
+    const verbs = [...wrap.children];
+
+    // 时间表：第 i 词切换点 swapAt(i) = firstAt + i·period；末词落定 = swapAt(n-1) + fadeOut + 0.02 + landIn
+    const swapAt = (i) => CONFIG.firstAt + i * CONFIG.period;
+    const exitAt = swapAt(VERBS.length - 1) + CONFIG.fadeOut + 0.02 + CONFIG.landIn + CONFIG.holdEnd;
+
+    DemoShell.register(({ speed }) => {
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+      // 复位（重播语义）
+      tl.set(strip, { y: CONFIG.startY })
+        .set(verbs, { opacity: 0, y: 12, color: (i) => (i === VERBS.length - 1 ? "#0066cc" : "#1d1d1f") })
+        .set([win, words], { opacity: 1 })
+        // 首词落位
+        .to(verbs[0], { opacity: 1, y: 0, duration: CONFIG.landIn, ease: "power2.out" }, CONFIG.firstAt);
+      // 每次切词：旧词先灰化淡出 → 胶片同窗滚一卡高 → 新词后落位
+      VERBS.forEach((v, i) => {
+        if (!i) return;
+        const at = swapAt(i);
+        tl.to(verbs[i - 1], { opacity: 0, color: "#9a9da6", duration: CONFIG.fadeOut, ease: "power1.in" }, at)
+          .to(strip, { y: CONFIG.startY - i * CONFIG.cardH, duration: CONFIG.scroll, ease: "power2.inOut" }, at)
+          .to(verbs[i], { opacity: 1, y: 0, duration: CONFIG.landIn, ease: "power2.out" }, at + CONFIG.fadeOut + 0.02);
+      });
+      // 胶片 + 词块同收
+      tl.to([win, words], { opacity: 0, duration: CONFIG.exitDur, ease: "power2.in" }, exitAt);
+    });
+  </script>
+</body>
+</html>

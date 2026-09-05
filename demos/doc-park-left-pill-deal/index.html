@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>doc-park-left-pill-deal · 文档驻留发牌</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 文档驻留发牌：文档先满幅在场，然后不淡出而是以左边缘为锚驻留（translateX −55% + scale .92，只露约 35%），
+     右侧按旁白节奏慢发牌三张白底描边药丸（先实后稳），每张落定后其下说明行逐词加深并留住；文档全程极慢自动滚动"正在被读"。
+     羊皮纸底成立（浅底 #f5f5f7 让白文档与白药丸从底上抬起来）；文档 mock（灰条）是演示语境，成片换真文档截图。 —— */
+
+  #stage { background: #f5f5f7; }
+
+  /* 文档：700×420，以左边缘为锚缩放（驻留时缩小不离开画框左侧） */
+  .dpk-doc { position: absolute; left: 130px; top: 60px; width: 700px; height: 420px; background: #fff; border: 1px solid #e0e0e0; border-radius: 14px; overflow: hidden; transform-origin: 0% 50%; box-shadow: 0 12px 40px rgba(0,0,0,.08); will-change: transform; }
+  .dpk-doc .in { position: absolute; left: 0; top: 0; width: 100%; padding: 34px 40px; will-change: transform; }
+  .dpk-doc h5 { font-size: 26px; font-weight: 700; color: #1d1d1f; margin-bottom: 16px; }
+  .dpk-doc p { display: block; height: 12px; border-radius: 6px; background: #ececf0; margin-bottom: 14px; }
+  .dpk-doc p.h { background: #dcdce2; height: 16px; width: 60%; margin-top: 22px; }
+
+  /* 右侧：提示行 + 三张药丸（各带一行说明） */
+  .dpk-hint { position: absolute; left: 380px; top: 78px; font-size: 16px; color: #7a7a7a; letter-spacing: 1px; opacity: 0; }
+  .dpk-pills { position: absolute; left: 380px; top: 130px; width: 500px; }
+  .dpk-pill { position: absolute; left: 0; height: 52px; padding: 0 22px; border-radius: 26px; background: #fff; border: 1.5px solid #d6d6dc; font-size: 22px; font-weight: 600; color: #1d1d1f; line-height: 50px; white-space: nowrap; opacity: 0; will-change: transform; }
+  .dpk-pill i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #0066cc; margin-right: 12px; vertical-align: 2px; }
+  .dpk-ex { position: absolute; left: 4px; font-size: 18px; color: #7a7a7a; white-space: nowrap; opacity: 0; }
+  .dpk-ex span { display: inline-block; opacity: .3; margin-right: 2px; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="dpk-doc"><div class="in">
+      <h5>2026 中国短视频创作者调研报告</h5>
+      <p style="width:92%"></p><p style="width:84%"></p><p style="width:88%"></p><p class="h"></p>
+      <p style="width:90%"></p><p style="width:76%"></p><p style="width:86%"></p><p class="h"></p>
+      <p style="width:82%"></p><p style="width:90%"></p><p style="width:70%"></p><p class="h"></p>
+      <p style="width:88%"></p><p style="width:80%"></p>
+    </div></div>
+    <div class="dpk-hint">读完 60 页，我记下三条</div>
+    <div class="dpk-pills"></div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ——————————————————————————————————————————————————————————
+    // 可摘走的核心动画：文档驻留发牌（满幅读文档 → 文档驻留左侧 35% → 右侧按旁白慢发牌三张药丸 → 每张下说明行逐词加深留住）
+    // 命门：① 驻留不是淡出——以左边缘为锚 translateX −55% + scale .92，"来源还在"；② 驻留窗必须在首张药丸之前收住；
+    //      ③ 药丸透明度窗（0.2s）短于位移窗（0.37s back.out）——先实后稳；④ 说明行落定后留住（用户定版），发牌间隔 = 一句旁白。
+    // ——————————————————————————————————————————————————————————
+    const CONFIG = {
+      parkAt: 0.9,        // 驻留起点 s（先满幅读 0.9s）
+      parkDur: 0.8,       // 驻留时长 s（power2.inOut）
+      parkX: -514,        // 驻留位移 px：文档 700 宽 × .92 后只露约 35%（右缘到 x≈260）
+      parkScale: 0.92,    // 驻留缩放（transform-origin 0% 50%，以左边缘为锚）
+      T0: [1.9, 3.2, 4.5],// 三张药丸落定起点 s：间隔 1.3 ≈ 一句短旁白（成片按口播念到每条结论的时刻摆）
+      pillIn: 0.2,        // 药丸透明度窗 s（快，先实）
+      pillLand: 0.37,     // 药丸位移窗 s（慢、back.out(1.7) 过冲，再稳）；y 14→0、scale .94→1
+      noteDelay: 0.3,     // 说明行相对药丸起点的滞后 s（药丸落定后才起字）
+      noteShare: 0.7,     // 说明行逐词加深占该句可见时长的比例（末 30% 静置阅读）
+      scrollRate: -18.75, // 文档内容常驻自动滚动速率 px/s（≈0.6px/f："正在被读"的暗示级速度）
+      exitAt: 6.6,        // 文档 + 药丸 + 说明同收起点 s
+      exitDur: 0.4,       // 同收时长 s（power2.in）
+    };
+    // 文案（演示语境）：三条结论 + 各自一行说明
+    const PILLS = ["开头 3 秒决定 70% 完播", "每周 2 更比日更留存高", "字幕素排的完播率最高"];
+    const NOTES = ["数据来自 1.2 万条样本，知识区更明显", "日更的三个月流失率反而高 12%", "花字越多，观众越看不进你在说什么"];
+
+    const $ = (s) => document.querySelector(s);
+    const doc = $(".dpk-doc"), inner = $(".dpk-doc .in"), hint = $(".dpk-hint"), pillsBox = $(".dpk-pills");
+    // 说明行按词切分（中文以标点 / 数字边界粗切，读作"逐词"）
+    const splitWords = (s) => s.match(/[^，。、；！？]+[，。、；！？]?/g).flatMap((seg) => seg.match(/.{1,4}/g));
+    pillsBox.innerHTML = PILLS.map((p, k) => `<div class="dpk-pill" style="top:${k * 100}px"><i></i>${p}</div><div class="dpk-ex" style="top:${k * 100 + 60}px">${splitWords(NOTES[k]).map((w) => `<span>${w}</span>`).join("")}</div>`).join("");
+    const pills = [...pillsBox.querySelectorAll(".dpk-pill")], exs = [...pillsBox.querySelectorAll(".dpk-ex")];
+
+    DemoShell.register(({ speed }) => {
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+      const end = CONFIG.exitAt + CONFIG.exitDur;
+      // 复位（重播语义）
+      tl.set(doc, { x: 0, scale: 1, opacity: 1, transformOrigin: "0% 50%" }).set(inner, { y: 0 })
+        .set(pills, { opacity: 0, y: 14, scale: 0.94 }).set(exs, { opacity: 0 }).set(exs.flatMap((e) => [...e.children]), { opacity: 0.3 }).set(hint, { opacity: 0 })
+        // 常驻极慢滚动（时长 = 镜头时长，写速率不写秒数）
+        .to(inner, { y: CONFIG.scrollRate * end, duration: end, ease: "none" }, 0)
+        // 驻留：不是淡出，以左边缘为锚缩到一边
+        .to(doc, { x: CONFIG.parkX, scale: CONFIG.parkScale, duration: CONFIG.parkDur, ease: "power2.inOut" }, CONFIG.parkAt)
+        .to(hint, { opacity: 1, duration: 0.4 }, CONFIG.parkAt + 0.5);
+      // 慢发牌：每张先实后稳，落定后说明行逐词加深并留住
+      CONFIG.T0.forEach((t0, k) => {
+        const ws = [...exs[k].children], ce = (CONFIG.T0[k + 1] || CONFIG.exitAt - 0.4) - 0.1;
+        tl.to(pills[k], { opacity: 1, duration: CONFIG.pillIn, ease: "power2.out" }, t0)
+          .to(pills[k], { y: 0, scale: 1, duration: CONFIG.pillLand, ease: "back.out(1.7)" }, t0)
+          .to(exs[k], { opacity: 1, duration: 0.1 }, t0 + CONFIG.noteDelay)
+          .to(ws, { opacity: 1, duration: 0.12, stagger: ((ce - t0 - CONFIG.noteDelay) * CONFIG.noteShare) / ws.length, ease: "none" }, t0 + CONFIG.noteDelay);
+      });
+      // 同收
+      tl.to([doc, hint, ...pills, ...exs], { opacity: 0, duration: CONFIG.exitDur, ease: "power2.in" }, CONFIG.exitAt);
+    });
+  </script>
+</body>
+</html>
