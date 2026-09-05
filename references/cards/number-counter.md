@@ -15,6 +15,7 @@ name: number-counter
 命门：**先快后慢**（easeOut 让最后几位清晰可读，线性滚动没有落定感）、
 **落定要弹一拍**（scale 1→1.08→1，告诉观众"就是这个数"）、
 **别滚太久**（>2s 观众已经听完这句话了，动效还没完就是抢戏）。
+常见于：小Lin说、何同学、Wendover、影视飓风、Odometer 模板（1.2K 销量）。
 
 ## 动效核心
 - 模式 a（tween 版）：数值对象 0→目标，1~1.5s `power3.out`，`onUpdate` 里实时 `toLocaleString` 千分位格式化；落定帧 scale 1→1.08（0.09s）→1（0.18s `back.out(3)`，origin 设在数字左下角避免整行漂移）；单位/涨跌箭头随后 0.25s 淡入 + 上移 6px

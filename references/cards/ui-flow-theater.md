@@ -21,6 +21,7 @@ name: ui-flow-theater
 **坐标是命名常量**（控件落点运行时反算成 `POS.xxx`，光标路点只引用名字，换布局不用改数字）、
 **一个控件一种响应**（每个控件一个响应函数，函数内部没有时间参数）。
 这三条不是代码风格，是这张卡能排到 4 拍以上还不散架的全部原因。
+定位：本卡是「界面剧场」子类（整套界面按脚本自演）的**架构母卡**，讲完整流程；同源卡 terminal-typing-log / chat-gpt / claude-code / glass-code-walk / cursor-actor-demo 共用该子类的共有纪律。
 
 ## 动效核心
 - **STEPS 时刻表（本卡的骨架）**：`[{ at, target, act, move, until }]`——

@@ -16,6 +16,7 @@ name: scribble-annotation
 命门：**真实笔顺**（一笔从起点画到终点，起收有快慢，匀速就是 loading 条）、
 
 **线要粗且圆头**（4px 以下没有马克笔的"墨量感"）。
+常见于：Ali Abdaal、Johnny Harris、Vox、Mrwhosetheboss、LottieFiles arrow/underline 品类。
 
 ## 动效核心
 - 标注层 = 盖在假截图上的全屏 SVG（`viewBox="0 0 960 540"`，`pointer-events:none`），每笔一条 path，`fill:none`、`stroke-linecap/linejoin: round`、线宽 6px
