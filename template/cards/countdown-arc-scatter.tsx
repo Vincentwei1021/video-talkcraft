@@ -92,11 +92,13 @@ export default function CountdownArcScatter({ numbers = [11, 10, 9, 8, 7, 6, 5, 
   const slotRef = useRef<HTMLSpanElement>(null);
   const [geo, setGeo] = useState<{ ttlW: number; slotW: number } | null>(null);
   const [handle] = useState(() => delayRender("countdown-arc-scatter: measure title width"));
+  const continued = useRef(false);
+  const done = () => { if (!continued.current) { continueRender(handle); continued.current = true; } };   // 同一 handle 只 continue 一次；文案 props 变了重测不再挂起
   useLayoutEffect(() => {
     setGeo({ ttlW: ttlRef.current?.offsetWidth ?? 0, slotW: slotRef.current?.offsetWidth ?? 30 });
-    continueRender(handle);
+    done();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [pick, words.join("\u0001")]);   // 标题文案 / 选中数变了重测
   const target = { x: (geo?.slotW ?? 30) / 2 - (geo?.ttlW ?? 0) / 2, y: 250 - 318 };
 
   // 三条主曲线

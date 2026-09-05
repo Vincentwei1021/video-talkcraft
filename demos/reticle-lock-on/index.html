@@ -59,7 +59,7 @@
       flashHold: 0.28,     // 白闪回落后的驻留值（目标微亮常驻）
       exitAt: 5.6,         // 整体退场起点（0.4s power2.in）
       end: 6.0,            // 镜头结束
-      shot: { x: 130, y: 60 },   // 截图左上角（舞台坐标），目标 bbox 相对它
+      shot: { x: 130, y: 60, w: 700, h: 420 },   // 截图左上角与尺寸（舞台坐标），目标 bbox 相对它
     };
 
     const $ = (s) => document.querySelector(s);

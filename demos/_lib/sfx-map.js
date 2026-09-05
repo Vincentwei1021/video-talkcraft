@@ -555,8 +555,7 @@ window.SFX_MAP = {
   ],
   "reticle-lock-on": [
     {"t": 1.3, "name": "pk:transition-wind-swoosh-short", "vol": 0.4, "clip": 0.35, "note": "四角画外扑入"},
-    {"t": 1.83, "name": "pk:mech-lock-quick", "vol": 0.55, "note": "咬合帧（回弹 + 微亮 + 标签同帧）"},
-    {"t": 1.9, "name": "pk:ui-pop", "vol": 0.3, "note": "标签弹出"},
+    {"t": 1.83, "name": "pk:mech-lock-quick", "vol": 0.55, "note": "咬合帧（回弹 + 微亮 + 标签同帧，只配这一记）"},
   ],
   "error-retype": [
     {"t": 0.7, "name": "pk:text-keyboard", "vol": 0.4, "clip": 0.36, "note": "打错句（一记盖整段）"},

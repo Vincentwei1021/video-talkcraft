@@ -73,11 +73,13 @@ export default function ErrorRetype({ prefix = "口播做得好，靠的是", fi
   const measRef = useRef<HTMLSpanElement>(null);
   const [prefixW, setPrefixW] = useState<number | null>(null);
   const [handle] = useState(() => delayRender("error-retype: measure prefix width"));
+  const continued = useRef(false);
+  const done = () => { if (!continued.current) { continueRender(handle); continued.current = true; } };   // 同一 handle 只 continue 一次；文案 props 变了重测不再挂起
   useLayoutEffect(() => {
     setPrefixW(measRef.current?.offsetWidth ?? prefix.length * 40);
-    continueRender(handle);
+    done();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [prefix]);   // 句干变了重测
   const left = Math.round((960 - ((prefixW ?? prefix.length * 40) + N * CONFIG.slotW + 4 + 6)) / 2);
 
   // 时间表

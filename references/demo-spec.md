@@ -36,7 +36,7 @@ demos/_lib/                    # gsap.min.js / lottie.min.js / demo-shell.css / 
 2. **统一外壳**：引入 `../_lib/demo-shell.css` 与 `../_lib/demo-shell.js`，内容画在 `<div id="stage">` 里，统一 960×540 标准舞台。
    **动效与画幅无关**：卡库的重点是动效效果的复刻——同一个动效理应能应用到横屏或竖屏，
    画幅是应用工程的容器属性，不是动效的属性。demo 不分横竖屏；画幅相关的落位规则
-   （字幕位置、安全区）由 design-language.md §5 在应用侧管。
+   （字幕位置、安全区）由 design-language.md §5 在应用侧管。demo 本身不放字幕、也不受字幕带约束；但卡的「落位自检」若承诺"不入字幕带 / 离画幅边 ≥48"，demo 几何就必须真的满足（评审判例：crash-zoom / scanline 首版卡底 495 / 464 与自检矛盾）——承诺不了的写成成片侧处置（字幕改落位 / 主体压高），不留与 demo 不一致的承诺。
 3. **注册运行函数**：`DemoShell.register(({speed}) => { ... })`——每次调用必须从头重建动画（重播语义）。GSAP demo 用 `tl.timeScale(speed)` 支持慢放。
 4. **有口播语境，但不带旁白字幕（2026-08-23 定版）**：动效不要孤立地演——舞台里放口播场景占位
    （`.host-placeholder` 主持人 / 假截图卡片等），让人一眼看懂"这个动效作用在什么上"。

@@ -88,10 +88,11 @@ export default function ChipGridSingleSelect({ question = "五个方案，我选
   const refs = useRef<(HTMLDivElement | null)[]>([]);
   const [pos, setPos] = useState<{ x: number; y: number; w: number }[] | null>(null);
   const [handle] = useState(() => delayRender("chip-grid-single-select: 量 chip 宽度"));
+  const continued = useRef(false);
+  const done = () => { if (!continued.current) { continueRender(handle); continued.current = true; } };   // 同一 handle 只 continue 一次；文案 props 变了重测不再挂起
 
-  // 静态几何测量：量每枚 chip 宽度后按 3+N 居中排布（只测一次；动画全部由 t 推出）
+  // 静态几何测量：量每枚 chip 宽度后按 3+N 居中排布（选项文案变了重测；动画全部由 t 推出）
   useLayoutEffect(() => {
-    if (pos) return;
     const ws = refs.current.map((el) => el?.offsetWidth ?? 0);
     const out: { x: number; y: number; w: number }[] = [];
     const layout = (idx: number[], y: number) => {
@@ -101,8 +102,9 @@ export default function ChipGridSingleSelect({ question = "五个方案，我选
     };
     const all = options.map((_, i) => i);
     layout(all.slice(0, 3), 0); if (all.length > 3) layout(all.slice(3), 66);
-    setPos(out); continueRender(handle);
-  }, [pos, options, handle]);
+    setPos(out); done();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [options.join("\u0001")]);
 
   const FS = CONFIG.FS, LIFT = FS + CONFIG.lift;
   const qP = tw(t, 0.1, 0.4, power3Out);

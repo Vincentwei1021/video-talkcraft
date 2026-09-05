@@ -63,11 +63,13 @@ export default function SplitTextStagger({ text = "把复杂的事，讲简单",
   const lineRef = useRef<HTMLDivElement>(null);
   const [W, setW] = useState<number | null>(null);
   const [handle] = useState(() => delayRender("split-text-stagger: measure line width"));
+  const continued = useRef(false);
+  const done = () => { if (!continued.current) { continueRender(handle); continued.current = true; } };   // 同一 handle 只 continue 一次；文案 props 变了重测不再挂起
   useLayoutEffect(() => {
     setW(lineRef.current?.offsetWidth ?? chars.length * 63);
-    continueRender(handle);
+    done();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [text]);   // 文案变了重测
   const width = W ?? chars.length * 63;
 
   const growDur = CONFIG.dur + CONFIG.stagger * (chars.length - 1);   // 基线长满 = 末字落定

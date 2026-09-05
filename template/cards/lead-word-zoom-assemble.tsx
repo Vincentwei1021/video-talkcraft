@@ -78,14 +78,16 @@ export default function LeadWordZoomAssemble({ words = ["效率", "才是", "唯
   const lineRef = useRef<HTMLDivElement>(null);
   const [m, setM] = useState<{ ratio: number; slide: number } | null>(null);
   const [handle] = useState(() => delayRender("lead-word-zoom-assemble: measure lead word"));
+  const continued = useRef(false);
+  const done = () => { if (!continued.current) { continueRender(handle); continued.current = true; } };   // 同一 handle 只 continue 一次；文案 props 变了重测不再挂起
   useLayoutEffect(() => {
     const line = lineRef.current, lead = line?.querySelector<HTMLSpanElement>(".lwz-lead");
-    if (!line || !lead) { continueRender(handle); return; }   // 兜底：不留悬挂的 delayRender
+    if (!line || !lead) { done(); return; }   // 兜底：不留悬挂的 delayRender
     const L = line.offsetWidth, c = lead.offsetLeft + lead.offsetWidth / 2, ratio = c / L;
     setM({ ratio, slide: L * (0.5 - ratio) });
-    continueRender(handle);
+    done();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [words.join("\u0001")]);   // 文案变了重测
   const ratio = m?.ratio ?? 0.15, slide = m?.slide ?? 0;
 
   // 时间表：shrinkAt = startAt + hold；wordAt(i) = shrinkAt + wordDelay + i·wordStagger；upAt = shrinkAt + slide + upDelay；exitAt = upAt + holdEnd

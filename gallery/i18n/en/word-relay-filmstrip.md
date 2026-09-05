@@ -54,7 +54,7 @@ When the narration says "one subject can do N things", `word-slot-cycle` swaps o
 ## Reuse
 - Remotion/tsx (preferred): template/cards/word-relay-filmstrip.tsx — `noun / verbs / labels / srcs / accent`; durationInFrames 204 (4 words; recompute from `exitAt + exitDur` when the count changes); strip scroll and word relay are all functions of t.
 - HTML/GSAP: demos/word-relay-filmstrip/index.html — edit `NOUN / VERBS / CARDS` and `CONFIG`; swap `.ph` for `<img>` / `<video>` for real material.
-- Source card: video-shotcraft `word-relay-filmstrip` (black / white page cards stepping on the left + Didot serif noun fixed, verb relaying on the right). Voiceover adaptation: page cards → evidence screenshots, word period 45–60f → 1.4s, smaller type, last word in accent.
+- Source: video-shotcraft `word-relay-filmstrip` (black / white page cards stepping on the left + Didot serif noun fixed, verb relaying on the right). Voiceover adaptation: page cards → evidence screenshots, word period 45–60f → 1.4s, smaller type, last word in accent.
 - NLE equivalents: two tracks in CapCut/JianYing — image track with stepped "position" keyframes (one card height every 12 frames) + text track fading words in and out; in AE a Position expression with `valueAtTime` steps + Text Animator Opacity.
 - Interface with layout.md: a two-element group (strip 360 + words) at roughly 1:1 (§4); the strip's left edge at 80 ≥ the 48@960 safe margin (§1); the 60px verb is far above the list-item tier; the word centre at 264 aligns with the card midpoint (§3 baseline alignment).
 
@@ -65,7 +65,7 @@ When the narration says "one subject can do N things", `word-slot-cycle` swaps o
 - Background requirement: white / parchment works; on a dark stage invert the alternating frames and the word colours.
 
 ## Placement self-check (copy into the SHOTBOOK self-check column when selecting this card)
-- Any resting frame: the current card's midpoint y (the card fully visible in the viewport) and the verb line's centre differ by ≤8px.
+- Any resting frame: the current card's midpoint y (the card fully visible in the viewport) and the word block's (noun + verb) centre differ by ≤8px (the verb line alone sits ≈30px lower and is not the alignment reference).
 - Any frame outside a swap window: strip y is exactly `164 − i·212` (zero-displacement check).
 - Any frame during a swap: never two verbs above 0.2 opacity at once (no-ghosting check).
 - ≥27 frames of complete stillness after the last verb lands.

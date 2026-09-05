@@ -86,14 +86,16 @@ export default function WordSlotCycle({ stem = "一个 AI，帮你", words = ["�
   const measRef = useRef<HTMLSpanElement>(null);
   const [m, setM] = useState<{ ws: number[]; stemW: number; finW: number } | null>(null);
   const [handle] = useState(() => delayRender("word-slot-cycle: measure text widths"));
+  const continued = useRef(false);
+  const done = () => { if (!continued.current) { continueRender(handle); continued.current = true; } };   // 同一 handle 只 continue 一次；文案 props 变了重测不再挂起
   useLayoutEffect(() => {
     const el = measRef.current;
-    if (!el) { continueRender(handle); return; }   // 空词表兜底：不留悬挂的 delayRender
+    if (!el) { done(); return; }   // 空词表兜底：不留悬挂的 delayRender
     const q = (k: string) => el.querySelector<HTMLSpanElement>(`span[data-k="${k}"]`)?.offsetWidth ?? 0;
     setM({ ws: words.map((_, i) => q(`w${i}`) + CONFIG.pad), stemW: q("stem"), finW: q("fin") });
-    continueRender(handle);
+    done();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [stem, final, words.join("\u0001")]);   // 文案变了（工作台改 props）重测
   const ws = m?.ws ?? words.map((w) => w.length * 30 + CONFIG.pad);
   const stemW = m?.stemW ?? stem.length * 40, finW = m?.finW ?? final.length * 40;
   const left = Math.round((960 - (stemW + CONFIG.gap + finW)) / 2);

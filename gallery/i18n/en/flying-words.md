@@ -55,7 +55,7 @@ A background-layer card: its output is a "living bed"; the foreground (title / p
 ## Reuse
 - Remotion/tsx (preferred): template/cards/flying-words.tsx — a single `words` prop; durationInFrames 192; for a video set `CONFIG.dur = shot length` and `cycles = round(dur/3)`. The foreground is layered on in your scene.
 - HTML/GSAP: demos/flying-words/index.html — edit `WORDS` and `CONFIG`; `apply(t)` is the entire animation and can be lifted as is.
-- Source card: video-shotcraft `flying-words` (22-word golden-angle 3D tunnel + breathing central glow). Voiceover adaptation: Chinese word list, static glow, the upstream foreground text removed, filed as a background layer.
+- Source: video-shotcraft `flying-words` (22-word golden-angle 3D tunnel + breathing central glow). Voiceover adaptation: Chinese word list, static glow, the upstream foreground text removed, filed as a background layer.
 - NLE equivalents: AE 3D layers with a Position Z expression `linear(time, 0, dur, -1750, 800)` offset per word + a piecewise Opacity expression; no equivalent in CapCut/JianYing (pre-render to a transparent webm as background material).
 - Interface with layout.md: background layers don't count toward the layout budget (cinematography §4.5's ≤3 subject groups); the foreground keeps the safe margins and subtitle band as usual.
 
