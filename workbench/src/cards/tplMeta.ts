@@ -16,6 +16,7 @@ export const TPL_META: Record<string, { name: string; category: string }> = {
   "chevron-lower-third": { name: "动态人名条", category: "人物互动" },
   "danmu-bubble-praise": { name: "弹幕气泡", category: "人物互动" },
   "host-shrink-to-chip": { name: "人物缩位让台", category: "人物互动" },
+  "parallel-items-with-host": { name: "并列句排版（人物在场）", category: "人物互动" },
   "subscribe-cta": { name: "多平台关注 CTA", category: "人物互动" },
   "x-follow-card": { name: "关注卡弹出", category: "人物互动" },
   "douyin-follow-card": { name: "抖音主页关注卡", category: "人物互动" },
@@ -79,6 +80,15 @@ export const TPL_META: Record<string, { name: string; category: string }> = {
   "speed-slab-title": { name: "速度块标题", category: "字幕花字" },
   "tracking-in": { name: "字距收拢", category: "字幕花字" },
   "typewriter-reveal": { name: "打字机档案戳", category: "字幕花字" },
+  "bed-echo-blur": { name: "同源模糊底床", category: "素材呈现" },
+  "filmstrip-conveyor": { name: "传送带列举 + 减速停靠", category: "素材呈现" },
+  "grid-to-hero": { name: "网格收成主角", category: "素材呈现" },
+  "multi-still-tour": { name: "多图巡览停靠", category: "运镜" },
+  "rack-focus-pair": { name: "焦点接力", category: "素材呈现" },
+  "split-60-40-story": { name: "60/40 主从分屏", category: "素材呈现" },
+  "split-compare-slider": { name: "对比双分屏（滑动揭示）", category: "素材呈现" },
+  "stack-fan-out": { name: "卡堆扇形展开", category: "素材呈现" },
+  "still-layout-relay": { name: "多图排版 + 焦点接力", category: "素材呈现" },
 };
 
 /** 画廊分类顺序 */

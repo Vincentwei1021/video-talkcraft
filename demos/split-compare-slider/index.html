@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>split-compare-slider · 对比双分屏（滑动揭示）</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 对比双分屏：两张同构图的图叠放，上层用 clip-path 裁掉右侧，分割线与裁切边由同一个进度值驱动。
+     两图机位不变，观众比的是"内容"不是"位置"；分割线滑到中线 → 停 → nudge → 滑到近端 → 回中 → 停 → 退场。
+     demo 用同一块占位两套滤镜（左"调色前"灰暗 / 右"调色后"通透）保证 100% 同构图。 —— */
+
+  /* 两层图：r 在下（右图 = 调色后），l 在上（左图 = 调色前，clip-path 裁右侧） */
+  .pane { position: absolute; inset: 0; overflow: hidden; }
+
+  /* 素材占位（不属于动效）：灰调渐变 + 相框图标，成片里换成真图 */
+  .ph { position: absolute; inset: 0; overflow: hidden; }
+  .ph::before { content: ""; position: absolute; inset: 0; }
+  .ph.t1::before { background: linear-gradient(160deg, #a4b0c6, #7d8aa3); }
+  .ph svg { position: absolute; left: 50%; top: 50%; width: 84px; height: 72px; transform: translate(-50%, -56%); opacity: .35; }
+  /* 两套滤镜：同一张图的"前 / 后"，差异要肉眼可见 */
+  .ph.before { filter: saturate(.3) brightness(.82) contrast(.9) grayscale(.4); }
+  .ph.after  { filter: saturate(1.25) contrast(1.06); }
+
+  /* 分割线：3px 白 + 阴影，居中圆钮 */
+  .divider { position: absolute; top: 0; bottom: 0; width: 3px; margin-left: -1.5px; background: #ffffff; box-shadow: 0 0 18px rgba(0,0,0,.6); }
+  .knob { position: absolute; top: 50%; left: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; background: #ffffff; box-shadow: 0 6px 20px rgba(0,0,0,.4); }
+  .knob svg { position: absolute; left: 50%; top: 50%; width: 26px; height: 26px; transform: translate(-50%, -50%); }
+
+  /* 标签：压图胶囊，20px（≈1080p 40px），离画幅边 48 */
+  .lbl { position: absolute; top: 48px; font-size: 20px; font-weight: 700; color: #ffffff; padding: 6px 16px; border-radius: 999px; background: rgba(0,0,0,.45); white-space: nowrap; }
+  .lbl.l { left: 48px; } .lbl.r { right: 48px; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="pane r"><div class="ph t1 after"></div></div>
+    <div class="pane l"><div class="ph t1 before"></div></div>
+    <div class="divider"><div class="knob"><svg viewBox="0 0 26 26" fill="none" stroke="#1d1d1f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10 8 L5 13 L10 18"/><path d="M16 8 L21 13 L16 18"/></svg></div></div>
+    <div class="lbl l">调色前</div>
+    <div class="lbl r">调色后</div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ——————————————————————————————————————————————————————————
+    // 可摘走的核心动画：对比双分屏（滑动揭示）
+    // 命门：① 上层 clip-path 裁切，不是移动两张图——两图机位不变，观众比"内容"不比"位置"
+    //      ② 分割线与裁切边由同一个进度值 p（左图露出的百分比）驱动，永不错位
+    //      ③ 分割线必须动过（揭示 → nudge → 近端 → 回中），但不来回扫不停
+    //      ④ 标签只在该侧露出 ≥40% 时才显示
+    // ——————————————————————————————————————————————————————————
+    const CONFIG = {
+      lead: 0.6,        // 起手：左图整屏停 0.6s，让观众先看清"前"
+      slide: 1.4,       // 分割线从右端滑到中线（power3.inOut）
+      hold: 1.5,        // 到中线后的停留（≥1.5，观众要来回看两边）
+      mid: 50,          // 中线位置 %
+      nudge: 42,        // 强调"看右边"的 nudge 位置 %（50 → 42 → 50）
+      nudgeDur: 0.45,   // nudge 单程时长（power2.inOut）
+      farLeft: 8,       // 近端位置 %：几乎全露右图
+      farDur: 1.0,      // 滑到近端 / 回中的单程时长（power3.inOut）
+      tailHold: 1.0,    // 回中后的有意停留（成片按口播伸缩）
+      exit: 0.4,        // 全部一起退场（错峰 0.04）
+      push: 1.04,       // 两图共用一条极慢推 1 → 1.04，时长 = 镜头
+      showAt: 40,       // 标签显示阈值：该侧露出 ≥40% 才亮
+    };
+    /* 时间表（s）：0.6–2.0 揭示到 50 · 2.0–3.5 停 · 3.5–3.95 nudge 到 42 · 4.0–4.45 回 50
+       · 4.5–5.5 滑到 8 · 5.5–7.0 停 · 7.0–8.0 回 50 · 8.0–9.0 停 · 9.0–9.48 退场（标签 / 分割线 / 两图错峰 0.04，END 9.48） */
+    const T = {};
+    T.slide = CONFIG.lead;                              // 0.6
+    T.nudge = T.slide + CONFIG.slide + CONFIG.hold;     // 3.5
+    T.nudgeBack = T.nudge + CONFIG.nudgeDur + 0.05;     // 4.0
+    T.far = T.nudgeBack + CONFIG.nudgeDur + 0.05;       // 4.5
+    T.farBack = T.far + CONFIG.farDur + CONFIG.hold;    // 7.0
+    T.exit = T.farBack + CONFIG.farDur + CONFIG.tailHold;   // 9.0
+    T.end = T.exit + 0.08 + CONFIG.exit;                // 9.48（三组错峰 0.04 后最后一组退完）
+
+    // 素材占位里的相框图标（不属于动效）
+    const GLYPH = '<svg viewBox="0 0 48 40" fill="none" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"><rect x="2" y="2" width="44" height="36" rx="4"/><circle cx="16" cy="14" r="4"/><path d="M4 34 L18 22 L27 30 L34 24 L44 34"/></svg>';
+    document.querySelectorAll(".ph").forEach((el) => { el.innerHTML = GLYPH; });
+
+    const $ = (s) => document.querySelector(s);
+
+    DemoShell.register(({ speed }) => {
+      const paneL = $(".pane.l"), paneR = $(".pane.r"), divider = $(".divider"), lblL = $(".lbl.l"), lblR = $(".lbl.r");
+      const phs = document.querySelectorAll(".ph");
+      const o = { p: 100 };   // p = 左图露出的百分比（100 = 左图整屏，0 = 右图整屏）
+      // 由 p 一次写出全部状态：裁切边、分割线、两枚标签（同一个值驱动 ⇒ 永不错位）
+      const apply = () => {
+        paneL.style.clipPath = `inset(0 ${100 - o.p}% 0 0)`;
+        divider.style.left = o.p + "%";
+        lblL.style.visibility = o.p >= CONFIG.showAt ? "visible" : "hidden";
+        lblR.style.visibility = (100 - o.p) >= CONFIG.showAt ? "visible" : "hidden";
+      };
+      const tl = gsap.timeline({ onUpdate: apply });
+      tl.timeScale(speed);
+      tl.set(o, { p: 100 })
+        .set([paneL, paneR, divider, lblL, lblR], { opacity: 1 })
+        .set(phs, { scale: 1, transformOrigin: "50% 50%" })
+        .to(phs, { scale: CONFIG.push, duration: T.end, ease: "none" }, 0)                       // 极慢推：时长 = 镜头
+        .to(o, { p: CONFIG.mid, duration: CONFIG.slide, ease: "power3.inOut" }, T.slide)         // 揭示到中线
+        .to(o, { p: CONFIG.nudge, duration: CONFIG.nudgeDur, ease: "power2.inOut" }, T.nudge)    // nudge："看右边"
+        .to(o, { p: CONFIG.mid, duration: CONFIG.nudgeDur, ease: "power2.inOut" }, T.nudgeBack)
+        .to(o, { p: CONFIG.farLeft, duration: CONFIG.farDur, ease: "power3.inOut" }, T.far)      // 滑到近端：几乎全露"后"
+        .to(o, { p: CONFIG.mid, duration: CONFIG.farDur, ease: "power3.inOut" }, T.farBack)      // 回中线
+        .to([lblL, lblR], { opacity: 0, duration: CONFIG.exit, ease: "power2.in" }, T.exit)            // 字与画同收：标签 → 分割线 → 两图，错峰 0.04
+        .to(divider, { opacity: 0, duration: CONFIG.exit, ease: "power2.in" }, T.exit + 0.04)
+        .to([paneL, paneR], { opacity: 0, duration: CONFIG.exit, ease: "power2.in" }, T.exit + 0.08);
+      apply();
+    });
+  </script>
+</body>
+</html>

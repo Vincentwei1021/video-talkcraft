@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>parallel-items-with-host · 并列句排版（人物在场）</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 并列句排版：口播讲"A、B、C"三件并列的事、人还在画面里，三项怎么摆。
+     七种版式共用同一套节奏纪律（三项按口播逐个出现 0.6s 一项 / 标签压图且大 / 人物永远在场），
+     demo 依次巡演七式，成片一镜只用一式。人物是演示语境素材（demo-shell 注入数字人），不属于动效本体。 —— */
+
+  /* 人物占位：本卡人物落在满铺素材之上，容器底必须透明（默认白底会盖住带/条/背景） */
+  .host-placeholder { background: transparent; }
+
+  /* 人物槽位——每式自带一个数字人节点，形态随版式变（全身 / 小框 / 圆头像）；版式间硬切 = 一镜一式 */
+  .slot { position: absolute; }
+  .slot-full { left: 0; right: 0; }                                   /* 全身：视频高 = 槽高 × 88% */
+  .slot-box {                                                          /* 小框（刻意裁切，data-crop-ok） */
+    overflow: hidden; border-radius: 16px; background: #e9e9ee;
+    border: 3px solid #ffffff; box-shadow: 0 12px 40px rgba(0,0,0,.18);
+  }
+  .slot-box video.dh-host, .slot-avatar video.dh-host {
+    position: absolute; inset: 0; left: 0; transform: none;
+    width: 100%; height: 100%; object-fit: cover; object-position: 50% 8%;
+  }
+  .slot-avatar {                                                       /* 圆头像（刻意裁切，data-crop-ok） */
+    overflow: hidden; border-radius: 50%; background: #e9e9ee;
+    border: 4px solid #ffffff; box-shadow: 0 8px 30px rgba(0,0,0,.2);
+  }
+  .slot-avatar video.dh-host { object-position: 50% 12%; transform: scale(1.35); transform-origin: 50% 20%; }
+  .slot-box .host-placeholder::after, .slot-avatar .host-placeholder::after { width: 120%; height: 120%; }
+
+  /* 版式组：同一时刻只有一组可见 */
+  .preset { position: absolute; inset: 0; visibility: hidden; }
+
+  /* 素材占位（不属于动效）：三档灰调渐变 + 相框玻璃感，成片里换成真图 */
+  .ph { position: absolute; overflow: hidden; }
+  .ph::before { content: ""; position: absolute; inset: 0; }
+  .ph.t1::before { background: linear-gradient(160deg, #a4b0c6, #7d8aa3); }
+  .ph.t2::before { background: linear-gradient(160deg, #bfa5ae, #957c86); }
+  .ph.t3::before { background: linear-gradient(160deg, #9fb9ae, #789389); }
+  .ph svg { position: absolute; left: 50%; top: 50%; width: 56px; height: 48px; transform: translate(-50%, -56%); opacity: .35; }
+  .card .ph svg { width: 34px; height: 29px; }
+
+  /* 卡片版（白边卡 + 压图大标签，26px ≈ 1080p 52px） */
+  .card { position: absolute; background: #ffffff; padding: 6px; border-radius: 12px; box-shadow: 0 12px 40px rgba(0,0,0,.16); }
+  .card .ph { position: absolute; inset: 6px; border-radius: 8px; }
+  .lb { position: absolute; color: #ffffff; font-weight: 700; letter-spacing: 2px; text-shadow: 0 1px 3px rgba(0,0,0,.6); white-space: nowrap; }
+  .card .lb { left: 0; right: 0; bottom: 14px; text-align: center; font-size: 26px; }
+
+  /* ① 头顶横排卡 */
+  #p-head .slot-full { bottom: -22px; height: 410px; }
+  #p-head .card { top: 48px; width: 200px; height: 124px; }
+
+  /* ② 三横条灰转彩：人物缩成左上小框 */
+  #p-band .band { position: absolute; left: 0; width: 960px; height: 180px; }
+  #p-band .band .ph { position: absolute; inset: 0; }
+  #p-band .band .lb { right: 60px; top: 50%; transform: translateY(-50%); font-size: 40px; letter-spacing: 4px; }
+  #p-band .slot-box { left: 40px; top: 40px; width: 120px; height: 130px; }
+
+  /* ③ 竖列 + 本人虚化成底：顶部小方框头像 + 三张横卡竖排（横屏无其他主体 → 列居中） */
+  #p-side .bed { position: absolute; inset: 0; background: #dfe1e6; overflow: hidden; }
+  #p-side .bed video.dh-host { height: 130%; bottom: -12%; filter: blur(18px) brightness(.55); }
+  #p-side .slot-box { left: 420px; top: 26px; width: 120px; height: 126px; border-radius: 26px; }
+  #p-side .card { left: 330px; width: 300px; height: 96px; }
+
+  /* ④ 顶部卡堆翻切：人物缩进下方小框，卡在上方同位一张压一张 */
+  #p-stack .card { left: 300px; top: 36px; width: 340px; height: 210px; }
+  #p-stack .slot-box { left: 390px; top: 286px; width: 180px; height: 220px; }
+
+  /* ⑤ 竖切三分 + 人物前景 */
+  #p-strip .strip { position: absolute; top: 0; width: 320px; height: 540px; }
+  #p-strip .strip .ph { position: absolute; inset: 0; }
+  #p-strip .strip .lb { left: 0; right: 0; top: 40px; text-align: center; font-size: 36px; letter-spacing: 3px; }
+  #p-strip .slot-full { bottom: -30px; height: 455px; }
+
+  /* ⑥ 斜切三分 + 正中圆头像 */
+  #p-diag .diag { position: absolute; inset: 0; }
+  #p-diag .diag .ph { position: absolute; inset: 0; }
+  #p-diag .diag .lb { font-size: 38px; letter-spacing: 4px; }
+  #p-diag .slot-avatar { left: 395px; top: 185px; width: 170px; height: 170px; }
+
+  /* ⑦ 背景轮换 + 大字：三项不同屏，讲到哪项整屏换哪张 */
+  #p-swap .bg { position: absolute; inset: 0; }
+  #p-swap .bg .ph { position: absolute; inset: 0; }
+  #p-swap .scrim { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.35), rgba(0,0,0,0) 45%); }
+  #p-swap .word { position: absolute; left: 0; right: 0; top: 60px; text-align: center; font-size: 84px; font-weight: 800; color: #fff; letter-spacing: 6px; text-shadow: 0 4px 18px rgba(0,0,0,.5); }
+  #p-swap .slot-full { bottom: -32px; height: 477px; }
+
+  /* 演示语境：版式名标签（不属于动效） */
+  .pl-tag { position: absolute; left: 20px; bottom: 16px; z-index: 9; font-size: 12px; letter-spacing: 1px; color: #8a8a8a; background: rgba(255,255,255,.82); padding: 3px 10px; border-radius: 999px; opacity: 0; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <!-- ① 头顶横排卡：人物半身居中，三卡在头顶一行（组宽 648 居中） -->
+    <div class="preset" id="p-head"><div class="pl-tag">① 头顶横排卡 · head-row</div>
+      <div class="slot slot-full"><div class="host-placeholder"></div></div>
+      <div class="card item" style="left:156px"><div class="ph t1"></div><div class="lb">喝咖啡</div></div>
+      <div class="card item" style="left:380px"><div class="ph t2"></div><div class="lb">读书</div></div>
+      <div class="card item" style="left:604px"><div class="ph t3"></div><div class="lb">拍照</div></div>
+    </div>
+
+    <!-- ② 三横条灰转彩：三条等高横带先灰、讲到哪条哪条回彩，标签从右滑入 -->
+    <div class="preset" id="p-band"><div class="pl-tag">② 三横条灰转彩 · band-triptych</div>
+      <div class="band item" style="top:0"><div class="ph t1"></div><div class="lb">山</div></div>
+      <div class="band item" style="top:180px"><div class="ph t2"></div><div class="lb">海</div></div>
+      <div class="band item" style="top:360px"><div class="ph t3"></div><div class="lb">城</div></div>
+      <div class="slot slot-box" data-crop-ok><div class="host-placeholder"></div></div>
+    </div>
+
+    <!-- ③ 竖列 + 本人虚化成底 -->
+    <div class="preset" id="p-side"><div class="pl-tag">③ 竖列 + 本人虚化成底 · side-column</div>
+      <div class="bed" data-crop-ok><div class="host-placeholder bed-host"></div></div>
+      <div class="slot slot-box" data-crop-ok><div class="host-placeholder"></div></div>
+      <div class="card item" style="top:176px"><div class="ph t1"></div><div class="lb">① 一杯咖啡</div></div>
+      <div class="card item" style="top:290px"><div class="ph t2"></div><div class="lb">② 清空桌面</div></div>
+      <div class="card item" style="top:404px"><div class="ph t3"></div><div class="lb">③ 手机静音</div></div>
+    </div>
+
+    <!-- ④ 顶部卡堆翻切 -->
+    <div class="preset" id="p-stack"><div class="pl-tag">④ 顶部卡堆翻切 · stack-shuffle</div>
+      <div class="card item"><div class="ph t1"></div><div class="lb">第一步 · 拍</div></div>
+      <div class="card item"><div class="ph t2"></div><div class="lb">第二步 · 剪</div></div>
+      <div class="card item"><div class="ph t3"></div><div class="lb">第三步 · 发</div></div>
+      <div class="slot slot-box" data-crop-ok><div class="host-placeholder"></div></div>
+    </div>
+
+    <!-- ⑤ 竖切三分 + 人物前景 -->
+    <div class="preset" id="p-strip"><div class="pl-tag">⑤ 竖切三分 + 人物前景 · vertical-strips</div>
+      <div class="strip item" style="left:0"><div class="ph t1"></div><div class="lb">峡湾</div></div>
+      <div class="strip item" style="left:320px"><div class="ph t2"></div><div class="lb">雪山</div></div>
+      <div class="strip item" style="left:640px"><div class="ph t3"></div><div class="lb">海岸</div></div>
+      <div class="slot slot-full"><div class="host-placeholder"></div></div>
+    </div>
+
+    <!-- ⑥ 斜切三分 + 正中圆头像（三条平行四边形，斜率 260/540） -->
+    <div class="preset" id="p-diag"><div class="pl-tag">⑥ 斜切三分 + 圆头像 · diagonal-bands</div>
+      <div class="diag item" style="clip-path:polygon(-260px 0, 120px 0, 380px 540px, 0 540px)"><div class="ph t1"></div><div class="lb" style="left:70px;top:80px">露营</div></div>
+      <div class="diag item" style="clip-path:polygon(120px 0, 500px 0, 760px 540px, 380px 540px)"><div class="ph t2"></div><div class="lb" style="left:300px;top:52px">冲浪</div></div>
+      <div class="diag item" style="clip-path:polygon(500px 0, 960px 0, 960px 540px, 760px 540px)"><div class="ph t3"></div><div class="lb" style="left:790px;top:400px">徒步</div></div>
+      <div class="slot slot-avatar" data-crop-ok><div class="host-placeholder"></div></div>
+    </div>
+
+    <!-- ⑦ 背景轮换 + 大字 -->
+    <div class="preset" id="p-swap"><div class="pl-tag">⑦ 背景轮换 + 大字 · bg-swap</div>
+      <div class="bg item"><div class="ph t1"></div></div>
+      <div class="bg item"><div class="ph t2"></div></div>
+      <div class="bg item"><div class="ph t3"></div></div>
+      <div class="scrim"></div>
+      <div class="word">芝加哥</div><div class="word">旧金山</div><div class="word">纽约</div>
+      <div class="slot slot-full"><div class="host-placeholder"></div></div>
+    </div>
+
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ——————————————————————————————————————————————————————————
+    // 可摘走的核心动画：并列句排版（人物在场）
+    // 三条共通纪律：① 人物永远在场（形态随版式变：全身 / 小框 / 圆头像 / 虚化成底）
+    //             ② 三项按口播逐个出现（0.6s 一项、每项一个入场），不是三张一起淡入
+    //             ③ 标签压在图上且大（960 舞台 26px ≈ 1080p 52px；全屏切分 36~40px）
+    // demo 依次巡演七式；成片一镜只用一式（tsx 传 layout 单选）。
+    // ——————————————————————————————————————————————————————————
+    const CONFIG = {
+      lead: 0.4,        // 每式起手：人物先站住一拍再出第一项
+      gap: 0.6,         // 项间隔 s（口播"第一…第二…第三"的节奏；0.5~0.7）
+      pop: 0.45,        // 单项入场时长（back.out(1.7)，末端过冲即"拍上去"的手感）
+      hold: 0.8,        // 第三项落定后的停留（成片 = 口播讲完这一句）
+      exit: 0.35,       // 三项一起退场（比入场快）
+      per: 3.1,         // 每式总长 = lead + 2×gap + pop + hold + exit
+      swapGap: 0.75,    // ⑦ 背景轮换的项间隔（整屏换图，比卡片多一点时间）
+      stackRot: [-4, 3, -2], stackOff: [[0, 0], [18, 10], [36, 20]],   // ④ 卡堆的歪斜与错位
+    };
+    const PRESETS = ["p-head", "p-band", "p-side", "p-stack", "p-strip", "p-diag", "p-swap"];   // 巡演顺序
+
+    // 素材占位里的相框玻璃感图标（不属于动效）
+    const GLYPH = '<svg viewBox="0 0 48 40" fill="none" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"><rect x="2" y="2" width="44" height="36" rx="4"/><circle cx="16" cy="14" r="4"/><path d="M4 34 L18 22 L27 30 L34 24 L44 34"/></svg>';
+    document.querySelectorAll(".ph").forEach((el) => { el.innerHTML = GLYPH; });
+
+    const $ = (s, root) => (root || document).querySelector(s);
+    const $$ = (s, root) => [...(root || document).querySelectorAll(s)];
+
+    DemoShell.register(({ speed }) => {
+      const groups = PRESETS.map((id) => $("#" + id));
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // 重播语义：全部复位（显隐一律用 set 写进时间轴，seek / 慢放 / 重播都可复现）
+      groups.forEach((g) => gsap.set(g, { visibility: "hidden" }));
+
+      // 三项逐个弹出（back.out）：本卡节奏纪律的实体
+      const popSeq = (els, at0, from) => els.forEach((el, i) =>
+        tl.fromTo(el, { opacity: 0, ...from }, { opacity: 1, scale: 1, x: 0, y: 0, duration: CONFIG.pop, ease: "back.out(1.7)" }, at0 + i * CONFIG.gap));
+      const exitAll = (els, at) => tl.to(els, { opacity: 0, duration: CONFIG.exit, stagger: 0.04, ease: "power2.in" }, at);
+
+      PRESETS.forEach((id, k) => {
+        const T = k * CONFIG.per, g = groups[k];
+        const items = $$(".item", g), lbs = $$(".lb", g), slot = $(".slot", g), tag = $(".pl-tag", g);
+        const t1 = T + CONFIG.lead, tOut = T + CONFIG.per - CONFIG.exit - 0.05;
+        // 一镜一式：硬切进入这一式（上一式整组隐去；每式自带人物槽位，人物形态随版式变）
+        tl.set(g, { visibility: "visible" }, T).set(g, { visibility: "hidden" }, T + CONFIG.per)
+          .fromTo(tag, { opacity: 0 }, { opacity: 1, duration: 0.2 }, T + 0.05)
+          .to(tag, { opacity: 0, duration: 0.2 }, T + CONFIG.per - 0.25);
+
+        switch (id) {
+          case "p-head":     // 三卡头顶横排逐张弹出
+            tl.set(items, { opacity: 0 }, T); popSeq(items, t1, { scale: 0.8, y: 14 }); exitAll(items, tOut); break;
+          case "p-band": {   // 三条先灰，讲到哪条哪条回彩（累积，不回灰），标签同帧从右滑入
+            const phs = items.map((b) => $(".ph", b));
+            tl.set(items, { opacity: 1 }, T).set(phs, { filter: "grayscale(1) brightness(.55)" }, T).set(lbs, { opacity: 0, x: 40 }, T)
+              .fromTo(slot, { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 0.4, ease: "power3.out" }, T + 0.1);
+            phs.forEach((ph, i) => tl.to(ph, { filter: "grayscale(0) brightness(1)", duration: 0.45, ease: "power2.out" }, t1 + i * CONFIG.gap)
+                                    .to(lbs[i], { opacity: 1, x: 0, duration: 0.4, ease: "power3.out" }, t1 + i * CONFIG.gap));
+            exitAll([...items, slot], tOut); break;
+          }
+          case "p-side":     // 人物虚化铺底 + 顶部小框证明"我还在"，三横卡从右逐张滑入
+            tl.set(items, { opacity: 0 }, T).fromTo(slot, { opacity: 0, y: -12 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, T + 0.1);
+            popSeq(items, t1, { x: 60, scale: 1, y: 0 }); exitAll([...items, slot], tOut); break;
+          case "p-stack":    // 同位一张压一张飞入（歪斜 + 错位，前一张露一角）
+            tl.set(items, { opacity: 0 }, T).fromTo(slot, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, T + 0.1);
+            items.forEach((c, i) => tl.fromTo(c, { opacity: 0, x: 120 + CONFIG.stackOff[i][0], y: CONFIG.stackOff[i][1] - 10, rotation: CONFIG.stackRot[i] + 6 },
+              { opacity: 1, x: CONFIG.stackOff[i][0], y: CONFIG.stackOff[i][1], rotation: CONFIG.stackRot[i], duration: 0.5, ease: "power3.out" }, t1 + i * CONFIG.gap));
+            exitAll([...items, slot], tOut); break;
+          case "p-strip":    // 三条竖切从左到右逐条擦入，人物站最前
+            tl.set(items, { opacity: 1, clipPath: "inset(0 100% 0 0)" }, T);
+            items.forEach((s, i) => tl.to(s, { clipPath: "inset(0 0% 0 0)", duration: 0.5, ease: "power3.out" }, t1 + i * CONFIG.gap));
+            exitAll(items, tOut); break;
+          case "p-diag":     // 三条斜带沿斜向从画外滑入，圆头像居中弹出
+            tl.set(items, { opacity: 0, x: -140, y: -70 }, T).fromTo(slot, { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.45, ease: "back.out(1.6)" }, T + 0.6);
+            items.forEach((b, i) => tl.to(b, { opacity: 1, x: 0, y: 0, duration: 0.5, ease: "power3.out" }, t1 + i * CONFIG.gap));
+            exitAll([...items, slot], tOut); break;
+          case "p-swap": {   // 三项不同屏：整屏背景交叉淡化 + 顶部大字换词，人物始终在前
+            const words = $$(".word", g), scrim = $(".scrim", g);
+            tl.set(items, { opacity: 0, scale: 1.04, transformOrigin: "50% 50%" }, T).set(words, { opacity: 0, y: 20 }, T).set(scrim, { opacity: 1 }, T);
+            items.forEach((bg, i) => {
+              const at = t1 + i * CONFIG.swapGap;
+              tl.to(bg, { opacity: 1, duration: 0.3 }, at).to(bg, { scale: 1, duration: 0.9, ease: "none" }, at)
+                .to(words[i], { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, at + 0.05);
+              if (i) tl.to(items[i - 1], { opacity: 0, duration: 0.3 }, at + 0.05).to(words[i - 1], { opacity: 0, y: -14, duration: 0.3, ease: "power2.in" }, at - 0.1);
+            });
+            exitAll([items[2], words[2], scrim], tOut); break;
+          }
+        }
+      });
+      tl.set(groups[groups.length - 1], { visibility: "visible" }, PRESETS.length * CONFIG.per)   // 末式留到收尾
+        .to({}, { duration: 0.4 }, PRESETS.length * CONFIG.per);   // 收尾留白
+    });
+  </script>
+</body>
+</html>

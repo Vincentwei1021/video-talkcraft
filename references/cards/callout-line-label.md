@@ -52,3 +52,8 @@ name: callout-line-label
 - 不属于本卡的：被标注的产品图占位（demo 里那部灰阶线框手机）、标签的排版/边框/字号、示例文案与坐标、字幕行。
 - 迁移接口：`CONFIG.color` 一处换标注色（点/涟漪/线同色，需与底图高对比）；`CONFIG.callouts[]` 换 `target`（圆点坐标）/ `points`（拐点+终点，保持 45°/水平）/ `label.x,y` 与 `label.from`（展开方向）；时长四件套 `dotIn / lineDraw / labelIn / hold` 按语速整体乘同一系数缩放；`dotR`、`stroke-width` 随输出分辨率等比缩放。
 - 底色要求：白底即可。标注色只需与底图有足够对比——深底把 `CONFIG.color` 换成高亮黄、标签底色改深色即可，动效时序不变。
+
+## 落位自检（2026-09-05 用户定版，选卡时抄进 SHOTBOOK 该镜自检列）
+- 标注几何（框 / 圈 / 线 / 箭头 / 放大镜锚点）一律由**目标的实测包围盒**反推——DOM `getBoundingClientRect` / `measureText`，四边留白 16~24px 等距，**不目测**。
+- 实现后抽该镜定妆帧核对：标注是否恰好套住 / 指向目标，偏差 **> 8px 返工**（`references/layout.md` §3）。
+- 目标会滚动 / 移动时，标注钉在内容坐标系随内容动（SKILL.md ③）。

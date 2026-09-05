@@ -8,7 +8,7 @@
 [![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial-blue)](LICENSE)
 [![WeChat](https://img.shields.io/badge/WeChat-%E8%AE%A8%E8%AE%BA%E7%BE%A4-07C160?logo=wechat&logoColor=white)](assets/wechat-group.jpg)
 
-**口播视频的 agent skill：字级配音同步 · 79 张动效配方卡 · 七层反 PPT 镜头系统 · 三重验收**
+**口播视频的 agent skill：字级配音同步 · 89 张动效配方卡 · 七层反 PPT 镜头系统 · 三重验收**
 
 [中文](README.md) | [English](README_EN.md)
 
@@ -20,16 +20,40 @@
 分镜，然后用 [Remotion](https://www.remotion.dev/) 渲出高质量的解说成片——动态字卡、
 证据截图、运镜、素排字幕、影视级音效，全部锁在人声上。
 
-🖼️ [**在线画廊：79 张动效预览一页全览 »**](https://vincentwei1021.github.io/video-talkcraft/)
+🖼️ [**在线画廊：89 张动效预览一页全览 »**](https://vincentwei1021.github.io/video-talkcraft/)
 
 [![video-talkcraft 在线画廊](assets/gallery-zh.png)](https://vincentwei1021.github.io/video-talkcraft/)
 
 ## 🆕 更新（What's new）
 
+**2026-09-05**
+
+- **素材呈现拓展：10 张新卡（79 → 89）**——从 47 张实验室原型里经用户两轮筛选留 21 张，再按"它到底是什么"收成 10 张卡 + 4 段规则：
+  `parallel-items-with-host` 并列句排版（人物在场，七种版式一卡切换）· `still-layout-relay` 一主两辅 / 三联画焦点接力 · `split-compare-slider` 对比双分屏 ·
+  `filmstrip-conveyor` 传送带列举 · `grid-to-hero` 网格收成主角 · `stack-fan-out` 卡堆扇开 · `split-60-40-story` 60/40 主从分屏 · `multi-still-tour` 照片墙 / 时间线巡览停靠 ·
+  `bed-echo-blur` 同源模糊底床 · `rack-focus-pair` 焦点接力。每张卡 md 开头新增**「输入类型」**（口播人物 / B-roll 视频 / 图片 各写可否）与**「常用场景」**四条，
+  taxonomy 新增全库「输入类型索引」——选卡先按这一镜的素材类型过滤。规则四段：实拍底床处理链（design-language §1.2）、多素材同屏"关系 → 版式"表（shot-design §2④′）、
+  并列句三纪律（layout §7.1）、**字与画同起同收**（持续运动写速率不写秒数、时长 = 镜头时长，不留"字没了画面还在"的尾巴）。
+- **排版规范 `references/layout.md`**——用户审片抓出的 10 处缺陷全是排版（贴边、色块与标题不对齐、取景框没套住字、独句缩在角落、条目字太小、图组不居中、间距倒挂、黑字压邻列、章节卡同色）。
+  借三套版式 skill 的共通范式定下：12 栏栅格吸附、间距令牌且外边距 ≥ 组间距 ≥ 组内间距、字形边对齐、无人物时组包围盒居中、标注几何实测反推、
+  字阶最小档（条目 ≥40 / 独句 hero）、包围盒不相交、同组底板淡色系、章节卡按章换色、定妆帧开 debugOverlay 核九项。
+  **选卡必读卡经验**：选中的卡的「已知坑」「落位自检」逐条抄进 SHOTBOOK 自检列。
+- **12 款动态幕底入库**——`template/motion-systems/backdrop.tsx`（深 6 / 浅 6，GLSL / Canvas / CSS 三路线，frame 驱动零随机，默认 1.5×，静态噪点抗色带）；
+  design-language §1.1 背景菜单重写，默认幕底改为浅 `pastel-mesh-flow` / 深 `mesh-flow-dark`。
+
+**2026-09-04**
+
+- **运动系统做减法**——口播视频只保留每场景一条极缓推进 / 拉出的相机曲线 + 让位；主体 idle 微动、环境呼吸 vignette / 扫光 /
+  曝光脉冲、相机重音脉冲、x/y/旋转/模糊曲线不再要求（模板代码保留能力、默认关闭）。静息帧口径从"≥2 层在动"改为"相机在动"。
+- **网页拍摄不贴图**——调研中判定可用的网页，成片里不再以静态截图贴屏，而是被镜头"拍"：匀速滚动
+  （`evidence-scroll-tour`）、兴趣点巡游（`stage-keyframe-tour`）、局部放大镜 / 画中画（`magnifier-detail` / `pip-zoom-box`）、
+  荧光笔与墨线划重点（`highlighter-sweep` / `ink-underline`）。素材采集定为 Playwright 全页 2× 长图 + 同会话 DOM 实测坐标 JSON，
+  放大与划线全吃实测坐标。→ SKILL.md §③、`references/shot-design.md` §2④、`references/broll-sources.md`
+
 **2026-09-02**
 
 - **动效工作台 `workbench/`**——剪映式的成片后期台：多轨时间线 + 素材库（素材 / 动效库 / 音效 / 背景）+
-  schema 属性面板 + 实时预览 + 一键「导出成片」。79 张动效卡 100% 参数化（文案 / 颜色 / 字号 / 位置可调，
+  schema 属性面板 + 实时预览 + 一键「导出成片」。89 张动效卡 100% 参数化（文案 / 颜色 / 字号 / 位置可调，
   节奏命门固定不暴露）；口播成片可一键拆成字幕 / 转场 / 环境 / 数字人 / 镜头 / 配音 / 音效七类多轨单元逐项微调。
   skill 交付成片后会主动打开它。→ [**图文指南 workbench/GUIDE.md**](workbench/GUIDE.md)
 
@@ -57,11 +81,12 @@
   （默认 FireRedASR2-CTC int8，备选 faster-whisper 免手动下载）。110s 中英混合口播
   对照 GPU 强制对齐器实测：字级偏差中位 20–40ms、最差 200ms、质检零误报。
   每个动效节拍都锚在确切的字上。
-- **79 张动效配方卡**——每张有意图、参数、已知坑、可直接复制的自包含 Remotion tsx 源码和可跑的 HTML 预览，
+- **89 张动效配方卡**——每张有意图、参数、已知坑、可直接复制的自包含 Remotion tsx 源码和可跑的 HTML 预览，
   [在线画廊](https://vincentwei1021.github.io/video-talkcraft/)一页全览
   （本地 `open gallery/index.html` 同款）。动态字卡、数据镜头、证据巡游、
   六式运动承接转场、长镜头世界画布、人物合成等。
-- **七层反 PPT 系统**——连续相机曲线、视差平面、idle/让位生命周期、呼吸环境层。
+- **七层反 PPT 系统**——每场景一条极缓推进 / 拉出的相机曲线 + 让位生命周期 + 六式运动承接转场
+  （2026-09-04 起做减法：不再要求主体 idle 与环境呼吸）。
   静止帧在结构上不可能出现（漏网的也会被自动检测抓住）。
 - **经得住审片的排版纪律**——语义拍分镜、同屏元素预算、留白锚、枢轴句切镜规则、
   用真实检测（`scripts/face_bbox.py`）量出来的人脸安全区，不靠目测。
@@ -112,16 +137,16 @@ ln -s "$(pwd)" ~/.codex/skills/video-talkcraft    # Codex
 | --- | --- |
 | 口播稿 | 字级时间戳对齐，逐句质检标记 |
 | 成品配音——任何 TTS 或真人录音 | SHOTBOOK 分镜：语义拍、层矩阵、排版预算 |
-| 可选的人物素材——普通实拍视频即可（抠像 + 人脸安全区工具已含，绿幕抠得最干净） | Remotion 实现：四套全局系统（相机/视差/让位/环境）、转场、音效落位 |
+| 可选的人物素材——普通实拍视频即可（抠像 + 人脸安全区工具已含，绿幕抠得最干净） | Remotion 实现：全局系统（极缓推拉相机/让位）、转场、音效落位 |
 | 可选的 B-roll / 截图 | 渲染 + 三重验收（机器闸全过 + 一轮独立审片修完 P0/P1 即交付，可选续审累计 ≤3 轮），响度归一交付 |
 
 ## 📦 库里有什么
 
 | 内容 | 说明 |
 | --- | --- |
-| 79 张动效配方卡 | 意图、能量档、参数、实现要点、已知坑——每张都配自包含 Remotion tsx 源码（`template/cards/`，复制单文件即用）+ 可跑的 HTML demo |
-| 画廊 | [在线版](https://vincentwei1021.github.io/video-talkcraft/)或本地 `open gallery/index.html`——79 个预览一页自动播放，按名称/关键词搜索 |
-| 动效系统 | CameraRig、视差平面、idle/让位生命周期、环境层、六式转场、长镜头世界画布（`template/motion-systems/`） |
+| 89 张动效配方卡 | 意图、能量档、参数、实现要点、已知坑——每张都配自包含 Remotion tsx 源码（`template/cards/`，复制单文件即用）+ 可跑的 HTML demo |
+| 画廊 | [在线版](https://vincentwei1021.github.io/video-talkcraft/)或本地 `open gallery/index.html`——89 个预览一页自动播放，按名称/关键词搜索 |
+| 动效系统 | CameraRig（极缓推拉）、让位生命周期、六式转场、长镜头世界画布；视差 / 环境层可选（`template/motion-systems/`） |
 | 组件 | 素排字幕、花字、砸字、荧光笔、铅笔手绘、数字滚动（`template/components/`） |
 | 管线脚本 | 字级时间戳（双 ASR 后端）、人脸安全区检测、静止检测、音效在场检查、QA 抽帧（`scripts/`） |
 | 方法论 | 设计语言（Apple 范式默认）、镜头三面工作单、电影感规范、分镜格式、验收口径（`references/`） |
@@ -137,15 +162,15 @@ video-talkcraft/
 │   ├── shot-design.md          # 三面工作单 + 七型镜头预设
 │   ├── cinematography.md       # 七层模型、转场、排版预算、验收关卡
 │   ├── shotbook-example.md     # 完整分镜范例
-│   ├── cards/                  # 79 张动效配方卡
+│   ├── cards/                  # 89 张动效配方卡
 │   ├── taxonomy.md             # 按类别与来源的卡片索引
 │   ├── broll-sources.md        # 免署名素材源（API、授权坑）
 │   ├── host-footage.md         # 人物素材：输入规格、抠像、人脸安全区
 │   └── demo-spec.md            # 卡片/demo 编写规范
-├── demos/                      # 79 个可跑的 HTML 预览（共享库内嵌音效）
+├── demos/                      # 89 个可跑的 HTML 预览（共享库内嵌音效）
 ├── gallery/                    # 单页本地画廊
 ├── template/                   # 即取即用的 Remotion 代码
-│   ├── cards/                  # 79 卡逐卡自包含 tsx 源码（skill 首选引用）
+│   ├── cards/                  # 89 卡逐卡自包含 tsx 源码（skill 首选引用）
 │   ├── motion-systems/         # 相机/视差/让位/环境/转场/长镜头系统
 │   └── components/             # 字幕/花字/砸字/铅笔等组件
 └── scripts/                    # 时间戳、人脸检测、QA 工具

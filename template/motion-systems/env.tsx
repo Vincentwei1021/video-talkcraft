@@ -2,9 +2,11 @@ import React from 'react';
 import {AbsoluteFill, Easing, interpolate, useCurrentFrame, useVideoConfig} from 'remotion';
 
 /**
- * L6 Environment. Runs for the whole video at low amplitude so no frame is ever
- * completely still: breathing vignette, slow diagonal light sweep, act-based
- * colour temperature, and three-part exposure pulses on chosen hits.
+ * L6 Environment. Since 2026-09-04 (运动做减法) it is a *static* layer by default:
+ * act-based colour temperature + a fixed vignette. The breathing vignette,
+ * diagonal light sweep, exposure pulses and transition flashes are kept as
+ * opt-in props (`breathe` / `sweep` / `pulses` / `flashes`), all default false —
+ * the frame is kept alive by the scene camera's slow push/pull, not by this layer.
  */
 
 /** Absolute seconds → act tint. Build → demo → reversal → resolution. */
@@ -57,16 +59,27 @@ const VIGNETTE_TIGHTEN: {from: number; to: number; amount: number}[] = [
   {from: 101.5, to: 103.2, amount: 0.2},
 ];
 
-export const Environment: React.FC = () => {
+export const Environment: React.FC<{
+  /** 8s breathing vignette (off by default since 2026-09-04) */
+  breathe?: boolean;
+  /** 12s diagonal light sweep (off by default) */
+  sweep?: boolean;
+  /** exposure pulses on EXPOSURE_HITS (off by default) */
+  pulses?: boolean;
+  /** TRANSITION_FLASHES overlays (off by default) */
+  flashes?: boolean;
+  /** static vignette strength; 0 disables the vignette layer entirely */
+  vignette?: number;
+}> = ({breathe = false, sweep = false, pulses = false, flashes = false, vignette = 0.34}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const sec = frame / fps;
   const {tint, strength} = tintAt(sec);
 
-  // Breathing vignette: 8s cycle, ±6%.
-  const breathe = 0.5 + 0.5 * Math.sin((sec / 8) * Math.PI * 2);
-  let vig = 0.34 + breathe * 0.06;
-  for (const v of VIGNETTE_TIGHTEN) {
+  // Vignette: static by default; optional 8s ±6% breathing.
+  const breatheAmt = breathe ? 0.5 + 0.5 * Math.sin((sec / 8) * Math.PI * 2) : 0;
+  let vig = vignette + breatheAmt * 0.06;
+  for (const v of breathe ? VIGNETTE_TIGHTEN : []) {
     if (sec >= v.from && sec <= v.to + 0.8) {
       const p = interpolate(sec, [v.from, v.to], [0, 1], {
         extrapolateLeft: 'clamp',
@@ -77,12 +90,12 @@ export const Environment: React.FC = () => {
     }
   }
 
-  // Slow diagonal light sweep, 12s period, never stops.
-  const sweep = ((sec % 12) / 12) * 260 - 60;
+  // Optional slow diagonal light sweep, 12s period.
+  const sweepPos = ((sec % 12) / 12) * 260 - 60;
 
-  // Exposure pulse: 2f rise, 2f plateau, 8f decay.
+  // Optional exposure pulse: 2f rise, 2f plateau, 8f decay.
   let pulse = 0;
-  for (const h of EXPOSURE_HITS) {
+  for (const h of pulses ? EXPOSURE_HITS : []) {
     const df = frame - Math.round(h * fps);
     if (df < 0 || df > 12) continue;
     pulse = Math.max(
@@ -104,15 +117,17 @@ export const Environment: React.FC = () => {
           mixBlendMode: 'screen',
         }}
       />
-      {/* diagonal sweep */}
-      <AbsoluteFill
-        style={{
-          background: `linear-gradient(${104}deg, transparent ${sweep - 26}%, rgba(${tint}, 0.055) ${sweep}%, transparent ${sweep + 26}%)`,
-          mixBlendMode: 'screen',
-        }}
-      />
-      {/* transition flashes */}
-      {TRANSITION_FLASHES.map((f) => {
+      {/* diagonal sweep (opt-in) */}
+      {sweep && (
+        <AbsoluteFill
+          style={{
+            background: `linear-gradient(${104}deg, transparent ${sweepPos - 26}%, rgba(${tint}, 0.055) ${sweepPos}%, transparent ${sweepPos + 26}%)`,
+            mixBlendMode: 'screen',
+          }}
+        />
+      )}
+      {/* transition flashes (opt-in) */}
+      {(flashes ? TRANSITION_FLASHES : []).map((f) => {
         const df = frame - Math.round(f.t * fps);
         if (df < -10 || df > 10) return null;
         // Asymmetric envelope: fast rise into the cut, slower fall out of it.
@@ -139,12 +154,14 @@ export const Environment: React.FC = () => {
           }}
         />
       )}
-      {/* breathing vignette */}
-      <AbsoluteFill
-        style={{
-          background: `radial-gradient(ellipse at 50% 50%, transparent ${Math.max(8, 58 - vig * 44)}%, rgba(3,6,12,${Math.min(0.94, vig * 1.5)}) 100%)`,
-        }}
-      />
+      {/* vignette (static unless `breathe`) */}
+      {vig > 0.001 && (
+        <AbsoluteFill
+          style={{
+            background: `radial-gradient(ellipse at 50% 50%, transparent ${Math.max(8, 58 - vig * 44)}%, rgba(3,6,12,${Math.min(0.94, vig * 1.5)}) 100%)`,
+          }}
+        />
+      )}
     </AbsoluteFill>
   );
 };

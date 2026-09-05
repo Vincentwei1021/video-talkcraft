@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>multi-still-tour · 多图巡览停靠</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 多图巡览停靠：几张图挂在一个"世界"里，相机逐张停靠（移动 → 真静止停靠 → 下一张），最后拉回全景与字同收。
+     两种版式一卡切换：① wall 照片墙推轨（三张挂在 rotateY −12° 的 3D 墙上，全景 → 逐张推近 → 拉回）
+                      ② timeline 时间线照片带（四张沿一条时间线上下交替，相机横移逐站停靠 → 拉开看全条）
+     运镜纪律：相机层 .cam 是唯一被 transform 的元素（transform-origin 0 0，camTo 反解把目标点搬到画心），
+     每一站的缩放绕当前图发生；停靠段相机真静止，但当前图内部 1 → 1.03 微推防死。
+     demo 先演 wall 再硬切演 timeline（灰色版式名标签是演示语境）；成片一镜只用一式。 —— */
+
+  .preset { position: absolute; inset: 0; visibility: hidden; }
+
+  /* 相机层：全卡唯一被 transform 的元素 */
+  .cam { position: absolute; inset: 0; transform-origin: 0 0; will-change: transform; }
+
+  /* 白边卡 + 唯一投影（两式共用） */
+  .photo { position: absolute; background: #ffffff; padding: 10px; border-radius: 12px; box-shadow: 0 12px 60px rgba(0,0,0,.22); }
+  .photo .frame { position: absolute; inset: 10px; border-radius: 5px; overflow: hidden; }
+  /* 素材占位（不属于动效）：灰调渐变 + 相框图标，成片里换成真图 */
+  .ph { position: absolute; inset: 0; overflow: hidden; transform-origin: 50% 50%; }
+  .ph::before { content: ""; position: absolute; inset: 0; }
+  .ph.t1::before { background: linear-gradient(160deg, #a4b0c6, #7d8aa3); }
+  .ph.t2::before { background: linear-gradient(160deg, #bfa5ae, #957c86); }
+  .ph.t3::before { background: linear-gradient(160deg, #9fb9ae, #789389); }
+  .ph.t4::before { background: linear-gradient(160deg, #c2b39a, #9c8f78); }
+  .ph svg { position: absolute; left: 50%; top: 50%; width: 56px; height: 48px; transform: translate(-50%, -56%); opacity: .35; }
+
+  /* ① wall：深灰径向幕底（3D 墙上的白边照片靠深底 + 地面反光才读出"挂在墙上"，白底上像浮着的纸片；见卡片"底色要求"） */
+  #p-wall .world { position: absolute; inset: 0; perspective: 1200px; perspective-origin: 50% 50%; overflow: hidden;
+                   background: radial-gradient(ellipse at 50% 40%, #26262e, #0f0f13 75%); }
+  #p-wall .cam { transform-style: preserve-3d; }
+  #p-wall .wall { position: absolute; left: 0; top: 0; width: 1700px; height: 540px; transform-style: preserve-3d; transform: rotateY(-12deg); transform-origin: 850px 270px; }
+  #p-wall .floor { position: absolute; left: -400px; right: -400px; top: 430px; height: 300px; background: linear-gradient(180deg, rgba(255,255,255,.06), transparent 60%); transform: rotateX(80deg); transform-origin: top; }
+  #p-wall .photo { width: 430px; height: 290px; top: 125px; }
+  #p-wall .tag { position: absolute; left: 24px; bottom: 24px; background: rgba(255,255,255,.94); color: #1d1d1f; font-size: 20px; font-weight: 700; padding: 6px 14px; border-radius: 8px; white-space: nowrap; box-shadow: 0 4px 16px rgba(0,0,0,.18); }
+
+  /* ② timeline：白底；相机层宽 1600，一条时间线 + 四张 240×160 上下交替；日期 caption 靠时间线一侧、nowrap */
+  #p-timeline .cam { width: 1600px; }
+  #p-timeline .tl-line { position: absolute; left: 60px; top: 300px; width: 1500px; height: 3px; background: #1d1d1f; border-radius: 2px; }
+  #p-timeline .photo { width: 240px; height: 160px; transform-origin: 50% 50%; }
+  #p-timeline .cap { position: absolute; font-size: 22px; font-weight: 700; color: #1d1d1f; white-space: nowrap; }   /* 22 → 停靠 23 / 拉开 13.6（≈27@1080，最小可读边） */
+
+  /* 演示语境：版式名标签（不属于动效） */
+  .pl-tag { position: absolute; left: 20px; bottom: 16px; z-index: 9; font-size: 12px; letter-spacing: 1px; color: #8a8a8a; background: rgba(255,255,255,.82); padding: 3px 10px; border-radius: 999px; opacity: 0; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <!-- ① wall 照片墙推轨：三张 430×290 挂在 −12° 的 3D 墙上（墙宽 1700，墙心 (850, 270)） -->
+    <div class="preset" id="p-wall"><div class="pl-tag">① 照片墙推轨 · wall</div>
+      <div class="world"><div class="cam">
+        <div class="wall">
+          <div class="floor"></div>
+          <div class="photo" style="left:140px"><div class="frame"><div class="ph t1"></div></div><div class="tag">案例一 · 品牌官网</div></div>
+          <div class="photo" style="left:640px"><div class="frame"><div class="ph t2"></div></div><div class="tag">案例二 · 电商小程序</div></div>
+          <div class="photo" style="left:1140px"><div class="frame"><div class="ph t3"></div></div><div class="tag">案例三 · 数据看板</div></div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ② timeline 时间线照片带：四站站距 360，上下交替（上 top 90 / 下 top 330），时间线 y 300 -->
+    <div class="preset" id="p-timeline"><div class="pl-tag">② 时间线照片带 · timeline</div>
+      <div class="cam">
+        <div class="tl-line"></div>
+        <div class="photo" style="left:120px;top:90px"><div class="frame"><div class="ph t1"></div></div></div><div class="cap" style="left:126px;top:318px">2019 · 一台笔记本</div>
+        <div class="photo" style="left:480px;top:330px"><div class="frame"><div class="ph t2"></div></div></div><div class="cap" style="left:486px;top:266px">2021 · 有了工位</div>
+        <div class="photo" style="left:840px;top:90px"><div class="frame"><div class="ph t3"></div></div></div><div class="cap" style="left:846px;top:318px">2023 · 全套设备</div>
+        <div class="photo" style="left:1200px;top:330px"><div class="frame"><div class="ph t4"></div></div></div><div class="cap" style="left:1206px;top:266px">2026 · 自己的工作室</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ——————————————————————————————————————————————————————————
+    // 可摘走的核心动画：多图巡览停靠（wall / timeline 两式）
+    // 运镜纪律：① 相机层是唯一被 transform 的元素，camTo(z, px, py) 反解到画心 ⇒ 每一站的缩放绕当前图发生
+    //          ② 停靠段相机真静止（停靠类例外，不续走），但当前图内部 1 → 1.03 微推防死；其余图压暗（wall 还加景深虚化）
+    //          ③ 巡完必拉回全景；全景停留结束与字同收
+    // ——————————————————————————————————————————————————————————
+    const CONFIG = {
+      wall: {
+        wallRy: -12,      // 墙的 rotateY（≤25° 才可读）
+        wideZ: 0.61,      // 全景焦距（透视下近端更宽：.61 时三张投影两侧各留 53px；实验室 .72 会切掉第三张）
+        wideAt: 942,      // 全景的相机目标 x（墙坐标）：三张投影包围盒居中解出，不是墙心 850
+        stopZ: 1.15,      // 停靠焦距（放大 ≤1.2）
+        move: 1.0,        // 站间移动（power2.inOut）
+        hold: 0.9,        // 停靠（相机真静止）
+        lead: 0.8,        // 起手全景停留
+        pull: 1.2,        // 拉回全景
+        dim: 0.5, blur: 3, // 停靠时其余照片：brightness .5 + blur 3px（0.5s，从移动中段起）
+        push: 1.03,       // 停靠段当前照片内部微推（时长 hold + 0.3，从移动 70% 处起）
+        exit: 0.4,        // 拉回后照片一起退场（错峰 0.04）
+        len: 8.2,         // 本式总长（含退场）
+        centers: [355, 855, 1355], pivot: 850,   // 三张照片中心 x（y 均 270）/ 墙的旋转轴 x
+      },
+      timeline: {
+        stopZ: 1.05,      // 停靠焦距：邻站出画 24px（1.0 时邻站与画幅边齐平、邻站 caption 离边 6px，读作贴边）；上排照片离顶 49.5
+        wideZ: 0.62,      // 拉开看全条的焦距
+        move: 0.9,        // 站间横移（power2.inOut）
+        hold: 1.0,        // 每站停留
+        lead: 0.4,        // 起手：第一站先停一拍再点亮
+        pull: 1.1,        // 拉开
+        tailHold: 1.2,    // 拉开后看全条的有意停留
+        dim: 0.7,         // 非当前站 brightness
+        focus: 1.03,      // 当前站放大 1.03（0.4s，从移动中段起）
+        exit: 0.4,        // 退场：caption + 时间线 → 照片，错峰 0.04
+        len: 9.9,         // 本式总长（含退场）
+        centers: [240, 600, 960, 1320], stripCenter: [780, 300],   // 四站中心 x / 全条中心
+      },
+    };
+    /* 时间表（demo 秒）
+       wall     0–0.8 全景（z .61） · 0.8/2.7/4.6 依次推到三张（移 1.0 + 停 0.9，压暗从移动 0.5s 起、微推从 0.7s 起）
+                · 6.5–7.7 拉回全景（压暗 6.8 起 0.6s 复原）· 7.7–8.18 照片退场 · 8.2 硬切
+       timeline 8.2 起（式内 lt）：0 第一站居中 · 0.4 点亮 · 1.4/3.3/5.2 横移到二三四站（移 0.9 + 停 1.0，点亮从移动 0.5s 起）
+                · 7.1–8.2 拉开看全条（7.4 起 0.5s 全部复原）· 8.2–9.4 停 · 9.4–9.84 退场 · 9.9 结束（总 18.1） */
+
+    // 把世界坐标 (px, py) 以焦距 z 搬到画心的相机变换（transform-origin 0 0）。
+    // 相机层不是满铺素材、底是静态幕底，无"露边"问题，故不钳制（slow-push-in 那种满铺素材才需要 clamp）。
+    const camTo = (z, px, py) => ({ scale: z, x: 480 - z * px, y: 270 - z * py });
+    // wall 的墙绕 x=850 转了 −12°：照片中心投影到相机层的 x 是旋转后的坐标（否则每站偏心 11~14px）
+    const wallX = (x, C) => C.pivot + (x - C.pivot) * Math.cos(C.wallRy * Math.PI / 180);
+
+    // 素材占位里的相框图标（不属于动效）
+    const GLYPH = '<svg viewBox="0 0 48 40" fill="none" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"><rect x="2" y="2" width="44" height="36" rx="4"/><circle cx="16" cy="14" r="4"/><path d="M4 34 L18 22 L27 30 L34 24 L44 34"/></svg>';
+    document.querySelectorAll(".ph").forEach((el) => { el.innerHTML = GLYPH; });
+
+    const $ = (s, root) => (root || document).querySelector(s);
+    const $$ = (s, root) => [...(root || document).querySelectorAll(s)];
+
+    DemoShell.register(({ speed }) => {
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+      const gW = $("#p-wall"), gT = $("#p-timeline");
+      gsap.set([gW, gT], { visibility: "hidden" });
+      const tag = (g, T, len) => tl.fromTo($(".pl-tag", g), { opacity: 0 }, { opacity: 1, duration: 0.2 }, T + 0.05).to($(".pl-tag", g), { opacity: 0, duration: 0.2 }, T + len - 0.25);
+
+      // ① wall
+      {
+        const C = CONFIG.wall, T = 0;
+        const cam = $(".cam", gW), photos = $$(".photo", gW), phs = photos.map((p) => $(".ph", p));
+        const wide = camTo(C.wideZ, C.wideAt, 270);
+        tl.set(gW, { visibility: "visible" }, T).set(gW, { visibility: "hidden" }, T + C.len);
+        tag(gW, T, C.len);
+        tl.set(cam, { ...wide }, T).set(photos, { filter: "brightness(1) blur(0px)", opacity: 1 }, T).set(phs, { scale: 1 }, T);
+        let t = T + C.lead;
+        C.centers.forEach((cx, i) => {
+          tl.to(cam, { ...camTo(C.stopZ, wallX(cx, C), 270), duration: C.move, ease: "power2.inOut" }, t);            // 推到第 i 张（绕它缩放）
+          photos.forEach((p, j) => tl.to(p, { filter: `brightness(${i === j ? 1 : C.dim}) blur(${i === j ? 0 : C.blur}px)`, duration: 0.5 }, t + C.move * 0.5));   // 其余：压暗 + 景深虚化
+          tl.to(phs[i], { scale: C.push, duration: C.hold + 0.3, ease: "none" }, t + C.move * 0.7);                     // 停靠段内部微推防死
+          t += C.move + C.hold;
+        });
+        tl.to(cam, { ...wide, duration: C.pull, ease: "power2.inOut" }, t);                                              // 拉回全景
+        photos.forEach((p) => tl.to(p, { filter: "brightness(1) blur(0px)", duration: 0.6 }, t + 0.3));
+        tl.to(photos, { opacity: 0, duration: C.exit, stagger: 0.04, ease: "power2.in" }, t + C.pull);                   // 字与画同收
+      }
+
+      // ② timeline（硬切进入）
+      {
+        const C = CONFIG.timeline, T = CONFIG.wall.len;
+        const cam = $(".cam", gT), photos = $$(".photo", gT), caps = $$(".cap", gT), line = $(".tl-line", gT);
+        const wide = camTo(C.wideZ, C.stripCenter[0], C.stripCenter[1]);
+        tl.set(gT, { visibility: "visible" }, T).set(gT, { visibility: "hidden" }, T + C.len);
+        tag(gT, T, C.len);
+        tl.set(cam, { ...camTo(C.stopZ, C.centers[0], 270) }, T).set(photos, { filter: `brightness(${C.dim})`, scale: 1, opacity: 1 }, T).set([...caps, line], { opacity: 1 }, T);
+        let t = T + C.lead;
+        C.centers.forEach((cx, i) => {
+          if (i) tl.to(cam, { ...camTo(C.stopZ, cx, 270), duration: C.move, ease: "power2.inOut" }, t);                 // 横移到第 i 站
+          photos.forEach((p, j) => tl.to(p, { filter: `brightness(${i === j ? 1 : C.dim})`, scale: i === j ? C.focus : 1, duration: 0.4 }, t + (i ? C.move * 0.5 : 0)));   // 当前站亮 + 1.03
+          t += (i ? C.move : 0) + C.hold;
+        });
+        tl.to(cam, { ...wide, duration: C.pull, ease: "power2.inOut" }, t);                                              // 拉开看全条
+        photos.forEach((p) => tl.to(p, { filter: "brightness(1)", scale: 1, duration: 0.5 }, t + 0.3));
+        const tOut = t + C.pull + C.tailHold;                                                                            // 有意停留结束
+        tl.to([...caps, line], { opacity: 0, duration: C.exit, ease: "power2.in" }, tOut)                                // 字与画同收
+          .to(photos, { opacity: 0, duration: C.exit, ease: "power2.in" }, tOut + 0.04);
+      }
+      tl.set(gT, { visibility: "visible" }, CONFIG.wall.len + CONFIG.timeline.len);   // 末式留到收尾
+    });
+  </script>
+</body>
+</html>

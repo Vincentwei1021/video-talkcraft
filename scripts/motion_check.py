@@ -1,7 +1,7 @@
 """画面健康检查（机器闸①）：一条命令、一支视频、两种判定。
 
 A) 静止段（anti-PPT，ai-math-video SHOTBOOK 口径）：任意 1 秒采样不允许全静止——
-   相机漂移 / idle 呼吸 / 环境层必须让每个静息帧活着。ffmpeg freezedetect 实现。
+   场景相机的极缓推进 / 拉出必须让每个静息帧活着（2026-09-04 起不再要求 idle / 环境呼吸）。ffmpeg freezedetect 实现。
 
 B) 并发光栅抖动（2026-08-30/31 两次实战确认）：`remotion render --concurrency=N`（N>1）时
    各 tab 光栅化亚像素相位不一致，静态文字区的相邻帧差呈**严格周期 N 的振荡**

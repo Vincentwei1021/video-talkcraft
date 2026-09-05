@@ -2,9 +2,10 @@ import React from 'react';
 import {Easing, interpolate, useCurrentFrame, useVideoConfig} from 'remotion';
 
 /**
- * L3/L4 lifecycle. A subject is never allowed to freeze once it has arrived:
- * `resolved` carries a deterministic micro-motion, and it visibly yields the
- * stage when the next subject takes over (interaction pattern 12).
+ * L3/L4 lifecycle. A subject visibly yields the stage when the next subject
+ * takes over (interaction pattern 12). Since 2026-09-04 (运动做减法) the
+ * `resolved` phase is static by default: `idle` is opt-in (`idle={true}`), the
+ * frame is kept alive by the scene camera's slow push/pull instead.
  */
 export type Phase = 'hidden' | 'forming' | 'resolved' | 'retiring' | 'gone';
 
@@ -48,6 +49,8 @@ export const Live: React.FC<{
   /** how far back it recedes when yielding */
   push?: number;
   amount?: number;
+  /** opt-in micro-motion while resolved (off by default since 2026-09-04) */
+  idle?: boolean;
   children: React.ReactNode;
   style?: React.CSSProperties;
   className?: string;
@@ -58,6 +61,7 @@ export const Live: React.FC<{
   retireDur = 0.5,
   push = 0.92,
   amount = 1,
+  idle: idleOn = false,
   children,
   style,
   className,
@@ -66,7 +70,7 @@ export const Live: React.FC<{
   const {fps} = useVideoConfig();
   const sec = frame / fps;
 
-  const w = idle(seed, frame, fps);
+  const w = idleOn ? idle(seed, frame, fps) : {scale: 1, y: 0, glow: 1};
   const alive = sec >= from;
   let scale = alive ? 1 + (w.scale - 1) * amount : 1;
   let y = alive ? w.y * amount : 0;

@@ -44,3 +44,6 @@ scripts/sfx-picker.mjs
 scripts/merge-cues.py
 demos/_lib/sfx-audition.html
 demos/_lib/sfx/*.mp3
+
+# 实验室 / 调研中间产物（一页多舞台测试 HTML、给用户确认用的原型与素材脚本）不进库（2026-09-05 用户定版）
+demos/_lab/

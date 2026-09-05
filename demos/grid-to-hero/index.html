@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>grid-to-hero · 网格收成主角</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 网格收成主角：口播"四个里我们选了这个"——2×2 网格先并列（错峰落位），讲到那一格时它长成主图、
+     其余三格收成右侧一列小图（不消失：保留"是从这四个里选的"），讲完回到网格，再一起退场。人物不在此镜。 —— */
+
+  /* 素材占位（不属于动效）：六档灰调渐变 + 相框图标，成片里换成真图 / 视频 */
+  .ph { position: absolute; overflow: hidden; }
+  .pic { position: absolute; inset: 0; }
+  .pic.t1 { background: linear-gradient(160deg, #a4b0c6, #7d8aa3); }
+  .pic.t2 { background: linear-gradient(160deg, #bfa5ae, #957c86); }
+  .pic.t3 { background: linear-gradient(160deg, #9fb9ae, #789389); }
+  .pic.t4 { background: linear-gradient(160deg, #c2b39a, #9c8f78); }
+  .pic svg { position: absolute; left: 50%; top: 50%; width: 56px; height: 48px; transform: translate(-50%, -56%); opacity: .35; }
+
+  /* 格子 = 白边卡（padding 8 + 圆角 12 + 唯一投影）；位置用 transform 平移、尺寸用 width/height（cover 裁切不失真）
+     left/top 固定 0，坐标全部写进 x/y —— 与 tsx 同一写法 */
+  .tile { position: absolute; left: 0; top: 0; background: #ffffff; padding: 8px; border-radius: 12px; box-shadow: 0 12px 40px rgba(0,0,0,.16); }
+  .tile .ph { inset: 8px; border-radius: 6px; }
+  .tile.hero { z-index: 2; }   /* 主角浮在其余之上（重排时其余从它后面收走） */
+  /* 压图标签：16px@960 ≈ 32@1080（caption 档上限） */
+  .tile .k { position: absolute; left: 20px; bottom: 18px; font-size: 16px; font-weight: 600; color: #ffffff; text-shadow: 0 1px 3px rgba(0,0,0,.7); white-space: nowrap; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="tile" data-i="0"><div class="ph"><div class="pic t1"></div></div><div class="k">封面候选 ①</div></div>
+    <div class="tile" data-i="1"><div class="ph"><div class="pic t2"></div></div><div class="k">封面候选 ②</div></div>
+    <div class="tile hero" data-i="2"><div class="ph"><div class="pic t3"></div></div><div class="k">封面候选 ③ · 最终选它</div></div>
+    <div class="tile" data-i="3"><div class="ph"><div class="pic t4"></div></div><div class="k">封面候选 ④</div></div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ——————————————————————————————————————————————————————————
+    // 可摘走的核心动画：网格收成主角
+    // 命门：① 网格先并列（错峰 120ms 落位，不是四张一起淡入）② 主图长大与其余收缩走同一条 inOut、同一时刻起止
+    //      ③ 其余不消失——收成等大等距的一列（保留"是从这四个里选的"）④ 讲完回到网格再退场（首尾对称）
+    // ——————————————————————————————————————————————————————————
+    const CONFIG = {
+      lead: 0.3,          // 起手：第一格开始落位
+      stagger: 0.12,      // 网格错峰（每格）
+      enterDur: 0.55,     // 单格落位（y 24→0 + scale .97→1，power3.out）
+      holdGrid: 1.2,      // 网格停留（成片 = 口播念完"四个候选"）
+      reflow: 0.8,        // 重排时长（power3.inOut；长大与收缩同一条曲线）
+      holdHero: 2.0,      // 主图停留（成片 = 讲这一格的句长）
+      holdBack: 0.8,      // 回到网格后的停留
+      heroPush: 1.05,     // 主图内部缓推终值（重排起 → 回网格止，速率恒定）
+      exit: 0.4,          // 一起退场（power2.in）
+      exitStagger: 0.04,  // 退场错峰
+      heroIdx: 2,         // 哪一格成为主角（0 起）
+      // 几何（960×540，四边 48 安全边、间距 24）
+      grid: [{ x: 48, y: 48 }, { x: 492, y: 48 }, { x: 48, y: 282 }, { x: 492, y: 282 }], tile: { w: 420, h: 210 },
+      hero: { x: 48, y: 48, w: 620, h: 444 },                 // 主图占 65% 宽
+      col: { x: 692, w: 220, h: 132, gap: 24 },               // 右侧一列：等大等距，列顶与主图顶对齐
+    };
+
+    // 素材占位里的相框图标（不属于动效）
+    const GLYPH = '<svg viewBox="0 0 48 40" fill="none" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"><rect x="2" y="2" width="44" height="36" rx="4"/><circle cx="16" cy="14" r="4"/><path d="M4 34 L18 22 L27 30 L34 24 L44 34"/></svg>';
+    document.querySelectorAll(".pic").forEach((el) => { el.innerHTML = GLYPH; });
+
+    const tiles = [...document.querySelectorAll(".tile")];
+    const heroPic = document.querySelector(".tile.hero .pic");
+
+    DemoShell.register(({ speed }) => {
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+      const C = CONFIG, N = tiles.length;
+      const gridRect = (i) => ({ x: C.grid[i].x, y: C.grid[i].y, width: C.tile.w, height: C.tile.h });
+      // 重排目标：主角 → 主图；其余按原顺序收成右侧一列
+      const target = (i) => {
+        if (i === C.heroIdx) return { x: C.hero.x, y: C.hero.y, width: C.hero.w, height: C.hero.h };
+        const k = i < C.heroIdx ? i : i - 1;
+        return { x: C.col.x, y: C.hero.y + k * (C.col.h + C.col.gap), width: C.col.w, height: C.col.h };
+      };
+      const t1 = C.lead + C.enterDur + C.stagger * (N - 1) + C.holdGrid;   // 重排起点 2.41
+      const t2 = t1 + C.reflow + C.holdHero;                               // 回网格起点 5.21
+      const tOut = t2 + C.reflow + C.holdBack;                             // 退场起点 6.81
+
+      // 初始态：网格位 + 落位前的 y 24 / scale .97
+      tiles.forEach((el, i) => tl.set(el, { ...gridRect(i), y: gridRect(i).y + 24, opacity: 0, scale: 0.97, transformOrigin: "50% 50%" }, 0));
+      tl.set(heroPic, { scale: 1, transformOrigin: "50% 50%" }, 0);
+      // ① 网格错峰落位：先并列
+      tiles.forEach((el, i) => tl.to(el, { y: gridRect(i).y, opacity: 1, scale: 1, duration: C.enterDur, ease: "power3.out" }, C.lead + i * C.stagger));
+      // ② 重排：主图长大、其余收成一列，同一条 inOut
+      tiles.forEach((el, i) => tl.to(el, { ...target(i), duration: C.reflow, ease: "power3.inOut" }, t1));
+      tl.to(heroPic, { scale: C.heroPush, duration: C.reflow + C.holdHero, ease: "none" }, t1);   // 主图内部缓推，推到回网格为止
+      // ③ 回到网格
+      tiles.forEach((el, i) => tl.to(el, { ...gridRect(i), duration: C.reflow, ease: "power3.inOut" }, t2));
+      tl.to(heroPic, { scale: 1, duration: C.reflow, ease: "power2.inOut" }, t2);
+      // ④ 一起退场（错峰 0.04）
+      tl.to(tiles, { opacity: 0, duration: C.exit, stagger: C.exitStagger, ease: "power2.in" }, tOut);
+    });
+  </script>
+</body>
+</html>
