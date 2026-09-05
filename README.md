@@ -28,42 +28,29 @@
 
 **2026-09-05**
 
-- **素材呈现拓展：10 张新卡（79 → 89）**——从 47 张实验室原型里经用户两轮筛选留 21 张，再按"它到底是什么"收成 10 张卡 + 4 段规则：
-  `parallel-items-with-host` 并列句排版（人物在场，七种版式一卡切换）· `still-layout-relay` 一主两辅 / 三联画焦点接力 · `split-compare-slider` 对比双分屏 ·
-  `filmstrip-conveyor` 传送带列举 · `grid-to-hero` 网格收成主角 · `stack-fan-out` 卡堆扇开 · `split-60-40-story` 60/40 主从分屏 · `multi-still-tour` 照片墙 / 时间线巡览停靠 ·
-  `bed-echo-blur` 同源模糊底床 · `rack-focus-pair` 焦点接力。每张卡 md 开头新增**「输入类型」**（口播人物 / B-roll 视频 / 图片 各写可否）与**「常用场景」**四条，
-  taxonomy 新增全库「输入类型索引」——选卡先按这一镜的素材类型过滤。规则四段：实拍底床处理链（design-language §1.2）、多素材同屏"关系 → 版式"表（shot-design §2④′）、
-  并列句三纪律（layout §7.1）、**字与画同起同收**（持续运动写速率不写秒数、时长 = 镜头时长，不留"字没了画面还在"的尾巴）。
-- **排版规范 `references/layout.md`**——用户审片抓出的 10 处缺陷全是排版（贴边、色块与标题不对齐、取景框没套住字、独句缩在角落、条目字太小、图组不居中、间距倒挂、黑字压邻列、章节卡同色）。
-  借三套版式 skill 的共通范式定下：12 栏栅格吸附、间距令牌且外边距 ≥ 组间距 ≥ 组内间距、字形边对齐、无人物时组包围盒居中、标注几何实测反推、
-  字阶最小档（条目 ≥40 / 独句 hero）、包围盒不相交、同组底板淡色系、章节卡按章换色、定妆帧开 debugOverlay 核九项。
-  **选卡必读卡经验**：选中的卡的「已知坑」「落位自检」逐条抄进 SHOTBOOK 自检列。
-- **12 款动态幕底入库**——`template/motion-systems/backdrop.tsx`（深 6 / 浅 6，GLSL / Canvas / CSS 三路线，frame 驱动零随机，默认 1.5×，静态噪点抗色带）；
-  design-language §1.1 背景菜单重写，默认幕底改为浅 `pastel-mesh-flow` / 深 `mesh-flow-dark`。
+- 🧩 **10 张多素材同屏新卡（79 → 89）**——并列句排版、三联画接力、对比分屏、传送带、卡堆扇开等，每卡标注输入类型与常用场景，选卡先按素材类型过滤（→ `references/taxonomy.md` 输入类型索引）。
+- 📐 **排版规范 `references/layout.md`**——12 栏栅格、间距令牌、字阶最小档、包围盒不相交等九项自检，选中卡的「已知坑 / 落位自检」必须抄进 SHOTBOOK。
+- 🎨 **12 款动态幕底入库**——`template/motion-systems/backdrop.tsx` 深浅各 6 款、frame 驱动零随机，默认幕底改为浅 `pastel-mesh-flow` / 深 `mesh-flow-dark`。
 
 **2026-09-04**
 
-- **运动系统做减法**——口播视频只保留每场景一条极缓推进 / 拉出的相机曲线 + 让位；主体 idle 微动、环境呼吸 vignette / 扫光 /
-  曝光脉冲、相机重音脉冲、x/y/旋转/模糊曲线不再要求（模板代码保留能力、默认关闭）。静息帧口径从"≥2 层在动"改为"相机在动"。
-- **网页拍摄不贴图**——调研中判定可用的网页，成片里不再以静态截图贴屏，而是被镜头"拍"：匀速滚动
-  （`evidence-scroll-tour`）、兴趣点巡游（`stage-keyframe-tour`）、局部放大镜 / 画中画（`magnifier-detail` / `pip-zoom-box`）、
-  荧光笔与墨线划重点（`highlighter-sweep` / `ink-underline`）。素材采集定为 Playwright 全页 2× 长图 + 同会话 DOM 实测坐标 JSON，
-  放大与划线全吃实测坐标。→ SKILL.md §③、`references/shot-design.md` §2④、`references/broll-sources.md`
+- 🎥 **运动系统做减法**——每场景只保留一条极缓推拉相机曲线 + 让位，idle 微动 / 环境呼吸 / 脉冲全部默认关闭。
+- 🌐 **网页拍摄不贴图**——网页素材不再静态贴屏，改为镜头滚动 / 巡游 / 放大镜 / 划重点"拍"出来，坐标全吃 Playwright 实测（→ SKILL.md §③、`references/shot-design.md` §2④）。
 
 **2026-09-02**
 
-- **动效工作台 `workbench/`**——剪映式的成片后期台：多轨时间线 + 素材库（素材 / 动效库 / 音效 / 背景）+
+- 🎛️ **动效工作台 `workbench/`**——剪映式的成片后期台：多轨时间线 + 素材库（素材 / 动效库 / 音效 / 背景）+
   schema 属性面板 + 实时预览 + 一键「导出成片」。89 张动效卡 100% 参数化（文案 / 颜色 / 字号 / 位置可调，
   节奏命门固定不暴露）；口播成片可一键拆成字幕 / 转场 / 环境 / 数字人 / 镜头 / 配音 / 音效七类多轨单元逐项微调。
   skill 交付成片后会主动打开它。→ [**图文指南 workbench/GUIDE.md**](workbench/GUIDE.md)
 
   <a href="workbench/GUIDE.md"><img src="workbench/docs/img/01-overview.png" alt="动效工作台总览" width="720"></a>
 
-- **渲染提速：分段渲染母版制**——`scripts/render_shots.mjs` 按镜头切段并行渲、段内单进程保光栅一致，
+- ⚡ **渲染提速：分段渲染母版制**——`scripts/render_shots.mjs` 按镜头切段并行渲、段内单进程保光栅一致，
   拼装 + 整条音轨混入 + 帧数断言；改一个镜头只重渲该段±邻段。`scripts/render_stills.mjs` 一次 bundle 批量出静帧。
-- **评审 token 减量**——`scripts/contact_sheet.py` 把 QA 帧拼成 3×4 网格给评审子代理整版浏览；连拍三帧对只对标了
+- 🧮 **评审 token 减量**——`scripts/contact_sheet.py` 把 QA 帧拼成 3×4 网格给评审子代理整版浏览；连拍三帧对只对标了
   `"burst": true` 的状态切换锚点抽（曾占评审材料 2/3）。
-- **一轮审片即交付**——机器闸全过后只做 1 轮独立审片、修完 P0/P1 即交付，再询问是否续审（累计封顶 3 轮），
+- ✅ **一轮审片即交付**——机器闸全过后只做 1 轮独立审片、修完 P0/P1 即交付，再询问是否续审（累计封顶 3 轮），
   替代旧的"循环到全过"。
 
 | 实测（201s 竖屏片） | 之前 | 现在 |
@@ -73,7 +60,7 @@
 | 43 张静帧抽样 | 11 min | ~1 min |
 | 评审读 160 张 QA 帧 | ≈16 万 token / 21 min | ≈4 万 token / 7 min（拼图） |
 
-- 新卡：社区贡献 **douyin-follow-card 抖音主页关注卡**（[@scpcn01vision-oss](https://github.com/scpcn01vision-oss)），库存 79 张。
+- 🤝 新卡：社区贡献 **douyin-follow-card 抖音主页关注卡**（[@scpcn01vision-oss](https://github.com/scpcn01vision-oss)），库存 79 张。
 
 ## ✨ 亮点
 

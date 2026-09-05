@@ -34,37 +34,18 @@ camera moves, plain-cut subtitles, and film-grade SFX, all locked to the voice.
 
 **2026-09-05**
 
-- **Material presentation expansion: 10 new cards (79 → 89)** — 47 lab prototypes went through two rounds of user review down to 21, then folded by "what it really is" into 10 cards + 4 rules:
-  `parallel-items-with-host` (parallel-sentence layouts with the presenter on camera, seven layouts on one card) · `still-layout-relay` (hero-duo / triptych with focus relay) · `split-compare-slider` ·
-  `filmstrip-conveyor` · `grid-to-hero` · `stack-fan-out` · `split-60-40-story` · `multi-still-tour` (photo wall / timeline dolly with stops) · `bed-echo-blur` (same-source blur bed) · `rack-focus-pair`.
-  Every new card's md opens with an **input-type table** (presenter video / B-roll / images) and **four common scenarios**; taxonomy gains a library-wide **input-type index** so card selection
-  starts by filtering on the shot's material. Four rules: the live-footage bed processing chain (design-language §1.2), the multi-asset "relationship → layout" table (shot-design §2④′),
-  the three parallel-sentence disciplines (layout §7.1), and **text and picture end together** (continuous motion is written as a rate, duration = shot length, no tail where the words are gone but the bed keeps drifting).
-- **Layout spec `references/layout.md`** — a review of one delivered video surfaced 10 defects, all layout: edge-hugging cards, block/title
-  misalignment, a bracket frame missing its text, a lone sentence shrunk into a corner, tiny list items, off-center groups, inverted spacing,
-  text colliding with a neighbouring column, same-colour chapter cards. Borrowing the shared patterns of three slide/card skills: 12-column grid
-  snapping, spacing tokens with margin ≥ group gap ≥ inner gap, glyph-edge alignment, centred bounding boxes, measured annotation geometry,
-  minimum type sizes (list items ≥40 / lone sentence = hero), no overlapping boxes, pastel-differentiated chips, per-chapter colours, a 9-point
-  check on debug-overlay stills. **Card experience is mandatory reading**: every chosen card's pitfalls / placement checks go into the SHOTBOOK.
-- **12 dynamic backdrops shipped** — `template/motion-systems/backdrop.tsx` (6 dark / 6 light; GLSL / Canvas / CSS, frame-driven, zero randomness,
-  default 1.5× speed, static grain against banding); design-language §1.1 rewritten, defaults are light `pastel-mesh-flow` / dark `mesh-flow-dark`.
+- 🧩 **10 new multi-asset cards (79 → 89)** — parallel-sentence layouts, triptych relay, compare slider, filmstrip, stack fan-out and more; every card lists its input types and common scenarios, so card selection starts by filtering on the shot's material (→ input-type index in `references/taxonomy.md`).
+- 📐 **Layout spec `references/layout.md`** — 12-column grid, spacing tokens, minimum type sizes, non-overlapping boxes and a 9-point still check; each chosen card's pitfalls / placement checks must be copied into the SHOTBOOK.
+- 🎨 **12 dynamic backdrops shipped** — `template/motion-systems/backdrop.tsx`, 6 dark / 6 light, frame-driven with zero randomness; defaults are now light `pastel-mesh-flow` / dark `mesh-flow-dark`.
 
 **2026-09-04**
 
-- **Motion system slimmed down** — narration videos keep only one very slow push-in / pull-out camera curve per
-  scene plus the yield lifecycle; subject idle wobble, breathing vignette / light sweep / exposure pulses, camera
-  impulses and x/y/rotation/blur curves are no longer required (template code keeps the capability, off by default).
-  The rest-frame rule changes from "≥2 layers moving" to "camera moving".
-- **Web pages are filmed, not pasted** — a page judged usable during research no longer appears as a static
-  screenshot; the camera "shoots" it: steady scroll (`evidence-scroll-tour`), point-of-interest tour
-  (`stage-keyframe-tour`), magnifier / picture-in-picture (`magnifier-detail` / `pip-zoom-box`), highlighter and
-  ink underline (`highlighter-sweep` / `ink-underline`). Capture spec: Playwright full-page 2× screenshot plus a
-  same-session DOM-measured coordinate JSON that every zoom and underline reads from. → SKILL.md §③,
-  `references/shot-design.md` §2④, `references/broll-sources.md`
+- 🎥 **Motion system slimmed down** — one very slow push / pull camera curve per scene plus the yield lifecycle; idle wobble, breathing and pulses are off by default.
+- 🌐 **Web pages are filmed, not pasted** — pages are shot by the camera (scroll, tour, magnifier, highlighter) instead of appearing as static screenshots, with every coordinate read from Playwright measurements (→ SKILL.md §③, `references/shot-design.md` §2④).
 
 **2026-09-02**
 
-- **Motion workbench `workbench/`** — a CapCut-style post-production desk for finished videos: multi-track timeline,
+- 🎛️ **Motion workbench `workbench/`** — a CapCut-style post-production desk for finished videos: multi-track timeline,
   library (media / motion cards / SFX / backgrounds), schema-driven inspector, live preview and one-click **Export**.
   All 89 motion cards are parameterized (copy, colors, sizes, positions editable; timing vitals stay fixed).
   A narration video can be split into seven kinds of editable units — subtitles / transitions / environment /
@@ -72,13 +53,13 @@ camera moves, plain-cut subtitles, and film-grade SFX, all locked to the voice.
 
   <a href="workbench/GUIDE.md"><img src="workbench/docs/img/01-overview.png" alt="Workbench overview" width="720"></a>
 
-- **Faster renders: shot-segmented master rendering** — `scripts/render_shots.mjs` renders per-shot segments in
+- ⚡ **Faster renders: shot-segmented master rendering** — `scripts/render_shots.mjs` renders per-shot segments in
   parallel (single-process inside each segment to keep rasterization consistent), then concatenates, mixes in the
   full audio track and asserts frame counts; changing one shot re-renders only that segment ± neighbours.
   `scripts/render_stills.mjs` renders batches of stills from a single bundle.
-- **Fewer review tokens** — `scripts/contact_sheet.py` tiles QA frames into 3×4 sheets for the reviewer subagent;
+- 🧮 **Fewer review tokens** — `scripts/contact_sheet.py` tiles QA frames into 3×4 sheets for the reviewer subagent;
   burst triples are extracted only at anchors flagged `"burst": true` (they used to be 2/3 of the review material).
-- **One review round, then deliver** — after the machine gates pass, a single independent review round fixes
+- ✅ **One review round, then deliver** — after the machine gates pass, a single independent review round fixes
   P0/P1 and the video ships; further rounds are opt-in (3 max) instead of "loop until clean".
 
 | Measured (201 s vertical video) | Before | Now |
@@ -88,7 +69,7 @@ camera moves, plain-cut subtitles, and film-grade SFX, all locked to the voice.
 | 43 sampled stills | 11 min | ~1 min |
 | Reviewer reading 160 QA frames | ≈160k tokens / 21 min | ≈40k tokens / 7 min (sheets) |
 
-- New card: community-contributed **douyin-follow-card** ([@scpcn01vision-oss](https://github.com/scpcn01vision-oss)) — 79 cards total.
+- 🤝 New card: community-contributed **douyin-follow-card** ([@scpcn01vision-oss](https://github.com/scpcn01vision-oss)) — 79 cards total.
 
 ## ✨ Highlights
 
