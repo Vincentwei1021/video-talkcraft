@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>crash-zoom-punch · 急推特写</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 急推特写：全景静置 1s 让观众看清整页，然后 6 帧 ease-in 急推到目标文字块（zoom 1→2.3，中心同步收敛到目标），
+     过冲后 5 帧回收 4.5% 到 2.2 落定；急推那 6 帧叠一记短促 blur 当运动模糊。之后画面钉死——它是一次性的重音，不是 hold 期运动。
+     截图占位（CSS 画的假设置页）是演示语境，不属于动效本体。舞台底色 #f5f5f7（羊皮纸档）让白卡有边界。 —— */
+  #stage { background: #f5f5f7; }
+
+  /* 相机层：transform-origin 0 0，scale + x/y 由 camTo 钳制不露舞台边 */
+  .cam { position: absolute; inset: 0; will-change: transform, filter; transform-origin: 0 0; }
+
+  /* 截图占位（不属于动效）：800×450 白卡设置页 */
+  .shot { position: absolute; left: 80px; top: 45px; width: 800px; height: 450px; background: #ffffff; border: 1px solid #e0e0e0; border-radius: 14px; overflow: hidden; }
+  .shot .hd { height: 64px; border-bottom: 1px solid #ececf0; display: flex; align-items: center; padding: 0 28px; font-size: 22px; font-weight: 700; color: #1d1d1f; }
+  .shot .li { display: flex; align-items: center; justify-content: space-between; height: 64px; padding: 0 28px; border-bottom: 1px solid #f0f0f3; font-size: 18px; color: #1d1d1f; }
+  .shot .li .g { display: block; height: 12px; width: 220px; border-radius: 6px; background: #ececf0; }
+  .shot .li .g2 { width: 90px; }
+  .shot .sw { width: 46px; height: 26px; border-radius: 13px; background: #d9d9de; position: relative; }
+  .shot .sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; }
+  .shot .sw.on { background: #248a3d; } .shot .sw.on::after { left: 23px; }
+  /* 目标行：真文字（急推后要出版级可读） */
+  .shot .tg .k { font-weight: 600; } .shot .tg .k small { display: block; font-size: 13px; color: #7a7a7a; font-weight: 500; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="cam"><div class="shot">
+      <div class="hd">订阅与账单</div>
+      <div class="li"><span class="g"></span><span class="sw"></span></div>
+      <div class="li"><span class="g" style="width:160px"></span><span class="sw on"></span></div>
+      <div class="li tg"><span class="k">自动续费<small>下次扣款 2026-10-05 · ¥ 199 / 月</small></span><span class="sw on"></span></div>
+      <div class="li"><span class="g" style="width:260px"></span><span class="g g2"></span></div>
+      <div class="li"><span class="g" style="width:120px"></span><span class="sw"></span></div>
+      <div class="li"><span class="g" style="width:200px"></span><span class="g g2"></span></div>
+    </div></div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ——————————————————————————————————————————————————————————
+    // 可摘走的核心动画：急推特写
+    // 命门：① 急推 ≤8 帧（>10 帧读作普通推近，冲击感消失）；② 目标中心钉死——推进前后同一 origin，是一个镜头的一拍不是两个镜头；
+    //      ③ 过冲后回收 3~6%（过大读作弹簧玩具）；④ 落定即钉死不再动——它是一次性重音，与"相机只做极缓推拉"的 hold 期纪律不冲突。
+    // ——————————————————————————————————————————————————————————
+    const CONFIG = {
+      hold: 1.0,           // 全景静置 s：先让观众看清整页
+      punch: 0.2,          // 急推时长 s（6 帧，power3.in 急加速）
+      zoom: 2.3,           // 急推终点倍率（过冲峰值；终点构图以目标占画面 60~75% 为准）
+      settle: 2.2,         // 回收落定倍率（过冲回收 4.5%）
+      settleDur: 0.17,     // 回收时长 s（5 帧，power2.out）
+      blur: 5,             // 急推段运动模糊峰值 px（只包急推段，落定段清晰）
+      exitAt: 4.0,         // 退场起点（0.4s power2.in）
+      end: 4.4,            // 镜头结束
+      shot: { x: 80, y: 45 },   // 截图左上角（舞台坐标）
+    };
+
+    // 把舞台坐标 (px,py) 以 zoom z 搬到画面正中的相机变换（transform-origin 0 0），并钳制不露舞台边
+    function camTo(z, px, py, W = 960, H = 540) {
+      let x = W / 2 - z * px, y = H / 2 - z * py;
+      x = Math.min(0, Math.max(W - W * z, x)); y = Math.min(0, Math.max(H - H * z, y));
+      return { scale: z, x, y };
+    }
+
+    const $ = (s) => document.querySelector(s);
+
+    DemoShell.register(({ speed }) => {
+      const cam = $(".cam"), tg = $(".tg"), k = $(".tg .k");
+      // 目标 = 行内的文字块（不是整行——整行中心是空白），中心由 bbox 实测反推
+      const px = CONFIG.shot.x + tg.offsetLeft + k.offsetLeft + k.offsetWidth / 2;
+      const py = CONFIG.shot.y + tg.offsetTop + tg.offsetHeight / 2;
+      const a = camTo(CONFIG.zoom, px, py), b = camTo(CONFIG.settle, px, py);
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+      // 复位（重播语义）：全景
+      tl.set(cam, { scale: 1, x: 0, y: 0, transformOrigin: "0 0", filter: "blur(0px)", opacity: 1 })
+        // 急推：6 帧 power3.in 到过冲峰值，同时短促 blur 当运动模糊
+        .to(cam, { scale: a.scale, x: a.x, y: a.y, duration: CONFIG.punch, ease: "power3.in" }, CONFIG.hold)
+        .to(cam, { filter: `blur(${CONFIG.blur}px)`, duration: CONFIG.punch * 0.6, ease: "power2.in" }, CONFIG.hold)
+        .to(cam, { filter: "blur(0px)", duration: 0.15 }, CONFIG.hold + CONFIG.punch * 0.6)
+        // 过冲回收 4.5% 落定，之后钉死
+        .to(cam, { scale: b.scale, x: b.x, y: b.y, duration: CONFIG.settleDur, ease: "power2.out" }, CONFIG.hold + CONFIG.punch)
+        // 退场
+        .to(cam, { opacity: 0, duration: CONFIG.end - CONFIG.exitAt, ease: "power2.in" }, CONFIG.exitAt);
+    });
+  </script>
+</body>
+</html>

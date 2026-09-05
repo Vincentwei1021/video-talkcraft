@@ -17,6 +17,17 @@
 
 ## 0. 全局系统（先于任何场景实现）
 
+### G0 风格档（design-language §0；先于 token，每张卡按它蒙皮）
+- 领域：科技 · AI 开发者工具 · 演示口吻（依据：全稿 9 个产品术语 / 4 段终端与代码 / 受众是写代码的人）
+- 底色策略：白底主导；代码 / 终端幕整幕深 tile #1d1d1f
+- token：accent #0066cc · ink #1d1d1f · dim #7a7a7a · hairline #e0e0e0（涨跌语义色不出现）
+- 字体：PingFang SC 600 / 400，数字与代码 SF Mono `tabular-nums`
+- 材质 & 卡：发丝线卡（1px hairline、圆角 12、无投影）；证据截图白边卡 + 唯一投影；终端窗为深 tile 卡
+- 图表：极简折线 3px accent、网格 #ececf0、坐标轴只留必要刻度
+- 素材 / 底床：录屏、终端、界面截图；B-roll 少，不用双色调
+- 能量：中；不做的事：不用手绘圈注（换角框 / 取景框），不用 pastel chip（换发丝线 chip）
+- 蒙皮行写在各镜层矩阵旁（例：S3 `chart-grow → 网格 #ececf0、柱色 accent 单色、数字 SF Mono`）
+
 ### G1 CameraRig（L1，每场景一条连续曲线 + 冲击脉冲）
 - 每场景一个 `<CameraRig path={...} impulses={[...]}>` 包裹全部内容。
 - path = 全程连续的 scale/x/y/rotate 关键帧（缓动 inOutSine），**任何冲击不得重置慢曲线**（模式4：连续慢层 × 快打点）。

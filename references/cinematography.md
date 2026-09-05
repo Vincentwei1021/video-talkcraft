@@ -63,7 +63,7 @@ G2 视差与 G4 分幕色温降为可选。模板代码保留这些能力但默�
 ## 3. 运动转场库（Sequence 重叠 12–16 帧）
 
 **硬规则：每个镜头边界都必须有明确的转场处置，禁止裸切**——
-六式之一 / caret-wipe / shape-wipe / 长镜头连续运镜，四选一；SHOTBOOK 里每个边界写明用哪式。
+六式之一 / caret-wipe / shape-wipe / 长镜头连续运镜，四选一（另有图形接力 `line-carry-transition◎`：A 镜的下划线跑出画外围成 B 镜画框，全片只放一次当招牌位）；SHOTBOOK 里每个边界写明用哪式。
 （black-slam 的"最后 1 帧 opacity=0 硬出"是设计过的转场，不算裸切；Sequence 边界内容无处置地
 整体瞬间替换才是裸切。）
 

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>lead-word-zoom-assemble · 首词占满补句</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 首词占满补句：首词以 2.3 倍字号独占画面正中、hold 期继续推近 6%；随后一条曲线同时完成"缩回终字号"与"整行左滑归位"，
+     后续词各自从槽位右侧 28px 被推进来（淡入只 2 帧，不是浮现）；整行落定后上移 28px、副行同一时窗浮出。白底成立。 —— */
+
+  /* 整行：绝对定位在画面中心，transform-origin 由脚本钉到首词中心（缩放不动首词） */
+  .lwz-line { position: absolute; left: 50%; top: 250px; white-space: nowrap; font-size: 56px; font-weight: 600; letter-spacing: -1px; color: #1d1d1f; line-height: 1.2; will-change: transform; }
+  .lwz-line .lwz-w, .lwz-line .lwz-sp { display: inline-block; }
+  .lwz-line .lwz-sp { width: .28em; }          /* 词间隔用独立 inline-block 撑：跟在词 span 内部尾随的空格会被行盒裁掉 */
+  .lwz-acc { color: #0066cc; }                  /* 唯一强调色：只上在结论词上 */
+  /* 副行：整行上移让出的空间当帧被它填掉 */
+  .lwz-sub { position: absolute; left: 50%; top: 318px; transform: translateX(-50%); font-size: 22px; color: #7a7a7a; white-space: nowrap; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="lwz-line"><span class="lwz-w lwz-lead">效率</span><span class="lwz-sp"></span><span class="lwz-w">才是</span><span class="lwz-sp"></span><span class="lwz-w">唯一的</span><span class="lwz-sp"></span><span class="lwz-w lwz-acc">护城河</span></div>
+    <div class="lwz-sub">不是参数，也不是模型大小</div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ——————————————————————————————————————————————————————————
+    // 可摘走的核心动画：首词占满补句（首词 2.3× 独占 → 缩回 + 左滑一条曲线 → 后续词被推进来 → 整行上移副行同窗）
+    // 命门：① 缩回与左滑必须共用一条缓动读作一次运动（各走各的曲线会断成"先缩小、再滑走"两拍）；
+    //      ② 后续词淡入 ≤2 帧——是"被塞进槽位"不是"浮现"；③ 支点钉首词中心，缩放期间首词不挪；
+    //      ④ 上移与副行同一时窗，先上移再出副行会多一个空当拍。
+    // ——————————————————————————————————————————————————————————
+    const CONFIG = {
+      startAt: 0.10,      // 首词出现时刻 s（0.15s 淡入）
+      leadScale: 2.3,     // 首词起手倍数：2.3 让首词横向溢出一点（"太大了装不下"）；<1.8 只是稍大的字
+      pushScale: 1.06,    // hold 期继续推近 6%："还在朝观众来"的最小可感量；>1.15 缩回时读作反向弹跳
+      hold: 0.40,         // 首词独占画面的时长 s（≈12 帧；<0.27 读不完一个词，>0.67 整句节奏塌）
+      shrink: 0.40,       // 缩回终字号 s（power3.inOut）
+      slide: 0.80,        // 整行左滑归位 s（与缩回同起、同曲线、时长两倍——字号已落定位置还在走，这段"滑行尾巴"是电影感来源）
+      wordDelay: 0.20,    // 后续词相对缩回起点的延迟 s（首词开始缩回才放后续词，同帧放挤在一起看不清谁在动）
+      wordStagger: 0.13,  // 后续词错峰 s（≈4 帧；0 则整段后缀一起进，回到"整句淡入"）
+      wordDur: 0.40,      // 单词推入 s（power4.out：起步快、落地长）
+      wordPush: 28,       // 推入起点：槽位右侧 28px（≈0.5em；>1em 读作从画外飞入，与首词收束方向打架）
+      wordFade: 0.07,     // 词淡入 s（≈2 帧，刻意极短；>0.2 词会"浮现"，推入的力学感消失）
+      upDelay: 0.10,      // 整行落定后到上移的间隔 s
+      upDur: 0.53,        // 整行上移 + 副行浮出 s（同一时窗，power2.out）
+      up: -28,            // 整行上移量 px（让出的空间当帧被副行填掉）
+      holdEnd: 3.0,       // 落定后静置 s（读整句 + 副行）
+      exitDur: 0.40,      // 整行 + 副行同收（power2.in）
+    };
+
+    const $ = (s) => document.querySelector(s);
+    const line = $(".lwz-line"), lead = $(".lwz-lead"), words = [...document.querySelectorAll(".lwz-w")].slice(1), sps = [...document.querySelectorAll(".lwz-sp")], sub = $(".lwz-sub");
+    // 支点实测：首词中心在整行里的占比 → transform-origin；偏心距 = 整行宽 × (0.5 − 占比)，让首词一开始落在画面正中
+    const L = line.offsetWidth, c = lead.offsetLeft + lead.offsetWidth / 2, ratio = c / L, slide = L * (0.5 - ratio);
+
+    // 时间表：shrinkAt = startAt + hold；wordAt(i) = shrinkAt + wordDelay + i·wordStagger；upAt = shrinkAt + slide + upDelay；exitAt = upAt + holdEnd
+    const shrinkAt = CONFIG.startAt + CONFIG.hold;
+    const upAt = shrinkAt + CONFIG.slide + CONFIG.upDelay;
+    const exitAt = upAt + CONFIG.holdEnd;
+
+    DemoShell.register(({ speed }) => {
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+      // 复位（重播语义）：整行放大 2.3× 并右偏使首词居中；后续词藏在槽位右侧
+      tl.set(line, { xPercent: -50, yPercent: -50, transformOrigin: `${ratio * 100}% 50%`, scale: CONFIG.leadScale, x: slide, y: 0, opacity: 1 })
+        .set(words, { opacity: 0, x: CONFIG.wordPush })
+        .set(sps, { opacity: 0 })
+        .set(sub, { opacity: 0, y: 16 })
+        .set(lead, { opacity: 0 })
+        // 首词出现，hold 期继续推近 6%
+        .to(lead, { opacity: 1, duration: 0.15 }, CONFIG.startAt)
+        .to(line, { scale: CONFIG.leadScale * CONFIG.pushScale, duration: CONFIG.hold, ease: "power2.out" }, CONFIG.startAt)
+        // 缩回 + 左滑：同起、同曲线、时长两倍
+        .to(line, { scale: 1, duration: CONFIG.shrink, ease: "power3.inOut" }, shrinkAt)
+        .to(line, { x: 0, duration: CONFIG.slide, ease: "power3.inOut" }, shrinkAt);
+      // 后续词被推进来：位移长、淡入极短
+      words.forEach((w, i) => {
+        const at = shrinkAt + CONFIG.wordDelay + i * CONFIG.wordStagger;
+        tl.to(w, { x: 0, duration: CONFIG.wordDur, ease: "power4.out" }, at)
+          .to(w, { opacity: 1, duration: CONFIG.wordFade }, at)
+          .to(sps[i], { opacity: 1, duration: 0.01 }, at);
+      });
+      // 整行上移 + 副行同窗浮出 → 静置 → 同收
+      tl.to(line, { y: CONFIG.up, duration: CONFIG.upDur, ease: "power2.out" }, upAt)
+        .to(sub, { opacity: 1, y: 0, duration: CONFIG.upDur, ease: "power2.out" }, upAt)
+        .to([line, sub], { opacity: 0, duration: CONFIG.exitDur, ease: "power2.in" }, exitAt);
+    });
+  </script>
+</body>
+</html>
