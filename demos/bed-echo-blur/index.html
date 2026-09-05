@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>bed-echo-blur · 同源模糊底床</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 同源模糊底床：竖屏素材（9:16）装白边卡放右侧，同一条素材放大 + 模糊 + 压暗铺满当底床且慢放 0.5×。
+     不用找第二条素材，颜色一定和谐；左侧留给标题与来源说明。素材占位（灰调渐变 + 漂移亮带）是演示语境，不属于动效本体。 —— */
+
+  /* 素材占位（不属于动效）：灰调渐变 + 相框图标（六档色，与 parallel-items-with-host 同一体系） */
+  .ph { position: absolute; overflow: hidden; }
+  .ph::before { content: ""; position: absolute; inset: 0; }
+  .ph.t1::before { background: linear-gradient(160deg, #a4b0c6, #7d8aa3); }
+  .ph.t2::before { background: linear-gradient(160deg, #bfa5ae, #957c86); }
+  .ph.t3::before { background: linear-gradient(160deg, #9fb9ae, #789389); }
+  .ph.t4::before { background: linear-gradient(160deg, #c2b39a, #9c8f78); }
+  .ph.t5::before { background: linear-gradient(160deg, #a3a9b8, #7f8594); }
+  .ph.t6::before { background: linear-gradient(160deg, #b8a9c4, #8f809d); }
+  .ph svg { position: absolute; left: 50%; top: 50%; width: 56px; height: 48px; transform: translate(-50%, -56%); opacity: .35; }
+  /* footage 占位 = .ph 底 + 三道斜向亮带匀速漂移（GSAP 匀速 tween 驱动，tsx 由 t 算同一相位），读作"一条在动的视频" */
+  .ph .drift {
+    position: absolute; top: 0; bottom: 0; left: -150%; width: 400%;
+    background: repeating-linear-gradient(112deg,
+      rgba(255,255,255,0) 0 70px, rgba(255,255,255,.16) 70px 150px,
+      rgba(255,255,255,0) 150px 260px, rgba(255,255,255,.12) 260px 320px,
+      rgba(255,255,255,0) 320px 420px, rgba(255,255,255,.18) 420px 540px,
+      rgba(255,255,255,0) 540px 640px);
+  }
+
+  /* 底床：同一条素材的模糊放大副本。filter 与 scale 在同一元素上（blur 随 scale 一起放大，边缘软边被推出画外） */
+  .echo { position: absolute; inset: 0; overflow: hidden; will-change: transform; }
+  /* 同源 = 同一块 9:16 占位按 object-fit: cover 放大铺满（960/250 = 3.84），不是另画一块大底 */
+  .echo-inner { position: absolute; left: 50%; top: 50%; width: 250px; height: 444px; margin: -222px 0 0 -125px; transform: scale(3.84); }
+  .echo-inner .ph { inset: 0; }
+
+  /* 左侧标题 + 来源说明（版面内容，不是旁白字幕） */
+  .ttl { position: absolute; left: 90px; top: 150px; width: 440px; color: #ffffff; }
+  .ttl h4 { font-size: 40px; font-weight: 700; line-height: 1.25; letter-spacing: -0.6px; }
+  .ttl p { font-size: 16px; color: rgba(255,255,255,.72); margin-top: 16px; line-height: 1.7; }
+  .ttl .line { display: block; }
+
+  /* 前景：竖屏素材装白边卡（白边 10 + 唯一投影） */
+  .photo { position: absolute; background: #ffffff; padding: 10px; border-radius: 12px; box-shadow: 0 12px 60px rgba(0,0,0,.22); }
+  .photo .ph { inset: 10px; border-radius: 5px; }
+  .fgcard { left: 590px; top: 38px; width: 270px; height: 464px; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <!-- 底床：同源模糊放大副本（慢放 0.5×） -->
+    <div class="echo">
+      <div class="echo-inner"><div class="ph t1"><div class="drift"></div></div></div>
+    </div>
+    <!-- 左侧标题两行 + 来源说明两行 -->
+    <div class="ttl">
+      <h4><span class="line">网友发来的</span><span class="line">现场画面</span></h4>
+      <p><span class="line">手机竖拍 · 原比例 9:16 · 不留黑边</span><span class="line">拍摄：@海边的阿飞 · 2026-08（示意）</span></p>
+    </div>
+    <!-- 前景：竖屏素材（250×444，9:16）装白边卡 -->
+    <div class="photo fgcard"><div class="ph t1"><div class="drift"></div></div></div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ——————————————————————————————————————————————————————————
+    // 可摘走的核心动画：同源模糊底床
+    // 命门：① 底床 blur ≥20 才读作"氛围"而不是"糊了"；② 底床慢放 0.5×（或定帧）——与前景同步的同源运动会读作重影；
+    //      ③ 两层速度错开：底床 1.25→1.295 极慢缓推、前景卡只 1→1.03；④ 字与画同起同收：底床 duration = 镜头时长，退场同帧收。
+    // ——————————————————————————————————————————————————————————
+    const CONFIG = {
+      echoFrom: 1.25,        // 底床起始放大（同源素材 cover 铺满后再放大，把模糊软边推出画外）
+      echoRate: 0.07 / 12,   // 底床缓推速率（倍/s）：1.25 → 1.25 + rate × end ≈ 1.295；duration = 镜头，速率恒定
+      echoBlur: 26,          // 底床模糊 px：≥20 才读作氛围
+      echoBright: 0.45,      // 底床压暗：白字可读靠它，不靠整体透明度
+      echoSat: 0.8,          // 底床去饱和
+      echoSpeed: 0.5,        // 底床慢放倍率：与前景同步会重影，慢放或定帧才对
+      cardIn: 0.3,           // 前景卡入场起点 s（0.6s power3.out：scale .92→1、y 22→0）
+      cardPush: 1.03,        // 前景卡极缓推终点：0.9s 起匀速推到退场（与底床速度错开）
+      textIn: 0.8,           // 标题行起点 s（4 行 stagger 0.11，0.5s power3.out，y 16→0）
+      exitAt: 7.2,           // 文字与前景卡退场起点（0.5s power2.in）
+      end: 7.7,              // 镜头结束：底床 7.3 起 0.4s 收，与字同帧收完
+      driftSpeed: 40,        // footage 占位的亮带漂移速度 px/s（仅演示占位；底床副本 × echoSpeed）
+    };
+
+    // 素材占位里的相框图标（不属于动效）
+    const GLYPH = '<svg viewBox="0 0 48 40" fill="none" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"><rect x="2" y="2" width="44" height="36" rx="4"/><circle cx="16" cy="14" r="4"/><path d="M4 34 L18 22 L27 30 L34 24 L44 34"/></svg>';
+    document.querySelectorAll(".ph").forEach((el) => { el.insertAdjacentHTML("beforeend", GLYPH); });
+
+    const $ = (s) => document.querySelector(s);
+    const $$ = (s) => [...document.querySelectorAll(s)];
+
+    DemoShell.register(({ speed }) => {
+      const echo = $(".echo"), card = $(".fgcard"), lines = $$(".ttl .line");
+      const driftFg = $(".fgcard .drift"), driftBed = $(".echo .drift");
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // 复位（重播语义）
+      tl.set(echo, { scale: CONFIG.echoFrom, opacity: 1, transformOrigin: "50% 50%",
+                     filter: `blur(${CONFIG.echoBlur}px) brightness(${CONFIG.echoBright}) saturate(${CONFIG.echoSat})` })
+        .set(card, { opacity: 0, scale: 0.92, y: 22, transformOrigin: "50% 50%" })
+        .set(lines, { opacity: 0, y: 16 })
+        .set([driftFg, driftBed], { x: 0 })
+        // 底床：只做极慢缓推，duration = 镜头时长
+        .to(echo, { scale: CONFIG.echoFrom + CONFIG.echoRate * CONFIG.end, duration: CONFIG.end, ease: "none" }, 0)
+        // 占位漂移（演示语境）：前景 1×、底床 0.5×，都跑满镜头
+        .to(driftFg, { x: -CONFIG.driftSpeed * CONFIG.end, duration: CONFIG.end, ease: "none" }, 0)
+        .to(driftBed, { x: -CONFIG.driftSpeed * CONFIG.echoSpeed * CONFIG.end, duration: CONFIG.end, ease: "none" }, 0)
+        // 前景卡落位，再极缓推到退场（与底床速度错开）
+        .to(card, { opacity: 1, scale: 1, y: 0, duration: 0.6, ease: "power3.out" }, CONFIG.cardIn)
+        .to(card, { scale: CONFIG.cardPush, duration: CONFIG.exitAt - 0.9, ease: "none" }, 0.9)
+        // 标题两行 + 来源两行逐行升入
+        .to(lines, { opacity: 1, y: 0, duration: 0.5, stagger: 0.11, ease: "power3.out" }, CONFIG.textIn)
+        // 字与画同收：文字 + 前景卡 7.2 起 0.5s，底床 7.3 起 0.4s，同一帧收完
+        .to([card, ...lines], { opacity: 0, duration: 0.5, ease: "power2.in" }, CONFIG.exitAt)
+        .to(echo, { opacity: 0, duration: 0.4, ease: "power2.in" }, CONFIG.end - 0.4);
+    });
+  </script>
+</body>
+</html>

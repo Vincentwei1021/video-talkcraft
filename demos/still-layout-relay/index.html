@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>still-layout-relay · 多图排版 + 焦点接力</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 多图排版 + 焦点接力：口播一句里要同时给几张图（论点 + 两条证据 / 三个人 / 三个案例），图怎么摆、讲到谁谁亮。
+     两种版式共用同一套机制：主图（首图）先落 → 其余同向错峰入场 → 讲到谁谁亮（其余降权）→ 接力 → 全部回位 → 一起退场。
+     demo 先演 ① 一主两辅、硬切再演 ② 三联竖图；成片一镜只用一式（tsx 传 layout 单选）。人物不在此镜。 —— */
+
+  /* 版式组：同一时刻只有一组可见 */
+  .preset { position: absolute; inset: 0; visibility: hidden; }
+
+  /* 素材占位（不属于动效）：六档灰调渐变 + 相框图标，成片里换成真图 */
+  .ph { position: absolute; overflow: hidden; }
+  .pic { position: absolute; inset: 0; }
+  .pic.t1 { background: linear-gradient(160deg, #a4b0c6, #7d8aa3); }
+  .pic.t2 { background: linear-gradient(160deg, #bfa5ae, #957c86); }
+  .pic.t3 { background: linear-gradient(160deg, #9fb9ae, #789389); }
+  .pic.t4 { background: linear-gradient(160deg, #c2b39a, #9c8f78); }
+  .pic.t5 { background: linear-gradient(160deg, #a3a9b8, #7f8594); }
+  .pic.t6 { background: linear-gradient(160deg, #b8a9c4, #8f809d); }
+  .pic svg { position: absolute; left: 50%; top: 50%; width: 56px; height: 48px; transform: translate(-50%, -56%); opacity: .35; }
+
+  /* 白边卡：padding 8 + 圆角 12 + 唯一投影（全组一致） */
+  .photo { position: absolute; background: #ffffff; padding: 8px; border-radius: 12px; box-shadow: 0 12px 40px rgba(0,0,0,.16); }
+  .photo .ph { inset: 8px; border-radius: 6px; }
+  /* 焦点描边环：主角亮起时同帧出现（单强调色） */
+  .ring { position: absolute; inset: -6px; border: 3px solid #0066cc; border-radius: 18px; opacity: 0; }
+  /* 图注：caption 档（14~16px@960 ≈ 28~32@1080） */
+  .cap { position: absolute; color: #6e6e73; white-space: nowrap; line-height: 1.25; }
+
+  /* ① 一主两辅：主图 546×388 左、两佐证 250×176 右列；组包围盒 62~900 居中；图注在图下 6px、左边与图左对齐 */
+  #p-duo .hero { left: 62px; top: 66px; width: 546px; height: 388px; }
+  #p-duo .s1 { left: 650px; top: 66px; width: 250px; height: 176px; }
+  #p-duo .s2 { left: 650px; top: 278px; width: 250px; height: 176px; }
+  #p-duo .cap { font-size: 14px; }
+
+  /* ② 三联竖图：三张 262×380 三栏（4+4+4，间距 21）；图注在图下 12px、与图同宽居中 */
+  #p-tri .photo { top: 70px; width: 262px; height: 380px; }
+  #p-tri .cap { top: 462px; width: 262px; text-align: center; font-size: 16px; font-weight: 600; }
+
+  /* 演示语境：版式名标签（不属于动效） */
+  .pl-tag { position: absolute; left: 20px; bottom: 16px; z-index: 9; font-size: 12px; letter-spacing: 1px; color: #8a8a8a; background: rgba(255,255,255,.82); padding: 3px 10px; border-radius: 999px; opacity: 0; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <!-- ① 一主两辅 + 焦点接力：主图先落，两佐证从右错峰滑入；讲到谁谁亮（主图退到 .6、佐证 1.04 + 描边环） -->
+    <div class="preset" id="p-duo"><div class="pl-tag">① 一主两辅 · hero-duo</div>
+      <div class="photo item hero"><div class="ph"><div class="pic t1"></div></div><div class="ring"></div></div>
+      <div class="photo item s1"><div class="ph"><div class="pic t2"></div></div><div class="ring"></div></div>
+      <div class="photo item s2"><div class="ph"><div class="pic t3"></div></div><div class="ring"></div></div>
+      <div class="cap" style="left:64px;top:460px">这台相机 · 主角</div>
+      <div class="cap" style="left:652px;top:248px">细节 · 镜头群</div>
+      <div class="cap" style="left:652px;top:460px">上手 · 握持</div>
+    </div>
+
+    <!-- ② 三联竖图 + 焦点接力：三张同向错峰 80ms 入场，从左到右接力一遍；图注随主角变色 -->
+    <div class="preset" id="p-tri"><div class="pl-tag">② 三联竖图 · triptych</div>
+      <div class="photo item" style="left:66px"><div class="ph"><div class="pic t4"></div></div><div class="ring"></div></div>
+      <div class="photo item" style="left:349px"><div class="ph"><div class="pic t5"></div></div><div class="ring"></div></div>
+      <div class="photo item" style="left:632px"><div class="ph"><div class="pic t6"></div></div><div class="ring"></div></div>
+      <div class="cap" style="left:66px">受访者 A · 设计师</div>
+      <div class="cap" style="left:349px">受访者 B · 产品</div>
+      <div class="cap" style="left:632px">受访者 C · 摄影师</div>
+    </div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ——————————————————————————————————————————————————————————
+    // 可摘走的核心动画：多图排版 + 焦点接力
+    // 三条纪律：① 入场有先后有方向（主图/首图先落，其余同向错峰 80~150ms；全组同时淡入 = PPT）
+    //         ② 任一时刻只有一个主角——焦点接力靠"其余降权"（brightness .6 / scale .985），主角本身只动 3~4%
+    //         ③ 切换 0.4s，两次接力之间 ≥1.4s；讲完全部回位，再一起退场
+    // demo 先演 ① 再硬切演 ②；成片一镜只用一式（tsx 传 layout 单选）。
+    // ——————————————————————————————————————————————————————————
+    const CONFIG = {
+      lead: 0.3,          // 起手：主图 / 首图开始入场
+      dimB: 0.6,          // 非主角亮度（brightness）
+      dimScale: 0.985,    // 非主角缩放
+      switchDur: 0.4,     // 接力切换时长（power2.inOut）
+      ringDur: 0.25,      // 描边环出现 / 消失
+      heroPush: 1.06,     // ① 主图内部缓推终值；duration = 镜头长 − lead（写速率不写死秒数，推到退场为止）
+      exit: 0.4,          // 一起退场（power2.in）
+      exitStagger: 0.04,  // 退场错峰（每项 = 图 + 图注）
+      capIn: 0.4,         // 图注淡入
+    };
+    // 两式的时间表（式内相对秒）
+    const TABLE = {
+      duo: { id: "p-duo", enterAt: [0.3, 0.8, 0.95], enterDur: [0.6, 0.55, 0.55], capAt: 1.3, capStagger: 0.1,
+             focusScale: 1.04, relays: [[2.4, 1], [4.2, 2]], reset: 6.0, exitAt: 7.6 },      // 主图 y 30→0 + scale .96→1；佐证 x 40→0 错峰 150ms；接力 佐证1 → 佐证2
+      tri: { id: "p-tri", enterAt: [0.3, 0.38, 0.46], enterDur: [0.5, 0.5, 0.5], capAt: 0.8, capStagger: 0.08,
+             focusScale: 1.03, relays: [[1.4, 0], [2.8, 1], [4.2, 2]], reset: 5.6, exitAt: 6.6 },   // 三张 x 40→0 错峰 80ms；接力 左 → 中 → 右
+    };
+    const ORDER = ["duo", "tri"];                                                  // 巡演顺序
+    const per = (L) => L.exitAt + CONFIG.exitStagger * 2 + CONFIG.exit;          // 一式总长：最后一项退场结束
+    const COLOR = { base: "#6e6e73", on: "#1d1d1f", off: "#9a9aa0" };            // 图注：常态 / 主角 / 非主角
+
+    // 素材占位里的相框图标（不属于动效）
+    const GLYPH = '<svg viewBox="0 0 48 40" fill="none" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"><rect x="2" y="2" width="44" height="36" rx="4"/><circle cx="16" cy="14" r="4"/><path d="M4 34 L18 22 L27 30 L34 24 L44 34"/></svg>';
+    document.querySelectorAll(".pic").forEach((el) => { el.innerHTML = GLYPH; });
+
+    const $ = (s, root) => (root || document).querySelector(s);
+    const $$ = (s, root) => [...(root || document).querySelectorAll(s)];
+
+    DemoShell.register(({ speed }) => {
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+      const groups = ORDER.map((k) => $("#" + TABLE[k].id));
+      groups.forEach((g) => gsap.set(g, { visibility: "hidden" }));   // 重播语义：全部复位
+
+      let T = 0;
+      ORDER.forEach((key, k) => {
+        const L = TABLE[key], g = groups[k], P = per(L);
+        const items = $$(".item", g), caps = $$(".cap", g), rings = items.map((el) => $(".ring", el)), tag = $(".pl-tag", g);
+        const heroPic = key === "duo" ? $(".hero .pic", g) : null;
+
+        // 一镜一式：硬切进入（上一式整组隐去）
+        tl.set(g, { visibility: "visible" }, T).set(g, { visibility: "hidden" }, T + P)
+          .fromTo(tag, { opacity: 0 }, { opacity: 1, duration: 0.2 }, T + 0.05)
+          .to(tag, { opacity: 0, duration: 0.2 }, T + P - 0.25);
+
+        // 初始态
+        tl.set(items, { opacity: 0, x: 40, y: 0, scale: 1, filter: "brightness(1)", transformOrigin: "50% 50%" }, T)
+          .set(rings, { opacity: 0 }, T).set(caps, { opacity: 0, color: COLOR.base }, T);
+        if (heroPic) tl.set(items[0], { x: 0, y: 30, scale: 0.96 }, T).set(heroPic, { scale: 1, transformOrigin: "50% 50%" }, T);
+
+        // ① 入场：主图（首图）先落，其余同向错峰
+        items.forEach((el, i) => tl.to(el, { opacity: 1, x: 0, y: 0, scale: 1, duration: L.enterDur[i], ease: "power3.out" }, T + L.enterAt[i]));
+        tl.to(caps, { opacity: 1, duration: CONFIG.capIn, stagger: L.capStagger }, T + L.capAt);
+        // 主图内部缓推：duration = 镜头长 − lead，推到退场为止
+        if (heroPic) tl.to(heroPic, { scale: CONFIG.heroPush, duration: P - CONFIG.lead, ease: "none" }, T + CONFIG.lead);
+
+        // ② 接力：讲到谁谁亮（其余降权 + 图注变灰），主角 + 描边环
+        const focus = (idx, at) => items.forEach((el, j) => {
+          const on = j === idx;
+          tl.to(el, { filter: `brightness(${on ? 1 : CONFIG.dimB})`, scale: on ? L.focusScale : CONFIG.dimScale, duration: CONFIG.switchDur, ease: "power2.inOut" }, at)
+            .to(rings[j], { opacity: on ? 1 : 0, duration: CONFIG.ringDur }, at)
+            .to(caps[j], { color: on ? COLOR.on : COLOR.off, duration: CONFIG.switchDur }, at);
+        });
+        L.relays.forEach(([at, idx]) => focus(idx, T + at));
+        // ③ 全部回位
+        items.forEach((el, j) => tl.to(el, { filter: "brightness(1)", scale: 1, duration: CONFIG.switchDur, ease: "power2.inOut" }, T + L.reset)
+          .to(rings[j], { opacity: 0, duration: CONFIG.ringDur }, T + L.reset)
+          .to(caps[j], { color: COLOR.base, duration: CONFIG.switchDur }, T + L.reset));
+        // ④ 一起退场（每项 = 图 + 图注，错峰 0.04）
+        items.forEach((el, j) => tl.to([el, caps[j]], { opacity: 0, duration: CONFIG.exit, ease: "power2.in" }, T + L.exitAt + j * CONFIG.exitStagger));
+
+        T += P;
+      });
+      tl.set(groups[groups.length - 1], { visibility: "visible" }, T);   // 末式留到收尾（外壳 +0.4s 收尾留白）
+    });
+  </script>
+</body>
+</html>

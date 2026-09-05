@@ -74,6 +74,21 @@ GLSL 款需要 `remotion.config.ts` 里 `Config.setChromiumOpenGlRenderer('angle
 `bg.dark = 'mesh-flow-dark'`，SHOTBOOK §0 无特别声明的幕按底色深浅引用对应默认。旧的三款（细网格 / 静态 pastel mesh / 居中追光）
 分别被 `grid-spot-light` / `pastel-mesh-flow` / `spotlight-stage` 取代。
 
+### 1.2 实拍底床（B-roll 当背景）处理链（2026-09-05 实验室定稿）
+
+视频素材做低存在感动态背景时**不靠调透明度**（浅底上会洗成灰雾）。环境层参数表：
+
+| 环节 | 参数 | 说明 |
+|---|---|---|
+| 压暗 + 去饱和 | `brightness .35~.50` + `saturate .5~.7` | 深底默认 .42 / .55；浅底改用同源模糊或白色 scrim .75 |
+| 渐变遮罩带 scrim | 文字所在边缘起 `78% → 0`（底部 60~78% 不透明） | 只压文字区；整屏罩 = 又回到"调透明度"。NN/g：30% 黑不够、50% 才够 |
+| 运动 | 缩放 ≤0.6%/s 或横移 ≤3px/s，**时长 = 镜头时长** | 只缩放 / 极慢横移，不摇移；底床 : 内容视差 0.5 : 1.0 |
+| 双色调（可选） | `grayscale 1 / contrast 1.15 / brightness .62` → 深色 `lighten` 提黑 + 主题色 `multiply .85~.95` 染白 | 先去色再着色；多来源 B-roll 统一气质 |
+| 同源模糊（可选） | 前景卡清晰；同一素材 `scale 1.25→1.295 + blur 26 + brightness .45 + saturate .8`，慢放 0.5× | blur ≥20 才读作氛围；底床与前景同步会重影；卡 `bed-echo-blur` |
+| 让位 | 前景入场同帧 `.55 → .28 + blur 8px`，0.4s；回来 .55s | 用 brightness 不用 opacity（透出底色会变灰）；对齐 Material 3 scrim .32 / Apple +35% |
+| 同起同收 | 底床淡出 0.4s 与文字退场同帧 | 不留"字没了画面还在"的尾巴 |
+| 选片 | 慢内容（延时 / 光斑 / 俯拍 / 人流虚化），避开可读文字与正脸 | 原片平均亮度（0~255）≥100 才压得住；循环接缝 0.5s 交叉淡化 |
+
 ## 2. 字阶（1920×1080 基准；竖屏同号沿用，行宽变窄自然换行）
 
 中文 = PingFang SC（Apple 官配中文，与 SF 同族气质）→ fallback Noto Sans SC / 思源黑体；

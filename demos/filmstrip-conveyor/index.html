@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>filmstrip-conveyor · 传送带列举 + 减速停靠</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 传送带列举：六格素材接成一条传送带匀速左行，经过中线的格按"离中线的距离"每帧连续放大 / 提亮；
+     讲到关键一格时按位置-时间分段积分减速到 0.25×、停靠 1.4s 再加速回匀速——速度就是讲述节奏。
+     六格全部过完中线后整体退场（入库版有限时长，不无限循环；后六格副本只为传送带右端不留空）。 —— */
+
+  /* 顶部标题 26px（≈1080p 52）+ 小注 14px（≈28，最小可读档） */
+  .hdr { position: absolute; left: 60px; top: 70px; font-size: 26px; font-weight: 700; color: #1d1d1f; }
+  .hdr small { display: block; font-size: 14px; color: #8a8a8a; font-weight: 500; margin-top: 4px; }
+
+  /* 中线停靠区（演示语境：标出"讲到哪格"的取景位，成片可去） */
+  .center { position: absolute; left: 50%; top: 170px; width: 280px; height: 200px; margin-left: -140px; border: 1px dashed rgba(0,0,0,.14); border-radius: 14px; }
+
+  /* 传送带：flex 一行，整条 translateX；每格 240×160 白边卡 + 唯一投影 */
+  .strip { position: absolute; left: 0; top: 190px; display: flex; gap: 24px; will-change: transform; }
+  .item { position: relative; flex: 0 0 240px; height: 160px; border-radius: 10px; overflow: hidden; background: #ffffff; padding: 6px; box-shadow: 0 12px 40px rgba(0,0,0,.16); }
+  .item .n { position: absolute; left: 14px; bottom: 12px; font-size: 14px; color: #ffffff; background: rgba(0,0,0,.55); padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+
+  /* 素材占位（不属于动效）：六档灰调渐变 + 相框图标，成片里换成真图 */
+  .ph { position: absolute; inset: 6px; border-radius: 5px; overflow: hidden; }
+  .ph::before { content: ""; position: absolute; inset: 0; }
+  .ph.t1::before { background: linear-gradient(160deg, #a4b0c6, #7d8aa3); }
+  .ph.t2::before { background: linear-gradient(160deg, #bfa5ae, #957c86); }
+  .ph.t3::before { background: linear-gradient(160deg, #9fb9ae, #789389); }
+  .ph.t4::before { background: linear-gradient(160deg, #c2b39a, #9c8f78); }
+  .ph.t5::before { background: linear-gradient(160deg, #a3a9b8, #7f8594); }
+  .ph.t6::before { background: linear-gradient(160deg, #b8a9c4, #8f809d); }
+  .ph svg { position: absolute; left: 50%; top: 50%; width: 34px; height: 29px; transform: translate(-50%, -56%); opacity: .35; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="hdr">去年爆款封面的六种构图<small>2025 年播放量前六的封面 · 第四种出现最多</small></div>
+    <div class="center"></div>
+    <div class="strip"></div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ——————————————————————————————————————————————————————————
+    // 可摘走的核心动画：传送带列举 + 减速停靠
+    // 命门：① 放大 / 提亮按"离中线的距离"每帧连续算（不是到点触发）
+    //      ② 减速按位置-时间分段积分：匀速 → 减速 → 慢速停靠 → 加速 → 匀速，速度连续不跳变；
+    //         减速结束点对齐"关键格居中"
+    //      ③ 一切状态由时间 t 纯函数算出（stripX(t) + 逐格 k），HTML 与 tsx 用同一条公式
+    // ——————————————————————————————————————————————————————————
+    const CONFIG = {
+      n: 6,             // 一组格数（后面接一组副本，传送带右端不留空）
+      w: 240, gap: 24,  // 格宽 / 格距 → pitch 264
+      loopDur: 9,       // 一组（6 格）匀速走完的时长 → v = 6×264 / 9 = 176px/s（≤220；24fps 成片抖动先降到 ~150）
+      slowIdx: 3,       // 讲到第四格减速（0 起）
+      slowTo: 0.25,     // 慢速段速度 = 0.25 × 匀速
+      decel: 0.5,       // 减速时长
+      slowDur: 1.4,     // 慢速停靠时长
+      accel: 0.6,       // 加速时长
+      maxScale: 1.08,   // 正对中线时的放大
+      dimTo: 0.5,       // 离中线最远时的 brightness
+      reach: 420,       // 放大 / 提亮的影响半径 px（|cx − 480| ≥ reach ⇒ k = 0）
+      exitAt: 7.5,      // 第六格过完中线（6.92s）后 ~0.6s 整体退场
+      exit: 0.4,        // 退场时长（标题 → 传送带，错峰 0.04）
+    };
+    const pitch = CONFIG.w + CONFIG.gap, setW = CONFIG.n * pitch, v = setW / CONFIG.loopDur;   // 264 / 1584 / 176
+    // 位置-时间分段积分（trapezoid：减速段距离 = v·decel·(1+slowTo)/2，加速段同理）
+    const dDecel = v * CONFIG.decel * (1 + CONFIG.slowTo) / 2;      // 55
+    const dSlow = v * CONFIG.slowTo * CONFIG.slowDur;               // 61.6
+    const dAccel = v * CONFIG.accel * (1 + CONFIG.slowTo) / 2;      // 66
+    const centerX = CONFIG.slowIdx * pitch + CONFIG.w / 2 - 480;    // 关键格居中时的 stripX = 432
+    const x0 = Math.max(0, centerX - dDecel);                       // 减速起点 377：减速结束时刚好居中
+    const t1 = x0 / v, t2 = t1 + CONFIG.decel, t3 = t2 + CONFIG.slowDur, t4 = t3 + CONFIG.accel;   // 2.142 / 2.642 / 4.042 / 4.642
+    // 速度连续的减速 / 加速曲线：起速 v、末速 r·v（power2.out 的起速是 3v、末速 0，会跳）
+    const r = CONFIG.slowTo;
+    const decelEase = (s) => (2 / (1 + r)) * s - ((1 - r) / (1 + r)) * s * s;   // p'(0)=1.6, p'(1)=0.4
+    const accelEase = (s) => (2 * r / (1 + r)) * s + ((1 - r) / (1 + r)) * s * s; // p'(0)=0.4, p'(1)=1.6
+    /** 传送带位移 stripX(t)：五段拼接，各段端点速度相等 */
+    const stripX = (t) => {
+      if (t < t1) return v * t;
+      if (t < t2) return x0 + dDecel * decelEase((t - t1) / CONFIG.decel);
+      if (t < t3) return x0 + dDecel + v * r * (t - t2);
+      if (t < t4) return x0 + dDecel + dSlow + dAccel * accelEase((t - t3) / CONFIG.accel);
+      return x0 + dDecel + dSlow + dAccel + v * (t - t4);
+    };
+    /** 第 i 格的中线权重 k ∈ [0,1]：离中线 0 → 1，reach 之外 → 0（二次衰减） */
+    const weight = (i, x) => { const cx = -x + i * pitch + CONFIG.w / 2; const d = Math.min(1, Math.abs(cx - 480) / CONFIG.reach); return (1 - d) * (1 - d); };
+    const END = CONFIG.exitAt + 0.04 + CONFIG.exit;   // 7.94
+    /* 时间表（s）：0–2.14 匀速 · 2.14–2.64 减速 · 2.64–4.04 慢速停靠（第四格居中）· 4.04–4.64 加速 · 4.64– 匀速
+       · 6.92 第六格过中线 · 7.5 标题退 · 7.54 传送带退 · END 7.94 */
+
+    // 六格占位 + 副本（不属于动效）
+    const GLYPH = '<svg viewBox="0 0 48 40" fill="none" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"><rect x="2" y="2" width="44" height="36" rx="4"/><circle cx="16" cy="14" r="4"/><path d="M4 34 L18 22 L27 30 L34 24 L44 34"/></svg>';
+    const NAMES = ["一", "二", "三", "四", "五", "六"];
+    const strip = document.querySelector(".strip");
+    for (let i = 0; i < CONFIG.n * 2; i++) {
+      const d = document.createElement("div"); d.className = "item";
+      d.innerHTML = `<div class="ph t${(i % CONFIG.n) + 1}">${GLYPH}</div><div class="n">构图 ${NAMES[i % CONFIG.n]}</div>`;
+      strip.appendChild(d);
+    }
+    const items = [...strip.children], hdr = document.querySelector(".hdr"), center = document.querySelector(".center");
+
+    DemoShell.register(({ speed }) => {
+      const o = { t: 0 };
+      // 由 t 一次写出全部状态：传送带位移 + 逐格放大 / 提亮 / 层级
+      const apply = () => {
+        const x = stripX(o.t);
+        strip.style.transform = `translateX(${-x}px)`;
+        items.forEach((it, i) => {
+          const k = weight(i, x);
+          it.style.transform = `scale(${1 + (CONFIG.maxScale - 1) * k})`;
+          it.style.filter = `brightness(${CONFIG.dimTo + (1 - CONFIG.dimTo) * k})`;
+          it.style.zIndex = Math.round(k * 10);
+        });
+      };
+      const tl = gsap.timeline({ onUpdate: apply });
+      tl.timeScale(speed);
+      tl.set(o, { t: 0 }).set([hdr, strip, center], { opacity: 1 })
+        .to(o, { t: END, duration: END, ease: "none" }, 0)                                                // 时钟：位移曲线全在 stripX(t) 里
+        .to(hdr, { opacity: 0, duration: CONFIG.exit, ease: "power2.in" }, CONFIG.exitAt)                 // 字与画同收：标题 → 传送带
+        .to([strip, center], { opacity: 0, duration: CONFIG.exit, ease: "power2.in" }, CONFIG.exitAt + 0.04);
+      apply();
+    });
+  </script>
+</body>
+</html>

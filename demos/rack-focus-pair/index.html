@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>rack-focus-pair · 焦点接力</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 焦点接力：两张白边卡前后叠放，永远一清一糊；讲到哪张，焦点 0.7s 转移过去——像镜头在两张之间对焦。
+     白底成立（白边 + 唯一投影把卡从舞台上抬起来）。素材占位（灰调渐变）是演示语境，不属于动效本体。 —— */
+
+  /* 素材占位（不属于动效）：灰调渐变 + 相框图标（六档色，与 parallel-items-with-host 同一体系） */
+  .ph { position: absolute; overflow: hidden; }
+  .ph::before { content: ""; position: absolute; inset: 0; }
+  .ph.t1::before { background: linear-gradient(160deg, #a4b0c6, #7d8aa3); }
+  .ph.t2::before { background: linear-gradient(160deg, #bfa5ae, #957c86); }
+  .ph.t3::before { background: linear-gradient(160deg, #9fb9ae, #789389); }
+  .ph.t4::before { background: linear-gradient(160deg, #c2b39a, #9c8f78); }
+  .ph.t5::before { background: linear-gradient(160deg, #a3a9b8, #7f8594); }
+  .ph.t6::before { background: linear-gradient(160deg, #b8a9c4, #8f809d); }
+  .ph svg { position: absolute; left: 50%; top: 50%; width: 56px; height: 48px; transform: translate(-50%, -56%); opacity: .35; }
+
+  /* 白边卡（白边 10 + 唯一投影）+ 压图标签 */
+  .photo { position: absolute; background: #ffffff; padding: 10px; border-radius: 12px; box-shadow: 0 12px 60px rgba(0,0,0,.22); will-change: transform, filter; }
+  .photo .ph { inset: 10px; border-radius: 5px; }
+  .photo .tag { position: absolute; left: 24px; bottom: 24px; background: rgba(255,255,255,.94); color: #1d1d1f; font-size: 20px; font-weight: 700; padding: 6px 14px; border-radius: 8px; white-space: nowrap; box-shadow: 0 4px 16px rgba(0,0,0,.18); }
+  .photo .tag.r { left: auto; right: 24px; }
+
+  /* 后张（电子书）480×320 @ (400, 60)；前张（纸书）380×270 @ (100, 160)，前张压住后张左下一角 */
+  .pb { left: 400px; top: 60px; width: 480px; height: 320px; }
+  .pf { left: 100px; top: 160px; width: 380px; height: 270px; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="photo pb"><div class="ph t5"></div><div class="tag r">电子书</div></div>
+    <div class="photo pf"><div class="ph t4"></div><div class="tag">纸书</div></div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ——————————————————————————————————————————————————————————
+    // 可摘走的核心动画：焦点接力
+    // 命门：① 两张永远一清一糊（同时清晰就没有"焦点"）；② 被糊的那张仍在原位不退场；
+    //      ③ 转移 0.7s power2.inOut（清晰 ↔ blur 8 / brightness .6，scale 1.02 ↔ .97 同步）；④ 两次转移之间 ≥1.8s。
+    // ——————————————————————————————————————————————————————————
+    const CONFIG = {
+      softBlur: 8,           // 失焦模糊 px（6~10；<5 读不出对焦，>12 素材内容认不出）
+      softBright: 0.6,       // 失焦压暗（配合模糊把注意力让出去）
+      sharpScale: 1.02,      // 在焦那张微放
+      softScale: 0.97,       // 失焦那张微缩（两张 5% 的尺寸差 = 前后景深感）
+      shift: 0.7,            // 焦点转移时长 s（power2.inOut）
+      focusAt: [2.0, 4.6],   // 两次转移时刻：前→后、后→前（间隔 ≥1.8s，让观众读完一张）
+      enterAt: 0.2,          // 两张入场起点 s（后张先、前张 +0.08；0.5s power3.out，y 14→0）
+      exitAt: 6.4,           // 两张同收（0.4s power2.in）
+      end: 6.8,              // 镜头结束
+    };
+
+    // 素材占位里的相框图标（不属于动效）
+    const GLYPH = '<svg viewBox="0 0 48 40" fill="none" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"><rect x="2" y="2" width="44" height="36" rx="4"/><circle cx="16" cy="14" r="4"/><path d="M4 34 L18 22 L27 30 L34 24 L44 34"/></svg>';
+    document.querySelectorAll(".ph").forEach((el) => { el.insertAdjacentHTML("beforeend", GLYPH); });
+
+    const $ = (s) => document.querySelector(s);
+
+    DemoShell.register(({ speed }) => {
+      const pf = $(".pf"), pb = $(".pb");
+      const sharp = { filter: "blur(0px) brightness(1)", scale: CONFIG.sharpScale };
+      const soft = { filter: `blur(${CONFIG.softBlur}px) brightness(${CONFIG.softBright})`, scale: CONFIG.softScale };
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // 复位（重播语义）：前张在焦、后张失焦，两张先藏
+      tl.set(pf, { ...sharp, opacity: 0, y: 14, transformOrigin: "50% 50%" })
+        .set(pb, { ...soft, opacity: 0, y: 14, transformOrigin: "50% 50%" })
+        // 入场：后张先、前张随后（同向、错峰 0.08）
+        .to(pb, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, CONFIG.enterAt)
+        .to(pf, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, CONFIG.enterAt + 0.08)
+        // 焦点交给后张
+        .to(pf, { ...soft, duration: CONFIG.shift, ease: "power2.inOut" }, CONFIG.focusAt[0])
+        .to(pb, { ...sharp, duration: CONFIG.shift, ease: "power2.inOut" }, CONFIG.focusAt[0])
+        // 再交回前张
+        .to(pb, { ...soft, duration: CONFIG.shift, ease: "power2.inOut" }, CONFIG.focusAt[1])
+        .to(pf, { ...sharp, duration: CONFIG.shift, ease: "power2.inOut" }, CONFIG.focusAt[1])
+        // 两张同收
+        .to([pf, pb], { opacity: 0, duration: CONFIG.end - CONFIG.exitAt, ease: "power2.in" }, CONFIG.exitAt);
+    });
+  </script>
+</body>
+</html>

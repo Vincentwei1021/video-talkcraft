@@ -7,7 +7,7 @@
 [![Gallery](https://img.shields.io/badge/Gallery-live%20previews-7A5AF8)](https://vincentwei1021.github.io/video-talkcraft/)
 [![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial-blue)](LICENSE)
 
-**An agent skill for crafting high-quality voiceover-driven videos: word-level voiceover sync · 79 motion recipe cards · a 7-layer anti-slideshow shot system · triple-gate QA**
+**An agent skill for crafting high-quality voiceover-driven videos: word-level voiceover sync · 89 motion recipe cards · a 7-layer anti-slideshow shot system · triple-gate QA**
 
 [中文](README.md) | [English](README_EN.md)
 
@@ -26,7 +26,7 @@ camera moves, plain-cut subtitles, and film-grade SFX, all locked to the voice.
 > built Chinese-narration-first (mixed Chinese/English narration is fully
 > supported). Agents read them natively.
 
-🖼️ [**Browse all 79 motion previews in the live Gallery »**](https://vincentwei1021.github.io/video-talkcraft/)
+🖼️ [**Browse all 89 motion previews in the live Gallery »**](https://vincentwei1021.github.io/video-talkcraft/)
 
 [![video-talkcraft live gallery](assets/gallery-en.png)](https://vincentwei1021.github.io/video-talkcraft/)
 
@@ -34,6 +34,12 @@ camera moves, plain-cut subtitles, and film-grade SFX, all locked to the voice.
 
 **2026-09-05**
 
+- **Material presentation expansion: 10 new cards (79 → 89)** — 47 lab prototypes went through two rounds of user review down to 21, then folded by "what it really is" into 10 cards + 4 rules:
+  `parallel-items-with-host` (parallel-sentence layouts with the presenter on camera, seven layouts on one card) · `still-layout-relay` (hero-duo / triptych with focus relay) · `split-compare-slider` ·
+  `filmstrip-conveyor` · `grid-to-hero` · `stack-fan-out` · `split-60-40-story` · `multi-still-tour` (photo wall / timeline dolly with stops) · `bed-echo-blur` (same-source blur bed) · `rack-focus-pair`.
+  Every new card's md opens with an **input-type table** (presenter video / B-roll / images) and **four common scenarios**; taxonomy gains a library-wide **input-type index** so card selection
+  starts by filtering on the shot's material. Four rules: the live-footage bed processing chain (design-language §1.2), the multi-asset "relationship → layout" table (shot-design §2④′),
+  the three parallel-sentence disciplines (layout §7.1), and **text and picture end together** (continuous motion is written as a rate, duration = shot length, no tail where the words are gone but the bed keeps drifting).
 - **Layout spec `references/layout.md`** — a review of one delivered video surfaced 10 defects, all layout: edge-hugging cards, block/title
   misalignment, a bracket frame missing its text, a lone sentence shrunk into a corner, tiny list items, off-center groups, inverted spacing,
   text colliding with a neighbouring column, same-colour chapter cards. Borrowing the shared patterns of three slide/card skills: 12-column grid
@@ -60,7 +66,7 @@ camera moves, plain-cut subtitles, and film-grade SFX, all locked to the voice.
 
 - **Motion workbench `workbench/`** — a CapCut-style post-production desk for finished videos: multi-track timeline,
   library (media / motion cards / SFX / backgrounds), schema-driven inspector, live preview and one-click **Export**.
-  All 79 motion cards are parameterized (copy, colors, sizes, positions editable; timing vitals stay fixed).
+  All 89 motion cards are parameterized (copy, colors, sizes, positions editable; timing vitals stay fixed).
   A narration video can be split into seven kinds of editable units — subtitles / transitions / environment /
   avatar / shots / voiceover / SFX. The skill opens it for you after delivery. → [**Illustrated guide (zh)**](workbench/GUIDE.md)
 
@@ -92,7 +98,7 @@ camera moves, plain-cut subtitles, and film-grade SFX, all locked to the voice.
   110s mixed-language narration: median per-character offset 20–40 ms,
   worst case 200 ms, zero false QA flags. Every motion beat anchors to the
   exact word.
-- **79 motion recipe cards** — each with intent, parameters, known pitfalls,
+- **89 motion recipe cards** — each with intent, parameters, known pitfalls,
   a copy-paste self-contained Remotion tsx source, and a runnable HTML
   preview — browse them all in the
   [online Gallery](https://vincentwei1021.github.io/video-talkcraft/) or
@@ -166,8 +172,8 @@ Make a 100-second explainer about <topic>; here is the script and the audio.
 
 | Content | Description |
 | --- | --- |
-| 79 motion recipe cards | Intent, energy, parameters, implementation notes, and known pitfalls — every card ships a self-contained Remotion tsx source (`template/cards/`, copy one file and go) plus a runnable HTML demo |
-| Gallery | [Online](https://vincentwei1021.github.io/video-talkcraft/) or local (`open gallery/index.html`) — browse and autoplay all 79 previews, search by name/keyword |
+| 89 motion recipe cards | Intent, energy, parameters, implementation notes, and known pitfalls — every card ships a self-contained Remotion tsx source (`template/cards/`, copy one file and go) plus a runnable HTML demo |
+| Gallery | [Online](https://vincentwei1021.github.io/video-talkcraft/) or local (`open gallery/index.html`) — browse and autoplay all 89 previews, search by name/keyword |
 | Motion systems | CameraRig (slow push/pull), yield lifecycle, six transitions, long-take world canvas; parallax and environment layer optional (`template/motion-systems/`) |
 | Components | Plain-cut subtitles, flower-word titles, smash words, highlight sweeps, pencil draw, number rolls (`template/components/`) |
 | Pipeline scripts | Word-level timestamps (2 ASR backends), face-zone detection, stillness check, SFX presence check, QA frame extraction (`scripts/`) |
@@ -184,12 +190,12 @@ video-talkcraft/
 │   ├── shot-design.md          # 3-plane worksheet + 7 shot-type presets
 │   ├── cinematography.md       # 7-layer model, transitions, layout budget, QA gates
 │   ├── shotbook-example.md     # A full storyboard example
-│   ├── cards/                  # 79 motion recipe cards
+│   ├── cards/                  # 89 motion recipe cards
 │   ├── taxonomy.md             # Card index by category and source
 │   ├── broll-sources.md        # Attribution-free stock sources (APIs, license traps)
 │   ├── host-footage.md         # Host footage: input spec, keying, face safety zone
 │   └── demo-spec.md            # Card/demo authoring spec
-├── demos/                      # 79 runnable HTML previews (+ shared lib with embedded SFX)
+├── demos/                      # 89 runnable HTML previews (+ shared lib with embedded SFX)
 ├── gallery/                    # One-page local gallery
 ├── template/                   # Copy-paste Remotion code
 │   ├── cards/                  # Per-card self-contained tsx sources (the skill's primary reference)

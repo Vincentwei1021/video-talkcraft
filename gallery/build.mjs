@@ -96,7 +96,7 @@ function mdToHtml(md) {
 }
 
 // 本批新增卡（画廊里标 NEW）——每次入库新卡后更新这份名单，下批入新卡时把 slug 填回这里。
-const NEW_SLUGS = new Set([]);
+const NEW_SLUGS = new Set(["parallel-items-with-host", "still-layout-relay", "grid-to-hero", "stack-fan-out", "split-compare-slider", "filmstrip-conveyor", "multi-still-tour", "bed-echo-blur", "rack-focus-pair", "split-60-40-story"]);   // 2026-09-05 素材呈现拓展 ◉
 
 const cards = [];
 const problems = [];
