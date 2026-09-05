@@ -356,7 +356,8 @@
       try {
         if (!window.gsap) return;
         var nt = Math.max(0, t) / speed;
-        window.gsap.globalTimeline.time(runStart + nt);
+        // suppressEvents=false：跳过去的 .call() / onUpdate 照常执行，seek 后的中间态才是真的（shot-at.mjs 依赖这一点）
+        window.gsap.globalTimeline.time(runStart + nt, false);
         cueIdx = 0;
         while (cueIdx < cues.length && cues[cueIdx].t / speed < nt) cueIdx++;
       } catch (e) { /* 忽略 */ }
