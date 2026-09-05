@@ -98,6 +98,16 @@ export const TPL_META: Record<string, { name: string; category: string }> = {
   "unit-grid-proportion": { name: "点阵比例图", category: "数据信息图" },
   "source-converge": { name: "多源汇聚", category: "数据信息图" },
   "line-carry-transition": { name: "线条接力转场", category: "转场结构" },
+  "error-retype": { name: "打字改口", category: "字幕花字" },
+  "countdown-arc-scatter": { name: "数字弧落标题", category: "字幕花字" },
+  "flying-words": { name: "关键词隧道", category: "字幕花字" },
+  "split-text-stagger": { name: "逐字裂升", category: "字幕花字" },
+  "word-relay-filmstrip": { name: "动词接力胶片", category: "字幕花字" },
+  "doc-park-left-pill-deal": { name: "文档驻留发牌", category: "素材呈现" },
+  "info-card-assemble": { name: "信息卡逐字段自建", category: "素材呈现" },
+  "chip-grid-single-select": { name: "五选一反黑", category: "数据信息图" },
+  "reticle-lock-on": { name: "准星咬合", category: "强调标注" },
+  "host-card-glass-board": { name: "人物竖卡玻璃台", category: "人物互动" },
 };
 
 /** 画廊分类顺序 */

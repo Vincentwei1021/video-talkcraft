@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>countdown-arc-scatter · 数字弧落标题</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 数字弧落标题：一串相邻递减的数字切向排在弧上，整盘 96° 扫回 0° 后 outCubic 急停，被选中的那个数停在弧顶，
+     随即平移到标题首字符位并回正；其余数字原地失焦散去（不位移），标题逐词解糊，末词染强调色。
+     白底成立；表盘只在开头出现一拍，落定后整幕静止。 —— */
+
+  /* 表盘枢轴：零尺寸锚点，数字与刻度都挂在它上面 */
+  .cas-pivot { position: absolute; left: 480px; top: 318px; width: 0; height: 0; }
+  .cas-num { position: absolute; left: 0; top: 0; font-size: 52px; font-weight: 600; color: #1d1d1f; font-variant-numeric: tabular-nums; white-space: nowrap; letter-spacing: -1px; will-change: transform, opacity, filter; }
+  /* 刻度：挂在更外一圈（R+38），跟着盘转但只跟 0.35 倍——两条转速造出"盘面 + 指针"的层次 */
+  .cas-tick { position: absolute; left: -1.5px; top: 0; width: 3px; height: 22px; background: #c9c9cf; transform-origin: 50% 0; will-change: transform, opacity; }
+  /* 标题：居中，首位是给被选中数字预留的隐形槽（宽度 = 该数字真实宽度） */
+  .cas-ttl { position: absolute; left: 50%; top: 250px; transform: translate(-50%, -50%); display: flex; align-items: baseline; gap: 16px; font-size: 52px; font-weight: 600; color: #1d1d1f; white-space: nowrap; letter-spacing: -1px; }
+  .cas-slot { display: inline-block; visibility: hidden; }
+  .cas-w { display: inline-block; opacity: 0; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="cas-pivot"></div>
+    <div class="cas-ttl"><span class="cas-slot"></span></div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ——————————————————————————————————————————————————————————
+    // 可摘走的核心动画：数字弧落标题（弧上一串相邻递减数字 → 整盘扫回急停 → 选中数落成标题首字 → 其余散去 → 标题逐词解糊）
+    // 命门：① 扫动 outCubic 的减速急停是"到位"的全部力道（改 inOut 就没有仪表的干脆）；② 数字用角度算透明度（±70° 外全透）——
+    //      是"转进视野"不是遮罩；③ 选中数落位窗紧接扫停、不留静置（留了就断成两个动作），落位与回正同一条曲线；
+    //      ④ 其余数字原地失焦散去不位移（位移会跟落位抢戏），且比落位早 0.02 起手先让路；⑤ 刻度 0.35 倍差速。
+    // ——————————————————————————————————————————————————————————
+    const CONFIG = {
+      step: 24,          // 相邻数字夹角 °
+      R: 150,            // 数字弧半径 px（<100 挤成小圈，>220 弧近乎直线）
+      sweepFrom: 96,     // 起始盘角 °：96° ≈ 扫过 4 格
+      sweepAt: 0.3,      // 开始扫动的时刻 s
+      sweep: 0.57,       // 扫动时长 s（power2.out 急停；≈17 帧）
+      outAt: 0.85,       // 其余数字开始散去 s（比落位早 0.02，先让路）
+      outDur: 0.3,       // 散去时长 s（power1.in：opacity→0 + blur 3px，不位移）
+      handAt: 0.87,      // 选中数开始落位 s（紧接扫停）
+      handDur: 0.3,      // 落位 + 回正 s（power2.inOut，同一条曲线）
+      wordsAt: 0.95,     // 标题第一词开始解糊 s
+      wordStagger: 0.15, // 逐词错峰 s（窗重叠约 0.2 才读作"一句话"）
+      wordDur: 0.35,     // 每词解糊 s（blur 6→0 + 淡入，power2.out）
+      accentAt: 1.75,    // 末词染强调色起点 s（全卡唯一颜色事件）
+      accentDur: 0.25,   // 染色时长 s
+      tickN: 15,         // 刻度数
+      tickStep: 12,      // 刻度夹角 °
+      tickRatio: 0.35,   // 刻度跟转比例（盘 vs 指针的层次来源；1.0 读作一整块贴图在转）
+      visAngle: 70,      // 可视角窗 °（|位置角| > 70 全透，70→48 渐显）
+      visFeather: 22,    // 渐变宽度 °
+      exitAt: 4.6,       // 整幕同收起点 s
+      exitDur: 0.4,      // 同收时长（power2.in）
+    };
+    // 文案（演示语境）：相邻递减的数字串、被选中的数、标题后续词（末词染色）
+    const NUMBERS = [11, 10, 9, 8, 7, 6, 5, 4, 3];
+    const PICK = 5;
+    const WORDS = ["分钟", "搭好", "创作系统"];
+    const ACCENT = "#0066cc";
+
+    const $ = (s) => document.querySelector(s);
+    const pivot = $(".cas-pivot"), ttl = $(".cas-ttl"), slot = $(".cas-slot");
+    const pickIdx = Math.max(0, NUMBERS.indexOf(PICK));
+    slot.textContent = String(PICK);
+    WORDS.forEach((w) => { const s = document.createElement("span"); s.className = "cas-w"; s.textContent = w; ttl.appendChild(s); });
+    const words = [...ttl.querySelectorAll(".cas-w")];
+    const nums = NUMBERS.map((n) => { const d = document.createElement("div"); d.className = "cas-num"; d.textContent = n; pivot.appendChild(d); return d; });
+    const ticks = Array.from({ length: CONFIG.tickN }, () => { const d = document.createElement("div"); d.className = "cas-tick"; pivot.appendChild(d); return d; });
+    // 选中数的落点 = 标题首位隐形槽的中心（相对枢轴）：标题居中于 (480, 250)，槽是第一个子元素
+    const target = { x: slot.offsetWidth / 2 - ttl.offsetWidth / 2, y: 250 - 318 };
+    const clamp01 = (v) => Math.max(0, Math.min(1, v));
+    const lerp = (a, b, p) => a + (b - a) * p;
+
+    const o = { rot: CONFIG.sweepFrom, hand: 0, out: 0 };
+    const apply = () => {
+      nums.forEach((el, i) => {
+        const pa = (i - pickIdx) * CONFIG.step + o.rot, a = (pa * Math.PI) / 180;
+        let x = Math.sin(a) * CONFIG.R, y = -Math.cos(a) * CONFIG.R, rot = pa, op = clamp01((CONFIG.visAngle - Math.abs(pa)) / CONFIG.visFeather);   // 用角度算透明度：数字是"转进视野"的
+        if (i === pickIdx) { x = lerp(x, target.x, o.hand); y = lerp(y, target.y, o.hand); rot = rot * (1 - o.hand); op = Math.max(op, o.hand); el.style.filter = "none"; }
+        else { op *= 1 - o.out; el.style.filter = `blur(${(o.out * 3).toFixed(2)}px)`; }
+        el.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%) rotate(${rot}deg)`; el.style.opacity = op;
+      });
+      ticks.forEach((t, k) => {
+        const pa = (k - Math.floor(CONFIG.tickN / 2)) * CONFIG.tickStep + o.rot * CONFIG.tickRatio, a = (pa * Math.PI) / 180, r = CONFIG.R + 38;   // 刻度 0.35 倍差速
+        t.style.transform = `translate(${Math.sin(a) * r}px, ${-Math.cos(a) * r}px) rotate(${pa}deg)`;
+        t.style.opacity = clamp01((80 - Math.abs(pa)) / 20) * 0.8 * (1 - o.out);
+      });
+    };
+
+    DemoShell.register(({ speed }) => {
+      const tl = gsap.timeline({ onUpdate: apply });
+      tl.timeScale(speed);
+      // 复位（重播语义）
+      tl.set(o, { rot: CONFIG.sweepFrom, hand: 0, out: 0 }).set(words, { opacity: 0, filter: "blur(6px)", color: "#1d1d1f" }).set([pivot, ttl], { opacity: 1 })
+        // 整盘扫回 0°：outCubic 急停
+        .to(o, { rot: 0, duration: CONFIG.sweep, ease: "power2.out" }, CONFIG.sweepAt)
+        // 其余数字原地失焦散去（先让路）
+        .to(o, { out: 1, duration: CONFIG.outDur, ease: "power1.in" }, CONFIG.outAt)
+        // 选中数平移到标题首字位并回正（同一条曲线）
+        .to(o, { hand: 1, duration: CONFIG.handDur, ease: "power2.inOut" }, CONFIG.handAt)
+        // 标题逐词解糊
+        .to(words, { opacity: 1, filter: "blur(0px)", duration: CONFIG.wordDur, stagger: CONFIG.wordStagger, ease: "power2.out" }, CONFIG.wordsAt)
+        // 末词染色：全卡唯一颜色事件
+        .to(words[words.length - 1], { color: ACCENT, duration: CONFIG.accentDur }, CONFIG.accentAt)
+        // 整幕同收
+        .to([pivot, ttl], { opacity: 0, duration: CONFIG.exitDur, ease: "power2.in" }, CONFIG.exitAt);
+    });
+  </script>
+</body>
+</html>
