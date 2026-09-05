@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>title-demote-to-label · 标题降格成标签</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 标题降格成标签：章节标题居中解糊显影、站稳 ≥18 帧，然后一条 inOut 曲线 20 帧完成"缩到 0.4 倍 + 飞到左上角"落成小节标签；
+     降格进行到 12 帧时内容块已开始在其下方错峰生长——标题还在飞、内容已在长，交接无空档。标题不消失，变成常驻路标。白底成立。 —— */
+
+  /* 标题：绝对定位，left/top 与 transform 由脚本按降格进度 d 插值；transform-origin 左中 */
+  .tdl-ttl { position: absolute; left: 480px; top: 270px; font-size: 56px; font-weight: 700; color: #1d1d1f; white-space: nowrap; transform-origin: 0% 50%; will-change: transform, filter; }
+  /* 内容块：左边缘吸附标签落点同一栏线（x=80） */
+  .tdl-content { position: absolute; left: 80px; top: 150px; width: 800px; }
+  .tdl-blk { display: flex; align-items: center; gap: 18px; height: 64px; margin-bottom: 22px; font-size: 26px; color: #1d1d1f; will-change: transform, clip-path; }
+  .tdl-blk i { flex: none; width: 8px; height: 40px; border-radius: 4px; background: #0066cc; }
+  .tdl-blk span { border-radius: 12px; padding: 0 22px; height: 64px; line-height: 64px; white-space: nowrap; }
+  /* 同组条目底板用淡色系区分（layout §7），文字保持墨色 */
+  .tdl-b1 span { background: #E8F0FF; } .tdl-b2 span { background: #E6F7F2; } .tdl-b3 span { background: #FFF4DC; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="tdl-ttl">第二步 · 拆解需求</div>
+    <div class="tdl-content">
+      <div class="tdl-blk tdl-b1"><i></i><span>把一句话需求拆成 3～5 个可验证的小目标</span></div>
+      <div class="tdl-blk tdl-b2"><i></i><span>每个小目标写清"做完长什么样"</span></div>
+      <div class="tdl-blk tdl-b3"><i></i><span>先做最不确定的那一个</span></div>
+    </div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ——————————————————————————————————————————————————————————
+    // 可摘走的核心动画：标题降格成标签（显影站稳 → 单次补间缩 + 飞到左上 → 内容在其下错峰生长）
+    // 命门：① 降格是单次连续补间：scale 与位置同一条 inOut 曲线（分"先缩后飞"两段读作两个动作）；
+    //      ② 显影后必须站稳 ≥18 帧再降格（没站稳就缩，宣告拍被吃掉）；③ 居中修正量 translate(-(1-d)·50%) 随补间同步归零
+    //      （不归零终点偏一个半宽）；④ 内容在降格进行到 12 帧时就开始长——交接无空档。
+    // ——————————————————————————————————————————————————————————
+    const CONFIG = {
+      startAt: 0.20,      // 标题显影起点 s
+      reveal: 0.40,       // 显影时长 s（blur 12→0 + 淡入，power3.out）
+      stand: 0.70,        // 站稳静置 s（≥0.6；省掉这拍观众没读完标题它就跑了）
+      demote: 0.67,       // 降格补间 s（≈20 帧 power2.inOut；<0.47 读作标题被弹走）
+      endScale: 0.4,      // 标签终点缩放（56px → 22px，仍在 caption 档以上；>0.45 标签太大压内容）
+      from: { x: 480, y: 270 },   // 标题居中位（画面中心）
+      to: { x: 80, y: 72 },       // 标签落点（左边吸附栏线 x=80 = 内容块左边）
+      growDelay: 0.40,    // 内容开始生长相对降格起点的延迟 s（≈12 帧：标题还在飞内容已在长；等标题落位才长会空 8 帧冷场）
+      stagger: 0.55,      // 内容块错峰 s（按口播逐个出现；全部同时长出读作页面刷新）
+      growDur: 0.50,      // 单块生长 s（power3.out：clip 从 35% 宽展开 + 上移 28px + 淡入）
+      clipFrom: 65,       // 生长起点被裁掉的右侧百分比（宽 0.35→1）
+      rise: 28,           // 生长起点上移量 px
+      holdEnd: 2.70,      // 末块落定后静置 s
+      exitDur: 0.40,      // 标签 + 内容同收（power2.in）
+    };
+
+    const $ = (s) => document.querySelector(s);
+    const ttl = $(".tdl-ttl"), blks = [...document.querySelectorAll(".tdl-blk")];
+    const lerp = (a, b, p) => a + (b - a) * p;
+    // 降格进度 d ∈ [0,1] → 位置、缩放、居中修正量一起插值（同一条曲线）
+    const o = { d: 0 };
+    const apply = () => {
+      const d = o.d, s = lerp(1, CONFIG.endScale, d);
+      ttl.style.left = lerp(CONFIG.from.x, CONFIG.to.x, d) + "px";
+      ttl.style.top = lerp(CONFIG.from.y, CONFIG.to.y, d) + "px";
+      ttl.style.transform = `translate(${-(1 - d) * 50}%, -50%) scale(${s})`;
+    };
+
+    // 时间表：demoteAt = startAt + reveal + stand；growAt = demoteAt + growDelay；exitAt = growAt + (n-1)·stagger + holdEnd
+    const demoteAt = CONFIG.startAt + CONFIG.reveal + CONFIG.stand;
+    const growAt = demoteAt + CONFIG.growDelay;
+    const exitAt = growAt + (blks.length - 1) * CONFIG.stagger + CONFIG.holdEnd;
+
+    DemoShell.register(({ speed }) => {
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+      // 复位（重播语义）
+      tl.set(o, { d: 0 }).call(apply, [], 0.01)
+        .set(ttl, { opacity: 0, filter: "blur(12px)" })
+        .set(blks, { opacity: 0, y: CONFIG.rise, clipPath: `inset(0 ${CONFIG.clipFrom}% 0 0)` })
+        // 显影 → 站稳
+        .to(ttl, { opacity: 1, filter: "blur(0px)", duration: CONFIG.reveal, ease: "power3.out" }, CONFIG.startAt)
+        // 降格：单次连续补间（缩 + 飞一条曲线）
+        .to(o, { d: 1, duration: CONFIG.demote, ease: "power2.inOut", onUpdate: apply }, demoteAt);
+      // 内容在其下错峰生长（标题还在飞，内容已在长）
+      blks.forEach((b, i) => tl.to(b, { opacity: 1, y: 0, clipPath: "inset(0 0% 0 0)", duration: CONFIG.growDur, ease: "power3.out" }, growAt + i * CONFIG.stagger));
+      // 标签 + 内容同收
+      tl.to([ttl, ...blks], { opacity: 0, duration: CONFIG.exitDur, ease: "power2.in" }, exitAt);
+    });
+  </script>
+</body>
+</html>

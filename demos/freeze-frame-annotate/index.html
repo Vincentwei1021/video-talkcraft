@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>freeze-frame-annotate · 定格圈注</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 定格圈注：B-roll 正常播 1.3s，瞬时定格（配 4 帧 18% 白闪当快门）；停 8 帧后一条手绘感椭圆 8 帧描边圈住目标、箭头 6 帧点题、标签浮出；
+     hold 1.6s；圈注淡出的同一帧解冻，视频 1.4× 追一秒补回时长再回正常速。定格期间画面绝对静止，只有圈和字在动。
+     footage 占位（灰调渐变 + 匀速漂移亮带）是演示语境，成片换真 B-roll。 —— */
+  #stage { background: #1d1d1f; }
+
+  /* footage 占位（不属于动效）：与 bed-echo-blur 同一体系——.ph 底 + 三道斜向亮带匀速漂移，读作"一条在动的视频"；定格 = 漂移相位钉住 */
+  .ph { position: absolute; inset: 0; overflow: hidden; }
+  .ph::before { content: ""; position: absolute; inset: 0; background: linear-gradient(160deg, #a4b0c6, #7d8aa3); }
+  .ph svg.glyph { position: absolute; left: 50%; top: 50%; width: 56px; height: 48px; transform: translate(-50%, -56%); opacity: .35; }
+  .ph .drift {
+    position: absolute; top: 0; bottom: 0; left: -150%; width: 400%;
+    background: repeating-linear-gradient(112deg,
+      rgba(255,255,255,0) 0 70px, rgba(255,255,255,.16) 70px 150px,
+      rgba(255,255,255,0) 150px 260px, rgba(255,255,255,.12) 260px 320px,
+      rgba(255,255,255,0) 320px 420px, rgba(255,255,255,.18) 420px 540px,
+      rgba(255,255,255,0) 540px 640px);
+  }
+
+  /* 快门白闪 */
+  .flash { position: absolute; inset: 0; background: #ffffff; opacity: 0; pointer-events: none; }
+  /* 圈注：马克黄 5px（视频上蓝线常与画面同色，标注用黄）；手绘感来自路径本身的不规则，画完静置不抖 */
+  .anno { position: absolute; inset: 0; width: 960px; height: 540px; overflow: visible; }
+  .anno .ell, .anno .arr { fill: none; stroke: #ffd60a; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+  /* 标签：30px/700 白字 + 黑投影，副行 16px */
+  .lb { position: absolute; left: 92px; top: 96px; font-size: 30px; font-weight: 700; color: #ffffff; text-shadow: 0 2px 10px rgba(0,0,0,.7); opacity: 0; }
+  .lb small { display: block; font-size: 16px; font-weight: 500; margin-top: 4px; color: rgba(255,255,255,.8); }
+  /* 定格徽标：右上等宽小字 */
+  .badge { position: absolute; right: 40px; top: 30px; font-family: "SF Mono", Menlo, monospace; font-size: 14px; letter-spacing: 1.5px; color: rgba(255,255,255,.75); opacity: 0; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="ph"><div class="drift"></div></div>
+    <div class="flash"></div>
+    <svg class="anno" viewBox="0 0 960 540">
+      <path class="ell" d="M 330 268 C 330 200, 410 168, 486 172 C 566 176, 632 216, 630 268 C 628 322, 556 366, 478 364 C 400 362, 330 330, 330 268 Z"/>
+      <path class="arr" d="M 296 166 C 322 176, 346 186, 366 196 M 350 183 L 366 196 L 349 200"/>
+    </svg>
+    <div class="lb">注意他的左手<small>一直按着 ⌘，没离开过</small></div>
+    <div class="badge">FREEZE · 00:01.30</div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ——————————————————————————————————————————————————————————
+    // 可摘走的核心动画：定格圈注
+    // 命门：① 定格要干脆（源时间斜率瞬间归零，任何缓入都读作卡顿）；② 定格段 ≥45 帧凝视才成立；③ 圈注对象锐利居中，画完静置不抖（用户禁 line boil）；
+    //      ④ 解冻用 1.4× 追一秒补回时长再回 1×（>2× 读作快进）；⑤ 一个镜头只能有一个时间操纵者。
+    // ——————————————————————————————————————————————————————————
+    const CONFIG = {
+      freezeAt: 1.3,       // 定格时刻 s（源时间从这里钉住）
+      flash: 0.18,         // 快门白闪峰值（4 帧；>0.30 读作曝光事故）
+      drawDelay: 0.27,     // 定格后多久开始画圈（8 帧：先让观众看到"停了"）
+      draw: 0.27,          // 椭圆描边时长 s（8 帧）
+      arrow: 0.2,          // 箭头时长 s（6 帧）
+      hold: 1.6,           // 圈注 hold s（看清目标）
+      catchup: 1.4,        // 解冻后追赶倍率
+      catchupDur: 1.0,     // 追赶时长 s，之后回 1×
+      exitAt: 5.5,         // 退场起点（0.4s power2.in）
+      end: 5.9,            // 镜头结束
+      driftSpeed: 40,      // footage 占位亮带漂移速度 px/源秒（仅演示占位）
+    };
+    // 解冻时刻 = 定格 + 画圈 + 箭头 + hold
+    const UNFREEZE = CONFIG.freezeAt + CONFIG.drawDelay + CONFIG.draw + CONFIG.arrow + CONFIG.hold;
+
+    // 素材占位里的相框图标（不属于动效）
+    document.querySelector(".ph").insertAdjacentHTML("beforeend", '<svg class="glyph" viewBox="0 0 48 40" fill="none" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"><rect x="2" y="2" width="44" height="36" rx="4"/><circle cx="16" cy="14" r="4"/><path d="M4 34 L18 22 L27 30 L34 24 L44 34"/></svg>');
+    const fmt = (s) => `FREEZE · 00:${String(Math.floor(s)).padStart(2, "0")}.${String(Math.round((s % 1) * 100)).padStart(2, "0")}`;
+    document.querySelector(".badge").textContent = fmt(CONFIG.freezeAt);
+
+    const $ = (s) => document.querySelector(s);
+
+    DemoShell.register(({ speed }) => {
+      const drift = $(".drift"), flash = $(".flash"), ell = $(".ell"), arr = $(".arr"), lb = $(".lb"), badge = $(".badge"), ph = $(".ph");
+      const L1 = ell.getTotalLength(), L2 = arr.getTotalLength();
+      // 源时间 src(t)：正常 → 钉住 → 1.4× 追赶 → 回 1×；占位漂移 = -driftSpeed × src（成片里就是视频的时间重映射）
+      const o = { src: 0 };
+      const tl = gsap.timeline({ onUpdate: () => { drift.style.transform = `translateX(${-CONFIG.driftSpeed * o.src}px)`; } });
+      tl.timeScale(speed);
+      // 复位（重播语义）
+      tl.set(o, { src: 0 })
+        .set(ell, { strokeDasharray: L1, strokeDashoffset: L1, opacity: 1 })
+        .set(arr, { strokeDasharray: L2, strokeDashoffset: L2, opacity: 1 })
+        .set(lb, { opacity: 0, y: 6 }).set(flash, { opacity: 0 }).set(badge, { opacity: 0 }).set(ph, { opacity: 1 })
+        // 源时间：正常播到定格（斜率 1）
+        .to(o, { src: CONFIG.freezeAt, duration: CONFIG.freezeAt, ease: "none" }, 0)
+        // 定格那一帧：快门白闪 4 帧 + 定格徽标
+        .to(flash, { opacity: CONFIG.flash, duration: 0.04 }, CONFIG.freezeAt)
+        .to(flash, { opacity: 0, duration: 0.12 }, CONFIG.freezeAt + 0.04)
+        .to(badge, { opacity: 1, duration: 0.2 }, CONFIG.freezeAt)
+        // 圈注：椭圆 8 帧描边 → 箭头 6 帧 → 标签浮出
+        .to(ell, { strokeDashoffset: 0, duration: CONFIG.draw, ease: "power1.inOut" }, CONFIG.freezeAt + CONFIG.drawDelay)
+        .to(arr, { strokeDashoffset: 0, duration: CONFIG.arrow, ease: "power2.out" }, CONFIG.freezeAt + CONFIG.drawDelay + CONFIG.draw)
+        .to(lb, { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" }, CONFIG.freezeAt + CONFIG.drawDelay + CONFIG.draw + 0.1)
+        // 圈注淡出 → 同帧解冻：1.4× 追一秒，再回 1×
+        .to([ell, arr, lb, badge], { opacity: 0, duration: 0.27 }, UNFREEZE - 0.27)
+        .to(o, { src: CONFIG.freezeAt + CONFIG.catchup * CONFIG.catchupDur, duration: CONFIG.catchupDur, ease: "none" }, UNFREEZE)
+        .to(o, { src: CONFIG.freezeAt + CONFIG.catchup * CONFIG.catchupDur + (CONFIG.end - UNFREEZE - CONFIG.catchupDur), duration: CONFIG.end - UNFREEZE - CONFIG.catchupDur, ease: "none" }, UNFREEZE + CONFIG.catchupDur)
+        // 退场
+        .to(ph, { opacity: 0, duration: CONFIG.end - CONFIG.exitAt, ease: "power2.in" }, CONFIG.exitAt);
+    });
+  </script>
+</body>
+</html>

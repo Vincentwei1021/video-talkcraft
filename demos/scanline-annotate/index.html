@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>scanline-annotate · 扫描线逐处点名</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 扫描线逐处点名：一条亮扫描线匀速掠过截图，越过每个目标下缘那一刻取景框 1.75→1 收拢对准 + 对焦确认闪，
+     滞后 5 帧右侧标注淡入并常驻；右上状态行实时数 0/4 → 4/4 → 分析完成。截图占位（CSS 画的假落地页）是演示语境，不属于动效本体。 —— */
+
+  /* 截图占位（不属于动效）：600×420 白卡 + 顶栏 + 灰块。成片换真截图，目标 bbox 由实测反推 */
+  .shot { position: absolute; left: 80px; top: 44px; width: 600px; height: 420px; background: #ffffff; border: 1px solid #e0e0e0; border-radius: 12px; overflow: hidden; box-shadow: 0 12px 40px rgba(0,0,0,.08); }
+  .shot .bar { height: 38px; background: #f5f5f7; border-bottom: 1px solid #e0e0e0; display: flex; align-items: center; gap: 8px; padding: 0 14px; }
+  .shot .bar i { width: 10px; height: 10px; border-radius: 50%; background: #d9d9de; }
+  .shot .row { position: absolute; left: 26px; height: 12px; border-radius: 6px; background: #ececf0; }
+  .shot .tgt { position: absolute; border-radius: 8px; background: #e3e3e8; }
+  .shot .t1 { left: 26px; top: 66px; width: 320px; height: 44px; }                                   /* 标题块 */
+  .shot .t2 { left: 26px; top: 172px; width: 548px; height: 110px; background: #dcdce2; }             /* 首图 */
+  .shot .t3 { left: 26px; top: 300px; width: 150px; height: 44px; background: #0066cc; border-radius: 22px; }   /* CTA 按钮 */
+  .shot .t4 { left: 26px; top: 358px; width: 170px; height: 38px; }                                  /* 价格 */
+
+  /* 扫描线：2px 强调色渐变 + 辉光，匀速零缓动 */
+  .scan { position: absolute; left: 80px; top: 44px; width: 600px; height: 2px; opacity: 0;
+    background: linear-gradient(90deg, transparent, #0066cc 18%, #0066cc 82%, transparent); box-shadow: 0 0 14px rgba(0,102,204,.55); }
+
+  /* 取景框：四个 L 角（臂 14 / 2px）+ 对焦确认闪层；几何由目标 bbox 反推（外扩 8） */
+  .bk { position: absolute; opacity: 0; }
+  .bk i { position: absolute; width: 14px; height: 14px; border: 2px solid #0066cc; }
+  .bk i.tl { left: -2px; top: -2px; border-right: 0; border-bottom: 0; }
+  .bk i.tr { right: -2px; top: -2px; border-left: 0; border-bottom: 0; }
+  .bk i.bl { left: -2px; bottom: -2px; border-right: 0; border-top: 0; }
+  .bk i.br { right: -2px; bottom: -2px; border-left: 0; border-top: 0; }
+  .bk b { position: absolute; inset: 0; background: #0066cc; opacity: 0; border-radius: 6px; }
+
+  /* 标注列：截图右侧独立一列（不压截图），20px 条目档 + 14px 副行，左侧 2px 强调色竖线 */
+  .lab { position: absolute; left: 712px; width: 200px; opacity: 0; padding-left: 14px; border-left: 2px solid #0066cc; font-size: 20px; font-weight: 600; color: #1d1d1f; line-height: 1.25; }
+  .lab small { display: block; font-size: 14px; color: #7a7a7a; font-weight: 500; margin-top: 4px; }
+
+  /* 状态行：右上等宽小字，实时计数 */
+  .status { position: absolute; right: 80px; top: 22px; font-family: "SF Mono", Menlo, monospace; font-size: 14px; letter-spacing: 1.5px; color: #7a7a7a; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="shot">
+      <div class="bar"><i></i><i></i><i></i></div>
+      <div class="tgt t1"></div>
+      <div class="row" style="top:124px;width:420px"></div><div class="row" style="top:146px;width:360px"></div>
+      <div class="tgt t2"></div>
+      <div class="tgt t3"></div>
+      <div class="tgt t4"></div>
+    </div>
+    <div class="scan"></div>
+    <div class="bk"><i class="tl"></i><i class="tr"></i><i class="bl"></i><i class="br"></i><b></b></div>
+    <div class="bk"><i class="tl"></i><i class="tr"></i><i class="bl"></i><i class="br"></i><b></b></div>
+    <div class="bk"><i class="tl"></i><i class="tr"></i><i class="bl"></i><i class="br"></i><b></b></div>
+    <div class="bk"><i class="tl"></i><i class="tr"></i><i class="bl"></i><i class="br"></i><b></b></div>
+    <div class="lab">标题没说清是什么<small>01 · 首屏</small></div>
+    <div class="lab">首图占了六成视口<small>02 · 图片</small></div>
+    <div class="lab">按钮文案"了解更多"<small>03 · CTA</small></div>
+    <div class="lab">价格藏在最底下<small>04 · 定价</small></div>
+    <div class="status">扫描 · 0/4</div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ——————————————————————————————————————————————————————————
+    // 可摘走的核心动画：扫描线逐处点名
+    // 命门：① 扫描线零缓动匀速（加 ease 读作有人在拖进度条）；② 触发时刻由目标 bbox 反算——扫描线越过目标**下缘**那一刻取景框才弹；
+    //      ③ 取景框 1.75→1 back.out 收拢对准 + 7% 对焦确认闪；④ 标注滞后取景框 5 帧（框稳了才命名），落位后常驻不撤；⑤ 计数行实时数 fired，不写死。
+    // ——————————————————————————————————————————————————————————
+    const CONFIG = {
+      t0: 0.5,             // 扫描线起点 s
+      dur: 2.4,            // 扫描线走完全程的时长 s（零缓动）
+      yFrom: -30,          // 扫描线起始 y（相对截图顶，先从画外进）
+      yTo: 440,            // 扫描线终点 y（越过截图底 420 再淡出）
+      gap: 0.15,           // 两个目标触发的最小间隔 s（y 接近的目标钳开逐个弹）
+      pad: 8,              // 取景框比目标外扩 px
+      bkScale: 1.75,       // 取景框收拢起点倍率（1.2 看不出对准）
+      bkDur: 0.4,          // 取景框收拢时长 s（back.out(2)）
+      flashPeak: 0.07,     // 对焦确认闪峰值（>0.15 读作选中高亮）
+      labelLag: 0.17,      // 标注滞后取景框的时间 s（≈5 帧："框稳了才命名"）
+      doneLag: 0.2,        // 扫描结束后多久切"分析完成"
+      exitAt: 5.2,         // 整体退场起点（0.4s power2.in）
+      end: 5.6,            // 镜头结束
+      shot: { x: 80, y: 44 },   // 截图左上角（舞台坐标），目标 bbox 相对它
+    };
+
+    const $ = (s) => document.querySelector(s);
+    const $$ = (s) => [...document.querySelectorAll(s)];
+
+    DemoShell.register(({ speed }) => {
+      const shot = $(".shot"), scan = $(".scan"), status = $(".status");
+      const tgts = $$(".tgt"), bks = $$(".bk"), labs = $$(".lab");
+      // 取景框 / 标注几何由目标 bbox 反推（layout.md §3：不目测）
+      tgts.forEach((t, i) => {
+        const b = bks[i];
+        b.style.left = (CONFIG.shot.x + t.offsetLeft - CONFIG.pad) + "px"; b.style.top = (CONFIG.shot.y + t.offsetTop - CONFIG.pad) + "px";
+        b.style.width = (t.offsetWidth + 2 * CONFIG.pad) + "px"; b.style.height = (t.offsetHeight + 2 * CONFIG.pad) + "px";
+        labs[i].style.top = (CONFIG.shot.y + t.offsetTop + t.offsetHeight / 2 - 22) + "px";   // 标注与目标垂直居中对齐
+      });
+      // 触发时刻 = 扫描线越过目标下缘那一刻；再按顺序钳最小间隔
+      const travel = CONFIG.yTo - CONFIG.yFrom;
+      let fts = tgts.map((t) => CONFIG.t0 + ((t.offsetTop + t.offsetHeight - CONFIG.yFrom) / travel) * CONFIG.dur);
+      fts = fts.map((f, i) => (i ? Math.max(f, fts[i - 1] + CONFIG.gap) : f));
+      let fired = 0;
+
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+      // 复位（重播语义）
+      tl.set(scan, { y: CONFIG.yFrom, opacity: 0 })
+        .set(bks, { opacity: 0, scale: CONFIG.bkScale, transformOrigin: "50% 50%" })
+        .set(bks.map((b) => b.querySelector("b")), { opacity: 0 })
+        .set(labs, { opacity: 0, y: 4 })
+        .set([shot, status], { opacity: 1 })
+        .call(() => { fired = 0; status.textContent = "扫描 · 0/4"; status.style.color = "#7a7a7a"; }, [], 0.01)
+        // 扫描线：淡入 → 匀速掠过 → 淡出
+        .to(scan, { opacity: 1, duration: 0.15 }, CONFIG.t0 - 0.15)
+        .to(scan, { y: CONFIG.yTo, duration: CONFIG.dur, ease: "none" }, CONFIG.t0)
+        .to(scan, { opacity: 0, duration: 0.2 }, CONFIG.t0 + CONFIG.dur);
+      // 逐目标：取景框收拢 → 对焦闪 → 标注淡入 → 计数 +1
+      fts.forEach((ft, i) => {
+        const fill = bks[i].querySelector("b");
+        tl.to(bks[i], { opacity: 1, scale: 1, duration: CONFIG.bkDur, ease: "back.out(2)" }, ft)
+          .to(fill, { opacity: CONFIG.flashPeak, duration: 0.12 }, ft + 0.12)
+          .to(fill, { opacity: 0, duration: 0.35 }, ft + 0.24)
+          .to(labs[i], { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" }, ft + CONFIG.labelLag)
+          .call(() => { fired++; status.textContent = `扫描 · ${fired}/${tgts.length}`; }, [], ft);
+      });
+      tl.call(() => { status.textContent = `分析完成 · ${tgts.length} 处`; status.style.color = "#0066cc"; }, [], CONFIG.t0 + CONFIG.dur + CONFIG.doneLag)
+        // 整体退场
+        .to([shot, scan, ...bks, ...labs, status], { opacity: 0, duration: CONFIG.end - CONFIG.exitAt, ease: "power2.in" }, CONFIG.exitAt);
+    });
+  </script>
+</body>
+</html>

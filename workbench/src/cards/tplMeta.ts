@@ -89,6 +89,15 @@ export const TPL_META: Record<string, { name: string; category: string }> = {
   "split-compare-slider": { name: "对比双分屏（滑动揭示）", category: "素材呈现" },
   "stack-fan-out": { name: "卡堆扇形展开", category: "素材呈现" },
   "still-layout-relay": { name: "多图排版 + 焦点接力", category: "素材呈现" },
+  "word-slot-cycle": { name: "词槽轮换", category: "字幕花字" },
+  "lead-word-zoom-assemble": { name: "首词占满补句", category: "字幕花字" },
+  "title-demote-to-label": { name: "标题降格成标签", category: "字幕花字" },
+  "scanline-annotate": { name: "扫描线逐处点名", category: "强调标注" },
+  "crash-zoom-punch": { name: "急推特写", category: "强调标注" },
+  "freeze-frame-annotate": { name: "定格圈注", category: "强调标注" },
+  "unit-grid-proportion": { name: "点阵比例图", category: "数据信息图" },
+  "source-converge": { name: "多源汇聚", category: "数据信息图" },
+  "line-carry-transition": { name: "线条接力转场", category: "转场结构" },
 };
 
 /** 画廊分类顺序 */

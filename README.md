@@ -8,7 +8,7 @@
 [![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial-blue)](LICENSE)
 [![WeChat](https://img.shields.io/badge/WeChat-%E8%AE%A8%E8%AE%BA%E7%BE%A4-07C160?logo=wechat&logoColor=white)](assets/wechat-group.jpg)
 
-**口播视频的 agent skill：字级配音同步 · 89 张动效配方卡 · 七层反 PPT 镜头系统 · 三重验收**
+**口播视频的 agent skill：字级配音同步 · 98 张动效配方卡 · 七层反 PPT 镜头系统 · 三重验收**
 
 [中文](README.md) | [English](README_EN.md)
 
@@ -20,7 +20,7 @@
 分镜，然后用 [Remotion](https://www.remotion.dev/) 渲出高质量的解说成片——动态字卡、
 证据截图、运镜、素排字幕、影视级音效，全部锁在人声上。
 
-🖼️ [**在线画廊：89 张动效预览一页全览 »**](https://vincentwei1021.github.io/video-talkcraft/)
+🖼️ [**在线画廊：98 张动效预览一页全览 »**](https://vincentwei1021.github.io/video-talkcraft/)
 
 [![video-talkcraft 在线画廊](assets/gallery-zh.png)](https://vincentwei1021.github.io/video-talkcraft/)
 
@@ -28,6 +28,7 @@
 
 **2026-09-05**
 
+- 🔁 **9 张 video-shotcraft 移植卡（89 → 98）**——通读姊妹库 [video-shotcraft](https://github.com/Vincentwei1021/video-shotcraft) 的 157 张产品片镜头卡，按"补口播空白 / 服务讲述不炫产品 / 过运动减法 / 有 Remotion 母本"筛出 18 张进实验室、用户定 9 张：词槽轮换 · 首词占满补句 · 标题降格成标签 · 扫描线逐处点名 · 急推特写 · B-roll 定格圈注 · 点阵比例图 · 多源汇聚 · 线条接力转场；tsx 以母本为起点改成本库自包含契约，「复用指引」带母本溯源（→ `references/taxonomy.md` 第八批◎）。
 - 🧩 **10 张多素材同屏新卡（79 → 89）**——并列句排版、三联画接力、对比分屏、传送带、卡堆扇开等，每卡标注输入类型与常用场景，选卡先按素材类型过滤（→ `references/taxonomy.md` 输入类型索引）。
 - 📐 **排版规范 `references/layout.md`**——12 栏栅格、间距令牌、字阶最小档、包围盒不相交等九项自检，选中卡的「已知坑 / 落位自检」必须抄进 SHOTBOOK。
 - 🎨 **12 款动态幕底入库**——`template/motion-systems/backdrop.tsx` 深浅各 6 款、frame 驱动零随机，默认幕底改为浅 `pastel-mesh-flow` / 深 `mesh-flow-dark`。
@@ -40,7 +41,7 @@
 **2026-09-02**
 
 - 🎛️ **动效工作台 `workbench/`**——剪映式的成片后期台：多轨时间线 + 素材库（素材 / 动效库 / 音效 / 背景）+
-  schema 属性面板 + 实时预览 + 一键「导出成片」。89 张动效卡 100% 参数化（文案 / 颜色 / 字号 / 位置可调，
+  schema 属性面板 + 实时预览 + 一键「导出成片」。98 张动效卡 100% 参数化（文案 / 颜色 / 字号 / 位置可调，
   节奏命门固定不暴露）；口播成片可一键拆成字幕 / 转场 / 环境 / 数字人 / 镜头 / 配音 / 音效七类多轨单元逐项微调。
   skill 交付成片后会主动打开它。→ [**图文指南 workbench/GUIDE.md**](workbench/GUIDE.md)
 
@@ -68,7 +69,7 @@
   （默认 FireRedASR2-CTC int8，备选 faster-whisper 免手动下载）。110s 中英混合口播
   对照 GPU 强制对齐器实测：字级偏差中位 20–40ms、最差 200ms、质检零误报。
   每个动效节拍都锚在确切的字上。
-- **89 张动效配方卡**——每张有意图、参数、已知坑、可直接复制的自包含 Remotion tsx 源码和可跑的 HTML 预览，
+- **98 张动效配方卡**——每张有意图、参数、已知坑、可直接复制的自包含 Remotion tsx 源码和可跑的 HTML 预览，
   [在线画廊](https://vincentwei1021.github.io/video-talkcraft/)一页全览
   （本地 `open gallery/index.html` 同款）。动态字卡、数据镜头、证据巡游、
   六式运动承接转场、长镜头世界画布、人物合成等。
@@ -131,8 +132,8 @@ ln -s "$(pwd)" ~/.codex/skills/video-talkcraft    # Codex
 
 | 内容 | 说明 |
 | --- | --- |
-| 89 张动效配方卡 | 意图、能量档、参数、实现要点、已知坑——每张都配自包含 Remotion tsx 源码（`template/cards/`，复制单文件即用）+ 可跑的 HTML demo |
-| 画廊 | [在线版](https://vincentwei1021.github.io/video-talkcraft/)或本地 `open gallery/index.html`——89 个预览一页自动播放，按名称/关键词搜索 |
+| 98 张动效配方卡 | 意图、能量档、参数、实现要点、已知坑——每张都配自包含 Remotion tsx 源码（`template/cards/`，复制单文件即用）+ 可跑的 HTML demo |
+| 画廊 | [在线版](https://vincentwei1021.github.io/video-talkcraft/)或本地 `open gallery/index.html`——98 个预览一页自动播放，按名称/关键词搜索 |
 | 动效系统 | CameraRig（极缓推拉）、让位生命周期、六式转场、长镜头世界画布；视差 / 环境层可选（`template/motion-systems/`） |
 | 组件 | 素排字幕、花字、砸字、荧光笔、铅笔手绘、数字滚动（`template/components/`） |
 | 管线脚本 | 字级时间戳（双 ASR 后端）、人脸安全区检测、静止检测、音效在场检查、QA 抽帧（`scripts/`） |
@@ -149,15 +150,15 @@ video-talkcraft/
 │   ├── shot-design.md          # 三面工作单 + 七型镜头预设
 │   ├── cinematography.md       # 七层模型、转场、排版预算、验收关卡
 │   ├── shotbook-example.md     # 完整分镜范例
-│   ├── cards/                  # 89 张动效配方卡
+│   ├── cards/                  # 98 张动效配方卡
 │   ├── taxonomy.md             # 按类别与来源的卡片索引
 │   ├── broll-sources.md        # 免署名素材源（API、授权坑）
 │   ├── host-footage.md         # 人物素材：输入规格、抠像、人脸安全区
 │   └── demo-spec.md            # 卡片/demo 编写规范
-├── demos/                      # 89 个可跑的 HTML 预览（共享库内嵌音效）
+├── demos/                      # 98 个可跑的 HTML 预览（共享库内嵌音效）
 ├── gallery/                    # 单页本地画廊
 ├── template/                   # 即取即用的 Remotion 代码
-│   ├── cards/                  # 89 卡逐卡自包含 tsx 源码（skill 首选引用）
+│   ├── cards/                  # 98 卡逐卡自包含 tsx 源码（skill 首选引用）
 │   ├── motion-systems/         # 相机/视差/让位/环境/转场/长镜头系统
 │   └── components/             # 字幕/花字/砸字/铅笔等组件
 └── scripts/                    # 时间戳、人脸检测、QA 工具

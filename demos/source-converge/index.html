@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>source-converge · 多源汇聚</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 多源汇聚：四条细贝塞尔曲线逐路接通，来源胶囊沿各自真实曲线滑向汇聚点并三段式缩小（"被吸进去"），
+     强调色数据包全程沿线滑行；吞并瞬间汇聚胶囊脉冲，曲线从起点方向擦除，结果滑到画面正中静置。白底成立。 —— */
+
+  /* 标题（版面内容，不是旁白字幕） */
+  .ttl { position: absolute; left: 80px; top: 60px; font-size: 26px; font-weight: 700; color: #1d1d1f; }
+  svg.sc { position: absolute; left: 0; top: 0; width: 960px; height: 540px; }
+  /* 曲线：浅灰细线（要够浅，否则四条线抢过节点） */
+  .path { fill: none; stroke: #c9c9cf; stroke-width: 2; }
+  /* 来源胶囊（白底描边，文字 20px 条目档） */
+  .srcn rect { fill: #ffffff; stroke: #d6d6dc; stroke-width: 1.5; }
+  .srcn text { font-size: 20px; font-weight: 600; fill: #1d1d1f; text-anchor: middle; }
+  /* 数据包（强调色小圆点） */
+  .pk { fill: #0066cc; }
+  /* 汇聚胶囊（强调色实底 + 白字）与说明行 */
+  .hub rect { fill: #0066cc; }
+  .hub text { font-size: 22px; font-weight: 700; fill: #ffffff; text-anchor: middle; }
+  .cap { font-size: 22px; font-weight: 600; fill: #1d1d1f; text-anchor: middle; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="ttl">四个平台的数据，怎么汇成一张表</div>
+    <svg class="sc" viewBox="0 0 960 540">
+      <g class="paths"></g>
+      <g class="pks"></g>
+      <g class="nodes"></g>
+      <g class="hub"><rect x="-76" y="-30" width="152" height="60" rx="30"/><text y="8">一张表</text></g>
+      <text class="cap" y="372">每天 8 点自动更新</text>
+    </svg>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ——————————————————————————————————————————————————————————
+    // 可摘走的核心动画：多源汇聚
+    // 命门：① 节点沿真实曲线走（不是两点插值）；② 三段式缩小——前 75% 慢慢瘦身、后 25% 掉光，拐点越靠后吞并越突然；
+    //      ③ 擦除必须在节点全部消失之后，且从起点方向退走（读作"通路收回"）；④ 汇聚完成后结果滑到画面正中再静置 ≥1.2s（2026-09-05 用户要求）。
+    // ——————————————————————————————————————————————————————————
+    const CONFIG = {
+      srcX: 200,                       // 来源胶囊中心 x = 曲线起点
+      srcYs: [170, 230, 310, 390],     // 四路 y（曲率天然不同；>6 条中间几条几乎重合）
+      hubX: 700, hubY: 290,            // 汇聚点 = 曲线终点
+      ctrl: [380, 520],                // 三次贝塞尔两个控制点 x：c1 = (380, y)、c2 = (520, hubY)
+      titleIn: 0.1,                    // 标题入场 s（0.4s power3.out）
+      nodeIn: 0.3, nodeStagger: 0.08,  // 来源胶囊淡入（0.3s）
+      drawAt: 0.5, drawStagger: 0.15, drawDur: 0.5,   // 逐路接通（power2.out）；错峰归零读作四条线一起刷出
+      hubIn: 0.8,                      // 汇聚胶囊入场 s（0.4s power3.out，scale .7→1）
+      pkFrom: 0.9, pkTo: 3.0,          // 数据包滑行窗：走两个整周期（否则末帧包停在半路）
+      pkPhase: 0.13,                   // 各路相位偏移（0 会看到四个包整齐并进）
+      convAt: 1.5, convDur: 1.5,       // 沿曲线汇入（power2.inOut：缓起是"启动"、缓收是"到位"）
+      shrinkKnee: 0.75,                // 三段式缩小拐点：前 75% 1→.34，后 25% →0
+      pulseAt: 2.85,                   // 吞并脉冲：+12% back.out(2) 0.25s，再 0.25s 回落
+      eraseAt: 3.25, eraseDur: 0.4,    // 曲线从起点方向擦除（power2.out）
+      capIn: 3.5,                      // 说明行浮出（0.4s）
+      centerAt: 3.8, centerDur: 0.6,   // 结果居中：hubX → 480（power2.inOut），之后真静止
+      exitAt: 5.8,                     // 标题 / 胶囊 / 说明行同收（0.4s power2.in）
+      end: 6.2,                        // 镜头结束
+    };
+    const SOURCES = ["抖音", "小红书", "B 站", "公众号"];   // 演示文案（不属于动效）
+
+    const $ = (s) => document.querySelector(s);
+    const NS = "http://www.w3.org/2000/svg";
+    const el = (tag, attrs) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; };
+
+    // 按 CONFIG 生成四条曲线 / 四个胶囊 / 四个数据包
+    const paths = [], nodes = [], pks = [];
+    SOURCES.forEach((name, i) => {
+      const y = CONFIG.srcYs[i];
+      const p = el("path", { class: "path", d: `M ${CONFIG.srcX},${y} C ${CONFIG.ctrl[0]},${y} ${CONFIG.ctrl[1]},${CONFIG.hubY} ${CONFIG.hubX},${CONFIG.hubY}` });
+      $(".paths").appendChild(p); paths.push(p);
+      const g = el("g", { class: "srcn" });
+      g.appendChild(el("rect", { x: -64, y: -22, width: 128, height: 44, rx: 22 }));
+      const tx = el("text", { y: 7 }); tx.textContent = name; g.appendChild(tx);
+      $(".nodes").appendChild(g); nodes.push(g);
+      const c = el("circle", { class: "pk", r: 5 }); $(".pks").appendChild(c); pks.push(c);
+    });
+    const lens = paths.map((p) => p.getTotalLength());
+
+    DemoShell.register(({ speed }) => {
+      const ttl = $(".ttl"), hub = $(".hub"), cap = $(".cap");
+      const o = { conv: 0, pk: 0, pkOn: 0, erase: 0, hs: 0.7, cx: CONFIG.hubX };
+      const dr = { p0: 0, p1: 0, p2: 0, p3: 0 };   // 各路 draw-on 进度
+      const apply = () => {
+        paths.forEach((p, i) => {
+          const len = lens[i];
+          p.style.strokeDasharray = len;
+          p.style.strokeDashoffset = len * (1 - dr[`p${i}`]) - o.erase * len;      // 正 = 从起点长出；负 = 从起点退走
+          const pt = p.getPointAtLength(o.conv * len);                             // 节点沿真实曲线走
+          const size = o.conv < CONFIG.shrinkKnee ? 1 + (0.34 - 1) * (o.conv / CONFIG.shrinkKnee)
+                                                  : 0.34 * (1 - (o.conv - CONFIG.shrinkKnee) / (1 - CONFIG.shrinkKnee));
+          nodes[i].setAttribute("transform", `translate(${pt.x} ${pt.y}) scale(${Math.max(0, size)})`);
+          const cyc = (o.pk * 2 + i * CONFIG.pkPhase) % 1;                           // 两个整周期 + 相位偏移
+          const pp = p.getPointAtLength(cyc * len);
+          pks[i].setAttribute("cx", pp.x); pks[i].setAttribute("cy", pp.y);
+          pks[i].setAttribute("opacity", o.pkOn * (1 - Math.abs(cyc - 0.5) * 0.6));   // 中段最亮、两端淡
+        });
+        hub.setAttribute("transform", `translate(${o.cx} ${CONFIG.hubY}) scale(${o.hs})`);
+        cap.setAttribute("x", o.cx);
+      };
+      const tl = gsap.timeline({ onUpdate: apply });
+      tl.timeScale(speed);
+
+      // 复位（重播语义）
+      tl.set(o, { conv: 0, pk: 0, pkOn: 0, erase: 0, hs: 0.7, cx: CONFIG.hubX })
+        .set(dr, { p0: 0, p1: 0, p2: 0, p3: 0 })
+        .set(ttl, { opacity: 0, y: 10 }).set(hub, { opacity: 0 }).set(cap, { opacity: 0 }).set(nodes, { opacity: 0 })
+        .call(apply, [], 0.01)
+        .to(ttl, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, CONFIG.titleIn);
+      // 来源胶囊淡入 + 逐路接通
+      SOURCES.forEach((_, i) => {
+        tl.to(nodes[i], { opacity: 1, duration: 0.3 }, CONFIG.nodeIn + i * CONFIG.nodeStagger)
+          .to(dr, { [`p${i}`]: 1, duration: CONFIG.drawDur, ease: "power2.out" }, CONFIG.drawAt + i * CONFIG.drawStagger);
+      });
+      // 汇聚胶囊入场；数据包滑行两个整周期；节点沿曲线汇入并三段式缩小
+      tl.to(hub, { opacity: 1, duration: 0.4, ease: "power3.out" }, CONFIG.hubIn)
+        .to(o, { hs: 1, duration: 0.4, ease: "power3.out" }, CONFIG.hubIn)
+        .to(o, { pkOn: 1, duration: 0.3 }, CONFIG.pkFrom)
+        .to(o, { pk: 1, duration: CONFIG.pkTo - CONFIG.pkFrom, ease: "none" }, CONFIG.pkFrom)
+        .to(o, { pkOn: 0, duration: 0.2 }, CONFIG.pkTo - 0.2)
+        .to(o, { conv: 1, duration: CONFIG.convDur, ease: "power2.inOut" }, CONFIG.convAt)
+        // 吞并脉冲 → 擦线 → 说明行 → 结果居中 → 静置 → 同收
+        .to(o, { hs: 1.12, duration: 0.25, ease: "back.out(2)" }, CONFIG.pulseAt)
+        .to(o, { hs: 1, duration: 0.25, ease: "power2.out" }, CONFIG.pulseAt + 0.25)
+        .to(o, { erase: 1, duration: CONFIG.eraseDur, ease: "power2.out" }, CONFIG.eraseAt)
+        .to(cap, { opacity: 1, duration: 0.4 }, CONFIG.capIn)
+        .to(o, { cx: 480, duration: CONFIG.centerDur, ease: "power2.inOut" }, CONFIG.centerAt)
+        .to([ttl, hub, cap], { opacity: 0, duration: CONFIG.end - CONFIG.exitAt, ease: "power2.in" }, CONFIG.exitAt);
+    });
+  </script>
+</body>
+</html>

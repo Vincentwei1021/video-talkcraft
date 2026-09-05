@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>line-carry-transition · 线条接力转场</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 线条接力转场：A 镜标题的下划线继续向右冲出画面，镜头跟着线横移 960px（线生长 = 镜头位移，笔头钉在画面 x≈640 永不出画也永不落后），
+     线到位后拐直角围出 B 镜的画框，闭合那一帧笔头消失、B 内容在框内淡入——全程无剪切，一条线把两镜缝在一起。
+     素材占位（灰调渐变 + 相框图标）是演示语境，不属于动效本体。 —— */
+
+  /* 世界画布 1920 宽，镜头 = 它的 translateX */
+  .world { position: absolute; left: 0; top: 0; width: 1920px; height: 540px; will-change: transform; }
+
+  /* A 镜：标题 + 副标（版面内容，不是旁白字幕） */
+  .ta { position: absolute; left: 80px; top: 150px; font-size: 48px; font-weight: 700; color: #1d1d1f; white-space: nowrap; line-height: 1.2; }
+  .ta small { display: block; font-size: 20px; color: #7a7a7a; font-weight: 500; margin-top: 12px; }
+
+  /* 线：6px 强调色实线，直角硬拐不倒圆；笔头墨点随线走 */
+  svg.sc { position: absolute; left: 0; top: 0; width: 1920px; height: 540px; overflow: visible; }
+  .ln { fill: none; stroke: #0066cc; stroke-width: 6; stroke-linejoin: miter; stroke-linecap: butt; }
+  .pen { fill: #0066cc; }
+
+  /* B 镜内容：落在画框内（框 1160,110 – 1720,440，左右内缩 14、上下各留 32） */
+  .tb { position: absolute; left: 1174px; top: 142px; width: 532px; opacity: 0; }   /* 图 222 + 14 + 字 ≈ 266，框内上下各留 32 */
+  .tb .ph { position: relative; width: 100%; height: 222px; border-radius: 6px; overflow: hidden; }
+  .tb p { margin-top: 14px; font-size: 22px; font-weight: 700; color: #1d1d1f; white-space: nowrap; }
+  .tb p small { font-weight: 500; color: #7a7a7a; font-size: 16px; margin-left: 10px; }
+
+  /* 素材占位（不属于动效）：灰调渐变 + 相框图标（六档色，与 parallel-items-with-host 同一体系） */
+  .ph::before { content: ""; position: absolute; inset: 0; }
+  .ph.t1::before { background: linear-gradient(160deg, #a4b0c6, #7d8aa3); }
+  .ph svg { position: absolute; left: 50%; top: 50%; width: 56px; height: 48px; transform: translate(-50%, -56%); opacity: .35; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="world">
+      <div class="ta">第一部分 · 为什么慢<small>三个拖慢流程的地方</small></div>
+      <svg class="sc" viewBox="0 0 1920 540"><path class="ln" d=""/><circle class="pen" r="8"/></svg>
+      <div class="tb"><div class="ph t1"></div><p>第二部分 · 怎么快<small>把三处改成自动</small></p></div>
+    </div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ——————————————————————————————————————————————————————————
+    // 可摘走的核心动画：线条接力转场
+    // 命门：① 横移段线生长 = 镜头位移（drawn = underline + cam），笔头钉在画面 x≈640 永不出画也永不落后——失速观众跟丢线就等于跟丢转场；
+    //      ② 直角硬拐不倒圆（圆角丢掉制图感）；③ 框没闭合 B 内容不能先出；④ 闭合后笔头墨点必须卸载，残留即毁静止。
+    // ——————————————————————————————————————————————————————————
+    const CONFIG = {
+      underline: 560,                        // A 标题下划线长度（80 → 640）
+      run: 520,                              // 冲出段：640 → 1160（B 画框左边）
+      frame: { x: 1160, y: 110, w: 560, h: 330 },   // B 画框（世界坐标；镜头到位后屏幕 x 200~760、整组居中）
+      lineY: 262,                            // 下划线 / 冲出段的 y（标题副标底边 +18）
+      titleIn: 0.1,                          // A 标题入场 s（0.4s power3.out）
+      penIn: 0.35,                           // 笔头墨点出现 s
+      underAt: 0.4, underDur: 0.6,           // 下划线画出（power2.out）
+      camAt: 1.2, camDur: 2.0, cam: 960,     // 镜头横移（power2.inOut）；>40px/f 笔头拖影跟丢，别提速要拉长时长
+      penOut: 3.2,                           // 框闭合：笔头卸载（0.2s）
+      bIn: 3.3,                              // B 内容淡入 s（0.5s power2.out）——框闭合后才出
+      exitAt: 6.0,                           // B 内容与线同收（0.4s power2.in）
+      end: 6.4,                              // 镜头结束
+    };
+
+    // 折线：下划线 → 冲出段 → 画框四边（从左边中点进入，顺时针回到入口）
+    const F = CONFIG.frame;
+    const PTS = [[80, CONFIG.lineY], [80 + CONFIG.underline, CONFIG.lineY], [F.x, CONFIG.lineY], [F.x, F.y], [F.x + F.w, F.y], [F.x + F.w, F.y + F.h], [F.x, F.y + F.h], [F.x, CONFIG.lineY]];
+    const perimeter = 2 * (F.w + F.h);
+    // 横移段：线生长与镜头位移同速；镜头过了冲出段后余下位移里把画框画完
+    const camL = (c) => (c <= CONFIG.run ? CONFIG.underline + c : CONFIG.underline + CONFIG.run + ((c - CONFIG.run) / (CONFIG.cam - CONFIG.run)) * perimeter);
+
+    // 素材占位里的相框图标（不属于动效）
+    const GLYPH = '<svg viewBox="0 0 48 40" fill="none" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"><rect x="2" y="2" width="44" height="36" rx="4"/><circle cx="16" cy="14" r="4"/><path d="M4 34 L18 22 L27 30 L34 24 L44 34"/></svg>';
+    document.querySelectorAll(".ph").forEach((el) => { el.insertAdjacentHTML("beforeend", GLYPH); });
+
+    const $ = (s) => document.querySelector(s);
+    const ln = $(".ln"), pen = $(".pen");
+    ln.setAttribute("d", PTS.map((p, i) => (i ? "L" : "M") + p[0] + " " + p[1]).join(" "));
+    const total = ln.getTotalLength();
+
+    DemoShell.register(({ speed }) => {
+      const world = $(".world"), ta = $(".ta"), tb = $(".tb");
+      const o = { u: 0, c: 0 };
+      const apply = () => {
+        const L = Math.min(total, Math.max(o.u, camL(o.c)));
+        ln.style.strokeDasharray = total; ln.style.strokeDashoffset = total - L;
+        const p = ln.getPointAtLength(L); pen.setAttribute("cx", p.x); pen.setAttribute("cy", p.y);
+        world.style.transform = `translateX(${-o.c}px)`;
+      };
+      const tl = gsap.timeline({ onUpdate: apply });
+      tl.timeScale(speed);
+
+      // 复位（重播语义）
+      tl.set(o, { u: 0, c: 0 }).set(ln, { opacity: 1 }).set(pen, { opacity: 0 }).set(ta, { opacity: 0, y: 10 }).set(tb, { opacity: 0 })
+        .call(apply, [], 0.01)
+        // A：标题入场，笔头出现，下划线画出
+        .to(ta, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, CONFIG.titleIn)
+        .to(pen, { opacity: 1, duration: 0.1 }, CONFIG.penIn)
+        .to(o, { u: CONFIG.underline, duration: CONFIG.underDur, ease: "power2.out" }, CONFIG.underAt)
+        // 接力：镜头跟线横移；线冲出画外后拐直角围出 B 的画框
+        .to(o, { c: CONFIG.cam, duration: CONFIG.camDur, ease: "power2.inOut" }, CONFIG.camAt)
+        // 闭合：笔头卸载 → B 内容淡入 → 真静止 → 同收
+        .to(pen, { opacity: 0, duration: 0.2 }, CONFIG.penOut)
+        .to(tb, { opacity: 1, duration: 0.5, ease: "power2.out" }, CONFIG.bIn)
+        .to([tb, ln], { opacity: 0, duration: CONFIG.end - CONFIG.exitAt, ease: "power2.in" }, CONFIG.exitAt);
+    });
+  </script>
+</body>
+</html>

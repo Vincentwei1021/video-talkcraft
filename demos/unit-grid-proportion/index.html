@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>unit-grid-proportion · 点阵比例图</title>
+<link rel="stylesheet" href="../_lib/demo-shell.css">
+<style>
+  /* —— 点阵比例图：100 个小方格从中心分环长出，再按阅读顺序逐格染成强调色，右侧大数字同步计数——
+     把"37%"摊成 37 个可数的个体（unit chart / isotype）。白底成立；颜色只有强调色 + 灰。 —— */
+
+  /* 网格：10×10，格 28 + 缝 6 = 334 宽；与右侧数字组一起水平居中（176 + 334 + 74 + ~200 ≈ 784 → 左右各 ~88） */
+  .grid { position: absolute; left: 176px; top: 82px; display: grid; grid-template-columns: repeat(10, 28px); gap: 6px; }
+  .cell { width: 28px; height: 28px; border-radius: 6px; background: #e3e3e8; }
+
+  /* 右侧：大数字（hero 阶）+ 两行标签（body 阶） */
+  .stat { position: absolute; left: 584px; top: 140px; color: #1d1d1f; }
+  .big { font-size: 128px; font-weight: 600; letter-spacing: -4px; line-height: 1; font-variant-numeric: tabular-nums; display: flex; align-items: baseline; color: #0066cc; }
+  .big small { font-size: 44px; letter-spacing: 0; margin-left: 6px; font-weight: 600; }
+  .lbl { font-size: 26px; font-weight: 600; margin-top: 18px; line-height: 1.4; }
+  .lbl span { display: block; }
+
+  /* 图例（caption 阶）：贴网格左边，落在字幕带之上 */
+  .lgd { position: absolute; left: 176px; top: 428px; font-size: 16px; color: #7a7a7a; display: flex; gap: 18px; align-items: center; white-space: nowrap; }
+  .lgd i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+  .lgd i.hit { background: #0066cc; } .lgd i.rest { background: #e3e3e8; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div class="grid"></div>
+    <div class="stat">
+      <div class="big"><span class="num">0</span><small>%</small></div>
+      <div class="lbl"><span>的观众</span><span>在前 3 秒划走</span></div>
+    </div>
+    <div class="lgd"><span><i class="hit"></i>划走 · 37 人</span><span><i class="rest"></i>留下 · 63 人</span><span>每格 = 1 人（示意数据）</span></div>
+  </div>
+
+  <script src="../_lib/gsap.min.js"></script>
+  <script src="../_lib/demo-shell.js"></script>
+  <script>
+    // ——————————————————————————————————————————————————————————
+    // 可摘走的核心动画：点阵比例图
+    // 命门：① 格子"长出来"不是"飞进来"（只 opacity + scale .8→1，无位移）；② 分环生长 + 同环 3 帧抖动（砍掉抖动波前整齐得像机器）；
+    //      ③ 染色按阅读顺序从左上起、与大数字计数同一时钟（数字先到格子后到读作两件事）；④ 颜色只有强调色 + 灰，落定即静。
+    // ——————————————————————————————————————————————————————————
+    const CONFIG = {
+      cols: 10, total: 100,  // 10×10 = 100 格：比例直接可读（8×7 = 56 要换算）
+      target: 37,            // 染色格数 = 百分比（<8 观众可能漏看，>60 该染另一边）
+      growAt: 0.2,           // 网格生长起点 s
+      ringDur: 0.13,         // 每环间隔 s（≈4 帧）；<0.1 读作闪现
+      jitter: 0.1,           // 同环内确定性抖动上限 s（≈3 帧）
+      growDur: 0.3,          // 单格 opacity 0→1 + scale .8→1（power2.out）
+      statIn: 1.4,           // 大数字入场 s（标签 +0.1 错峰；0.5s power3.out，y 14→0）
+      fillStart: 1.7,        // 染色 + 计数起点 s（成片对到口播念出数字的时刻）
+      fillEach: 0.035,       // 每格间隔 s（37 格 ≈ 1.3s）；计数与染色同一时钟
+      fillDur: 0.25,         // 单格底色过渡 s（power2.out）
+      legendGap: 0.2,        // 图例在染色结束后多久浮出 s（0.4s）
+      exitAt: 5.7,           // 全部退场起点（0.4s power2.in）
+      end: 6.1,              // 镜头结束
+      accent: "#0066cc",     // 强调色（唯一）
+      base: "#e3e3e8",       // 未染格底色（灰）
+    };
+
+    // 确定性抖动（同 seed 同值；tsx 用同一公式，不用 Math.random）
+    const srand = (i) => { const x = Math.sin(i * 12.9898 + 78.233) * 43758.5453; return x - Math.floor(x); };
+
+    const $ = (s) => document.querySelector(s);
+    const grid = $(".grid");
+    const cells = [];
+    for (let i = 0; i < CONFIG.total; i++) { const d = document.createElement("div"); d.className = "cell"; grid.appendChild(d); cells.push(d); }
+
+    DemoShell.register(({ speed }) => {
+      const num = $(".num"), big = $(".big"), lbl = $(".lbl"), lgd = $(".lgd");
+      const o = { v: 0 };
+      const tl = gsap.timeline();
+      tl.timeScale(speed);
+
+      // 复位（重播语义）
+      tl.set(cells, { opacity: 0, scale: 0.8, backgroundColor: CONFIG.base, transformOrigin: "50% 50%" })
+        .set([big, lbl, lgd], { opacity: 0, y: 14 })
+        .set(o, { v: 0 })
+        .call(() => { num.textContent = "0"; }, [], 0.01);
+
+      // ① 分环生长：环号 = 到网格中心的欧氏距离取整；同环内加确定性抖动
+      const c0 = (CONFIG.cols - 1) / 2, rows = CONFIG.total / CONFIG.cols, r0 = (rows - 1) / 2;
+      cells.forEach((c, i) => {
+        const col = i % CONFIG.cols, row = Math.floor(i / CONFIG.cols);
+        const ring = Math.round(Math.hypot(col - c0, row - r0));
+        tl.to(c, { opacity: 1, scale: 1, duration: CONFIG.growDur, ease: "power2.out" }, CONFIG.growAt + ring * CONFIG.ringDur + srand(i) * CONFIG.jitter);
+      });
+
+      // ② 大数字 + 标签入场（错峰 0.1）
+      tl.to([big, lbl], { opacity: 1, y: 0, duration: 0.5, ease: "power3.out", stagger: 0.1 }, CONFIG.statIn);
+
+      // ③ 按阅读顺序逐格染色 + 同步计数
+      for (let i = 0; i < CONFIG.target; i++) tl.to(cells[i], { backgroundColor: CONFIG.accent, duration: CONFIG.fillDur, ease: "power2.out" }, CONFIG.fillStart + i * CONFIG.fillEach);
+      const fillTotal = CONFIG.target * CONFIG.fillEach;
+      tl.to(o, { v: CONFIG.target, duration: fillTotal, ease: "none", onUpdate: () => { num.textContent = String(Math.round(o.v)); } }, CONFIG.fillStart);
+
+      // ④ 图例浮出 → 静置 → 全部同收
+      tl.to(lgd, { opacity: 1, y: 0, duration: 0.4 }, CONFIG.fillStart + fillTotal + CONFIG.legendGap)
+        .to([...cells, big, lbl, lgd], { opacity: 0, duration: CONFIG.end - CONFIG.exitAt, ease: "power2.in" }, CONFIG.exitAt);
+    });
+  </script>
+</body>
+</html>
