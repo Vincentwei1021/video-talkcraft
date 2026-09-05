@@ -23,7 +23,7 @@ const CONFIG = {
   blur: 5,             // 急推段运动模糊峰值 px（只包急推段，落定段清晰）
   exitAt: 4.0,         // 退场起点（0.4s power2.in）
   end: 4.4,            // 镜头结束
-  shot: { x: 80, y: 45, w: 800, h: 450 },   // 截图左上角与尺寸（舞台坐标）
+  shot: { x: 80, y: 48, w: 800, h: 396 },   // 截图左上角与尺寸（舞台坐标）
 };
 
 /* 时间表（demo 秒）
@@ -52,22 +52,26 @@ function camTo(z: number, px: number, py: number, W = 960, H = 540) {
 const CSS = `
 * { margin: 0; padding: 0; box-sizing: border-box; }
 .czp-cam { position: absolute; inset: 0; will-change: transform, filter; transform-origin: 0 0; }
-.czp-shot { position: absolute; left: 80px; top: 45px; width: 800px; height: 450px; background: #ffffff; border: 1px solid #e0e0e0; border-radius: 14px; overflow: hidden; }
-.czp-shot .czp-hd { height: 64px; border-bottom: 1px solid #ececf0; display: flex; align-items: center; padding: 0 28px; font-size: 22px; font-weight: 700; color: #1d1d1f; }
+.czp-shot { position: absolute; left: 80px; top: 48px; width: 800px; height: 396px; background: #ffffff; border: 1px solid #e0e0e0; border-radius: 14px; overflow: hidden; }
+.czp-shot .czp-hd { height: 60px; border-bottom: 1px solid #ececf0; display: flex; align-items: center; padding: 0 28px; font-size: 22px; font-weight: 700; color: #1d1d1f; }
 .czp-shot .czp-li { display: flex; align-items: center; justify-content: space-between; height: 64px; padding: 0 28px; border-bottom: 1px solid #f0f0f3; font-size: 18px; color: #1d1d1f; }
+.czp-shot .czp-li .czp-ic { flex: none; width: 220px; display: flex; align-items: center; gap: 12px; }
+.czp-shot .czp-li .czp-ico { display: block; width: 28px; height: 28px; border-radius: 8px; background: #ececf0; }
+.czp-shot .czp-li .czp-k { flex: none; width: 216px; white-space: nowrap; }
+.czp-shot .czp-li .czp-sp { flex: 1; }
 .czp-shot .czp-li .czp-g { display: block; height: 12px; width: 220px; border-radius: 6px; background: #ececf0; }
 .czp-shot .czp-li .czp-g2 { width: 90px; }
 .czp-shot .czp-sw { width: 46px; height: 26px; border-radius: 13px; background: #d9d9de; position: relative; }
 .czp-shot .czp-sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; }
-.czp-shot .czp-sw.on { background: #248a3d; } .czp-shot .czp-sw.on::after { left: 23px; }
+.czp-shot .czp-sw.on { background: #1d1d1f; } .czp-shot .czp-sw.on::after { left: 23px; }
 .czp-shot .czp-tg .czp-k { font-weight: 600; } .czp-shot .czp-tg .czp-k small { display: block; font-size: 13px; color: #7a7a7a; font-weight: 500; }
 `;
 
-/** 目标 bbox（舞台坐标，px）：demo 里假设置页"自动续费"文字块的实测值（row top 192 / k left 28 width 208） */
-const DEMO_TARGET = { x: 108, y: 237, w: 208, h: 64 };
+/** 目标 bbox（舞台坐标，px）：demo 里假设置页"自动续费"文字块的实测值（卡 (80,48)、头部 60、第 3 行 top 128、标签列卡内 x=248 宽 216） */
+const DEMO_TARGET = { x: 328, y: 236, w: 216, h: 64 };
 
 type Props = {
-  /** 真截图（铺满 800×450 截图卡，object-fit cover）；不传 = CSS 假设置页 */
+  /** 真截图（铺满 800×396 截图卡，object-fit cover）；不传 = CSS 假设置页 */
   src?: string;
   /** 目标 bbox（舞台坐标），急推中心 = 它的中心；不传 = demo 的"自动续费"文字块 */
   target?: { x: number; y: number; w: number; h: number };
@@ -105,12 +109,11 @@ export default function CrashZoomPunch({ src, target = DEMO_TARGET, label = "自
           ) : (
             <>
               <div className="czp-hd">订阅与账单</div>
-              <div className="czp-li"><span className="czp-g" /><span className="czp-sw" /></div>
-              <div className="czp-li"><span className="czp-g" style={{ width: 160 }} /><span className="czp-sw on" /></div>
-              <div className="czp-li czp-tg"><span className="czp-k">{label}<small>{sub}</small></span><span className="czp-sw on" /></div>
-              <div className="czp-li"><span className="czp-g" style={{ width: 260 }} /><span className="czp-g czp-g2" /></div>
-              <div className="czp-li"><span className="czp-g" style={{ width: 120 }} /><span className="czp-sw" /></div>
-              <div className="czp-li"><span className="czp-g" style={{ width: 200 }} /><span className="czp-g czp-g2" /></div>
+              <div className="czp-li"><span className="czp-ic"><i className="czp-ico" /><span className="czp-g" style={{ width: 96 }} /></span><span className="czp-k"><span className="czp-g" style={{ width: 150 }} /></span><span className="czp-sp" /><span className="czp-sw" /></div>
+              <div className="czp-li"><span className="czp-ic"><i className="czp-ico" /><span className="czp-g" style={{ width: 70 }} /></span><span className="czp-k"><span className="czp-g" style={{ width: 190 }} /></span><span className="czp-sp" /><span className="czp-sw on" /></div>
+              <div className="czp-li czp-tg"><span className="czp-ic"><i className="czp-ico" /><span className="czp-g" style={{ width: 84 }} /></span><span className="czp-k">{label}<small>{sub}</small></span><span className="czp-sp" /><span className="czp-sw on" /></div>
+              <div className="czp-li"><span className="czp-ic"><i className="czp-ico" /><span className="czp-g" style={{ width: 110 }} /></span><span className="czp-k"><span className="czp-g" style={{ width: 120 }} /></span><span className="czp-sp" /><span className="czp-g czp-g2" /></div>
+              <div className="czp-li"><span className="czp-ic"><i className="czp-ico" /><span className="czp-g" style={{ width: 60 }} /></span><span className="czp-k"><span className="czp-g" style={{ width: 170 }} /></span><span className="czp-sp" /><span className="czp-sw" /></div>
             </>
           )}
         </div>

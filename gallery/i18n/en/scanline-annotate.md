@@ -9,7 +9,7 @@ usage: A screenshot with 3–6 spots to review one by one (landing-page problems
 |---|---|---|
 | ✗ Not involved (with a person on screen, put the screenshot on the opposite side and push the label column one step outward) | △ Freeze a frame first, then scan (the line needs a still picture) | ✓ (default) landing page / document / contract / report screenshots |
 
-The screenshot fills a 600×420 white card (1200×840 at 1080p); target bboxes are measured and injected via `targets`; labels sit in their own column to the right of the screenshot and never cover it.
+The screenshot fills a 600×396 white card (1200×792 at 1080p); target bboxes are measured and injected via `targets`; labels sit in their own column to the right of the screenshot and never cover it.
 
 ## Common scenarios
 1. "This landing page has 4 problems", reviewed spot by spot (the demo)
@@ -25,9 +25,9 @@ When narration must point at several places on one image, chaining N `callout-li
 4. **Labels stay**: this is narration, not a product self-demo — what was pointed out remains until the whole thing exits together.
 
 ## Motion core
-- **Geometry** (960×540): screenshot card 600×420 at (80, 44), white with a 1px #e0e0e0 hairline, radius 12, shadow `0 12px 40px rgba(0,0,0,.08)`, 38px grey browser bar; four targets (relative to the screenshot): title block (26,66,320×44) / hero image (26,172,548×110) / CTA button (26,300,150×44) / price (26,358,170×38) — **one target per row**, otherwise the label column collides.
-- **Scan line**: 600×2px, `linear-gradient(90deg, transparent, #0066cc 18%, #0066cc 82%, transparent)` + `box-shadow 0 0 14px rgba(0,102,204,.55)`; fades in over 0.15s at 0.35s, from 0.5s travels 2.4s with **ease none** from y=−30 to 440 (relative to the screenshot top), fades out 0.2s at 2.9s.
-- **Trigger times**: `ft_i = t0 + ((y_i + h_i − yFrom) / (yTo − yFrom)) × dur`, then clamped in y order `ft_i = max(ft_i, ft_{i−1} + 0.15)`. The four demo spots ≈ 1.22 / 2.09 / 2.41 / 2.68s.
+- **Geometry** (960×540): screenshot card 600×396 at (80, 48) (bottom 444, clear of the subtitle band), white with a 1px #e0e0e0 hairline, radius 12, shadow `0 12px 40px rgba(0,0,0,.08)`, 38px grey browser bar; four targets (relative to the screenshot): title block (26,62,320×42) / hero image (26,162,548×100) / CTA button (26,274,150×42) / price (26,338,170×36) — **one target per row**, otherwise the label column collides.
+- **Scan line**: 600×2px, `linear-gradient(90deg, transparent, #0066cc 18%, #0066cc 82%, transparent)` + `box-shadow 0 0 14px rgba(0,102,204,.55)`; fades in over 0.15s at 0.35s, from 0.5s travels 2.4s with **ease none** from y=−30 to 416 (relative to the screenshot top), fades out 0.2s at 2.9s.
+- **Trigger times**: `ft_i = t0 + ((y_i + h_i − yFrom) / (yTo − yFrom)) × dur`, then clamped in y order `ft_i = max(ft_i, ft_{i−1} + 0.15)`. The four demo spots ≈ 1.22 / 2.07 / 2.36 / 2.67s.
 - **Viewfinder**: bbox expanded by 8px, four L corners 14px arms / 2px accent; from `ft` scale 1.75→1 over 0.4s `back.out(2)` with opacity on the same tween reaching full in the first half; the fill layer rises to 0.07 over 0.12s from `ft+0.12` and falls back over 0.35s from `ft+0.24` — a camera's focus-confirm blink.
 - **Label**: x=712, width 200, 2px accent rule on the left + 14px padding; main line 20px/600 ink, sub line 14px/500 #7a7a7a; from `ft+0.17` 0.35s `power2.out` opacity 0→1, y 4→0; vertically centred on the target (top = target centre − 22).
 - **Status line**: top right (right 80, top 22), 14px mono, 1.5px tracking, live `扫描 · fired/N`; 0.2s after the sweep ends it switches to `分析完成 · N 处` in the accent color.

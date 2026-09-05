@@ -57,7 +57,7 @@ Works on the section-title + key-point layer, never on the bottom follow-along s
 ## Reuse
 - Remotion/tsx (preferred): template/cards/title-demote-to-label.tsx — `title / items / itemBg / accent`; durationInFrames 189 for 3 rows (recompute as `growAt + (n−1)×stagger + holdEnd + exitDur` when the count changes).
 - HTML/GSAP: demos/title-demote-to-label/index.html — edit the `.tdl-ttl` copy and the three `.tdl-blk` rows; `CONFIG.to` moves the landing point.
-- Origin: video-shotcraft `title-demote-to-label` variant A (the selection-highlight variant B is not ported).
+- Source: video-shotcraft `title-demote-to-label` variant A (the selection-highlight variant B is not ported).
 - NLE equivalents: in CapCut/JianYing one text layer with scale + position keyframes sharing the same bezier ease-in-out and its anchor set to left-centre; points via rectangle mask + position + opacity keyframes one by one. In AE: Anchor Point left-centre + Scale/Position with one easy-ease; points via an expanding Rectangle Mask Path.
 - Interface with layout.md: label and content rows snap their left edges to the same column line x=80 (§3); inner gap 22 ≤ group gap 67 ≤ outer margin 80 (§2); rows ≥20px, pastel plates without repeats (§5 §7); with 4 rows mind the subtitle band y≥450 (§6).
 

@@ -58,7 +58,7 @@ When the narration lists four parallel things and there is **no presenter and no
 ## Reuse
 - Remotion/tsx (preferred): template/cards/word-slot-cycle.tsx — four props `stem / words / final / accent`; durationInFrames 206 for 4 words (recompute as `lastAt + holdEnd + exitDur` when the word count changes); word / stem / conclusion widths are measured once with `useLayoutEffect + delayRender` (static geometry, not a running animation).
 - HTML/GSAP: demos/word-slot-cycle/index.html — edit `STEM / WORDS / FINAL` and `CONFIG`; the stem's left is derived from the total width by the script.
-- Origin: video-shotcraft `pill-slot-cycle` (pinned stem + closing beat), `pill-chip-slot-cycle-handled` (per-frame pill width interpolation), `vertical-word-roll-blur-cycle` (drum-style neighbour rows), merged into one card.
+- Source: video-shotcraft `pill-slot-cycle` (pinned stem + closing beat), `pill-chip-slot-cycle-handled` (per-frame pill width interpolation), `vertical-word-roll-blur-cycle` (drum-style neighbour rows), merged into one card.
 - NLE equivalents: no direct preset in CapCut/JianYing — keyframe per word: a shape with width keyframes for the pill, position + blur keyframes for the words; in AE a Text Animator (Position + Blur, Range Selector by word) plus a shape layer whose width follows the text via a sourceRectAtTime expression.
 - Interface with layout.md: single subject on the centre line y=270 (§1); the sentence's bounding box centred in its conclusion state (§4, offset ≤48); the 30px pill text is above the 20@960 list-item floor (§5).
 

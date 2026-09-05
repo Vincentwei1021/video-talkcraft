@@ -8,19 +8,19 @@
   /* —— 扫描线逐处点名：一条亮扫描线匀速掠过截图，越过每个目标下缘那一刻取景框 1.75→1 收拢对准 + 对焦确认闪，
      滞后 5 帧右侧标注淡入并常驻；右上状态行实时数 0/4 → 4/4 → 分析完成。截图占位（CSS 画的假落地页）是演示语境，不属于动效本体。 —— */
 
-  /* 截图占位（不属于动效）：600×420 白卡 + 顶栏 + 灰块。成片换真截图，目标 bbox 由实测反推 */
-  .shot { position: absolute; left: 80px; top: 44px; width: 600px; height: 420px; background: #ffffff; border: 1px solid #e0e0e0; border-radius: 12px; overflow: hidden; box-shadow: 0 12px 40px rgba(0,0,0,.08); }
+  /* 截图占位（不属于动效）：600×396 白卡 @ (80,48)（卡底 444 不进字幕带）+ 顶栏 + 灰块。成片换真截图，目标 bbox 由实测反推 */
+  .shot { position: absolute; left: 80px; top: 48px; width: 600px; height: 396px; background: #ffffff; border: 1px solid #e0e0e0; border-radius: 12px; overflow: hidden; box-shadow: 0 12px 40px rgba(0,0,0,.08); }
   .shot .bar { height: 38px; background: #f5f5f7; border-bottom: 1px solid #e0e0e0; display: flex; align-items: center; gap: 8px; padding: 0 14px; }
   .shot .bar i { width: 10px; height: 10px; border-radius: 50%; background: #d9d9de; }
   .shot .row { position: absolute; left: 26px; height: 12px; border-radius: 6px; background: #ececf0; }
   .shot .tgt { position: absolute; border-radius: 8px; background: #e3e3e8; }
-  .shot .t1 { left: 26px; top: 66px; width: 320px; height: 44px; }                                   /* 标题块 */
-  .shot .t2 { left: 26px; top: 172px; width: 548px; height: 110px; background: #dcdce2; }             /* 首图 */
-  .shot .t3 { left: 26px; top: 300px; width: 150px; height: 44px; background: #0066cc; border-radius: 22px; }   /* CTA 按钮 */
-  .shot .t4 { left: 26px; top: 358px; width: 170px; height: 38px; }                                  /* 价格 */
+  .shot .t1 { left: 26px; top: 62px; width: 320px; height: 42px; }                                   /* 标题块 */
+  .shot .t2 { left: 26px; top: 162px; width: 548px; height: 100px; background: #dcdce2; }             /* 首图 */
+  .shot .t3 { left: 26px; top: 274px; width: 150px; height: 42px; background: #0066cc; border-radius: 21px; }   /* CTA 按钮 */
+  .shot .t4 { left: 26px; top: 338px; width: 170px; height: 36px; }                                  /* 价格 */
 
   /* 扫描线：2px 强调色渐变 + 辉光，匀速零缓动 */
-  .scan { position: absolute; left: 80px; top: 44px; width: 600px; height: 2px; opacity: 0;
+  .scan { position: absolute; left: 80px; top: 48px; width: 600px; height: 2px; opacity: 0;
     background: linear-gradient(90deg, transparent, #0066cc 18%, #0066cc 82%, transparent); box-shadow: 0 0 14px rgba(0,102,204,.55); }
 
   /* 取景框：四个 L 角（臂 14 / 2px）+ 对焦确认闪层；几何由目标 bbox 反推（外扩 8） */
@@ -45,7 +45,7 @@
     <div class="shot">
       <div class="bar"><i></i><i></i><i></i></div>
       <div class="tgt t1"></div>
-      <div class="row" style="top:124px;width:420px"></div><div class="row" style="top:146px;width:360px"></div>
+      <div class="row" style="top:118px;width:420px"></div><div class="row" style="top:138px;width:360px"></div>
       <div class="tgt t2"></div>
       <div class="tgt t3"></div>
       <div class="tgt t4"></div>
@@ -74,7 +74,7 @@
       t0: 0.5,             // 扫描线起点 s
       dur: 2.4,            // 扫描线走完全程的时长 s（零缓动）
       yFrom: -30,          // 扫描线起始 y（相对截图顶，先从画外进）
-      yTo: 440,            // 扫描线终点 y（越过截图底 420 再淡出）
+      yTo: 416,            // 扫描线终点 y（越过截图底 396 再淡出）
       gap: 0.15,           // 两个目标触发的最小间隔 s（y 接近的目标钳开逐个弹）
       pad: 8,              // 取景框比目标外扩 px
       bkScale: 1.75,       // 取景框收拢起点倍率（1.2 看不出对准）
@@ -84,7 +84,7 @@
       doneLag: 0.2,        // 扫描结束后多久切"分析完成"
       exitAt: 5.2,         // 整体退场起点（0.4s power2.in）
       end: 5.6,            // 镜头结束
-      shot: { x: 80, y: 44 },   // 截图左上角（舞台坐标），目标 bbox 相对它
+      shot: { x: 80, y: 48, w: 600, h: 396 },   // 截图左上角与尺寸（舞台坐标），目标 bbox 相对它
     };
 
     const $ = (s) => document.querySelector(s);

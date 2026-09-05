@@ -88,7 +88,7 @@ export default function WordSlotCycle({ stem = "一个 AI，帮你", words = ["�
   const [handle] = useState(() => delayRender("word-slot-cycle: measure text widths"));
   useLayoutEffect(() => {
     const el = measRef.current;
-    if (!el) return;
+    if (!el) { continueRender(handle); return; }   // 空词表兜底：不留悬挂的 delayRender
     const q = (k: string) => el.querySelector<HTMLSpanElement>(`span[data-k="${k}"]`)?.offsetWidth ?? 0;
     setM({ ws: words.map((_, i) => q(`w${i}`) + CONFIG.pad), stemW: q("stem"), finW: q("fin") });
     continueRender(handle);

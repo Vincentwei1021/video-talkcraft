@@ -58,7 +58,7 @@ When the narration delivers a claim, the stress usually sits on the first word (
 ## Reuse
 - Remotion/tsx (preferred): template/cards/lead-word-zoom-assemble.tsx — `words` (lead word first) / `subline` / `accentIndex` / `accent`; durationInFrames 156; the pivot is measured once with `useLayoutEffect + delayRender`.
 - HTML/GSAP: demos/lead-word-zoom-assemble/index.html — edit the words inside `.lwz-line` and the `.lwz-sub` copy, timing in `CONFIG`; the pivot is measured by the script.
-- Origin: video-shotcraft `lead-word-zoom-assemble` (closing crash-zoom handoff removed; baseline measurement replaced by the line box's vertical centre).
+- Source: video-shotcraft `lead-word-zoom-assemble` (closing crash-zoom handoff removed; baseline measurement replaced by the line box's vertical centre).
 - NLE equivalents: in CapCut/JianYing give the lead word its own text layer with scale + position keyframes and the other words position + opacity keyframes (opacity finishing within 2 frames); in AE pin the text layer's Anchor Point to the lead word's centre and drive Scale/Position with one easing, following words via a Text Animator Position range by word.
 - Interface with layout.md: the line + sub-line group centres on the y=270 midline (§1); horizontal centring within ≤48 (§4); hero-tier single line 56px@960 (§5); with a presenter, place the line on the opposite side and keep the 2.3× lead word out of the face-safe area.
 

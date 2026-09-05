@@ -14,13 +14,13 @@ interface Props {
 }
 
 // 目标 bbox 逐行 DSL：x,y,w,h（相对截图左上角，px；按 y 从上到下）
-const DEFAULT_TARGETS = "26,66,320,44\n26,172,548,110\n26,300,150,44\n26,358,170,38";
+const DEFAULT_TARGETS = "26,62,320,42\n26,162,548,100\n26,274,150,42\n26,338,170,36";
 // 标注逐行 DSL：主行|副行
 const DEFAULT_LABELS = "标题没说清是什么|01 · 首屏\n首图占了六成视口|02 · 图片\n按钮文案\"了解更多\"|03 · CTA\n价格藏在最底下|04 · 定价";
 const DEMO_STYLE = [
   { bg: undefined, radius: undefined },
   { bg: "#dcdce2", radius: undefined },
-  { bg: "#0066cc", radius: 22 },
+  { bg: "#0066cc", radius: 21 },
   { bg: undefined, radius: undefined },
 ];
 

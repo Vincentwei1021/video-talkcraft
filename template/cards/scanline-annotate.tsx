@@ -17,7 +17,7 @@ const CONFIG = {
   t0: 0.5,             // 扫描线起点 s
   dur: 2.4,            // 扫描线走完全程的时长 s（零缓动）
   yFrom: -30,          // 扫描线起始 y（相对截图顶，先从画外进）
-  yTo: 440,            // 扫描线终点 y（越过截图底 420 再淡出）
+  yTo: 416,            // 扫描线终点 y（越过截图底 396 再淡出）
   gap: 0.15,           // 两个目标触发的最小间隔 s（y 接近的目标钳开逐个弹）
   pad: 8,              // 取景框比目标外扩 px
   bkScale: 1.75,       // 取景框收拢起点倍率（1.2 看不出对准）
@@ -27,12 +27,12 @@ const CONFIG = {
   doneLag: 0.2,        // 扫描结束后多久切"分析完成"
   exitAt: 5.2,         // 整体退场起点（0.4s power2.in）
   end: 5.6,            // 镜头结束
-  shot: { x: 80, y: 44, w: 600, h: 420 },   // 截图左上角与尺寸（舞台坐标），目标 bbox 相对它
+  shot: { x: 80, y: 48, w: 600, h: 396 },   // 截图左上角与尺寸（舞台坐标），目标 bbox 相对它
 };
 
 /* 时间表（demo 秒）
-   0.35–0.50  扫描线淡入；0.50–2.90 匀速 y −30→440；2.90–3.10 淡出
-   1.22 / 2.09 / 2.41 / 2.68  四个取景框依次收拢（0.4s back.out(2)）→ +0.12 对焦闪 → +0.17 标注淡入 → 计数 +1
+   0.35–0.50  扫描线淡入；0.50–2.90 匀速 y −30→416；2.90–3.10 淡出
+   1.22 / 2.07 / 2.36 / 2.67  四个取景框依次收拢（0.4s back.out(2)）→ +0.12 对焦闪 → +0.17 标注淡入 → 计数 +1
    3.10       状态行切"分析完成 · 4 处"并转强调色
    5.20–5.60  整体退场（power2.in） */
 
@@ -49,12 +49,12 @@ const backOut = (s = 1.70158) => (x: number) => { const u = x - 1; return 1 + (s
 // —— 演示语境（不属于动效）：样式照搬 demo（类名加 sla- 前缀）——
 const CSS = `
 * { margin: 0; padding: 0; box-sizing: border-box; }
-.sla-shot { position: absolute; left: 80px; top: 44px; width: 600px; height: 420px; background: #ffffff; border: 1px solid #e0e0e0; border-radius: 12px; overflow: hidden; box-shadow: 0 12px 40px rgba(0,0,0,.08); }
+.sla-shot { position: absolute; left: 80px; top: 48px; width: 600px; height: 396px; background: #ffffff; border: 1px solid #e0e0e0; border-radius: 12px; overflow: hidden; box-shadow: 0 12px 40px rgba(0,0,0,.08); }
 .sla-shot .sla-bar { height: 38px; background: #f5f5f7; border-bottom: 1px solid #e0e0e0; display: flex; align-items: center; gap: 8px; padding: 0 14px; }
 .sla-shot .sla-bar i { width: 10px; height: 10px; border-radius: 50%; background: #d9d9de; }
 .sla-shot .sla-row { position: absolute; left: 26px; height: 12px; border-radius: 6px; background: #ececf0; }
 .sla-shot .sla-tgt { position: absolute; border-radius: 8px; background: #e3e3e8; }
-.sla-scan { position: absolute; left: 80px; top: 44px; width: 600px; height: 2px;
+.sla-scan { position: absolute; left: 80px; top: 48px; width: 600px; height: 2px;
   background: linear-gradient(90deg, transparent, #0066cc 18%, #0066cc 82%, transparent); box-shadow: 0 0 14px rgba(0,102,204,.55); }
 .sla-bk { position: absolute; }
 .sla-bk i { position: absolute; width: 14px; height: 14px; border: 2px solid #0066cc; }
@@ -73,10 +73,10 @@ export type Target = { x: number; y: number; w: number; h: number; /** 仅演示
 
 /** demo 里 CSS 假落地页的四个目标：标题块 / 首图 / CTA 按钮 / 价格 */
 const DEMO_TARGETS: Target[] = [
-  { x: 26, y: 66, w: 320, h: 44 },
-  { x: 26, y: 172, w: 548, h: 110, bg: "#dcdce2" },
-  { x: 26, y: 300, w: 150, h: 44, bg: "#0066cc", radius: 22 },
-  { x: 26, y: 358, w: 170, h: 38 },
+  { x: 26, y: 62, w: 320, h: 42 },
+  { x: 26, y: 162, w: 548, h: 100, bg: "#dcdce2" },
+  { x: 26, y: 274, w: 150, h: 42, bg: "#0066cc", radius: 21 },
+  { x: 26, y: 338, w: 170, h: 36 },
 ];
 const DEMO_LABELS = [
   { text: "标题没说清是什么", sub: "01 · 首屏" },
@@ -86,7 +86,7 @@ const DEMO_LABELS = [
 ];
 
 type Props = {
-  /** 真截图（铺满 600×420 截图卡，object-fit cover）；不传 = CSS 假落地页 */
+  /** 真截图（铺满 600×396 截图卡，object-fit cover）；不传 = CSS 假落地页 */
   src?: string;
   /** 目标 bbox 列表（相对截图左上角），按 y 从上到下；不传 = demo 四个 */
   targets?: Target[];
@@ -128,7 +128,7 @@ export default function ScanlineAnnotate({ src, targets = DEMO_TARGETS, labels =
             {targets.map((tg, i) => (
               <div key={i} className="sla-tgt" style={{ left: tg.x, top: tg.y, width: tg.w, height: tg.h, background: tg.bg, borderRadius: tg.radius }} />
             ))}
-            <div className="sla-row" style={{ top: 124, width: 420 }} /><div className="sla-row" style={{ top: 146, width: 360 }} />
+            <div className="sla-row" style={{ top: 118, width: 420 }} /><div className="sla-row" style={{ top: 138, width: 360 }} />
           </>
         )}
       </div>

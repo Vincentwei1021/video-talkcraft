@@ -80,7 +80,7 @@ export default function LeadWordZoomAssemble({ words = ["效率", "才是", "唯
   const [handle] = useState(() => delayRender("lead-word-zoom-assemble: measure lead word"));
   useLayoutEffect(() => {
     const line = lineRef.current, lead = line?.querySelector<HTMLSpanElement>(".lwz-lead");
-    if (!line || !lead) return;
+    if (!line || !lead) { continueRender(handle); return; }   // 兜底：不留悬挂的 delayRender
     const L = line.offsetWidth, c = lead.offsetLeft + lead.offsetWidth / 2, ratio = c / L;
     setM({ ratio, slide: L * (0.5 - ratio) });
     continueRender(handle);

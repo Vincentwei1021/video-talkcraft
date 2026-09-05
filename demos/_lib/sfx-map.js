@@ -462,9 +462,9 @@ window.SFX_MAP = {
   "scanline-annotate": [
     {"t": 0.5, "name": "pk:data-data-load-os", "vol": 0.3, "clip": 2.4, "note": "扫描线匀速掠过"},
     {"t": 1.22, "name": "pk:ui-ui-click-tone", "vol": 0.4, "note": "取景框 1 收拢"},
-    {"t": 2.09, "name": "pk:ui-ui-click-tone", "vol": 0.4, "note": "取景框 2 收拢"},
-    {"t": 2.41, "name": "pk:ui-ui-click-tone", "vol": 0.4, "note": "取景框 3 收拢"},
-    {"t": 2.68, "name": "pk:ui-ui-click-tone", "vol": 0.4, "note": "取景框 4 收拢"},
+    {"t": 2.07, "name": "pk:ui-ui-click-tone", "vol": 0.4, "note": "取景框 2 收拢"},
+    {"t": 2.36, "name": "pk:ui-ui-click-tone", "vol": 0.4, "note": "取景框 3 收拢"},
+    {"t": 2.67, "name": "pk:ui-ui-click-tone", "vol": 0.4, "note": "取景框 4 收拢"},
     {"t": 3.1, "name": "pk:mech-lock-quick", "vol": 0.4, "note": "分析完成"},
   ],
   "crash-zoom-punch": [
@@ -513,8 +513,7 @@ window.SFX_MAP = {
   "line-carry-transition": [
     {"t": 0.4, "name": "pk:text-marker-pen-line", "vol": 0.4, "clip": 0.6, "note": "A 下划线画出"},
     {"t": 1.2, "name": "pk:transition-wind-swoosh-short", "vol": 0.35, "clip": 1.2, "note": "镜头跟线横移"},
-    {"t": 3.2, "name": "pk:mech-lock-quick", "vol": 0.4, "note": "画框闭合"},
-    {"t": 3.3, "name": "pk:ui-pop", "vol": 0.3, "note": "B 内容淡入"},
+    {"t": 3.2, "name": "pk:mech-lock-quick", "vol": 0.4, "note": "画框闭合（转场落点只留这一记，B 淡入不配）"},
   ],
   "host-card-glass-board": [
     {"t": 0.2, "name": "pk:transition-transition-soft", "vol": 0.3, "clip": 0.7, "note": "玻璃板显影"},
