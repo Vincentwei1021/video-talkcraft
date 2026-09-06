@@ -1,6 +1,6 @@
 ---
 name: chapter-title-card
-title: At a section break, a full-screen color slab wipes in over 0.3s to cover the frame; a chapter number at 40% of screen height lands first, the chapter name then reveals from a mask beside it; after a 1.2s hold, the slab sweeps out in the same direction, cutting back to the narration
+title: At a section break, a full-screen color slab wipes in over 0.3s to cover the frame; a chapter number at 40% of screen height lands first, the chapter name then reveals from a mask beside it; after a 1.2s hold, the slab sweeps out in the same direction, cutting back to the narration; each chapter carries its own theme (bg / ink / accent) plus a line-art motif tied to its content, drawn in the background right after the slab covers, and an accent rule grows under the chapter name
 usage: Section breaks in long narration (5 minutes and up); finance explainers, event retrospectives, documentary-style storytelling — any tonality that needs a "page-turn feel"
 ---
 
@@ -19,6 +19,13 @@ Critical rules: **hierarchy** (the number lands first to establish the skeleton,
 - Exit: the slab continues in the same direction, `xPercent 0 → 100`, 0.3s, `power4.in`, revealing the narration frame beneath (host + caption area sat untouched under the slab the whole time)
 - The demo plays two cards back to back (01 blue → 02 red) with 0.7s of narration between, illustrating real pacing
 
+## Chapter theme layer (added 2026-09-07)
+- **One theme per chapter = background + ink + accent + motif** (`ChapterTheme` in the tsx). The accent appears only as the 72×3 rule under the chapter name (never recolour the number or the name); the four accents may be four brightness steps of the film's single accent or four colours derived from the film palette, but the four backgrounds must differ.
+- **One line-art motif per chapter, tied to that chapter's content**: first write the relation in one sentence ("ch.1 is about speed → gauge / stopwatch", "ch.4 is about writing → pen strokes / ruled paper"), then take the shape from the film's icon system (a stroke icon set or ≤30 lines of hand-written SVG, 200×200 viewBox). No motif may be reused across chapters. A motif is texture, not an icon: `opacity .12–.18`, lower-right quarter (top edge below the text group, bottom may bleed off), ≈45% of frame height, stroke only.
+- The motif starts drawing 0.05s after the slab covers (segments relay, 0.5s total, `power2.inOut`) on the L6 background layer and **does not change** the number / name / sub stagger; during the hold it drifts at 0.6× the text group (slower background = depth).
+- The SHOTBOOK entry for the shot must carry a **chapter theme line** per chapter: `ch.N · bg #… / accent #… / motif = <shape> ← <one-sentence relation>` so the four lines can be checked at a glance for "distinct and relevant".
+- Still-frame check: the motif does not intersect the number / name / sub bounding boxes (motif top at 60% of frame height); the accent rule's left edge = the chapter name's first glyph; motif stroke width identical across the four cards (3px @960).
+
 ## Parameters
 | Parameter | Typical value | Tuning feel |
 |------|--------|----------|
@@ -30,8 +37,15 @@ Critical rules: **hierarchy** (the number lands first to establish the skeleton,
 | `driftPx` | 10 | Anti-dead-air drift during the hold; >20px reads as a camera-move mistake, 0 looks like a frozen frame |
 | `wipeOut` | 0.3s | The exit may be slightly faster than the entrance; use `power4.in` to accelerate away for the "page turned" feel |
 | `gapBetween` | 0.7s | The narration gap between two chapters, demo-only; in practice determined by the narration content |
+| `motifIn` | 0.5s | Total motif draw time (segments relay); >0.8 keeps drawing after the name and steals hierarchy; <0.3 reads as a flash |
+| `motifOpacity` | 0.14 | 0.12–0.18 is the "texture" band; >0.25 becomes a second protagonist fighting the number; <0.1 is invisible |
+| `motifParallax` | 0.6 | Drift ratio for the motif; 1.0 = same speed as text, no depth; 0 = a dead background while only the text drifts |
+| `ruleIn` | 0.25s | Accent rule growth; it follows the name reveal — earlier and it competes with the mask for the same eye line |
 
 ## Known Pitfalls
+- Four chapters on the same slab colour with the same motif (or none) — the cards look identical and by the third one the viewer stops reading them as page turns (user feedback 2026-09-07: chapter cards too monotonous).
+- Motif drawn as a filled icon as bright as the number — the background texture becomes a second protagonist and scrambles the number / name hierarchy.
+- A motif unrelated to the chapter (a random geometric ornament) — decoration violates "content is the protagonist"; you must be able to say in one sentence how the motif relates to the chapter.
 - Number and chapter name appearing on the same frame — no sequencing means no hierarchy; reads as a static PPT slide suddenly pasted on.
 - Everything completely still during the hold — the viewer suspects the video froze; ultra-slow drift is the cheapest possible proof of life.
 - Total time over 2.5s — the transition becomes grander than the content, the viewer loses patience, instantly amateur.

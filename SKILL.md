@@ -1,11 +1,11 @@
 ---
 name: video-talkcraft
-description: 终极口播视频 skill：中文口播稿 + 成品配音 → CPU 字级时间戳 → SHOTBOOK 层矩阵分镜 → Remotion 电影感成片（横屏默认/竖屏）。当用户要"做口播视频"、"解说/科普视频"、"把文案变成视频"、"给配音配画面动效"时使用。TTS 合成与数字人生成技术不在本 skill 内（配音和人物素材是输入）。含统一视觉语言（Apple 范式）、108 张动效配方卡、镜头三面分层工作单、七层镜头反PPT系统（极缓推拉相机/让位，运动做减法）、六式运动承接转场（每式一卡）、长镜头世界画布、anime.js+three.js 桥、自动静止检测 + 独立 subagent 评估循环。
+description: 终极口播视频 skill：中文口播稿 + 成品配音 → CPU 字级时间戳 → SHOTBOOK 层矩阵分镜 → Remotion 电影感成片（横屏默认/竖屏）。当用户要"做口播视频"、"解说/科普视频"、"把文案变成视频"、"给配音配画面动效"时使用。TTS 合成与数字人生成技术不在本 skill 内（配音和人物素材是输入）。含统一视觉语言（Apple 范式）、109 张动效配方卡、镜头三面分层工作单、七层镜头反PPT系统（极缓推拉相机/让位，运动做减法）、六式运动承接转场（每式一卡）、长镜头世界画布、anime.js+three.js 桥、自动静止检测 + 独立 subagent 评估循环。
 ---
 
 # video-talkcraft — 口播视频 skill
 
-三大来源合体：**管线**（配音→字级时间戳→Remotion）+ **词汇**（108 张动效配方卡，全配可播 demo + 自包含 tsx）+ **镜头**（七层模型反 PPT 系统）+ **视觉语言**（Apple 范式默认版）。
+三大来源合体：**管线**（配音→字级时间戳→Remotion）+ **词汇**（109 张动效配方卡，全配可播 demo + 自包含 tsx）+ **镜头**（七层模型反 PPT 系统）+ **视觉语言**（Apple 范式默认版）。
 
 核心范式：解说词驱动画面，每句都要有**活的画面响应**（相机极缓推拉/已有元素的变化），
 但**新元素只在语义拍边界进场，禁止机械的"一句一个新元素"**（一句一元素是堆积型凌乱的制度根源；
@@ -70,6 +70,11 @@ python3 scripts/make_timing.py audio/timestamps.json remotion/src/timing.json
   **真图上的标注坐标一律机器实测，禁目测**：页面元素用 DOM `getBoundingClientRect`、成图用逐像素量测
   （目测偏 ±30px 就会把环框到别的元素上）；**会滚动/移动的真图，标注（环/框/pill）必须钉在内容坐标系上随内容动**，
   钉屏幕固定位就是错位根源
+- **单视频镜头要有播放器**（2026-09-07 用户定版）：镜头里唯一主体是一段视频（录屏 / 单条 B-roll / 引用别人的成片或采访）时，
+  **禁止裸贴满幅、禁止裸放白卡**，必须用 `video-player-frame◑` 承载——标题 chip 说它是什么、来源 pill 说从哪来、进度条按**真实播放进度**走、
+  播放键先按下进度才起步；播放器皮按 SHOTBOOK §0 风格档蒙（浅底白边卡 + hairline / 深底深 tile + 亮 hairline，已播条与刻度用本片 accent），
+  网页录屏用 `chrome: "browser"` 变体。例外只有两种：视频当**底床**不当主体（bed-echo-blur / §1.2 实拍底床），以及已在对比 / 画廊类卡（split-compare-slider / gallery-wall-dolly）里的内嵌视频。
+  `clipSec` 填 ffprobe 真实时长，静图不进播放器（进度在走画面不动一眼假）
 - **网页拍摄不贴图**：找资料/找素材时判定可用的网页，成片里**禁止以静态截图贴屏**，
   必须像手持镜头一样"拍"它——**滚**（`evidence-scroll-tour◆`：匀速上滚 ≈10% 页高/s，讲到关键条提前减速停 1~2s）/
   **巡**（`stage-keyframe-tour◇`：长页躺台上不动，相机挨个停靠兴趣点）/ **放大**（`magnifier-detail` 圆形放大镜
@@ -125,9 +130,9 @@ V / 图 / 截图 必须括号给路径，写"待采"= FAIL；纯动效镜也要�
 SHOTBOOK 每镜写**版式行**（栏跨度 + 组包围盒 + 对齐基准 + 字阶），定妆帧开 `debugOverlay` 核九项，任一失败 = P1；
 独句 hero 居中但不得覆盖人脸（含 B-roll 里的人脸，纵向改取人脸之外的三分线）。
 **选卡必读卡经验**：每张选中的卡，把 `references/cards/<slug>.md` 的「已知坑」与「落位自检」**逐条抄进该镜层矩阵的自检列**，
-实现后按条核（例：取景框 / 圈注 / 下划线类卡必核标注是否套住目标；`gooey-morph` 只用于图不用于字且无人物时居中；`chapter-title-card` 按章换色）——
+实现后按条核（例：取景框 / 圈注 / 下划线类卡必核标注是否套住目标；`gooey-morph` 只用于图不用于字且无人物时居中；`chapter-title-card` **每章一套主题色 + 一个与本章内容相关的线稿 motif**，SHOTBOOK 写章节主题行——四张同色同纹样的章节卡是"又来了"不是"翻页"）——
 卡经验不进 SHOTBOOK 就等于没读。
-动效词汇从 **108 张配方卡** 里选：**先按这一镜的输入过滤**（口播人物 / B-roll 视频 / 图片 / 纯文字——`references/taxonomy.md`「输入类型索引」；新卡 md 开头有「输入类型」表 + 「常用场景」四条），再 `references/taxonomy.md` 分类索引 → `references/cards/<slug>.md` 参数与坑 → `template/cards/<slug>.tsx` **自包含 Remotion 源码（实现以它为准，复制进工程改 CONFIG 即用）**；`demos/<slug>/index.html` 是同画面的 HTML 预览（`open gallery/index.html` 一屏浏览、demo 滚入即自动播放；带★实战卡的生产母本另在 template/motion-systems|components）。
+动效词汇从 **109 张配方卡** 里选：**先按这一镜的输入过滤**（口播人物 / B-roll 视频 / 图片 / 纯文字——`references/taxonomy.md`「输入类型索引」；新卡 md 开头有「输入类型」表 + 「常用场景」四条），再 `references/taxonomy.md` 分类索引 → `references/cards/<slug>.md` 参数与坑 → `template/cards/<slug>.tsx` **自包含 Remotion 源码（实现以它为准，复制进工程改 CONFIG 即用）**；`demos/<slug>/index.html` 是同画面的 HTML 预览（`open gallery/index.html` 一屏浏览、demo 滚入即自动播放；带★实战卡的生产母本另在 template/motion-systems|components）。
 **保真铁律**：每张用到的卡在工程里必须真实存在 `src/cards/<slug>.tsx`
 （自 template 复制改 CONFIG）——只读 md 就凭卡名手写"神似"简化版是最大翻车源
 （回弹/拍击/密度全丢、取景框括号方向画反、名片变色块），机器闸用 `scripts/card_lint.py`
@@ -326,7 +331,7 @@ X [`@VincentWei93`](https://x.com/VincentWei93) ·
 | 静止探针（母版前用真实合成帧差预判 freezedetect） | `scripts/freeze_probe.py` |
 | 人物素材（输入规格 / CPU 抠像 / 人脸安全区）· 与 B-roll 同屏怎么摆 | `references/host-footage.md` + `scripts/face_bbox.py` |
 | 新增配方卡 | `references/demo-spec.md`，验证 `node scripts/verify-demo.mjs <slug>` |
-| 可复制代码 | `template/cards/`（108 卡逐卡自包含 tsx）、`template/motion-systems/`（极缓推拉相机/让位/桥）、`template/components/`（字幕/花字/铅笔/吉祥物） |
+| 可复制代码 | `template/cards/`（109 卡逐卡自包含 tsx）、`template/motion-systems/`（极缓推拉相机/让位/桥）、`template/components/`（字幕/花字/铅笔/吉祥物） |
 | 成片后人工微调 / 导出 | `workbench/`（剪映式工作台：多轨时间线 + 全卡参数化 + 成片拆解 + Remotion 渲染导出） |
 | 字级时间戳（本机 CPU） | `scripts/timestamps_cpu.py`（FireRedASR2-CTC 默认 / faster-whisper 备选，+ 口播稿逐字对齐）→ `scripts/make_timing.py` |
 | **闸报 FAIL 了怎么办 · 怎么少烧母版** | ⑥⑦「迭代纪律」三条——先读闸怎么量的再改 · 静帧优先 · 改哪段渲哪段、复审改动攒批 |
