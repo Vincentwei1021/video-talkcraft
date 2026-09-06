@@ -176,6 +176,7 @@ def check_inventory(root: str, media_only: bool) -> None:
 # ---------- C) SHOTBOOK 对账 ----------
 
 SHOT_HEAD = re.compile(r"^#{2,4}\s+([SsVv]\d+[A-Za-z0-9_']*)\b")
+HEADING = re.compile(r"^(#{1,6})\s")          # 任意 markdown 标题：与镜头标题同级或更高的非镜头标题 = 该镜正文结束
 MEDIA_LINE = re.compile(r"^\s*[-*]?\s*\**素材\**\s*[:：]\s*(.+)$")
 UNFINISHED_HEAD = re.compile(r"^#{2,4}\s+.*未完成")
 TOKEN = re.compile(r"(B-roll|b-roll|V|图片|图|截图|页|界|文|人|纯动效)\s*(?:[（(]([^）)]*)[）)])?")
@@ -189,8 +190,12 @@ def parse_shotbook(text: str):
     for line in text.splitlines():
         m = SHOT_HEAD.match(line)
         if m:
-            cur = {"id": m.group(1), "media": None, "body": [line]}
+            cur = {"id": m.group(1), "media": None, "body": [line], "level": len(line) - len(line.lstrip("#"))}
             shots.append(cur)
+            continue
+        hm = HEADING.match(line)
+        if cur is not None and hm and len(hm.group(1)) <= cur["level"]:
+            cur = None                        # 下一幕 / 「未完成清单」等同级标题：镜头正文到此为止，别把后面的节算进这一镜
             continue
         if cur is not None:
             cur["body"].append(line)          # 该镜到下一镜标题之间的全文（层矩阵 / 自检列），给纯文镜陪衬图形检查用
@@ -264,7 +269,7 @@ def check_shotbook(root: str, shotbook: str, shots_json: str | None, min_ratio: 
     # 层矩阵里要有一行 G5 线稿示意图（关键词 G5 / 示意图 / 陪衬图形）；章节卡镜（chapter-title-card / 章节卡）除外。
     TEXT_ONLY = {"文", "纯动效"}
     G5_RE = re.compile(r"G5|示意图|陪衬图形|schematic")
-    CHAPTER_RE = re.compile(r"chapter|章节", re.I)   # 章节卡镜：标题或正文提到 chapter / 章节 即免检
+    CHAPTER_RE = re.compile(r"chapter-title-card|章节卡|章节标题卡", re.I)   # 章节卡镜免检：认卡名 / 「章节卡」，不认泛泛的"章节"（口播稿里提到"上一章节"不算）
     bare_text = []
     for s in shots:
         if not s["media"]:

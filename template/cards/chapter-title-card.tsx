@@ -138,8 +138,9 @@ const ChapterCard: React.FC<{
   const outP = tw(t, outAt, CONFIG.wipeOut, power4In);
   const xPercent = t < outAt ? lerp(-100, 0, inP) : lerp(0, 100, outP);
 
-  // motif：色块盖屏后立即描画（背景层，不参与三层错峰）
-  const motifP = tw(t, at + CONFIG.wipeIn + 0.05, CONFIG.motifIn, power2InOut);
+  // motif：色块盖屏后立即描画（背景层，不参与三层错峰）——各段接力、每段各自 power2.inOut（与 demo 逐段 tween 同）
+  const motifAt = at + CONFIG.wipeIn + 0.05;
+  const motifSeg = CONFIG.motifIn / theme.motif.length;
   // 编号先落位——先立骨架再上名字，层次不塌
   const numP = tw(t, at + CONFIG.wipeIn, CONFIG.numIn, power3Out);
   // 章节名从编号旁遮罩揭示
@@ -159,7 +160,7 @@ const ChapterCard: React.FC<{
       }}>
         {theme.motif.map((d, i) => (
           <path key={i} d={d} pathLength={1} strokeDasharray="1 1"
-            strokeDashoffset={1 - clamp01(motifP * theme.motif.length - i)} />
+            strokeDashoffset={1 - tw(t, motifAt + i * motifSeg, motifSeg, power2InOut)} />
         ))}
       </svg>
       <div className="chapter-num" style={{

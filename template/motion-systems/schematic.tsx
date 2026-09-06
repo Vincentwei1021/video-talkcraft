@@ -27,7 +27,8 @@ const INK = '#1d1d1f', ACCENT = '#0066cc', STRIKE = '#d70015', HAIRLINE = '#e0e0
 
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 export const prog = (abs: number, at: number, dur: number) => clamp01((abs - at) / Math.max(dur, 1e-6));
-export const inOut2 = (x: number) => (x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2);
+/** = GSAP power2.inOut（三次），与 outline-box-title 的描边同一条曲线——近匀速、两端轻收 */
+export const inOut2 = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
 export const out3 = (x: number) => 1 - Math.pow(1 - x, 3);
 export const backOut = (x: number, s = 1.6) => {
   const c1 = s, c3 = c1 + 1;
@@ -115,7 +116,7 @@ export const Connector: React.FC<DrawProps & {from: {x: number; y: number}; to: 
 };
 
 /** 圆节点：back.out pop（accent 实心 = 当前 / 白底 = 普通）；标签滞后 2 帧淡入 */
-export const Node: React.FC<DrawProps & {x: number; y: number; r?: number; fill?: string; label?: string; labelPos?: 'below' | 'above' | 'right' | 'left'; labelSize?: number; labelColor?: string; ink?: string}> = ({abs, at, dur = 0.3, x, y, r = 14, color = INK, width = 3, fill = '#ffffff', label, labelPos = 'below', labelSize = 28, labelColor, ink = INK, out, outDur}) => {
+export const Node: React.FC<DrawProps & {x: number; y: number; r?: number; fill?: string; label?: string; labelPos?: 'below' | 'above' | 'right' | 'left'; labelSize?: number; labelColor?: string; ink?: string}> = ({abs, at, dur = 0.3, x, y, r = 14, color = INK, width = 3, fill = '#ffffff', label, labelPos = 'below', labelSize = 36, labelColor, ink = INK, out, outDur}) => {
   if (abs < at) return null;
   const op = fadeOut(abs, out, outDur);
   if (op <= 0) return null;
@@ -176,8 +177,8 @@ export const Traveller: React.FC<DrawProps & {d: string; r?: number; fill?: stri
   return <circle cx={pt.x} cy={pt.y} r={r} fill={fill} opacity={op} />;
 };
 
-/** 文字标签（SVG text）：淡入 + 上浮 6px；≥36px 才能在 390 宽手机上读，30px 以下按装饰用 */
-export const Label: React.FC<{abs: number; at: number; x: number; y: number; text: string; size?: number; weight?: number; color?: string; anchor?: 'start' | 'middle' | 'end'; out?: number; outDur?: number; letterSpacing?: number}> = ({abs, at, x, y, text, size = 28, weight = 600, color = INK, anchor = 'middle', out, outDur, letterSpacing = 0}) => {
+/** 文字标签（SVG text）：淡入 + 上浮 6px；默认 36 = 390 宽手机上的可读下限（schematic.md §5），传 <36 即承认为装饰 */
+export const Label: React.FC<{abs: number; at: number; x: number; y: number; text: string; size?: number; weight?: number; color?: string; anchor?: 'start' | 'middle' | 'end'; out?: number; outDur?: number; letterSpacing?: number}> = ({abs, at, x, y, text, size = 36, weight = 600, color = INK, anchor = 'middle', out, outDur, letterSpacing = 0}) => {
   if (abs < at) return null;
   const p = out3(prog(abs, at, 0.3));
   const op = p * fadeOut(abs, out, outDur);

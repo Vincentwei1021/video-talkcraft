@@ -167,7 +167,7 @@ python3 scripts/preflight.py --shotbook SHOTBOOK.md --host remotion/public/dh/ho
 元素压暗缩小后仍占着原槽、计入同屏预算，新主体不得摆进它的位置；旧名 `retireAt` 仍可用但已 deprecated，2026-09-06 因名字误导出过 P0 文字相撞）；
 G2 视差、G4 分幕色温可选、默认不装；主体 idle / 环境呼吸 vignette / 扫光 / 曝光脉冲 / 相机脉冲一律不做。
 **G5 线稿示意图**（`schematic.tsx` + `icons.ts`）只给纯文镜装：DrawPath / DrawIcon / Connector / Node / Plate / Panel / Cross / Tick / Traveller / Label，
-全部 abs 秒驱动、机器一笔画、线到哪亮哪、一套皮；图标缺什么跑 `python3 scripts/fetch_icons.py <slug,...> --merge`（Iconify lucide，ISC，登记进 sources.md）。
+全部 abs 秒驱动、机器一笔画、线到哪亮哪、一套皮；图标缺什么跑 `python3 scripts/fetch_icons.py <slug,...> --merge --out <工程里 icons.ts 的路径>`（不带 `--out` 写的是库内 `template/motion-systems/icons.ts`；Iconify lucide，ISC，登记进 sources.md）。
 
 **每个镜头边界必须有明确转场处置，禁止裸切**：运动承接六式（lead/tail 重叠 12–16 帧 + ShotFade，
 代码 `template/motion-systems/transitions.tsx`）或 caret/shape-wipe 轻量式，选型见 cinematography.md §3；

@@ -1,11 +1,11 @@
 import React from "react";
-import { AbsoluteFill, OffthreadVideo, useCurrentFrame } from "remotion";
+import { AbsoluteFill, Freeze, OffthreadVideo, Sequence, useCurrentFrame } from "remotion";
 
 // video-player-frame · 单视频播放器框 —— 自包含 Remotion 源码（与 demos/video-player-frame/index.html 同画面）
 // 镜头里唯一主体是一段视频（录屏 / B-roll / 引用别人的成片）时，不裸贴满幅、不裸放白卡，而是装进一只"播放器"：
 // 白边证据卡 + 底部播放条（播放键 → 暂停键、进度随真实播放走、时间码、章节刻度）+ 左上标题 chip + 右上来源 pill。
 // 复制本文件进你的工程即可用；视频经 src 注入（不传 = 灰阶占位 + 匀速斜纹，保证"里面在放东西"）。
-export const meta = { width: 960, height: 540, fps: 30, durationInFrames: 246 };   // END 8.1s + 0.1s 收尾
+export const meta = { width: 960, height: 540, fps: 30, durationInFrames: 246 };   // END 8.15s + 收尾 = 8.2s
 
 const FPS = meta.fps;
 
@@ -20,7 +20,7 @@ const CONFIG = {
   frameIn: 0.5,       // 框落位 s：opacity 0→1 + scale .96→1 + y 16→0（power3.out）
   chromeDelay: 0.15,  // 播放条比框晚多少滑上来（+12px → 0，0.35s）
   playAt: 0.5,        // 按下播放的时刻 s（键 punch 1.15→1，进度从此起步）
-  clipSec: 12,        // 时间码分母（这段视频"有多长"）；进度 = (t − playAt) / clipSec
+  clipSec: 13.6,      // 时间码分母 = 素材 ffprobe 真实时长 s（demo 的 v-typing.webm = 13.597）；进度 = (t − playAt) / clipSec
   markers: [0.35, 0.72], // 进度条上的章节刻度（比例）；进度经过时由 30% 白亮到 100%
   push: 1.03,         // 整框极缓推 1→1.03，时长 = 卡（linear，末速非零）
   radius: 16,         // 框外圆角；内容圆角 = radius − border
@@ -30,8 +30,8 @@ const CONFIG = {
   exit: 0.35,
   chrome: "player" as "player" | "browser", // browser：顶部加三点 + 地址栏 pill（网页录屏用）
 };
-/* 时间表（s）：0–0.5 框落位 · 0.15–0.5 播放条滑上 · 0.5 播放键 punch、进度起步 · 0.5–7.6 进度 0→59%（12s 片）
-   · 刻度 35% 在 4.7s 点亮 · 7.6–7.8 播放条收 · 7.8–8.15 框 scale→.98 + 淡出 · END 8.15 */
+/* 时间表（s）：0–0.5 框落位 · 0.15–0.5 播放条滑上 · 0.5 播放键 punch、视频与进度同帧起步 · 0.5–7.6 进度 0→52%（13.6s 片）
+   · 刻度 35% 在 5.26s 点亮 · 0.5–7.8 整框极缓推 1→1.03 · 7.6–7.8 播放条收 · 7.8–8.15 框 scale→.98 + 淡出 · END 8.15 */
 
 // —— 缓动与 tween helper（对照 GSAP 名字）——
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
@@ -68,8 +68,9 @@ export default function VideoPlayerFrame({
   const F = { x: 96, y: 40, w: 768, h: 432 };
   const inP = tw(t, 0, CONFIG.frameIn, power3Out);
   const outP = tw(t, CONFIG.exitAt + 0.2, CONFIG.exit, power2In);
-  const push = lerp(1, CONFIG.push, tw(t, 0, CONFIG.exitAt + 0.2, linear));
-  const frameScale = lerp(0.96, 1, inP) * push * lerp(1, 0.98, outP);
+  // 整框极缓推：框落位后起步、到条收完为止（与 demo 同：从 frameIn 起，linear）；退场时从当前 scale 收到 0.98（绝对值）
+  const push = lerp(1, CONFIG.push, tw(t, CONFIG.frameIn, CONFIG.exitAt + 0.2 - CONFIG.frameIn, linear));
+  const frameScale = lerp(lerp(0.96, 1, inP) * push, 0.98, outP);
   const frameOp = inP * (1 - outP);
   const frameY = lerp(16, 0, inP);
 
@@ -80,8 +81,9 @@ export default function VideoPlayerFrame({
   const chromeY = lerp(12, 0, chromeIn);
 
   // 播放：键 punch → 进度起步（同一个时间源 played）
-  const playing = t >= CONFIG.playAt;
-  const played = Math.max(0, t - CONFIG.playAt);
+  const playAtF = Math.round(CONFIG.playAt * FPS);
+  const playing = frame >= playAtF;
+  const played = Math.max(0, (frame - playAtF) / FPS);
   const progress = clamp01(played / CONFIG.clipSec);
   const punch = playing ? lerp(1.15, 1, tw(t, CONFIG.playAt, 0.2, backOut)) : 1;
 
@@ -111,8 +113,17 @@ export default function VideoPlayerFrame({
           position: "absolute", left: inner.x, top: inner.y + (chrome === "browser" ? 36 : 0), width: inner.w, height: inner.h - (chrome === "browser" ? 36 : 0),
           borderRadius: chrome === "browser" ? `0 0 ${CONFIG.radius - CONFIG.border}px ${CONFIG.radius - CONFIG.border}px` : CONFIG.radius - CONFIG.border, overflow: "hidden", background: "#111",
         }}>
+          {/* 命门①②：视频与进度同一个时间源——playAt 之前定格在首帧（键还是 ▶），playAt 那帧起视频、键、进度同帧起步 */}
           {src ? (
-            <OffthreadVideo src={src} muted startFrom={Math.round(startFrom * FPS)} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+            playing ? (
+              <Sequence from={playAtF} layout="none">
+                <OffthreadVideo src={src} muted startFrom={Math.round(startFrom * FPS)} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+              </Sequence>
+            ) : (
+              <Freeze frame={0}>
+                <OffthreadVideo src={src} muted startFrom={Math.round(startFrom * FPS)} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+              </Freeze>
+            )
           ) : <Placeholder t={t} />}
 
           {/* 左上标题 chip / 右上来源 pill（player 变体） */}

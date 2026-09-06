@@ -81,7 +81,7 @@
       frameIn: 0.5,          // 框落位 s：opacity + scale .96→1 + y 16→0（power3.out）
       chromeDelay: 0.15,     // 播放条晚多少滑上来
       playAt: 0.5,           // 按下播放的时刻
-      clipSec: 12,           // 时间码分母（这段视频有多长）
+      clipSec: 13.6,         // 时间码分母 = 素材 ffprobe 真实时长（v-typing.webm 13.597s）
       markers: [0.35, 0.72], // 进度条章节刻度（比例），经过时点亮
       push: 1.03,            // 整框极缓推 1→1.03，时长 = 卡
       exitAt: 7.6,           // 退场起点：条先收 0.2s，框再收 0.35s

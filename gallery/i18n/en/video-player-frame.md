@@ -4,6 +4,19 @@ title: When a shot has only one video, house it in a "player" skinned to the fil
 usage: One-shot-one-video moments — screen recordings (web / phone / desktop), a single B-roll clip as the subject, quoted footage or interview snippets; reviews, tutorials, case studies, news quotes. Not a bed (use bed-echo-blur) — this is "the clip is the star of this shot"
 ---
 
+## Input types
+| Host footage | B-roll video | Image |
+|---|---|---|
+| Yes for quoted footage (someone else's talk / interview — "here is what they said"; the frame acts as the quotation marks); this film's own host never goes in the frame | **Default input** (a screen recording or a single live-action clip as the subject) | Not applicable (a still inside a player is a lie — the progress bar moves while the picture doesn't; use media-pop-in / slow-push-in) |
+
+The vital: **what's in the frame is a video that is playing**. Progress bar, timecode and play button all say "this is a recording, not a screenshot", so the content must really move.
+
+## Common scenarios
+1. A screen recording of a product / AI output as evidence (the demo: a typing clip + "录屏 · 案例 01" + a source pill)
+2. "Watch me do it" desktop recordings in tutorials (`chrome: "browser"` variant: three dots + address bar)
+3. Quoting someone else's video / interview (title chip names the origin, source pill names the platform)
+4. A single B-roll clip carrying a whole sentence with nothing else in frame (don't paste it full-frame — give it an object)
+
 ## Intent
 The two usual treatments of a single-video shot are both weak: **pasting it full-bleed** (the viewer can't tell your footage from quoted material, and there is nothing else to look at) or **dropping it on a bare white card** (a moving photo with no "playing" grammar).
 The player frame turns the clip into an **object with an identity**: the title says what it is, the source says where it came from, the progress bar says how long it is and where we are, the play button says "starting now". Those four things turn footage into evidence and give the shot a second watchable layer besides the video itself (user feedback 2026-09-07: video-only / text-only shots "have just one thing moving, too flat").
@@ -55,3 +68,10 @@ Critical rules:
 - Not this card: the sample clip (demos/_lib/media/v-typing.webm), the chip / pill copy, the exact card colours and shadow values, the white stage.
 - Migration interface: **skin per the film's style profile** (design-language §0.4) — light = white-bordered card + hairline + the single shadow (demo); dark = dark tile + bright hairline, scrim rgba(0,0,0,.7); fill and lit marks in the film's accent, timecode in the film's numeral face; frame size per the clip's aspect (16:9 / 9:16 / 4:3) and the main column (≤1440 @1080p); `clipSec` = real clip length.
 - Background: white is fine (the shadow does the layering); on dark stages swap the frame base for a dark tile and the white border for a 1px bright hairline.
+
+## Placement checks (copy into the shot's SHOTBOOK check column)
+- All four frame edges inside action-safe (96 @1080p); ≥60px between the frame's bottom edge and the subtitle band; the frame's box does not intersect any other subject on screen.
+- `clipSec` = the clip's ffprobe duration; `startFrom` aligned to the narration anchor (the second on screen is the one being talked about).
+- Play-button punch frame = progress start frame (the same `playAt`); on exit the bar leaves 0.2s before the frame (check two frames).
+- No filter / second transform on the video layer; whole-frame push ≤1.05.
+- Every single-video shot must use this card or its variant (SKILL.md ③ "single-video shots get a player"); bare full-frame video is only allowed as a bed, never as the subject.

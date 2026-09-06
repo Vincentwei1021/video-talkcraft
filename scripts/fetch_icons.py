@@ -2,14 +2,17 @@
 """fetch_icons.py —— 从 Iconify 抓 lucide 线稿图标，生成 G5 线稿示意图系统用的 icons.ts（每个图标 = 24×24 viewBox 的一组 path d）。
 
 用法：
-  python3 scripts/fetch_icons.py file-text,laptop,gauge [--set lucide] [--out remotion/src/sys/icons.ts] [--merge]
-  --merge：与已有 icons.ts 合并（保留旧图标，追加 / 覆盖新抓的）
+  python3 scripts/fetch_icons.py file-text,laptop,gauge [--set lucide] [--out <icons.ts 路径>] [--merge]
+  --out 缺省 = 库内 template/motion-systems/icons.ts（相对本脚本定位，任何 cwd 都可跑）；进片工程传 --out remotion/src/<schematic.tsx 所在目录>/icons.ts
+  --merge：与已有 icons.ts 合并（保留旧图标，追加 / 覆盖新抓的）；输出按名字排序、文件头固定，因此重跑是幂等的
 授权：lucide = ISC（免署名可商用）；tabler = MIT。其他集合先查 https://api.iconify.design/collections?prefixes=<set> 的 license 再用。
 把来源与授权写进工程 sources.md（broll-sources.md 规则 6 同样适用于图标）。
 
 为什么转成 path d：DrawIcon 用 pathLength=1 + dashoffset 逐段描画，circle / rect / line / polyline 都要先变成 path 才能"一笔画"。
 """
 import json, re, subprocess, sys, os
+
+DEFAULT_OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'template', 'motion-systems', 'icons.ts')
 
 def fetch(icon_set: str, names: list[str]) -> dict:
     url = f"https://api.iconify.design/{icon_set}.json?icons=" + ",".join(names)
@@ -68,7 +71,7 @@ def main():
         sys.exit(__doc__)
     names = [x for x in args[0].split(',') if x]
     icon_set = args[args.index('--set') + 1] if '--set' in args else 'lucide'
-    out_path = args[args.index('--out') + 1] if '--out' in args else 'remotion/src/sys/icons.ts'
+    out_path = args[args.index('--out') + 1] if '--out' in args else DEFAULT_OUT
     merge = '--merge' in args
     data = fetch(icon_set, names)
     icons = parse_existing(out_path) if merge else {}

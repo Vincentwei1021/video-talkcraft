@@ -64,9 +64,9 @@ name: chapter-title-card
 - 剪辑软件对应物：剪映"文字模板→片头/章节"类 + "向右擦除"转场叠色块；AE 里是纯色层 Position 关键帧（Easy Ease 拉重入场）+ 文字层 Scale 关键帧 + 轨道遮罩（Track Matte）做章节名揭示；CapCut 搜 "chapter title" 模板。
 
 ## 动效范围
-- 属于本卡的：全屏色块 `xPercent -100→0` 压入盖屏（0.3s、`power4.inOut`）；本章 motif 在盖屏后 +0.05s 于 L6 背景层接力描画 0.5s 并以 0.6× 跟随漂移；章节名揭示完后 accent 短线 `scaleX 0→1` 0.25s；编号 opacity 0→1 + scale 1.3→1 落位（0.4s、`power3.out`，在色块盖屏之后）；章节名 `clip-path inset(0 100%→0)` 侧向遮罩揭示（0.35s，比编号晚 0.18s）；小字再晚 0.1s 的 opacity + x −14→0；hold 期整组 x 0→10px 线性漂移防卡帧；色块**同方向**继续 `xPercent 0→100` 扫出（0.3s、`power4.in`）。这五段的先后与那条单向进出的运动语言就是本卡全部。
+- 属于本卡的：全屏色块 `xPercent -100→0` 压入盖屏（0.3s、`power4.inOut`）；本章 motif 在盖屏后 +0.05s 于 L6 背景层接力描画 0.5s 并以 0.6× 跟随漂移；章节名揭示完后 accent 短线 `scaleX 0→1` 0.25s；编号 opacity 0→1 + scale 1.3→1 落位（0.4s、`power3.out`，在色块盖屏之后）；章节名 `clip-path inset(0 100%→0)` 侧向遮罩揭示（0.35s，比编号晚 0.18s）；小字再晚 0.1s 的 opacity + x −14→0；hold 期整组 x 0→10px 线性漂移防卡帧；色块**同方向**继续 `xPercent 0→100` 扫出（0.3s、`power4.in`）。这七段的先后与那条单向进出的运动语言就是本卡全部。
 - 不属于本卡的：每章具体的 bg / ink / accent 色值与 motif 图形（demo 的泡沫曲线 / 门与箭头只是示例，成片按本章内容重画）、编号的衬线字体与 216px 字号、章节名/小字的具体文案与字距、底下口播画面（主持人占位 + 字幕）、demo 连演两张卡与 `gapBetween` 间隔（仅示范节奏，实际由口播内容决定）。
-- 迁移接口：**色块颜色 = 复用者的品牌色接口**——改 `.chapter-card.c1` / `.c2` 的 `background`（demo 收敛成中性灰阶两档 #1d1d1f / #55565a，换成品牌深色即可），色块上的文字色随之取反（当前 #ffffff）；节奏全在顶部 `CONFIG`（`wipeIn`/`numIn`/`nameIn`/`subDelay`/`hold`/`driftPx`/`wipeOut`）；编号字号按屏高 40% 折算，换尺寸时同比缩放；加章节 = 复制一段 `.chapter-card` DOM + 多调一次 `chapterBeat`。扫入扫出方向要保持同向，改方向须同时改两处。
+- 迁移接口：**章节主题 = 复用者的品牌色接口**——tsx 改 `DEMO_THEMES` 或给组件传 `themes`（`ChapterTheme = { bg, ink, accent, motif }`，每章一套；demo 收敛成中性灰阶两档 #1d1d1f / #55565a，换成本片色板派生的章色即可）；demo 对应改 `.chapter-card.c1` / `.c2` 的 `background` 与 `--ink` / `--accent`，motif 换 `<svg class="chapter-motif">` 里的 path；节奏全在顶部 `CONFIG`（`wipeIn`/`numIn`/`nameIn`/`subDelay`/`hold`/`driftPx`/`wipeOut`/`motifIn`/`ruleIn`）；编号字号按屏高 40% 折算，换尺寸时同比缩放；加章节 = tsx 多放一个 `<ChapterCard theme={themes[n]}>`，demo 复制一段 `.chapter-card` DOM + 多调一次 `chapterBeat`。扫入扫出方向要保持同向，改方向须同时改两处。
 - 底色要求：白底即可（色块自带满屏遮盖，底色只在色块进出的前后两拍露出）。色块本身必须与底色有足够明度差，白底配深色块、深底配亮色块。
 
 ## 章节主题层（2026-09-05 配色轮换 + 2026-09-07 主题 motif，选卡时抄进 SHOTBOOK 该镜自检列）
