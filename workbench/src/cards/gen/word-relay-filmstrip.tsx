@@ -42,7 +42,7 @@ const WordRelayFilmstrip: React.FC<Props> = ({
 export const card: CardDef = {
   id: "word-relay-filmstrip",
   name: "动词接力胶片",
-  category: "字幕花字",
+  category: "素材呈现",
   durationInFrames: 204,
   accent: "#7d8aa3",
   component: WordRelayFilmstrip as React.ComponentType<Record<string, unknown>>,

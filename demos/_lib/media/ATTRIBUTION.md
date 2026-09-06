@@ -1,7 +1,7 @@
 # demos/_lib/media —— 卡 demo 的示意素材（展示层，不属于任何一张卡）
 
 只给 `demos/<slug>/index.html` 当演示画面用；卡的契约（`references/cards/<slug>.md` + `template/cards/<slug>.tsx`）不含这些文件，
-成片一律经 `src` / `srcs` 注入自己的素材。全部为免署名授权，来源与实验室（demos/_lab/material-presentation，2026-09-04 采集）一致：
+成片一律经 `src` / `srcs` 注入自己的素材。全部为免署名授权，来源与本地实验室原型（不随库分发，2026-09-04 采集）一致：
 
 - **视频**（Mixkit **Free License**，可商用免署名；2026-09-04 逐条核对页面授权标签）：
   `v-ocean.webm` = Mixkit 2091 海面（截前 10s，960 宽） · `v-typing.webm` = Mixkit 1811 打字。
@@ -13,3 +13,6 @@
 rack-focus-pair 367/24 · split-compare-slider 1043 · filmstrip-conveyor 1015/1036/1039/1050/1057/1018 · grid-to-hero 1018/1050/1059/1036 ·
 gallery-wall-dolly 1015/1036/1039 · timeline-photo-strip 0/180/60/1059 · parallel-items-with-host 每式一组：① 63/24/250 ② 1018/1053/1067 ③ 366/180/160 ④ 823/0/816 ⑤ 1015/866/1050 ⑥ 1036/845/177 ⑦ 1067/392/274 · stack-fan-out 1015/1036/1050/1057/1018 ·
 still-layout-relay 250/355/319/1027/349/823 · word-relay-filmstrip 63/24/250/366/160 · info-card-assemble 24 · line-carry-transition 180。
+
+用途限定：这些文件只作为本库 demo 页面的组成部分展示。Mixkit Free License 不允许把素材单独或打包再分发——
+请勿从本目录单独提取视频另行发布；成片里的 B-roll 按 `references/broll-sources.md` 自己采集、自己登记。

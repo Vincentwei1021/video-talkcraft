@@ -83,7 +83,7 @@
       const C = CONFIG;
       const tl = gsap.timeline();
       tl.timeScale(speed);
-      const cam = $(".cam"), photos = $$(".photo"), phs = photos.map((p) => $(".ph", p) || p.querySelector(".ph"));
+      const cam = $(".cam"), photos = $$(".photo"), phs = photos.map((p) => p.querySelector(".ph"));   // 每张照片自己的 .ph（$ 是单参）
       const wide = camTo(C.wideZ, C.wideAt, 270);
       tl.set(cam, { ...wide }, 0).set(photos, { filter: "brightness(1) blur(0px)", opacity: 1 }, 0).set(phs, { scale: 1 }, 0);
       let t = C.lead;
