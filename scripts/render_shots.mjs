@@ -20,9 +20,13 @@
 //        [--all | --changed s14 | --only s13,s14,s15]     # 缺省 = 只渲 seg-dir 里缺失的段
 //        [--concat out/assembled.mp4]                      # 拼装（video-only）
 //        [--audio out/full-mix.wav] [--force-audio]        # 整条音轨（缓存过时长+指纹校验才复用）
+//        [--audio-concurrency 4]                           # 音轨渲染并发 tab 数（音轨无光栅问题，不受视频段单并发纪律约束）
 //        [--mux out/preview.mp4]                           # assembled + audio → 有声预览
 //        [--props '{"k":1}' | --props @props.json]         # 合成 inputProps（工作台 Main 等吃工程 JSON 的合成必须给）
 //        [--public-dir .render-public]                     # 覆盖 public/（Remotion 静态服务器拒绝符号链接素材时先解引用同步）
+//        [--image-format png|jpeg] [--jpeg-quality 95] [--crf 18]   # 中间帧/编码：覆盖 remotion.config.ts；不给则读配置，配置没设用 Remotion 默认（JPEG-80）
+//        [--browser /path/to/chrome-headless-shell]        # 浏览器可执行文件（离线机 / 复用 Playwright 的 headless shell）
+// 生效的编码参数每次打在日志第一行（imageFormat/jpegQuality/crf）——别再"以为是 PNG"。
 // shots.json = 分镜表导出的 [{"id","start","end"}]（与 shots.ts 同源，beat_lint --shots 同一份）；
 //   id 必须唯一且不含路径分隔符——它直接就是段缓存文件名 <seg-dir>/<id>.mp4。
 import {createRequire} from 'node:module';
@@ -30,7 +34,7 @@ import {execFileSync} from 'node:child_process';
 import path from 'node:path';
 import fs from 'node:fs';
 import crypto from 'node:crypto';
-import {loadProjectBundleOptions, projectRenderOptions, parseInputProps} from './remotion_project_config.mjs';
+import {loadProjectBundleOptions, projectRenderOptions, projectEncodeOptions, describeEncodeOptions, parseInputProps} from './remotion_project_config.mjs';
 
 const args = process.argv.slice(2);
 const opt = (name, dflt) => {
@@ -49,6 +53,8 @@ const entry = opt('entry', 'src/entry.ts');
 const shotsPath = opt('shots', 'shots.json');
 const segDir = opt('seg-dir', 'out/segments');
 const parallel = Number(opt('parallel', '4'));
+const audioConcurrency = Number(opt('audio-concurrency', '4'));
+if (!Number.isInteger(audioConcurrency) || audioConcurrency < 1) { console.error('--audio-concurrency 需为 ≥1 的整数'); process.exit(2); }
 if (!Number.isInteger(parallel) || parallel < 1) {   // NaN→0 个 worker 会一段不渲直接进拼装（评审 P1-3）
   console.error(`--parallel 需为 ≥1 的整数，得到：${opt('parallel', '4')}`);
   process.exit(2);
@@ -91,7 +97,11 @@ const bundleOpts = await loadProjectBundleOptions(require, projDir);
 const publicDirFlag = opt('public-dir', null);
 if (publicDirFlag) bundleOpts.publicDir = path.resolve(projDir, publicDirFlag);   // 命令行覆盖 remotion.config.ts 的 setPublicDir
 const inputProps = parseInputProps(opt('props', null), projDir);
-const renderOpts = projectRenderOptions(require);   // browserExecutable / gl / chromeMode（配置文件里设了才有）
+const cliOverrides = {browser: opt('browser', null), imageFormat: opt('image-format', null), jpegQuality: opt('jpeg-quality', null), crf: opt('crf', null)};
+if (cliOverrides.imageFormat && !['png', 'jpeg'].includes(cliOverrides.imageFormat)) { console.error('--image-format 只接受 png | jpeg'); process.exit(2); }
+const renderOpts = projectRenderOptions(require, cliOverrides);   // browserExecutable / gl / chromeMode（配置文件里设了才有 + --browser）
+const encodeOpts = projectEncodeOptions(require, cliOverrides);   // imageFormat / jpegQuality / crf / pixelFormat（配置里显式设了才有 + 命令行覆盖）
+console.log(`encode: ${describeEncodeOptions(encodeOpts)}`);
 const serveUrl = await bundle({entryPoint: path.join(projDir, entry), ...bundleOpts, onProgress: () => {}});
 const compId = opt('comp', null);
 let composition;
@@ -167,7 +177,7 @@ const worker = async () => {
     const st = Date.now();
     const tmp = seg.file.replace(/\.mp4$/, '.rendering.mp4');   // 先写临时名：中断的半截文件不许被当缓存
     await renderMedia({
-      composition, serveUrl, codec: 'h264', outputLocation: tmp, inputProps, ...renderOpts,
+      composition, serveUrl, codec: 'h264', outputLocation: tmp, inputProps, ...renderOpts, ...encodeOpts,
       frameRange: [seg.from, seg.to], muted: true, concurrency: 1,   // 纪律 A：视频段一律无声
     });
     const got = probeFrames(tmp);
@@ -271,7 +281,11 @@ if (audioOut) {
     const st = Date.now();
     console.log(`audio 重渲（${reason}）…`);
     const tmp = audioOut.replace(/(\.[^./\\]+)?$/, '.rendering$1');   // out/full-mix.wav → out/full-mix.rendering.wav
-    await renderMedia({composition, serveUrl, codec: 'wav', outputLocation: tmp, inputProps, ...renderOpts});
+    // 音轨渲染没有光栅问题（纪律 A 只管视频段），不受单并发约束：多 tab 并发切帧、结果确定性不变。
+    // imageFormat:'none' 只是不截图，实测省得很少（2026-09-06 v4 116s 片：446s → 419s，浏览器逐帧 seek 才是主成本）；
+    // 真正的提速来自 concurrency（--audio-concurrency，默认 4；实测见 SKILL.md ⑥-2 注释）。
+    await renderMedia({composition, serveUrl, codec: 'wav', outputLocation: tmp, inputProps, ...renderOpts,
+      imageFormat: 'none', concurrency: audioConcurrency});
     const got = probeDurationFrames(tmp);
     if (!(Math.abs(got - TOTAL) <= 1)) {
       console.error(`FAIL: 音轨时长 ${got} 帧 != 合成 ${TOTAL} 帧（临时文件留在 ${tmp}）`);

@@ -18,9 +18,17 @@ Usage: python3 qa_extract.py <video.mp4> <timestamps.json> <outdir> [scale_w] [a
 anchors.json: [{"t": 23.76, "label": "everything-slam", "burst": true}, ...]
 """
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
+
+
+def safe_label(label: str, fallback: str) -> str:
+    """label 进文件名前净化：`/` 会被当路径、ASCII 撇号在拼进 JS 字符串时炸引号（2026-09-06 两个都踩过）。
+    只留 [A-Za-z0-9_-]，其余折成 '-'；空了就退回 fallback（时刻）。"""
+    out = re.sub(r"[^A-Za-z0-9_-]+", "-", label).strip("-")
+    return out or fallback
 
 argv = [a for a in sys.argv[1:] if a not in ("--bursts", "--no-bursts")]
 bursts_all = "--bursts" in sys.argv
@@ -52,7 +60,8 @@ for s in sents:
 n_anchor = 0
 n_burst = 0
 for a in anchors:
-    t, label = a["t"], a.get("label", f"{a['t']:.1f}")
+    t = a["t"]
+    label = safe_label(str(a.get("label", "")), f"{t:.2f}s")
     grab(t + 0.25, f"{outdir}/fx-{label}_{t + 0.25:.2f}s.png")  # 定妆帧
     n_anchor += 1
     if bursts_all or (not bursts_none and bool(a.get("burst"))):

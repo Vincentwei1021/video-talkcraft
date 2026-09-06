@@ -24,7 +24,7 @@ export const useAbs = (shot: ShotTiming): number => {
   return (frame - shot.lead) / fps + shot.startSec;
 };
 
-/** 绝对秒 → Sequence-local 秒（Live retireAt / Defocus at / ParticleDrift at 等用）。 */
+/** 绝对秒 → Sequence-local 秒（Live demoteAt / Defocus at / ParticleDrift at 等用）。 */
 export const useToLocal = (shot: ShotTiming): ((abs: number) => number) => {
   const {fps} = useVideoConfig();
   return (abs: number) => abs - shot.startSec + shot.lead / fps;

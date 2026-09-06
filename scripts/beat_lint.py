@@ -2,7 +2,7 @@
 
 用法：
   python3 scripts/beat_lint.py remotion/beats.json audio/timestamps.json \
-      [--tol 0.10] [--shots shots.json] [--tail 0.5]
+      [--tol 0.10] [--shots shots.json] [--tail 0.5] [--anchors anchors.json]
 
 beats.json 由实现时随手落（SHOTBOOK 节拍表与它保持一致）：
   [{"t": 绝对秒, "anchor": "锚字（该句文本的连续子串）", "sentence": 句号, "what": "动效说明"}]
@@ -15,9 +15,25 @@ beats.json 由实现时随手落（SHOTBOOK 节拍表与它保持一致）：
 判定二（镜尾保护带，--shots 时启用，2026-09-01 定版）：锚点距所在镜头出点必须 ≥ tail（默认 0.5s），
 否则动效落点会被转场吞掉——"第四条评论只活 0.2s""停靠环只可辨 0.3s"是同一类翻车的两案。
 shots.json 格式：[{"id": "s08", "start": 64.7, "end": 68.68}, ...]（与分镜表同源导出）。
+
+判定三（label 字符集，2026-09-06）：beats.json 里的 `label`（以及 --anchors anchors.json 的 `label`）只许 [A-Za-z0-9_-]——
+它会进文件名（qa_extract 的 fx-<label>.png）和 JS 字符串；`/` 炸路径、ASCII 撇号炸引号，两个都实战踩过。
 """
 import json
+import re
 import sys
+
+LABEL_OK = re.compile(r"^[A-Za-z0-9_-]+$")
+
+
+def lint_labels(items: list, src: str) -> int:
+    bad = 0
+    for it in items:
+        lb = it.get("label")
+        if lb is not None and not LABEL_OK.match(str(lb)):
+            print(f"FAIL {src} t={it.get('t', '?')} label「{lb}」含非法字符——只许 [A-Za-z0-9_-]（会进文件名 / JS 字符串）")
+            bad += 1
+    return bad
 
 
 def char_times(sentence: dict) -> list[tuple[str, float]]:
@@ -47,7 +63,10 @@ def main() -> int:
     beats = json.load(open(beats_path))
     sentences = json.load(open(ts_path))["sentences"]
 
-    bad = 0
+    bad = lint_labels(beats, "beats.json")
+    if "--anchors" in sys.argv:
+        anchors_path = sys.argv[sys.argv.index("--anchors") + 1]
+        bad += lint_labels(json.load(open(anchors_path)), anchors_path)
     for b in beats:
         if shots:
             sh = next((s for s in shots if s["start"] <= b["t"] < s["end"]), None)

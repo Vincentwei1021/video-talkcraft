@@ -59,7 +59,7 @@ export const loadProjectBundleOptions = async (require, projDir) => {
 // 必须在 loadProjectBundleOptions（执行配置文件）之后调用。
 // 注意：Remotion 没装浏览器时会自动下载 Chrome Headless Shell（~95MB，需联网）；离线机器先
 // `npx remotion browser ensure`，或在 remotion.config.ts 里 Config.setBrowserExecutable 指向本机 Chrome。
-export const projectRenderOptions = (require) => {
+export const projectRenderOptions = (require, cli = {}) => {
   const out = {};
   try {
     const {BrowserSafeApis} = require('@remotion/renderer/client');
@@ -74,8 +74,46 @@ export const projectRenderOptions = (require) => {
   } catch {
     /* 老版本没有 renderer/client 子路径：全用默认 */
   }
+  if (cli.browser) out.browserExecutable = cli.browser;   // --browser 覆盖：离线机 / 用 Playwright 同款 headless shell
   return out;
 };
+
+// 编码侧配置：Config.setVideoImageFormat / setJpegQuality / setCrf / setPixelFormat 同样只有 CLI 读——
+// 此前 renderMedia 拿到的永远是默认 JPEG-80 中间帧（2026-09-06 复盘：深底渐变片上既加色带又抬抖动噪声底，
+// raw_mean 0.67→0.39 是换 PNG 后的实测），remotion.config.ts 里写的 setJpegQuality(95) 根本没被读到。
+// 这里把配置文件里**显式设置**的项透传给 renderMedia；命令行 --image-format / --jpeg-quality / --crf 再覆盖。
+// 只给 renderMedia 用（renderStill / selectComposition 不认这些键）。
+export const projectEncodeOptions = (require, cli = {}) => {
+  const out = {};
+  try {
+    const {BrowserSafeApis} = require('@remotion/renderer/client');
+    const o = BrowserSafeApis?.options ?? {};
+    // source 为 'default' 的不传（用 Remotion 默认，与 CLI 行为一致）；value 缺失（如 crf 未设时返回 {source:'config'} 无 value）也不传
+    const pick = (k) => {
+      const r = o[k]?.getValue?.({commandLine: {}});
+      return r && r.source !== 'default' && r.value !== undefined && r.value !== null ? r.value : undefined;
+    };
+    const fmt = pick('videoImageFormatOption');
+    if (fmt) out.imageFormat = fmt;
+    const jq = pick('jpegQualityOption');
+    if (jq !== undefined) out.jpegQuality = jq;
+    const crf = pick('crfOption');
+    if (crf !== undefined) out.crf = crf;
+    const pf = pick('pixelFormatOption');
+    if (pf) out.pixelFormat = pf;
+  } catch {
+    /* 老版本：全用默认 */
+  }
+  if (cli.imageFormat) out.imageFormat = cli.imageFormat;
+  if (cli.jpegQuality !== undefined && cli.jpegQuality !== null) out.jpegQuality = Number(cli.jpegQuality);
+  if (cli.crf !== undefined && cli.crf !== null) out.crf = Number(cli.crf);
+  return out;
+};
+
+// 把生效值打进日志——"用了默认 JPEG-80 却以为是 PNG" 这种事只有看得见才防得住
+export const describeEncodeOptions = (enc) =>
+  `imageFormat=${enc.imageFormat ?? 'jpeg(默认)'} jpegQuality=${enc.imageFormat === 'png' ? 'n/a' : (enc.jpegQuality ?? '80(默认)')} ` +
+  `crf=${enc.crf ?? '18(默认)'} pixelFormat=${enc.pixelFormat ?? 'yuv420p(默认)'}`;
 
 // --props 三种写法：内联 JSON / @file.json / 直接给 .json 路径（相对工程目录）。
 // 需要 inputProps 的合成（如工作台 Main 吃工程 JSON）没有它根本渲不出正确内容。

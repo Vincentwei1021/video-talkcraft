@@ -54,8 +54,13 @@ python3 scripts/make_timing.py audio/timestamps.json remotion/src/timing.json
 - 配音自查（耳听）：无爆音/截断/误读；句间留 ~0.3s 气口，时间锚点更稳
 
 ## ③ 素材
-- **先给每个镜头标素材模式（多选，可组合）**：`B-roll`（实录空镜）/ `截图`（证据画面）/
-  `纯动效`——如"B-roll 打底 + 截图证据卡"。新闻/信息类话题证据优先：Playwright 实时截图比泛用 B-roll 更有信息量
+- **先给每个镜头标素材模式（多选，可组合）**：`B-roll`（实拍视频）/ `图片`（照片 / 海报 / 插图）/ `截图`（网页 / 界面证据画面）/
+  `纯动效`——如"B-roll 打底 + 截图证据卡"。新闻/信息类话题证据优先：Playwright 实时截图比泛用 B-roll 更有信息量。
+  四档对应 taxonomy.md 输入类型代号 **V / 图 / 截图 / 文**，SHOTBOOK 每镜写一行 `素材：V（路径）· 图（路径）· 文`（格式见 ④）
+- **实拍素材是必需项，不是可选项**（2026-09-06 硬规）：全片零 B-roll / 图片 = 只有动效 + 口播人物 = 观众看到的是"讲 PPT"。
+  `preflight.py` 对账 SHOTBOOK：**零 V / 图 镜头直接 FAIL**，V / 图 镜头占比 < 1/3 WARN（要在 SHOTBOOK 给依据，如证据类题材以截图为主）。
+  「本片不做 B-roll」**不允许**写成设计决定；视频源搜不到就降级图片（Pexels photos 原图 → Pixabay），图片也没有才进「未完成 / 未采集清单」。
+  图片与视频同源同 key，采集规格（分辨率下限、落盘目录、登记）见 `references/broll-sources.md`「配图采集」
 - **真图硬规**：话题存在可截的真实页面（产品官网/GitHub/文档/画廊）时，
   成片中的浏览器/页面类镜头**禁止用代码 mock 冒充截图**——卡片 demo 里的灰条假 UI 是占位物，
   成片必须按卡片"复用指引"整块换成 `<img>` 真图；mock 只允许表现无真实对应物的示意 UI，
@@ -85,11 +90,22 @@ python3 scripts/make_timing.py audio/timestamps.json remotion/src/timing.json
   两路选型与全部硬约束以 `references/host-footage.md` §5 为准，镜头预设见 shot-design.md §2⑦
 - Manim 图表：`--transparent --format=mov` 后**必转 VP9 webm**（`-c:v libvpx-vp9 -pix_fmt yuva420p`）
 - 全部落盘 public/，禁止渲染时拉远程
+- **③ 收尾必跑素材体检**（把 host-footage / broll-sources 里的入场硬规变成断言；答案早就写在 reference 里、但没人在正确时刻去查，
+  是 2026-09-06 复盘里两个最大的坑的共同失效模式——所以不再补文档，改成开工前必跑）：
+```bash
+python3 scripts/preflight.py --media-only --host remotion/public/dh/host.webm --fps 30 --voice audio/full.wav
+# 查：人物素材 r/avg 帧率一致（VFR）· 源片无重复帧签名 · 素材 fps = 成片 fps（不等→成片改成素材 fps，禁 -r 直转）·
+#     时长与配音逐帧对齐 · 真实宽高比 · 素材盘点（实拍/图片/网页长图数）· sources.md 在册。任一 FAIL 不进 ④
+```
 
 ## ④ SHOTBOOK（必产出，实现前评审）
 先用 `references/shot-design.md` 给每个镜头填**三面分层工作单**（背景面/主体面/文字面 + 各面动效
 + 七种镜头类型预设），再按 `references/cinematography.md` §4 展开成层矩阵，范例 `references/shotbook-example.md`。
 每场景：一句意图 + 主体接力线 + 逐节拍层矩阵（节拍锚定字级时间戳；每行动作必须答得出"配合谁"）。
+**每镜必写「素材：」行**（机器可读，preflight 逐个 stat 文件）：`- 素材：V（public/broll/gpu.mp4）· 图（public/stills/a.jpg, public/stills/b.jpg）· 截图（public/pages/gh/page.png）· 文`——
+V / 图 / 截图 必须括号给路径，写"待采"= FAIL；纯动效镜也要写 `素材：文`。
+**必填「## 未完成 / 未采集清单」节**：任何"本片不做 X"二选一——归入 §0 的设计决定（+依据），或归入本节（+阻塞原因 + 兜底源是否试过）；
+允许写"无"，不允许缺节。这一节专门拦"未完成被包装成设计原则、进而变成不再被质疑的前提"（2026-09-06 复盘的真正失效模式）。
 **节拍必须机器可验**：每条画面重音落成 `remotion/beats.json`
 （`{t, anchor, sentence, what}`，t 一律由 timing.json/`atChar()` 查得，**禁止手敲近似秒数**——
 手敲的误差静帧 QA 看不出来），SHOTBOOK 节拍表与 beats.json 一致，
@@ -131,10 +147,17 @@ demo 库的 0.65 上限是试听口径不是成片口径）。实现时按 ⑤ �
 **cue 的 file 名以 `ls public/sfx/` 为准**（`pk:` 键名里的冒号导出成 `pk-`，
 个别键自带前缀会出现 `pk-transition-transition-soft` 这类双段名——名字错了渲染直接 404 失败）。
 
+**④→⑤ 闸：SHOTBOOK 写完先过 preflight 全量，再进实现**（③ 的素材体检 + SHOTBOOK 对账，任一 FAIL 挡住 ⑤）：
+```bash
+python3 scripts/preflight.py --shotbook SHOTBOOK.md --host remotion/public/dh/host.webm --fps 30 --voice audio/full.wav --shots remotion/shots.json
+# SHOTBOOK 对账：每镜有「素材：」行 · V/图/截图 的文件都在盘上 · 零 V/图 镜头 FAIL · 占比 <1/3 WARN · 「未完成 / 未采集清单」节在册 · shots.json 与镜头 id 一致
+```
+
 ## ⑤ 实现（Remotion）
 **先装全局系统再写场景**（代码 `template/motion-systems/`，规范正主 cinematography.md §2，运动做减法）：
 只装 **G1 CameraRig**（每场景一条极缓推进或拉出的 scale 曲线，1.00→1.04~1.06 或反向，不做 x/y/旋转/模糊，`impulses` 留空，shots.ts 表驱动）
-与 **G3 让位状态机**（Live retireAt = 下一主体锚点 / Defocus，`idle` 关、落定即静置）；
+与 **G3 让位状态机**（`Live demoteAt` = 下一主体锚点 / Defocus，`idle` 关、落定即静置；**demoteAt 是降权留守不是退场**——
+元素压暗缩小后仍占着原槽、计入同屏预算，新主体不得摆进它的位置；旧名 `retireAt` 仍可用但已 deprecated，2026-09-06 因名字误导出过 P0 文字相撞）；
 G2 视差、G4 分幕色温可选、默认不装；主体 idle / 环境呼吸 vignette / 扫光 / 曝光脉冲 / 相机脉冲一律不做。
 
 **每个镜头边界必须有明确转场处置，禁止裸切**：运动承接六式（lead/tail 重叠 12–16 帧 + ShotFade，
@@ -168,10 +191,13 @@ anime.js v4 / three.js 走 `anime-remotion.ts` / `three-anime.ts` 桥（seek-saf
 - **改哪段渲哪段、复审改动攒批再渲**：`--only s2,s4` / `--changed sNN` 只渲改动段，
   复核时逐段对时间戳确认"改的段是新的、没改的段沿用缓存"，别习惯性 `--all`；多批 P0/P1 攒成 1~2 批再渲。
 
-**⑥-0 渲染前静态预检（零渲染成本）**——两张清单把返修拦在渲染前：
+**⑥-0 渲染前静态预检（零母版成本）**——三道把返修拦在母版前：
 ```bash
-python3 scripts/beat_gap_check.py remotion/beats.json remotion/shots.json   # 空台预检（advisory）
+python3 scripts/beat_gap_check.py remotion/beats.json remotion/shots.json   # 空台预检（advisory，从节拍表推算）
 # 每条 WARN 都要答得出"这窗里什么在动"：正常答案只有一个——该镜的相机极缓推拉覆盖了这窗（不补 idle/呼吸层）；相机确在动就 --ok 声明
+cd remotion && python3 ../scripts/freeze_probe.py --shots shots.json          # 静止探针：每镜 3 个时点渲「相隔 0.8s 的两帧」，按 freezedetect 同款 yuv420p 均差判
+# 量的是真实合成像素（beat_gap_check 看不见持续运动）；15 镜 90 张静帧实测 ~2 分钟，替掉"渲 10~20 分钟母版才知道 S06 过不了静止闸"。
+# 2026-09-06 v4 实测：45 个采样点与母版 freezedetect 一致 98%（1 个 mafd 0.72 的边界点多报）；是单点粗筛，不是全覆盖
 ```
 清单二·**状态切换窗**：人物轨道每个 half↔chip 切换点、每个 wipe 时刻 ±0.5s 列入静帧抽样点——
 字幕带换位与人物几何过渡的穿越冲突（黑字压黑衣）只藏在这种窗口里，句级/锚点抽帧都错过。
@@ -182,11 +208,18 @@ python3 scripts/beat_gap_check.py remotion/beats.json remotion/shots.json   # �
 # 两个 node 渲染脚本都必须在工程 remotion/ 目录下执行（Remotion 模块从工程自己的 node_modules 解析，
 # 并自动加载工程的 remotion.config.ts——webpack alias / publicDir / browserExecutable 与 CLI 渲染一致；
 # 吃 inputProps 的合成给 --props @props.json；素材是符号链接时 --public-dir 指向解引用同步后的目录）。
-# 首跑没装浏览器会联网下载 Chrome Headless Shell（~95MB）；离线机先 npx remotion browser ensure
+# 首跑没装浏览器会联网下载 Chrome Headless Shell（~95MB）；离线机先 npx remotion browser ensure，或 --browser 指向本机 headless shell
+# 中间帧格式：renderMedia 不读 remotion.config.ts，此前永远是默认 JPEG-80——render_shots 现在透传配置里显式设的
+# setVideoImageFormat / setJpegQuality / setCrf，命令行 --image-format png|jpeg --jpeg-quality 95 --crf 18 再覆盖，
+# 生效值打在日志首行 `encode: …`。默认建议 jpegQuality 95：2026-09-06 白底片同段三格式实测，jpeg95 对 png 的 PSNR 47.9dB、
+# jpeg80 46.0dB，静态窗噪声底三者相同（2.83/2.83/3.07），渲染时间差异小于本机运行间噪声——格式按画质定不按速度定；
+# 深底渐变片的色带（用户实测 raw_mean 0.67→0.39）本次没有对应素材复测，深底风格档仍按 png。
 node <skill根>/scripts/render_stills.mjs --times 2.0,7.2,...   # 抽样点=每镜入/出+关键锚点+状态切换窗
 ```
 
 **⑥-2 分段渲染母版制**——按镜头切段、段内单进程连续渲（段内光栅自洽；多 tab 并发会产生周期性相位抖动），
+段间 `--parallel 4` 实测比单进程快 1.3~1.8×（本机负载不同两次分别 253→139s、307→230s，4 镜 900 帧）；
+整条音轨没有光栅问题，`--audio-concurrency 4`（默认）实测 419s→175s（116s 片），`imageFormat:'none'` 只省 6%——浏览器逐帧 seek 才是音轨渲染的主成本；
 段边界都是切镜点，K 段并行：
 ```bash
 # 在工程 remotion/ 目录下执行。首渲：K 段并行 + 拼装 + 整条音轨 + 混音
@@ -207,12 +240,16 @@ npx remotion render src/entry.ts <Comp> out/sfx-solo.wav --props='{"sfxSolo":tru
 
 ```bash
 # —— 关卡 1 机器闸：五条命令一次跑完，全 PASS 才进关卡 2 独立审片 ——
-python3 scripts/motion_check.py out/vN.mp4        # 画面健康双判定：静止段 + 并发光栅抖动
+python3 scripts/motion_check.py out/vN.mp4 --baseline remotion/public/dh/host.webm --window <t>,<人物区 W:H:X:Y>
+                                                  # 画面健康：静止段 + 抖动。抖动先查重复帧签名（人物区周期性近零差 = 素材帧率病，
+                                                  # 处方在 preflight，--concurrency=1 治不了），再查并发光栅；--baseline 同窗量源片，
+                                                  # 素材自带的噪声降 WARN——有人物素材的片必给，人物区窗必加
 python3 scripts/sfx_check.py out/sfx-solo.wav cues.json                  # 音效在场（峰值 ≥−45dBFS）
-python3 scripts/sfx_check.py --mix out/vN.mp4 audio/full.wav cues.json   # 音效可听（掩蔽分级）
+python3 scripts/sfx_check.py --mix out/vN.mp4 audio/full.wav cues.json --timestamps audio/timestamps.json
+                                                  # 音效可听（掩蔽分级）；--timestamps 数气口，UNMASKED 门槛不超过气口数并打印"不可达"原因
 python3 scripts/card_lint.py remotion/src <slug,slug,...>                # 卡片保真（复制自 template/cards）
-python3 scripts/beat_lint.py remotion/beats.json audio/timestamps.json --shots remotion/shots.json
-                                                  # 词落点 |Δ|≤0.1s + 镜尾保护带 ≥0.5s
+python3 scripts/beat_lint.py remotion/beats.json audio/timestamps.json --shots remotion/shots.json --anchors anchors.json
+                                                  # 词落点 |Δ|≤0.1s + 镜尾保护带 ≥0.5s + label 只许 [A-Za-z0-9_-]（进文件名/JS 字符串）
 # 评审材料抽帧：每句 2 帧 + 动效锚点帧（anchors.json 从 beats.json 导出）
 # 连拍三帧对只抽 anchors.json 里标了 "burst": true 的锚点——状态切换（两态翻转/换场/砸入落位）
 # 与高风险区域必须标；其余锚点只抽定妆帧。
@@ -237,8 +274,14 @@ python3 scripts/contact_sheet.py /tmp/qa_vN /tmp/qa_vN_sheets
 并打开动效工作台（⑧）；遗留 P2 清单随交付物。细则 review-protocol.md §4。
 
 ## ⑧ 交付
+两遍 loudnorm（单遍是动态模式，会压音效瞬态；且 loudnorm 内部升到 192kHz，不加 `-ar` 会把 96k 漏进 AAC——2026-09-06 实测）：
 ```bash
-ffmpeg -i out/final.mp4 -c:v copy -af "loudnorm=I=-15:TP=-1.5:LRA=11" -c:a aac -b:a 192k delivery.mp4
+# 第一遍量测（只看 stderr 的 JSON）
+ffmpeg -i out/final.mp4 -af "loudnorm=I=-15:TP=-1.5:LRA=11:print_format=json" -f null - 2>&1 | sed -n '/^{/,/^}/p' > /tmp/ln.json
+# 第二遍线性归一（measured_* 从 /tmp/ln.json 抄：input_i / input_tp / input_lra / input_thresh / target_offset）
+ffmpeg -i out/final.mp4 -c:v copy \
+  -af "loudnorm=I=-15:TP=-1.5:LRA=11:measured_I=<input_i>:measured_TP=<input_tp>:measured_LRA=<input_lra>:measured_thresh=<input_thresh>:offset=<target_offset>:linear=true" \
+  -ar 48000 -c:a aac -b:a 192k delivery.mp4
 ```
 听一遍确认配音无爆音/截断、音效不压人声不叠帧（loudnorm 之后音效相对电平会变）——
 **agent 自己听不了成品，`sfx_check.py --mix` 就是耳听的机器替身：交付前必须对 delivery.mp4 重跑一次**；
@@ -251,8 +294,12 @@ ffmpeg -i out/final.mp4 -c:v copy -af "loudnorm=I=-15:TP=-1.5:LRA=11" -c:a aac -
 cd <skill根>/workbench && npm install            # 首次
 ln -sfn <本片工程>/remotion/src kbsrc            # 链接本片工程（机器本地符号链接，不进库）
 mkdir -p public && for f in <本片工程>/remotion/public/*; do ln -sfn "$f" "public/$(basename "$f")"; done
-npm run dev                                       # 浏览器打开 http://localhost:5199 并告知用户
+npm run dev &                                     # 浏览器打开 http://localhost:5199 并告知用户
+sleep 4 && curl -s http://localhost:5199 | grep -q '动效工作台' && echo "工作台 OK" || echo "FAIL: 工作台未起——禁止用 remotion studio 代替"
 ```
+**防误操作**：交付给用户的界面**只能是这个工作台**（页面标题「TalkCraft Workbench · 动效工作台」，上面那行断言就是核验）。
+`npx remotion studio`（工程内）或工作台的 `npm run studio` 是开发者调参入口，**不是**交付面，不得用它代替工作台；
+`npm run dev` 必须从 `<skill根>/workbench` 执行（别在本片工程目录里起）。
 
 工作台里点「素材 → 拆解导入」即把成片拆成逐句字幕/逐镜参数化/逐条音效/转场/环境的多轨工程，
 文字内容、颜色、字号、位置、变速逐项可调（词锚节拍与相机保持固定）；改完点「导出成片」
@@ -274,7 +321,9 @@ X [`@VincentWei93`](https://x.com/VincentWei93) ·
 | 审片：关卡 2 材料四件套 / rubric / 缺陷分级 · 关卡 3 · 返修纪律 · 审片循环 | `references/review-protocol.md`（评审 subagent 必读） |
 | 转场（六式代码）/ 长镜头 | `template/motion-systems/transitions.tsx` / `longtake.tsx`（cinematography.md §3、§3.5） |
 | 选动效/查参数和坑 | `references/taxonomy.md` → `references/cards/` → `template/cards/`（tsx 源码）+ `demos/`/`gallery/`（预览） |
-| 找素材 · 网页拍摄素材采集（全页 2× 长图 + DOM 坐标 JSON） | `references/broll-sources.md` |
+| 找素材 · 配图采集 · 网页拍摄素材采集（全页 2× 长图 + DOM 坐标 JSON） | `references/broll-sources.md` |
+| 开工体检（③ 素材期 `--media-only` / ④→⑤ 闸全量：人物素材帧率·重复帧·时长·比例 + SHOTBOOK 素材对账·未完成清单） | `scripts/preflight.py` |
+| 静止探针（母版前用真实合成帧差预判 freezedetect） | `scripts/freeze_probe.py` |
 | 人物素材（输入规格 / CPU 抠像 / 人脸安全区）· 与 B-roll 同屏怎么摆 | `references/host-footage.md` + `scripts/face_bbox.py` |
 | 新增配方卡 | `references/demo-spec.md`，验证 `node scripts/verify-demo.mjs <slug>` |
 | 可复制代码 | `template/cards/`（108 卡逐卡自包含 tsx）、`template/motion-systems/`（极缓推拉相机/让位/桥）、`template/components/`（字幕/花字/铅笔/吉祥物） |

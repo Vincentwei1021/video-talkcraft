@@ -44,7 +44,7 @@ Remotion equivalent (`template/motion-systems/transitions.tsx`):
 - Outgoing shot (on the camera side write only the "settle": the final key parks scale at 1.0, with no keys added afterward; the dimming happens in-scene): `{ tail: 16, path: [{t:0, scale:1.05}, {t:tEnd, scale:1.0}] }`
 - Incoming shot (the only scale<1 start in the piece): `{ lead: 16, path: [...pullBackIn(leadSec), {t:9, scale:1.0}] }`
 - `pullBackIn(leadSec, {from:0.94, to:0.99, blur:4, settle:0.9})` generates two CamKeys, with the first key's `t` negative (landing inside the lead).
-- The outgoing side's content dimming uses the scene's own `interpolate` (brightness/filter), or goes straight through the `<Live retireAt>` yield state machine in `life.tsx` — it already does "shrink to 0.92 + move up + brightness −66% + 3px blur."
+- The outgoing side's content dimming uses the scene's own `interpolate` (brightness/filter), or goes straight through the `<Live demoteAt>` yield state machine in `life.tsx` — it already does "shrink to 0.92 + move up + brightness −66% + 3px blur" (demote-in-place: the element keeps its slot).
 
 ## Parameters
 | Parameter | Typical value | Tuning feel |
@@ -74,7 +74,7 @@ Remotion equivalent (`template/motion-systems/transitions.tsx`):
   plus the `CONFIG.pull` parameter set. **Note that the function internally does `out.querySelector(".big")`** —
   the dimming acts on the content layer rather than the shot layer; when migrating, swap that selector for your subject-plane container. Take `hold()` along with it.
 - Remotion: spread `pullBackIn(leadSec)` into the incoming shot's `path` (first key's `t` negative);
-  on the outgoing side the camera writes only the "settle" (no keys after the final `scale: 1.0`), with content dimming done in-scene or directly via the `<Live retireAt>` in `life.tsx`.
+  on the outgoing side the camera writes only the "settle" (no keys after the final `scale: 1.0`), with content dimming done in-scene or directly via the `<Live demoteAt>` in `life.tsx`.
   The cooler color-temperature shift is configured in the `ACTS` table of `env.tsx`.
 - Family relations: it is the reverse form of [[push-through-transition]] (that one settles down from scale>1, this one pulls in from scale<1);
   their incoming start directions are opposite, so **the two forms can complement each other within the same piece**: push-through for advancing passages, pull-back cool-down for settling ones.
