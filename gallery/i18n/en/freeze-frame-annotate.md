@@ -9,7 +9,7 @@ usage: "Notice this detail" in tutorials / documentaries / sports and game comme
 |---|---|---|
 | ✗ Not involved (freezing the presenter is a different card) | ✓ (default) live footage / screen recordings / submitted clips, cover-fit | ✗ Stills don't need a freeze — use `hand-drawn-ellipse` / `scribble-annotation` directly |
 
-Real B-roll is injected via `src`; in Remotion the time remap wraps `<OffthreadVideo>` in `<Freeze frame>` (normal segment = current frame, frozen segment pinned, unfreeze segment 1.4× catch-up); the demo uses a footage placeholder (grey gradient + constant-drift light bands, freeze = drift phase pinned).
+Real B-roll is injected via `src`; in Remotion the time remap wraps `<OffthreadVideo>` in `<Freeze frame>` (normal segment = current frame, frozen segment pinned, unfreeze segment 1.4× catch-up); the demo uses a sample video (Mixkit crowd footage, `demos/_lib/media`)).
 
 ## Common scenarios
 1. Freeze a tutorial B-roll to point at a gesture / key (the demo: "watch his left hand")
@@ -57,16 +57,16 @@ Every annotation card in the library (highlighter, ring, arrow, magnifier, focus
 
 ## Reuse
 - Remotion/tsx (preferred): template/cards/freeze-frame-annotate.tsx — `src` real B-roll (`<Freeze>` around `<OffthreadVideo>`; `srcTime(t)` is exported for reuse), `label / sub` copy, `ellipsePath / arrowPath` (960×540 coordinates, derived from the target bbox) plus matching `ellipseLen / arrowLen`; durationInFrames 189; freeze moment via `CONFIG.freezeAt`, sentence length via `hold / exitAt / end`.
-- HTML/GSAP: demos/freeze-frame-annotate/index.html — to use a `<video>` instead of `.ph`, write `o.src` to `video.currentTime` (or keep the placeholder); paths on `.ell / .arr` and pacing in `CONFIG`.
+- HTML/GSAP: demos/freeze-frame-annotate/index.html — the demo already carries a real video: freeze = `video.pause()`, unfreeze = `playbackRate` 1.4 then back to 1 (in delivery this is the time remap); paths on `.ell / .arr` and pacing in `CONFIG`.
 - Source: video-shotcraft `speed-ramp-freeze`, freeze variant (the speed-ramp "fast → 0.2× gaze → fast" variant is not ported; this card drops the feTurbulence wobble, switches the ring to marker yellow and adds the 1.4× make-up).
 - NLE equivalents: CapCut "freeze frame" (right-click → freeze 1.6s) + a hand-drawn ring sticker + 1.4× speed on the tail; Premiere Add Frame Hold + mask-path stroke animation + 140% speed; AE Time Remap keyframes (hold keyframe + slope 1.4) + Trim Paths.
 - Interface with layout.md: the label at (92, 96) sits inside the safe margin at the title tier below hero (§5); label and ring stay out of the subtitle band y ≥ 450 (§6); on B-roll with faces run `scripts/face_bbox.py` first and keep ring and label out of the face safe zone (§4).
 
 ## Motion scope
 - Belongs to this card: the source-time remap (normal → pinned → 1.4× catch-up → 1×); the 4-frame flash + badge on the freeze frame; the serial 8-frame ellipse + 6-frame arrow + label; the static ring; the annotation fading on the release frame.
-- Not this card: the footage placeholder, the concrete path coordinates, the label copy, colour choices other than marker yellow.
+- Not this card: the sample video (demo context, `demos/_lib/media`, not part of the card), the concrete path coordinates, the label copy, colour choices other than marker yellow.
 - Migration interface: `src / label / sub / ellipsePath / arrowPath`; `freezeAt / hold` from narration; at 1080p stroke 5→10px, label 30→60 / 16→32, badge 14→28.
-- Background requirement: the B-roll is its own background; the demo placeholder fills the stage, the delivery uses real B-roll (cover); pick the ring colour against the picture's dominant hue (yellow / white).
+- Background requirement: the B-roll is its own background; the demo's sample video fills the stage, the delivery uses real B-roll (cover); pick the ring colour against the picture's dominant hue (yellow / white).
 
 ## Placement self-check (copy into the SHOTBOOK self-check column when selecting this card)
 - Freeze frame = the frame of the narration's "notice" word, and it is sharp (pick the cleanest within ±3 frames; extract with `ffmpeg -ss` to check).

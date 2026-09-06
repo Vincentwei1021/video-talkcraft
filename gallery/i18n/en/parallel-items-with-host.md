@@ -32,7 +32,7 @@ The seven look very different on the surface and share one discipline underneath
 - Four entrance grammars: **pop** (① ③ ④: `scale .8→1` / `x 60→0` / `x 120→0 + rotate +6→rest`, `back.out(1.7)` or `power3.out`, 0.45–0.5s); **color recovery** (②: `grayscale 1→0 + brightness .55→1` in 0.45s, label slides in from the right `x 40→0` on the same frame; the previous band **stays colored**, accumulating to all three); **wipe** (⑤: `clip-path inset(0 100% 0 0) → inset(0)` 0.5s); **slide** (⑥: whole diagonal band `translate(-140,-70)→0` 0.5s); **crossfade** (⑦: background fades in 0.3s + `scale 1.04→1` over 0.9s, previous one fades 0.05s after the next starts; big word `y 20→0` 0.4s, outgoing word rises 14px while fading).
 - Presenter forms: full-body containers 410 / 455 / 477 tall (video = 88%) standing at the bottom; boxes 120×130 (②) / 120×126 radius 26 (③) / 180×220 (④) with `object-fit: cover; object-position: 50% 8%` for head and shoulders; avatar 170 diameter with `scale 1.35` on the face. Boxes and avatar have their own entrance (`scale .9→1` / `y −12→0` / `y 10→0` from 0.1s; the ⑥ avatar pops at 0.6s with `back.out(1.6)`).
 - Geometry (960×540): ① three cards 200×124, 24 gaps, group width 648 centred, top 48 (card bottom ≥36 above the head); ② bands 180 tall, label right 60; ③ cards 300×96 centred at x 330, 18 apart; ④ cards 340×210 at (300, 36), tilts −4° / +3° / −2°, offsets (0,0) / (18,10) / (36,20), box 180×220 at (390, 286); ⑤ strips 320 wide, label top 40; ⑥ slope 260/540, band width 380, avatar 170 at (395, 185); ⑦ big word top 60 with a 35% black scrim over the top for legibility.
-- The layout-name tag and grey placeholder images in the demo are demo context; in production inject real images via `srcs`, copy via `items`, and pick one `layout`.
+- The layout-name tag and sample photos in the demo (Picsum, `demos/_lib/media`) are demo context; in production inject real images via `srcs`, copy via `items`, and pick one `layout`.
 
 ## Parameters
 | Parameter | Typical | Feel |
@@ -63,7 +63,7 @@ The seven look very different on the surface and share one discipline underneath
 
 ## Motion scope
 - Belongs to this card: the 3.1s per-layout timetable (0.4 lead / 0.6 gap / 0.8 hold / 0.35 exit) and the seven entrance grammars (pop / accumulating color recovery / wipe / diagonal slide / crossfade + word swap); the four presenter treatments and their entrances; the three rules "one by one, on the image, large"; per-layout geometry (centred group, ≥36 above the head, label right 60 / top 40, slope 260/540, big word top 60).
-- Not this card: the presenter video and grey placeholder images (demo context), the item copy, the three placeholder tones, the layout-name tag (tour only), the white stage.
+- Not this card: the presenter video and sample photos (demo context, `demos/_lib/media`, not part of the card), the item copy, the layout-name tag (tour only), the white stage.
 - Migration: `layout` to pick; `items` / `srcs` for copy and images; `hostSrc` for the person; `CONFIG.hold` follows sentence length; scale geometry from 960×540 for other frames, and for portrait turn ①'s row into two rows or use ③.
 - Background: white is fine; ② ⑤ ⑥ ⑦ cover the stage with material anyway; ③ brings its own mid-grey `#dfe1e6` bed.
 

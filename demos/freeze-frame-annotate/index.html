@@ -13,6 +13,8 @@
   /* footage 占位（不属于动效）：与 bed-echo-blur 同一体系——.ph 底 + 三道斜向亮带匀速漂移，读作"一条在动的视频"；定格 = 漂移相位钉住 */
   .ph { position: absolute; inset: 0; overflow: hidden; }
   .ph::before { content: ""; position: absolute; inset: 0; background: linear-gradient(160deg, #a4b0c6, #7d8aa3); }
+  .ph video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .ph video + .drift { display: none; }   /* 有真视频时不叠占位亮带 */
   .ph svg.glyph { position: absolute; left: 50%; top: 50%; width: 56px; height: 48px; transform: translate(-50%, -56%); opacity: .35; }
   .ph .drift {
     position: absolute; top: 0; bottom: 0; left: -150%; width: 400%;
@@ -37,7 +39,7 @@
 </head>
 <body>
   <div id="stage">
-    <div class="ph"><div class="drift"></div></div>
+    <div class="ph"><video src="../_lib/media/v-crowd.webm" muted loop playsinline autoplay preload="auto"></video><div class="drift"></div></div>
     <div class="flash"></div>
     <svg class="anno" viewBox="0 0 960 540">
       <path class="ell" d="M 330 268 C 330 200, 410 168, 486 172 C 566 176, 632 216, 630 268 C 628 322, 556 366, 478 364 C 400 362, 330 330, 330 268 Z"/>
@@ -72,7 +74,6 @@
     const UNFREEZE = CONFIG.freezeAt + CONFIG.drawDelay + CONFIG.draw + CONFIG.arrow + CONFIG.hold;
 
     // 素材占位里的相框图标（不属于动效）
-    document.querySelector(".ph").insertAdjacentHTML("beforeend", '<svg class="glyph" viewBox="0 0 48 40" fill="none" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"><rect x="2" y="2" width="44" height="36" rx="4"/><circle cx="16" cy="14" r="4"/><path d="M4 34 L18 22 L27 30 L34 24 L44 34"/></svg>');
     const fmt = (s) => `FREEZE · 00:${String(Math.floor(s)).padStart(2, "0")}.${String(Math.round((s % 1) * 100)).padStart(2, "0")}`;
     document.querySelector(".badge").textContent = fmt(CONFIG.freezeAt);
 
@@ -85,6 +86,14 @@
       const o = { src: 0 };
       const tl = gsap.timeline({ onUpdate: () => { drift.style.transform = `translateX(${-CONFIG.driftSpeed * o.src}px)`; } });
       tl.timeScale(speed);
+      // 真视频的源时间重映射（占位亮带仍由 o.src 驱动，有视频时已隐藏）：正常播 → 定格 pause → 1.4× 追 → 回 1×
+      const vid = $(".ph video");
+      if (vid) {
+        tl.call(() => { vid.playbackRate = speed; vid.currentTime = 0; vid.play().catch(() => {}); }, null, 0)
+          .call(() => vid.pause(), null, CONFIG.freezeAt)
+          .call(() => { vid.playbackRate = CONFIG.catchup * speed; vid.play().catch(() => {}); }, null, UNFREEZE)
+          .call(() => { vid.playbackRate = speed; }, null, UNFREEZE + CONFIG.catchupDur);
+      }
       // 复位（重播语义）
       tl.set(o, { src: 0 })
         .set(ell, { strokeDasharray: L1, strokeDashoffset: L1, opacity: 1 })

@@ -15,7 +15,7 @@ name: freeze-frame-annotate
 |---|---|---|
 | ✗ 人物不参与（定格讲者本人是另一件事） | ✓（默认输入）实拍 / 录屏 / 投稿视频，cover 铺满 | ✗ 静图不需要定格——直接用 `hand-drawn-ellipse` / `scribble-annotation` |
 
-真 B-roll 经 `src` 注入，时间重映射在 Remotion 里用 `<Freeze frame>` 包住 `<OffthreadVideo>`（正常段 = 当前帧、定格段钉住、解冻段 1.4× 追赶）；demo 用 footage 占位（灰调渐变 + 匀速漂移亮带，定格 = 漂移相位钉住）。
+真 B-roll 经 `src` 注入，时间重映射在 Remotion 里用 `<Freeze frame>` 包住 `<OffthreadVideo>`（正常段 = 当前帧、定格段钉住、解冻段 1.4× 追赶）；demo 用示意视频（Mixkit 车站人流，demos/_lib/media）。
 
 ## 常用场景
 1. 操作演示 B-roll 里定格指出手势 / 键位（demo 演的：注意他的左手）
@@ -63,16 +63,16 @@ name: freeze-frame-annotate
 
 ## 复用指引
 - Remotion/tsx（skill 首选）：template/cards/freeze-frame-annotate.tsx——`src` 真 B-roll（`<Freeze>` 包 `<OffthreadVideo>`，`srcTime(t)` 已导出可复用）、`label / sub` 文案、`ellipsePath / arrowPath`（960×540 坐标，按目标 bbox 反推）+ 对应 `ellipseLen / arrowLen`；durationInFrames 189；定格时刻改 `CONFIG.freezeAt`，句长改 `hold / exitAt / end`。
-- HTML/GSAP：demos/freeze-frame-annotate/index.html——`.ph` 换 `<video>` 时把 `o.src` 写到 `video.currentTime`（或保留占位）；`.ell / .arr` 的 path 与 `CONFIG`。
+- HTML/GSAP：demos/freeze-frame-annotate/index.html——demo 已带真视频：定格 = `video.pause()`、解冻 = `playbackRate` 1.4 再回 1（成片里是时间重映射）；`.ell / .arr` 的 path 与 `CONFIG`。
 - 母本：video-shotcraft `speed-ramp-freeze` 定格款（变速款"快→0.2× 凝视→快"不搬；本卡去掉 feTurbulence 手绘抖动、圈注改马克黄、加 1.4× 补时）。
 - 剪辑软件对应物：剪映"定格"（右键 → 定格 1.6s）+ 贴纸"手绘圈" + 后段 1.4× 变速；PR 添加帧定格 + 蒙版路径描边动画 + 速度 140%；AE Time Remap 关键帧（hold 关键帧 + 斜率 1.4）+ Trim Paths。
 - 与 layout.md 的接口：标签 (92, 96) 落安全边内、hero 之下的 title 档（§5）；标签与圈注不入字幕带 y ≥ 450（§6）；有人脸的 B-roll 先跑 `scripts/face_bbox.py`，圈注与标签不入人脸安全区（§4）。
 
 ## 动效范围
 - 属于本卡的：源时间重映射（正常 → 钉住 → 1.4× 追赶 → 1×）；定格帧 4 帧白闪 + 徽标；8 帧椭圆描边 + 6 帧箭头 + 标签的串行；圈注静置不抖；解冻同帧圈注淡出。
-- 不属于本卡的：footage 占位、圈注的具体路径坐标、标签文案、马克黄以外的配色选择。
+- 不属于本卡的：示意视频（演示语境素材，demos/_lib/media，不属于本卡）、圈注的具体路径坐标、标签文案、马克黄以外的配色选择。
 - 迁移接口：`src / label / sub / ellipsePath / arrowPath`；`freezeAt / hold` 按口播；1080p 输出描边 5→10px、标签 30→60 / 16→32、徽标 14→28。
-- 底色要求：B-roll 自身就是底；demo 占位铺满舞台，成片换真 B-roll（cover）；圈注颜色按画面主色反选（黄 / 白）。
+- 底色要求：B-roll 自身就是底；demo 示意视频铺满舞台，成片换真 B-roll（cover）；圈注颜色按画面主色反选（黄 / 白）。
 
 ## 落位自检（选卡时抄进 SHOTBOOK 该镜自检列）
 - 定格帧号 = 口播"注意"字的时间戳所在帧，且该帧锐利（前后 ±3 帧内挑最清晰的一帧，`ffmpeg -ss` 抽帧核对）。

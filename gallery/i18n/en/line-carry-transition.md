@@ -66,7 +66,7 @@ Relationship to the six motion-carry transitions: the six govern "how a shot bou
 
 ## Motion scope
 - Belongs to this card: the whole causal chain underline → run-out → camera following at the same speed → right-angle frame → close and unload the pen → B content afterwards; the `drawn = underline + cam` same-speed discipline; the pen pinned at 67% of the screen; miter corners; ≥36 frames of rest after closing.
-- Not this card: A / B copy and sizes, B's material, the frame size, the white stage, the grey placeholder.
+- Not this card: A / B copy and sizes, B's material, the frame size, the white stage, B's sample photo (demo context, `demos/_lib/media`, not part of the card).
 - Migration interface: `titleA / subA / titleB / subB / srcB`; `CONFIG.frame` to match B's material ratio; at 1080p line 6→12px, pen r 8→16, pan 960→1920 (duration stays 2.0s = 32px/f, still <40).
 - Stage colour: white works as is; on a dark stage the line becomes `#2997ff` and the B content card gets a hairline stroke.
 
