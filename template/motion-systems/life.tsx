@@ -7,19 +7,20 @@ import {Easing, interpolate, useCurrentFrame, useVideoConfig} from 'remotion';
  * `resolved` phase is static by default: `idle` is opt-in (`idle={true}`), the
  * frame is kept alive by the scene camera's slow push/pull instead.
  */
-export type Phase = 'hidden' | 'forming' | 'resolved' | 'retiring' | 'gone';
+/** 'demoting' = 降权留守中（旧名 'retiring'，语义未变：元素仍占槽）。 */
+export type Phase = 'hidden' | 'forming' | 'resolved' | 'demoting' | 'gone';
 
 export const phaseOf = (
   sec: number,
   revealSec: number,
   formSec: number,
-  retireSec?: number,
-  retireDur = 0.45,
+  demoteSec?: number,
+  demoteDur = 0.45,
 ): Phase => {
   if (sec < revealSec) return 'hidden';
   if (sec < revealSec + formSec) return 'forming';
-  if (retireSec === undefined || sec < retireSec) return 'resolved';
-  if (sec < retireSec + retireDur) return 'retiring';
+  if (demoteSec === undefined || sec < demoteSec) return 'resolved';
+  if (sec < demoteSec + demoteDur) return 'demoting';
   return 'gone';
 };
 
@@ -36,17 +37,27 @@ export const idle = (seed: number, frame: number, fps: number) => {
 };
 
 /**
- * Keeps a resolved element alive and hands the stage over on cue. `retireAt`
+ * Keeps a resolved element alive and hands the stage over on cue. `demoteAt`
  * is the shot-local second at which a newer subject claims focus.
+ *
+ * 语义是**降权留守**（demote），不是退场：0.5s 内缩 0.92 + 上移 26px + 透明度 0.34 + 模糊 3.2px，
+ * 元素**留在原位、继续占着它的槽**——同屏预算照算（cinematography §4.5 第 3 条），新主体不能摆进它的位置。
+ * 2026-09-06 改名：旧名 `retireAt` 读起来像"退场"，制作者据此把结论行放进对句还占着的槽 → P0 文字相撞。
+ * `retireAt` / `retireDur` 仍接受（deprecated 别名），两者都给时以 `demoteAt` / `demoteDur` 为准。
+ * 要真退场用场景自己的出场动画（0.15–0.5s 后从版面消失，shot-design.md「让位」三选）。
  */
 export const Live: React.FC<{
   seed: number;
   /** shot-local second the element finished arriving (idle starts here) */
   from?: number;
-  /** shot-local second it should start yielding */
+  /** shot-local second it should start demoting (dim + shrink in place, slot stays occupied) */
+  demoteAt?: number;
+  demoteDur?: number;
+  /** @deprecated use `demoteAt` — same behaviour, misleading name (element does NOT leave) */
   retireAt?: number;
+  /** @deprecated use `demoteDur` */
   retireDur?: number;
-  /** how far back it recedes when yielding */
+  /** how far back it recedes when demoting */
   push?: number;
   amount?: number;
   /** opt-in micro-motion while resolved (off by default since 2026-09-04) */
@@ -57,8 +68,10 @@ export const Live: React.FC<{
 }> = ({
   seed,
   from = 0,
+  demoteAt,
+  demoteDur,
   retireAt,
-  retireDur = 0.5,
+  retireDur,
   push = 0.92,
   amount = 1,
   idle: idleOn = false,
@@ -69,6 +82,8 @@ export const Live: React.FC<{
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const sec = frame / fps;
+  const at = demoteAt ?? retireAt;          // 新名优先，旧名兜底
+  const dur = demoteDur ?? retireDur ?? 0.5;
 
   const w = idleOn ? idle(seed, frame, fps) : {scale: 1, y: 0, glow: 1};
   const alive = sec >= from;
@@ -77,8 +92,8 @@ export const Live: React.FC<{
   let opacity = 1;
   let blur = 0;
 
-  if (retireAt !== undefined && sec >= retireAt) {
-    const p = interpolate(sec, [retireAt, retireAt + retireDur], [0, 1], {
+  if (at !== undefined && sec >= at) {
+    const p = interpolate(sec, [at, at + dur], [0, 1], {
       extrapolateRight: 'clamp',
       easing: Easing.inOut(Easing.quad),
     });

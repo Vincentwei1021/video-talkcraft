@@ -50,7 +50,7 @@ Remotion 对应写法（`template/motion-systems/transitions.tsx`）：
 - 出场 shot（相机侧只写"收住"：末键把 scale 停在 1.0，之后不再加键；沉暗在场景内做）：`{ tail: 16, path: [{t:0, scale:1.05}, {t:tEnd, scale:1.0}] }`
 - 入场 shot（全片唯一 scale<1 起步）：`{ lead: 16, path: [...pullBackIn(leadSec), {t:9, scale:1.0}] }`
 - `pullBackIn(leadSec, {from:0.94, to:0.99, blur:4, settle:0.9})` 生成两个 CamKey，首键 `t` 取负（落在 lead 里）。
-- 出场侧的内容沉暗用场景自己的 `interpolate`（亮度/滤镜），或直接走 `life.tsx` 的 `<Live retireAt>` 让位状态机——它本来就做"缩 0.92 + 上移 + 亮度 −66% + 3px 模糊"。
+- 出场侧的内容沉暗用场景自己的 `interpolate`（亮度/滤镜），或直接走 `life.tsx` 的 `<Live demoteAt>` 让位状态机——它本来就做"缩 0.92 + 上移 + 亮度 −66% + 3px 模糊"（降权留守，元素仍占槽）。
 
 ## 参数表
 | 参数 | 典型值 | 调节手感 |
@@ -81,7 +81,7 @@ Remotion 对应写法（`template/motion-systems/transitions.tsx`）：
   一个函数 + `CONFIG.pull` 一组参数。**注意函数内部取了 `out.querySelector(".big")`**——
   沉暗作用在内容层而不是镜头层，迁移时把这个选择器换成你的主体面容器。`hold()` 一起摘。
 - Remotion：`pullBackIn(leadSec)` spread 进入场 shot 的 `path`（首键 `t` 取负）；
-  出场侧相机只写"收住"（末键 `scale: 1.0` 后不再加键），内容沉暗在场景内做或直接用 `life.tsx` 的 `<Live retireAt>`。
+  出场侧相机只写"收住"（末键 `scale: 1.0` 后不再加键），内容沉暗在场景内做或直接用 `life.tsx` 的 `<Live demoteAt>`。
   色温转冷在 `env.tsx` 的 `ACTS` 表配。
 - 家族关系：它是 [[push-through-transition]] 的反向式（那个 scale>1 沉降，这个 scale<1 拉近），
   两者的入场起手方向相反，所以**同一片里两式可以互补使用**：推进段用推穿、收束段用后拉冷却。

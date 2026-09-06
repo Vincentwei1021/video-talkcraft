@@ -12,10 +12,18 @@ B) 并发光栅抖动（2026-08-30/31 两次实战确认）：`remotion render -
    动画加速/减速斜坡只有 3~4 帧同号残差，不误伤。良品（conc=1）osc_max <0.15，病灶 1.5~3。
    FAIL 处方：--concurrency=1 重渲。
 
+   **抖动自动归因（2026-09-06）**：同一窗先查重复帧签名（frame_signature.py：近零帧差呈严格周期 N——
+   25fps 人物素材混进 30fps 成片 = 每 6 帧一次 0 差），命中即报"重复帧 → 查源片帧率/CFR（preflight.py）"，
+   **不再**一律归给并发光栅——两种病签名不同（重复帧 = 周期性掉到 0；并发 = 非零值上来回摆），处方也不同。
+   `--baseline <源人物素材>`：同窗同判据再量一遍源片，输出"成片 X / 源片 Y"——源片自己就带的噪声不算渲染引入，
+   该窗降为 WARN（2026-09-06 复盘：121 个报警窗里 114 个是素材自带噪声，此前只能靠人手工把闸跑到源片上才判得出）。
+
 用法：
   python3 scripts/motion_check.py <video.mp4> [freeze_dur=0.8] [noise=0.003] [--window t,crop]... [--anchors anchors.json]
+        [--baseline host.webm [--baseline-crop W:H:X:Y] [--baseline-offset 秒]]
   --window 46,1100:80:140:205   # 指定抖动判定窗（t秒,crop=W:H:X:Y）；缺省每 ~18s 自动采样
   --anchors anchors.json        # 每个动效锚点 t+0.6s 再加一窗（锚点可带 "crop"），状态切换点不靠运气撞上
+  --baseline host.webm          # 对照源片：成片 t 对应源片 t−offset（人物素材从成片 0s 起播时 offset=0），源片默认量全幅
 任一判定 FAIL → exit 1。
 
 覆盖边界（诚实声明，独立评审 P1 修订）：B 只量它抽到的那些 0.87s 窗（缺省 ≤12 窗、间隔 18s、固定标题带裁剪），
@@ -28,6 +36,9 @@ import os
 import re
 import subprocess
 import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from frame_signature import dup_signature, frame_diffs, noise_floor  # noqa: E402
 
 FRAMES = 26
 DEFAULT_CROP = "1200:120:150:150"   # 标题带：本套版式大标题所在区域
@@ -85,13 +96,21 @@ def judge(d, np):
     return d.mean(), (r.max() if len(r) else 0.0), int((r > 0.5).sum())
 
 
-def check_jitter(video: str, windows, anchor_windows=()) -> bool:
+def probe_fps(src):
+    out = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=r_frame_rate",
+                          "-of", "csv=p=0", src], capture_output=True, text=True, check=True).stdout.strip().rstrip(",")
+    a, _, b = out.partition("/")
+    return float(a) / float(b or 1)
+
+
+def check_jitter(video: str, windows, anchor_windows=(), baseline=None, baseline_crop=None, baseline_offset=0.0) -> bool:
     try:
         import numpy as np
         import imageio.v2 as iio
     except ImportError:
         sys.exit("pip install numpy imageio（抖动判定依赖）")
     dur = probe_duration(video)
+    fps = probe_fps(video)
     if not windows:
         t = 3.0
         while t < dur - 3 and len(windows) < 12:
@@ -99,13 +118,20 @@ def check_jitter(video: str, windows, anchor_windows=()) -> bool:
             t += 18.0
     # 锚点窗叠加在缺省/指定窗之上（不是替代）：状态切换点不靠 18s 采样运气撞上
     windows = sorted(set(windows) | {w for w in anchor_windows if 0 <= w[0] < dur - 1})
-    fail = False
-    n_ok = n_fast = n_short = 0
+    fail_osc = fail_dup = False
+    n_ok = n_fast = n_short = n_src = 0
     for t, crop in windows:
         d = window_diffs(video, t, crop, np, iio)
         if d is None:
             n_short += 1
             print(f"[抖动] t={t:7.1f}s  抽帧不足，跳过")
+            continue
+        # ① 重复帧签名先查：命中就是素材帧率问题，不进并发判据
+        dup = dup_signature(d, fps)
+        if dup.found:
+            fail_dup = True
+            print(f"[抖动] t={t:7.1f}s  raw_mean={d.mean():6.2f}  重复帧签名：周期 {dup.period}（近零 {dup.near_zero}/{dup.total}）"
+                  f"⇒ 源真实 fps ≈ {dup.implied_src_fps:.1f}  FAIL(重复帧)")
             continue
         mean, osc, cnt = judge(d, np)
         if mean > 6.0:
@@ -114,19 +140,47 @@ def check_jitter(video: str, windows, anchor_windows=()) -> bool:
             continue
         n_ok += 1
         bad = osc > 0.5 and cnt >= 6
-        fail |= bad
-        print(f"[抖动] t={t:7.1f}s  raw_mean={mean:6.2f}  osc_max={osc:5.2f}  超阈帧={cnt:2d}  {'FAIL' if bad else 'ok'}")
+        tag = "FAIL" if bad else "ok"
+        extra = ""
+        # ② 对照源片：同 t（减 offset）、同判据；源片噪声不低于成片 80% → 素材自带，不算渲染引入
+        if bad and baseline:
+            bt = t - baseline_offset
+            bd = frame_diffs(baseline, bt, FRAMES, baseline_crop, width=None) if bt >= 0 else None
+            if bd is not None:
+                bmean, bosc, bcnt = judge(bd, np)
+                bdup = dup_signature(bd, probe_fps(baseline))
+                extra = f"  | 源片 osc_max={bosc:5.2f} 超阈={bcnt:2d} noise={noise_floor(bd):.2f}"
+                if bdup.found:
+                    extra += f" 源片自带重复帧(周期 {bdup.period})"
+                if bosc >= 0.8 * osc:
+                    bad = False
+                    n_src += 1
+                    tag = "WARN(素材自带)"
+            else:
+                extra = "  | 源片该时刻抽帧不足"
+        fail_osc |= bad
+        print(f"[抖动] t={t:7.1f}s  raw_mean={mean:6.2f}  osc_max={osc:5.2f}  超阈帧={cnt:2d}  {tag}{extra}")
     covered = n_ok * FRAMES / 30.0
     print(f"[抖动] 覆盖：判定 {n_ok} 窗 ≈ {covered:.1f}s / 片长 {dur:.1f}s（{100 * covered / max(dur, 1e-6):.0f}%），"
-          f"快速运动窗跳过 {n_fast}，抽帧不足 {n_short}——窗外时段不在本闸内（状态切换点看 qa_extract 连拍）")
-    print("[抖动]", "FAIL：静态文字区周期振荡=并发光栅病，用 --concurrency=1 重渲" if fail else "PASS（仅限上述窗）")
-    return fail
+          f"快速运动窗跳过 {n_fast}，抽帧不足 {n_short}"
+          + (f"，源片自带噪声 {n_src} 窗" if baseline else "")
+          + "——窗外时段不在本闸内（状态切换点看 qa_extract 连拍）")
+    verdicts = []
+    if fail_dup:
+        verdicts.append("FAIL(重复帧)：人物区周期性近零帧差=素材帧率≠成片帧率或源片已含重复帧——不是并发光栅，"
+                        "--concurrency=1 治不了；按 preflight.py 处方（成片 fps 改成素材 fps / 光流补帧 / 源头重出）")
+    if fail_osc:
+        verdicts.append("FAIL(并发光栅)：静态文字区非零值周期振荡，用 --concurrency=1 重渲"
+                        + ("" if baseline else "（未给 --baseline，无法排除素材自带噪声）"))
+    print("[抖动]", "；".join(verdicts) if verdicts else "PASS（仅限上述窗）")
+    return fail_dup or fail_osc
 
 
 def main():
     video = sys.argv[1]
     rest = sys.argv[2:]
     windows, anchor_windows, pos = [], [], []
+    baseline, baseline_crop, baseline_offset = None, None, 0.0
     i = 0
     while i < len(rest):
         if rest[i] == "--window":
@@ -139,6 +193,15 @@ def main():
                 for a in json.load(fh):
                     anchor_windows.append((round(float(a["t"]) + 0.6, 2), a.get("crop") or DEFAULT_CROP))
             i += 2
+        elif rest[i] == "--baseline":
+            baseline = rest[i + 1]
+            i += 2
+        elif rest[i] == "--baseline-crop":
+            baseline_crop = rest[i + 1]
+            i += 2
+        elif rest[i] == "--baseline-offset":
+            baseline_offset = float(rest[i + 1])
+            i += 2
         else:
             pos.append(rest[i])
             i += 1
@@ -146,7 +209,7 @@ def main():
     noise = pos[1] if len(pos) > 1 else "0.003"
 
     fail = check_freeze(video, dur, noise)
-    fail |= check_jitter(video, windows, anchor_windows)
+    fail |= check_jitter(video, windows, anchor_windows, baseline, baseline_crop, baseline_offset)
     print("== 画面健康", "FAIL ==" if fail else "PASS ==")
     sys.exit(1 if fail else 0)
 

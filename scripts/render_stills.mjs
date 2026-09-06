@@ -12,7 +12,10 @@
 //   --comp       省略时取工程第一个 composition
 //   --props      合成 inputProps：内联 JSON / @props.json / props.json（工作台 Main 等吃工程 JSON 的合成必须给）
 //   --public-dir 覆盖 public/（Remotion 静态服务器拒绝符号链接素材时，先解引用同步到一个真实目录再指过来）
-// 输出文件名：<out>/<prefix><秒原文>.png（"2.0" 不归一成 "2"，避免 2 与 2.0 相互覆盖）
+//   --browser    浏览器可执行文件（离线机 / 复用 Playwright 的 headless shell）
+//   --scale      输出缩放（0.25 = 四分之一尺寸；freeze_probe 这类只算帧差的用途够用且快）
+//   --frames     直接给帧号列表（与 --times 二选一；freeze_probe 用它取 f 与 f+1 相邻两帧）
+// 输出文件名：<out>/<prefix><秒原文>.png（"2.0" 不归一成 "2"，避免 2 与 2.0 相互覆盖）；--frames 时为 <prefix>f<帧号>.png
 import {createRequire} from 'node:module';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -34,19 +37,21 @@ const entry = opt('entry', 'src/entry.ts');
 const outDir = opt('out', '../qa/stills');
 const prefix = opt('prefix', 't');
 const timesArg = opt('times', null);
-if (!timesArg) {
-  console.error('用法：node render_stills.mjs --times 2.0,7.2,... [--entry src/entry.ts] [--comp id] [--out dir]');
+const framesArg = opt('frames', null);
+if (!timesArg && !framesArg) {
+  console.error('用法：node render_stills.mjs --times 2.0,7.2,... | --frames 60,61,... [--entry src/entry.ts] [--comp id] [--out dir]');
   process.exit(2);
 }
-const raws = (timesArg.startsWith('@')
-  ? fs.readFileSync(timesArg.slice(1), 'utf8').split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('#'))
-  : timesArg.split(',')
-);
-const times = raws.map((r) => ({raw: r, sec: Number(r)}));
-if (times.some((t) => Number.isNaN(t.sec))) {
-  console.error('times 里有非数字项');
+const readList = (arg) => (arg.startsWith('@')
+  ? fs.readFileSync(arg.slice(1), 'utf8').split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('#'))
+  : arg.split(','));
+const times = timesArg ? readList(timesArg).map((r) => ({raw: r, sec: Number(r)})) : [];
+const frameList = framesArg ? readList(framesArg).map((r) => ({raw: r, frame: Number(r)})) : [];
+if (times.some((t) => Number.isNaN(t.sec)) || frameList.some((f) => !Number.isInteger(f.frame))) {
+  console.error('times / frames 里有非数字项');
   process.exit(2);
 }
+const scale = opt('scale', null) ? Number(opt('scale')) : undefined;
 
 const require = createRequire(path.join(projDir, 'package.json'));
 const {bundle} = require('@remotion/bundler');
@@ -58,7 +63,7 @@ const bundleOpts = await loadProjectBundleOptions(require, projDir);
 const publicDirFlag = opt('public-dir', null);
 if (publicDirFlag) bundleOpts.publicDir = path.resolve(projDir, publicDirFlag);   // 命令行覆盖 remotion.config.ts 的 setPublicDir
 const inputProps = parseInputProps(opt('props', null), projDir);
-const renderOpts = projectRenderOptions(require);   // browserExecutable / gl / chromeMode（配置文件里设了才有）
+const renderOpts = projectRenderOptions(require, {browser: opt('browser', null)});   // browserExecutable / gl / chromeMode（配置文件里设了才有 + --browser）
 const serveUrl = await bundle({entryPoint: path.join(projDir, entry), ...bundleOpts, onProgress: () => {}});
 console.log(`bundle 完成 ${(Date.now() - t0) / 1000}s`);
 
@@ -75,21 +80,24 @@ console.log(`composition: ${composition.id}  ${composition.width}x${composition.
 
 const maxSec = (composition.durationInFrames - 1) / composition.fps;
 const bad = times.filter((t) => t.sec < 0 || t.sec > maxSec);
-if (bad.length) {
-  console.error(`times 越界（片长 ${maxSec.toFixed(2)}s）：${bad.map((t) => t.raw).join(', ')}`);
+const badF = frameList.filter((f) => f.frame < 0 || f.frame >= composition.durationInFrames);
+if (bad.length || badF.length) {
+  console.error(`越界（片长 ${maxSec.toFixed(2)}s / ${composition.durationInFrames} 帧）：${[...bad, ...badF].map((t) => t.raw).join(', ')}`);
   process.exit(2);
 }
+const jobs = [
+  ...times.map((t) => ({frame: Math.round(t.sec * composition.fps), output: path.join(outDir, `${prefix}${t.raw}.png`)})),
+  ...frameList.map((f) => ({frame: f.frame, output: path.join(outDir, `${prefix}f${f.raw}.png`)})),
+];
 
 const browser = await openBrowser('chrome', renderOpts);
 fs.mkdirSync(outDir, {recursive: true});
 try {
-  for (const t of times) {
-    const frame = Math.round(t.sec * composition.fps);
-    const output = path.join(outDir, `${prefix}${t.raw}.png`);
-    await renderStill({composition, serveUrl, frame, output, puppeteerInstance: browser, inputProps});
-    console.log(`${output}  (frame ${frame})`);
+  for (const j of jobs) {
+    await renderStill({composition, serveUrl, frame: j.frame, output: j.output, puppeteerInstance: browser, inputProps, ...(scale ? {scale} : {})});
+    console.log(`${j.output}  (frame ${j.frame})`);
   }
 } finally {
   await browser.close({silent: true});
 }
-console.log(`共 ${times.length} 张，总耗时 ${((Date.now() - t0) / 1000).toFixed(1)}s`);
+console.log(`共 ${jobs.length} 张，总耗时 ${((Date.now() - t0) / 1000).toFixed(1)}s`);

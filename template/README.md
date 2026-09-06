@@ -18,7 +18,7 @@ SKILL.md 的 `make_timing.py ... remotion/src/timing.json` 输出路径、文件
 | 文件 | 内容 | 注意 |
 |---|---|---|
 | camera.tsx | CameraRig / Plane / useCamera | L1 相机 + L5 视差核心，直接照抄 |
-| life.tsx | Live / Defocus / idle / phaseOf | idle + 让位状态机，直接照抄 |
+| life.tsx | Live / Defocus / idle / phaseOf | idle + 让位状态机，直接照抄；`Live demoteAt` = 降权留守（元素仍占槽），旧名 `retireAt` deprecated 别名 |
 | env.tsx | Environment / GridField | **ACTS/EXPOSURE_HITS/TRANSITION_FLASHES/VIGNETTE_TIGHTEN 四张表是每片配置**，新项目必须重写表内容 |
 | anime-remotion.ts | useAnimeTimeline | anime.js v4 ↔ Remotion seek 桥（杀 rAF 主循环） |
 | three-anime.ts | useThreeAnime / ThreeCtx | three ↔ anime 桥；remotion.config 需 `setChromiumOpenGlRenderer('angle')`；依赖 `animejs/adapters/three` |

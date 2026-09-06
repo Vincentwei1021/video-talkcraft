@@ -21,6 +21,11 @@ mix 模式（可听度，交付前对最终混音跑；这是"耳听"的机器�
     FAIL 若 MASKED 比例 > 50%；
     FAIL 若 UNMASKED 数 < max(3, 片长/30s) —— 良品在句间隙出声 7/19 处，坏片 0/39。
   实操含义：转场/镜头边界的 cue 要落在句间 ~0.3s 气口里，别全埋进语音。
+  加 --timestamps audio/timestamps.json（2026-09-06）：从字级时间戳数出气口（≥0.5s 才够一记 cue 完全出声），
+  UNMASKED 门槛不超过气口数，并打印"气口 N 处 / 已落 cue M 处"——门槛在数学上不可达时机器把话说出来
+  （SKILL.md ⑥⑦ 迭代纪律："输入决定、不是本片可修"的结论必须早下，此前只能人算）。
+  注意 AUDIBLE 档（≥人声−6dB）与 skill 的电平纪律（音效低人声 ~12dB）互斥，连续口播里合规的 cue 只能是 UNMASKED 或 MASKED；
+  MASKED>50% 这条门在气口稀少的稿子上会结构性 FAIL——改判据需要拿良品/坏片重标定，本次未改，先用气口对账把原因说清。
 
 两个模式的输入都走 ffmpeg 解码（mp4/wav/mp3 皆可直接传）。
 """
@@ -78,7 +83,20 @@ def solo_mode(wav_path: str, cues_path: str) -> int:
     return 0 if bad == 0 else 1
 
 
-def mix_mode(mix_path: str, voice_path: str, cues_path: str) -> int:
+def count_gaps(ts_path: str, min_gap: float = 0.3):
+    """从字级时间戳数出人声气口：相邻词（跨句也算）之间 ≥ min_gap 的静默段。返回 [(start, end), ...]。
+    UNMASKED 判据要 0.5s 窗内人声 <−40dB，所以能"完全出声"的 cue 上限 = 气口数——门槛不能超过它。"""
+    d = json.load(open(ts_path))
+    words = [w for s in d["sentences"] for w in s["words"]]
+    words.sort(key=lambda w: w["start"])
+    gaps = []
+    for a, b in zip(words, words[1:]):
+        if b["start"] - a["end"] >= min_gap:
+            gaps.append((a["end"], b["start"]))
+    return gaps
+
+
+def mix_mode(mix_path: str, voice_path: str, cues_path: str, ts_path: str | None = None) -> int:
     mix, voi = decode(mix_path), decode(voice_path)
     # 人声在混音里的延迟（±2s 搜索，前 60s 足够）
     N = min(len(mix), len(voi), 60 * SR)
@@ -125,8 +143,21 @@ def mix_mode(mix_path: str, voice_path: str, cues_path: str) -> int:
     fails = []
     if masked_ratio > 0.5:
         fails.append(f"MASKED 比例 {masked_ratio:.0%} > 50%")
+    # 气口对账（--timestamps）：门槛在数学上不可达时把它说出来，而不是让制作者对着 FAIL 猜（SKILL.md ⑥⑦ 迭代纪律里
+    # "输入决定、不是本片可修"的结论，此前只能人算）。门槛降到气口数，但仍要求 cue 真落进去。
+    ceiling_note = ""
+    if ts_path:
+        gaps = count_gaps(ts_path, 0.3)
+        wide = [g for g in gaps if g[1] - g[0] >= 0.5]
+        used = sum(1 for g in wide if any(g[0] - 0.05 <= c["t"] <= g[1] - 0.45 for c in cues))
+        print(f"气口：≥0.3s {len(gaps)} 处 · ≥0.5s（够一记 cue 完全出声）{len(wide)} 处 · 其中已落 cue {used} 处")
+        if len(wide) < need_unmasked:
+            ceiling_note = f"（UNMASKED 上限 = 气口 {len(wide)} 处 < 原门槛 {need_unmasked}，门槛按上限收——输入决定，不是本片可修）"
+            need_unmasked = len(wide)
     if counts["UNMASKED"] < need_unmasked:
-        fails.append(f"UNMASKED 仅 {counts['UNMASKED']} 条 < 门槛 {need_unmasked}（片长 {dur:.0f}s）")
+        fails.append(f"UNMASKED 仅 {counts['UNMASKED']} 条 < 门槛 {need_unmasked}（片长 {dur:.0f}s）{ceiling_note}")
+    elif ceiling_note:
+        print("UNMASKED 门槛" + ceiling_note)
     print(f"\nUNMASKED {counts['UNMASKED']} / AUDIBLE {counts['AUDIBLE']} / MASKED {counts['MASKED']}"
           f"（共 {len(cues)} 条）")
     print("PASS" if not fails else "FAIL: " + "；".join(fails))
@@ -135,8 +166,13 @@ def mix_mode(mix_path: str, voice_path: str, cues_path: str) -> int:
 
 def main() -> int:
     args = sys.argv[1:]
+    ts_path = None
+    if "--timestamps" in args:
+        k = args.index("--timestamps")
+        ts_path = args[k + 1]
+        args = args[:k] + args[k + 2:]
     if args and args[0] == "--mix":
-        return mix_mode(args[1], args[2], args[3])
+        return mix_mode(args[1], args[2], args[3], ts_path)
     return solo_mode(args[0], args[1])
 
 
