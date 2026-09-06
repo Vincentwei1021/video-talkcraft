@@ -61,6 +61,11 @@ G2 视差与 G4 分幕色温降为可选。模板代码保留这些能力但默�
 - 曝光脉冲**已删**（`pulses` 默认 false）；重音靠主体自身的入场动效表达。
 - 事件表只剩 ACTS（分幕色温，可选）；EXPOSURE_HITS / TRANSITION_FLASHES / VIGNETTE_TIGHTEN 留空不用。
 
+### G5 线稿示意图（schematic.tsx）——纯文字镜必装，其余镜不装
+- 素材行只有「文」的镜头（章节卡除外），主体面必须多一层"可看的物"：图标 + 方框 + 箭头 + 小标签的线稿示意图（`template/motion-systems/schematic.tsx`，图标 `icons.ts` 由 `scripts/fetch_icons.py` 生成）。
+- 三条命门：**机器一笔画**（pathLength 归一 + dashoffset，power2.inOut，画完静置）、**线到哪亮哪**（连接线先画、节点被点亮后 pop）、**一套皮**（ink 3px + accent，磨砂白板托底，深底换 dark token）。
+- 示意图每一拍挂词锚（beats.json），与 G1 推拉叠加；它不是第四个主体——与该镜标题是同一主体组的两半。规则、语义图形词典与落位自检见 `references/schematic.md`。
+
 ## 3. 运动转场库（Sequence 重叠 12–16 帧）
 
 **硬规则：每个镜头边界都必须有明确的转场处置，禁止裸切**——
@@ -141,6 +146,8 @@ G2 视差与 G4 分幕色温降为可选。模板代码保留这些能力但默�
    合法触发只有新论点/图表替换/前后对比/结论；纯时间流逝、每条字幕都不算。
 8. **错峰三段序（正主）**：旧面板**完全退场** → 人物换位/新主体入场 → 新面板才淡入，三者不得交叠。
    人物在场的镜头先跑 `scripts/face_bbox.py` 定人脸安全区（口径 host-footage.md §3），主信息面板放人物对侧。
+
+- **纯文镜的陪衬图形**（2026-09-07）：素材行只有「文」的镜头，层矩阵必须多一行「G5 陪衬图形 ← 关系一句话」（`references/schematic.md` §1）；只有文字动效在堆 = 幻灯片，preflight 给 WARN。
 
 ## 5. 验收口径（渲染后逐条核）
 

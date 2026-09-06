@@ -124,6 +124,8 @@ V / 图 / 截图 必须括号给路径，写"待采"= FAIL；纯动效镜也要�
 **幕级转场事件同样入 beats.json**：shape wipe/换幕的**遮挡峰值**时刻也由词锚生成入表——
 手敲绝对秒的转场事件表游离在机器可验体系外，静帧 QA 与 beat_lint 都看不见。
 **排版预算**（全表 cinematography.md §4.5）：分镜按语义段落切、每镜一个 primary visual job；
+**纯文镜必配陪衬图形**（2026-09-07 用户反馈"只有文字动效往上堆太单一"）：素材行只有「文」的镜头（章节卡除外），层矩阵必须多一行
+「G5 线稿示意图 ← 讲 X 所以画 Y」（`references/schematic.md`，代码 `template/motion-systems/schematic.tsx`），preflight 对缺行的纯文镜 WARN；
 枢轴句（"但这次不是X"式转折/设问）的动效归它**开启**的下一镜；任一时刻同屏主体组 ≤3（降权留守**计入**）、
 每镜至少留一个空象限；hero 造型一屏一个。
 **排版规范**（全表 `references/layout.md`）：预算管"放多少"，规范管"放哪、多大、怎么对齐"——
@@ -164,6 +166,8 @@ python3 scripts/preflight.py --shotbook SHOTBOOK.md --host remotion/public/dh/ho
 与 **G3 让位状态机**（`Live demoteAt` = 下一主体锚点 / Defocus，`idle` 关、落定即静置；**demoteAt 是降权留守不是退场**——
 元素压暗缩小后仍占着原槽、计入同屏预算，新主体不得摆进它的位置；旧名 `retireAt` 仍可用但已 deprecated，2026-09-06 因名字误导出过 P0 文字相撞）；
 G2 视差、G4 分幕色温可选、默认不装；主体 idle / 环境呼吸 vignette / 扫光 / 曝光脉冲 / 相机脉冲一律不做。
+**G5 线稿示意图**（`schematic.tsx` + `icons.ts`）只给纯文镜装：DrawPath / DrawIcon / Connector / Node / Plate / Panel / Cross / Tick / Traveller / Label，
+全部 abs 秒驱动、机器一笔画、线到哪亮哪、一套皮；图标缺什么跑 `python3 scripts/fetch_icons.py <slug,...> --merge`（Iconify lucide，ISC，登记进 sources.md）。
 
 **每个镜头边界必须有明确转场处置，禁止裸切**：运动承接六式（lead/tail 重叠 12–16 帧 + ShotFade，
 代码 `template/motion-systems/transitions.tsx`）或 caret/shape-wipe 轻量式，选型见 cinematography.md §3；
@@ -325,6 +329,7 @@ X [`@VincentWei93`](https://x.com/VincentWei93) ·
 | 镜头方法论/反PPT/SHOTBOOK格式/验收 | `references/cinematography.md`（+ shotbook-example.md） |
 | 审片：关卡 2 材料四件套 / rubric / 缺陷分级 · 关卡 3 · 返修纪律 · 审片循环 | `references/review-protocol.md`（评审 subagent 必读） |
 | 转场（六式代码）/ 长镜头 | `template/motion-systems/transitions.tsx` / `longtake.tsx`（cinematography.md §3、§3.5） |
+| 纯文字镜配线稿示意图（G5：词汇 · 语义图形词典 · 节拍纪律 · 落位自检）| `references/schematic.md` → `template/motion-systems/schematic.tsx` + `icons.ts`（`scripts/fetch_icons.py` 抓 Iconify lucide） |
 | 选动效/查参数和坑 | `references/taxonomy.md` → `references/cards/` → `template/cards/`（tsx 源码）+ `demos/`/`gallery/`（预览） |
 | 找素材 · 配图采集 · 网页拍摄素材采集（全页 2× 长图 + DOM 坐标 JSON） | `references/broll-sources.md` |
 | 开工体检（③ 素材期 `--media-only` / ④→⑤ 闸全量：人物素材帧率·重复帧·时长·比例 + SHOTBOOK 素材对账·未完成清单） | `scripts/preflight.py` |

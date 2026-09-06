@@ -28,6 +28,9 @@
 
 **2026-09-05**
 
+- ✏️ **G5 线稿示意图系统（2026-09-07）**——纯文字镜"只有文字动效往上堆"的解药：拆一支零素材却不单调的参考片，把它的机制收进来（每句抽象话配一张图标 + 方框 + 箭头的线稿图 / 文字从不裸放 / 每句至少一个可见变化 / 语义图形代替素材；背景星点那套不收）。
+  `template/motion-systems/schematic.tsx`（DrawPath · DrawIcon · Connector · Node · Plate · Panel · Cross · Tick · Traveller · Label，机器一笔画 + 线到哪亮哪 + 一套皮）+ `icons.ts`（`scripts/fetch_icons.py` 抓 Iconify lucide，ISC）+ `references/schematic.md`（语义图形词典 · 节拍错峰纪律 · 落位自检）；
+  SKILL.md ④ 新规「纯文镜必配陪衬图形」，preflight 对缺行的纯文镜 WARN。首用于《实测 GPT-6 Astra》五个纯文镜（弯路 vs 直路 / 模型核心环 / 提示词卡堆 / 任务卡 / 四方向扇出）。
 - 🎞️ **单视频播放器框 + 章节主题层（108 → 109，2026-09-07）**——用户反馈两条："章节卡四张同一块色板太单调"、"镜头里只有一段视频时要有播放器"。
   `chapter-title-card` 加**章节主题层**：每章一套 bg / ink / accent + 一个与本章内容相关的线稿 motif（L6 背景描画、0.6× 视差）+ 章节名下 accent 短线，SHOTBOOK 写章节主题行；
   新卡 **`video-player-frame`**：白边证据卡 + 播放条（播放键按下才起步、进度按真实播放走、时间码 + 章节刻度）+ 标题 chip / 来源 pill，browser 变体给网页录屏；
