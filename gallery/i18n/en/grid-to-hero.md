@@ -29,7 +29,7 @@ Tile ratios change during the reflow (2:1 → 1.4:1 → 1.67:1); material is cov
 - Position via `transform: translate()`, size via interpolated width / height (**never left / top**): cover-cropped images re-frame as the box changes and never distort — pure FLIP (translate + non-uniform scale) would stretch both image and label and still require a swap to real dimensions at the end, so only FLIP's translate half is borrowed. Remotion renders each frame independently, so width / height interpolation has no live-layout jitter.
 - The hero sits above the others in z-order (during the reflow the top-left tile collapses behind the hero); labels 16px 600 white with text shadow at bottom-left (left 20 / bottom 18).
 - Geometry (960×540): 48 safe margin on four sides, 24 gaps → grid 420×210 at (48, 48) / (492, 48) / (48, 282) / (492, 282); hero 620 = 65% wide; column 220 wide, three 132-tall tiles + two 24 gaps = 444 = hero height. White-edge cards padding 8 / radius 12 / the one shadow.
-- Grey placeholders in the demo are demo context; in production inject material via `srcs`, labels via `labels`, and pick the hero via `heroIdx`.
+- The sample photos in the demo (Picsum, `demos/_lib/media`) are demo context; in production inject material via `srcs`, labels via `labels`, and pick the hero via `heroIdx`.
 
 ## Parameters
 | Parameter | Typical | Feel |
@@ -62,7 +62,7 @@ Tile ratios change during the reflow (2:1 → 1.4:1 → 1.67:1); material is cov
 
 ## Motion scope
 - Belongs to this card: the timetable stagger-120ms landing → hold → one power3.inOut reflow (hero grows + others collapse into an equal column) → hold → back to grid → exit together; hero inner push 1→1.05 (reflow start to grid return); the transform-for-position / width-height-for-size convention; the grid / hero / column proportions (65% hero, column height = hero height, 48 margins, 24 gaps).
-- Not this card: grey placeholders (demo context), label copy, the four placeholder tones, the white stage.
+- Not this card: sample photos (demo context, `demos/_lib/media`, not part of the card), label copy, the white stage.
 - Migration: `srcs` / `labels` / `heroIdx` for content and the winner; `CONFIG.holdGrid / holdHero` follow the narration; a 3-tile version trims `grid` to 3 and the column to two (raise `col.h` to 210 if the column runs short); scale from 960×540 for other frames; portrait becomes 2 rows × 2 columns → hero on top, three thumbnails in a row below.
 - Background: white is fine (white edge + shadow separate the cards).
 

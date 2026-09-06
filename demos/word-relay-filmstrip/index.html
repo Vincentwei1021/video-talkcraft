@@ -12,11 +12,11 @@
   /* 素材占位（不属于动效）：灰调渐变 + 相框图标（六档色，与 parallel-items-with-host 同一体系） */
   .ph { position: absolute; overflow: hidden; }
   .ph::before { content: ""; position: absolute; inset: 0; }
-  .ph.t1::before { background: linear-gradient(160deg, #a4b0c6, #7d8aa3); }
-  .ph.t2::before { background: linear-gradient(160deg, #bfa5ae, #957c86); }
-  .ph.t3::before { background: linear-gradient(160deg, #9fb9ae, #789389); }
-  .ph.t4::before { background: linear-gradient(160deg, #c2b39a, #9c8f78); }
-  .ph.t5::before { background: linear-gradient(160deg, #a3a9b8, #7f8594); }
+  .ph.t1::before { background: url(../_lib/media/p-63.jpg) center/cover no-repeat; }
+  .ph.t2::before { background: url(../_lib/media/p-24.jpg) center/cover no-repeat; }
+  .ph.t3::before { background: url(../_lib/media/p-250.jpg) center/cover no-repeat; }
+  .ph.t4::before { background: url(../_lib/media/p-366.jpg) center/cover no-repeat; }
+  .ph.t5::before { background: url(../_lib/media/p-160.jpg) center/cover no-repeat; }
   .ph svg { position: absolute; left: 50%; top: 50%; width: 56px; height: 48px; transform: translate(-50%, -56%); opacity: .35; }
 
   /* 左列胶片：视窗 360×540，胶片整体只在切词窗内 translateY 一卡高（212 = 200 卡 + 12 间距） */
@@ -74,7 +74,7 @@
     const $ = (s) => document.querySelector(s);
     const strip = $(".wrf-strip"), noun = $(".wrf-noun"), wrap = $(".wrf-verbwrap"), win = $(".wrf-win"), words = $(".wrf-words");
     noun.textContent = NOUN;
-    strip.innerHTML = CARDS.map(([tone, label], i) => `<div class="wrf-fc${i % 2 ? " lt" : ""}"><div class="ph ${tone}">${GLYPH}</div><div class="n">${label}</div></div>`).join("");
+    strip.innerHTML = CARDS.map(([tone, label], i) => `<div class="wrf-fc${i % 2 ? " lt" : ""}"><div class="ph ${tone}"></div><div class="n">${label}</div></div>`).join("");
     wrap.innerHTML = VERBS.map((v, i) => `<div class="wrf-verb${i === VERBS.length - 1 ? " acc" : ""}">${v}</div>`).join("");
     const verbs = [...wrap.children];
 

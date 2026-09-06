@@ -11,6 +11,8 @@
   /* 素材占位（不属于动效）：灰调渐变 + 相框图标（六档色，与 parallel-items-with-host 同一体系） */
   .ph { position: absolute; overflow: hidden; }
   .ph::before { content: ""; position: absolute; inset: 0; }
+  .ph video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .ph video + .drift { display: none; }   /* 有真视频时不叠占位亮带 */
   .ph.t1::before { background: linear-gradient(160deg, #a4b0c6, #7d8aa3); }
   .ph.t2::before { background: linear-gradient(160deg, #bfa5ae, #957c86); }
   .ph.t3::before { background: linear-gradient(160deg, #9fb9ae, #789389); }
@@ -50,7 +52,7 @@
   <div id="stage">
     <!-- 底床：同源模糊放大副本（慢放 0.5×） -->
     <div class="echo">
-      <div class="echo-inner"><div class="ph t1"><div class="drift"></div></div></div>
+      <div class="echo-inner"><div class="ph t1"><video src="../_lib/media/v-ocean.webm" muted loop playsinline autoplay preload="auto"></video><div class="drift"></div></div></div>
     </div>
     <!-- 左侧标题两行 + 来源说明两行 -->
     <div class="ttl">
@@ -58,7 +60,7 @@
       <p><span class="line">手机竖拍 · 原比例 9:16 · 不留黑边</span><span class="line">拍摄：@海边的阿飞 · 2026-08（示意）</span></p>
     </div>
     <!-- 前景：竖屏素材（250×444，9:16）装白边卡 -->
-    <div class="photo fgcard"><div class="ph t1"><div class="drift"></div></div></div>
+    <div class="photo fgcard"><div class="ph t1"><video src="../_lib/media/v-ocean.webm" muted loop playsinline autoplay preload="auto"></video><div class="drift"></div></div></div>
   </div>
 
   <script src="../_lib/gsap.min.js"></script>
@@ -86,9 +88,9 @@
 
     // 素材占位里的相框图标（不属于动效）
     const GLYPH = '<svg viewBox="0 0 48 40" fill="none" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"><rect x="2" y="2" width="44" height="36" rx="4"/><circle cx="16" cy="14" r="4"/><path d="M4 34 L18 22 L27 30 L34 24 L44 34"/></svg>';
-    document.querySelectorAll(".ph").forEach((el) => { el.insertAdjacentHTML("beforeend", GLYPH); });
 
     const $ = (s) => document.querySelector(s);
+    document.querySelectorAll(".echo-inner video").forEach((v) => { v.playbackRate = CONFIG.echoSpeed; });   // 底床副本慢放（真视频；占位时是亮带 × echoSpeed）
     const $$ = (s) => [...document.querySelectorAll(s)];
 
     DemoShell.register(({ speed }) => {

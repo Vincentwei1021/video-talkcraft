@@ -32,7 +32,7 @@ From the 2026-09-04 bed research (`demos/_lab/material-presentation/README.md`, 
 - **Foreground card**: 270×464 white-bordered card (inner 250×444 = 9:16, border 10, radius 12 / inner 5, shadow `0 12px 60px rgba(0,0,0,.22)`) at (590, 38); from 0.3s, 0.6s `power3.out`: opacity 0→1, scale .92→1, y 22→0; from 0.9s a linear push scale 1→1.03 until 7.2 (non-zero end speed).
 - **Text group**: left 90 / top 150 / width 440, white; title 40px 700 line-height 1.25, two lines, tracking −0.6; source note 16px white 72% line-height 1.7, two lines, 16 above; four lines from 0.8s with stagger 0.11, each 0.5s `power3.out`, y 16→0.
 - **Exit**: 7.2s text + card opacity→0 over 0.5s `power2.in`; 7.3s bed opacity→0 over 0.4s `power2.in`; all done on the same frame at 7.7s, revealing the white stage.
-- The grey footage placeholder in the demo (light streaks drifting at 40px/s, 20px/s in the bed copy) is demo context; production injects real video via `src`.
+- The sample video in the demo (Mixkit ocean footage, `demos/_lib/media`; bed copy at 0.5×) is demo context; production injects real video via `src`.
 
 ## Parameters
 | Parameter | Typical | Feel |
@@ -64,7 +64,7 @@ From the 2026-09-04 bed research (`demos/_lab/material-presentation/README.md`, 
 
 ## Motion scope
 - Belongs to this card: the same-source bed chain (cover fill + scale from 1.25, blur 26 / brightness .45 / saturate .8, 0.5× slow-motion, 0.0058 ×/s constant push, duration = shot); the foreground card's 0.6s power3.out landing and 1→1.03 creep; the two-speed relationship; four text lines rising with 0.11 stagger; the 7.2 / 7.3 → 7.7 same-frame exit; the layout relation "card to one side, text opposite".
-- Not this card: the grey footage placeholder and its drifting streaks, the sample copy, the card's exact coordinates (re-lay per frame), the white stage (visible only in the last 0.4s).
+- Not this card: the sample video (demo context, `demos/_lib/media`, not part of the card), the sample copy, the card's exact coordinates (re-lay per frame), the white stage (visible only in the last 0.4s).
 - Migration: `src` for the asset; `CONFIG.end / exitAt` follow the sentence; ×2 every px for 1080p (blur 26→52, border 10→20, type 40→80); for portrait output enlarge the card to 70% of frame height centred and move the text above/below.
 - Background: white is fine — the bed covers the stage and the stage only shows in the last 0.4s; if the asset is bright overall, drop `echoBright` to .38 to keep the white text.
 

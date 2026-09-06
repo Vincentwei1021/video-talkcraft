@@ -24,12 +24,12 @@
   /* 素材占位（不属于动效）：六档灰调渐变 + 相框图标，成片里换成真图 */
   .ph { position: absolute; inset: 6px; border-radius: 5px; overflow: hidden; }
   .ph::before { content: ""; position: absolute; inset: 0; }
-  .ph.t1::before { background: linear-gradient(160deg, #a4b0c6, #7d8aa3); }
-  .ph.t2::before { background: linear-gradient(160deg, #bfa5ae, #957c86); }
-  .ph.t3::before { background: linear-gradient(160deg, #9fb9ae, #789389); }
-  .ph.t4::before { background: linear-gradient(160deg, #c2b39a, #9c8f78); }
-  .ph.t5::before { background: linear-gradient(160deg, #a3a9b8, #7f8594); }
-  .ph.t6::before { background: linear-gradient(160deg, #b8a9c4, #8f809d); }
+  .ph.t1::before { background: url(../_lib/media/p-1015.jpg) center/cover no-repeat; }
+  .ph.t2::before { background: url(../_lib/media/p-1036.jpg) center/cover no-repeat; }
+  .ph.t3::before { background: url(../_lib/media/p-1039.jpg) center/cover no-repeat; }
+  .ph.t4::before { background: url(../_lib/media/p-1050.jpg) center/cover no-repeat; }
+  .ph.t5::before { background: url(../_lib/media/p-1057.jpg) center/cover no-repeat; }
+  .ph.t6::before { background: url(../_lib/media/p-1018.jpg) center/cover no-repeat; }
   .ph svg { position: absolute; left: 50%; top: 50%; width: 34px; height: 29px; transform: translate(-50%, -56%); opacity: .35; }
 </style>
 </head>
@@ -97,7 +97,7 @@
     const strip = document.querySelector(".strip");
     for (let i = 0; i < CONFIG.n * 2; i++) {
       const d = document.createElement("div"); d.className = "item";
-      d.innerHTML = `<div class="ph t${(i % CONFIG.n) + 1}">${GLYPH}</div><div class="n">构图 ${NAMES[i % CONFIG.n]}</div>`;
+      d.innerHTML = `<div class="ph t${(i % CONFIG.n) + 1}"></div><div class="n">构图 ${NAMES[i % CONFIG.n]}</div>`;
       strip.appendChild(d);
     }
     const items = [...strip.children], hdr = document.querySelector(".hdr"), center = document.querySelector(".center");

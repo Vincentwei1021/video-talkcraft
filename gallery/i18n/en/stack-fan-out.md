@@ -60,7 +60,7 @@ Five cards of one ratio (220×150 ≈ 3:2); crop mixed orientations to one frame
 
 ## Motion scope
 - Belongs to this card: the timetable stack (micro offset) → fan (rotation + translation around the arc centre, power3.out 0.7) → hold ≥0.6 → row (equal width and spacing, centred, rotation zero, power3.inOut 0.6) → exit together; the ±24° / R=520 / 150-wide 16-gap proportions; transform order translate → rotate → scale.
-- Not this card: grey placeholders (demo context), title copy and size, the five placeholder tones, the white stage.
+- Not this card: sample photos (demo context, `demos/_lib/media`, not part of the card), title copy and size, the white stage.
 - Migration: `srcs` for images; `title` to change or remove; `n` for card count (≤6, scale `flatW / flatGap` with it); `CONFIG.exitAt` follows the narration; scale from 960×540 for other frames; for portrait raise R to 700 and reduce the fan to ±18° to stay in frame.
 - Background: white is fine (white edge + shadow separate the cards).
 

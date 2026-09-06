@@ -71,7 +71,7 @@ The conveyor turns "order" into physical motion: items flow right to left across
 
 ## Motion scope
 - Belongs to this card: constant-speed belt + piecewise position–time integral slowdown (five segments, equal joint velocities, decel ending with the key card centred); per-frame distance-based scale 1.08 / brightness .5→1 / z-order; the six-plus-six-copies structure (no empty right end); the finite ending (whole exit ~0.6s after the last card crosses centre, 0.04 stagger, belt still moving during the exit).
-- Not this card: the demo's six grey tones, the "composition one–six" labels and title copy, the dashed dock-zone frame (demo context, removable), the card's exact radius and shadow values, the white stage.
+- Not this card: the demo's six sample photos (demo context, `demos/_lib/media`, not part of the card), the "composition one–six" labels and title copy, the dashed dock-zone frame (demo context, removable), the card's exact radius and shadow values, the white stage.
 - Migration: `srcs` / `labels` for material and copy; `slowIdx` / `slowDur` follow the narration (which card, how long); `loopDur` sets the speed (slow to ~150px/s for 24fps); scale `w` / `gap` / `reach` with frame width, centre always = frame centre; for portrait, run the belt vertically (`translateY`, weight on `|cy − H/2|`).
 - Background: white is fine — white-framed cards separate by shadow and `dimTo .5` reads as "receded" on white; on a dark background raise `dimTo` to .6 and brighten the shadow.
 

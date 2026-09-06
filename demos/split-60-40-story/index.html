@@ -11,6 +11,8 @@
   /* 素材占位（不属于动效）：灰调渐变 + 相框图标（六档色，与 parallel-items-with-host 同一体系） */
   .ph { position: absolute; overflow: hidden; }
   .ph::before { content: ""; position: absolute; inset: 0; }
+  .ph video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .ph video + .drift { display: none; }   /* 有真视频时不叠占位亮带 */
   .ph.t1::before { background: linear-gradient(160deg, #a4b0c6, #7d8aa3); }
   .ph.t2::before { background: linear-gradient(160deg, #bfa5ae, #957c86); }
   .ph.t3::before { background: linear-gradient(160deg, #9fb9ae, #789389); }
@@ -42,7 +44,7 @@
 </head>
 <body>
   <div id="stage">
-    <div class="pane"><div class="cam"><div class="ph t3"><div class="drift"></div></div></div></div>
+    <div class="pane"><div class="cam"><div class="ph t3"><video src="../_lib/media/v-typing.webm" muted loop playsinline autoplay preload="auto"></video><div class="drift"></div></div></div></div>
     <div class="vline"></div>
     <div class="ttl">它一晚上<br>干了三件事</div>
     <div class="chip" style="top:216px;background:#E8F0FF">读完 40 份资料</div>
@@ -74,7 +76,6 @@
 
     // 素材占位里的相框图标（不属于动效）
     const GLYPH = '<svg viewBox="0 0 48 40" fill="none" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"><rect x="2" y="2" width="44" height="36" rx="4"/><circle cx="16" cy="14" r="4"/><path d="M4 34 L18 22 L27 30 L34 24 L44 34"/></svg>';
-    document.querySelectorAll(".ph").forEach((el) => { el.insertAdjacentHTML("beforeend", GLYPH); });
 
     const $ = (s) => document.querySelector(s);
     const $$ = (s) => [...document.querySelectorAll(s)];

@@ -15,12 +15,12 @@
   /* 素材占位（不属于动效）：六档灰调渐变 + 相框图标，成片里换成真图 */
   .ph { position: absolute; overflow: hidden; }
   .pic { position: absolute; inset: 0; }
-  .pic.t1 { background: linear-gradient(160deg, #a4b0c6, #7d8aa3); }
-  .pic.t2 { background: linear-gradient(160deg, #bfa5ae, #957c86); }
-  .pic.t3 { background: linear-gradient(160deg, #9fb9ae, #789389); }
-  .pic.t4 { background: linear-gradient(160deg, #c2b39a, #9c8f78); }
-  .pic.t5 { background: linear-gradient(160deg, #a3a9b8, #7f8594); }
-  .pic.t6 { background: linear-gradient(160deg, #b8a9c4, #8f809d); }
+  .pic.t1 { background: url(../_lib/media/p-250.jpg) center/cover no-repeat; }
+  .pic.t2 { background: url(../_lib/media/p-355.jpg) center/cover no-repeat; }
+  .pic.t3 { background: url(../_lib/media/p-319.jpg) center/cover no-repeat; }
+  .pic.t4 { background: url(../_lib/media/p-1027.jpg) center/cover no-repeat; }
+  .pic.t5 { background: url(../_lib/media/p-349.jpg) center/cover no-repeat; }
+  .pic.t6 { background: url(../_lib/media/p-823.jpg) center/cover no-repeat; }
   .pic svg { position: absolute; left: 50%; top: 50%; width: 56px; height: 48px; transform: translate(-50%, -56%); opacity: .35; }
 
   /* 白边卡：padding 8 + 圆角 12 + 唯一投影（全组一致） */
@@ -102,7 +102,6 @@
 
     // 素材占位里的相框图标（不属于动效）
     const GLYPH = '<svg viewBox="0 0 48 40" fill="none" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"><rect x="2" y="2" width="44" height="36" rx="4"/><circle cx="16" cy="14" r="4"/><path d="M4 34 L18 22 L27 30 L34 24 L44 34"/></svg>';
-    document.querySelectorAll(".pic").forEach((el) => { el.innerHTML = GLYPH; });
 
     const $ = (s, root) => (root || document).querySelector(s);
     const $$ = (s, root) => [...(root || document).querySelectorAll(s)];

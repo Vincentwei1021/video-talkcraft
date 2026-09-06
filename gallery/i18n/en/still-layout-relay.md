@@ -28,7 +28,7 @@ Multi-image shots slide into PowerPoint most easily: three images fading in toge
 - ② triptych: `0.3 / 0.38 / 0.46s` three images slide in from the right (`x 40→0`, power3.out 0.5s, 0.08 stagger) → `0.8s` captions (0.08 stagger) → `1.4 / 2.8 / 4.2s` handoff left → middle → right → `5.6s` return → `6.6s` exit → ends `7.08s`. No push (three equals — whichever pushes becomes the subject).
 - A handoff = three things on the same frame: the subject `brightness 1 / scale 1.04` (①) or `1.03` (②) + outline ring appearing in 0.25s (inset −6, 3px, single accent `#0066cc`); the others `brightness .6 / scale .985`; the subject's caption turns ink `#1d1d1f`, the others light grey `#9a9aa0` (all back to `#6e6e73` on return). Switch power2.inOut 0.4s; stations never overlap.
 - Geometry (960×540): ① hero 546×388 at (62, 66), supporting 250×176 at (650, 66) / (650, 278), group bounding box 62–900 centred horizontally, bottom-right quadrant left empty; captions 14px 6px below the image, left edge aligned to the image (+2 for glyph side bearing). ② three 262×380 at x 66 / 349 / 632, top 70 (4+4+4 columns, 21 gaps), captions 16px 600 12px below the image, centred at image width. White-edge cards padding 8 / radius 12 / the one shadow `0 12px 40px rgba(0,0,0,.16)`, identical across the group.
-- The layout-name tag and grey placeholders in the demo are demo context; in production inject real images via `srcs`, copy via `captions`, and pick one `layout`.
+- The layout-name tag and sample photos in the demo (Picsum, `demos/_lib/media`) are demo context; in production inject real images via `srcs`, copy via `captions`, and pick one `layout`.
 
 ## Parameters
 | Parameter | Typical | Feel |
@@ -60,7 +60,7 @@ Multi-image shots slide into PowerPoint most easily: three images fading in toge
 
 ## Motion scope
 - Belongs to this card: the two timetables (hero/first lands → same-direction stagger → captions → handoff → return → exit together); the three-part handoff (others brightness .6 / scale .985, subject 1.03–1.04 + ring, caption recolour) with its 0.4s power2.inOut; ①'s hero 1→1.06 constant push (duration = shot); exit 0.4s + 0.04 stagger; both layouts' geometry (centred group, ≥48 margins, captions 6 / 12px below, consistent card styling).
-- Not this card: grey placeholder images (demo context), caption copy, the six placeholder tones, the layout-name tag (tour only), the white stage.
+- Not this card: sample photos (demo context, `demos/_lib/media`, not part of the card), caption copy, the layout-name tag (tour only), the white stage.
 - Migration: `layout` to pick; `captions` / `srcs` for copy and images; `accent` for the accent colour (one per film); `TABLE` relays / reset / exitAt follow sentence length; scale geometry from 960×540 for other frames; for portrait, ① puts the hero on top with the two supporting images in a row below.
 - Background: white is fine (white edge + shadow separate on white; on dark beds raise the shadow to .35).
 

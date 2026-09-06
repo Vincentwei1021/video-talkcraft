@@ -30,7 +30,7 @@ The first multi-asset research rule is "decide the relationship before the layou
 - **Title**: from 0.3s, 0.5s `power3.out`: opacity 0→1, y 12→0.
 - **Chips**: from `1.0 + i×0.6`, each 0.45s `back.out(1.7)`: opacity 0→1, scale .9→1, y 10→0.
 - **Exit (end-aligned)**: the text group leaves at 6.28 / 6.32 / 6.36 / 6.40, each 0.4s `power2.in` (title first, last chip done at 6.8); asset + seam 6.4–6.8 `power2.in`; everything closes within the frame at 6.8.
-- The grey footage placeholder in the left pane (light streaks drifting at 40px/s) is demo context; production uses `src` / `hostSrc`.
+- The sample video in the left pane (Mixkit typing footage, `demos/_lib/media`) is demo context; production uses `src` / `hostSrc`.
 
 ## Parameters
 | Parameter | Typical | Feel |
@@ -61,7 +61,7 @@ The first multi-asset research rule is "decide the relationship before the layou
 
 ## Motion scope
 - Belongs to this card: the 60/40 lead/follow relationship and the 3px seam; the left pane's 1→1.06 push for the shot's duration with in-pane clipping; the 0.3s title rise; chips popping 0.6s apart with back.out; the right column's shared grid line, equal chip height and padding, non-repeating pastels; the end-aligned joint exit.
-- Not this card: the footage placeholder and its drifting streaks, the sample copy, the exact pastel values (swappable but never repeating in a group), the presenter video, the white stage.
+- Not this card: the sample video (demo context, `demos/_lib/media`, not part of the card), the sample copy, the exact pastel values (swappable but never repeating in a group), the presenter video, the white stage.
 - Migration: `src` / `hostSrc` / `title` / `chips` / `chipBg`; `CONFIG.end` follows the sentence; for portrait output stack 60/40 vertically (asset above, chips below); ×2 every px for 1080p.
 - Background: white is fine; the lab prototype's right column was `#f5f5f7`, and after the switch to white the seam matches the right column — it stays, because it becomes the divider the moment the right column gets a light bed.
 

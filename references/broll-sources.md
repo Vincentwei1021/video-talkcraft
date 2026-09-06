@@ -11,7 +11,7 @@
   Coverr（接受其条款时；API 免费档只够开发用）→ NASA（航天/卫星/地球类）→ 无结果降级 **图片**（下一条）
 - **图片**（照片 / 海报 / 插图，taxonomy 输入类型「图」；与视频同源同 key）：Pexels photos（**取 `original`**）→ Pixabay images（免费档长边上限 1280，只够 720p / 竖屏 / 配角小图）。
   采集规格见下文「配图采集」；表现侧规则已齐：证据素材白边卡 + 唯一投影 + Ken Burns（design-language §1/§5）、静态素材必由相机动起来（taxonomy 运镜类）、
-  图片专用卡 stack-fan-out / multi-still-tour / still-layout-relay / media-pop-in / grid-to-hero
+  图片专用卡 stack-fan-out / gallery-wall-dolly / timeline-photo-strip / still-layout-relay / media-pop-in / grid-to-hero
 - **logo/图标**：Iconify `logos:` 彩色 → simple-icons via jsDelivr 单色 → Wikimedia Commons（**只取 PD/CC0**，
   按 LicenseShortName 字段过滤）。单色 logo 注意底色适配：深色 logo（如 Anthropic #181818）深底模式不可直用，
   需白底卡承载或取反色变体
@@ -86,7 +86,7 @@ GET https://pixabay.com/api/?key=<KEY>&q=server+room&image_type=photo&orientatio
 - 检索词与视频同一套英文视觉概念词（规则 1）；同一镜头**先搜视频再搜图片**，图片是降级不是并列首选（图片撑镜头要靠相机动，视频自带运动）。
 - 落盘 `assets/stills/`（候选）→ 选中的进 `public/stills/`，文件名 `<镜号>-<概念词>-<源>-<id>.<ext>`。
 - **每张图和每条视频一样进 `sources.md`**（规则 6）：检索词、源站、ID/URL、授权、真实尺寸。
-- 竖图放横屏、只有一张图的镜头：`bed-echo-blur◉`（同源模糊底床）是标准答案；多图：`still-layout-relay◉` / `stack-fan-out◉` / `multi-still-tour◉`。
+- 竖图放横屏、只有一张图的镜头：`bed-echo-blur◉`（同源模糊底床）是标准答案；多图：`still-layout-relay◉` / `stack-fan-out◉` / `gallery-wall-dolly◉` / `timeline-photo-strip◉`。
 
 ## 规则
 1. **搜索词一律英文**（唯一例外：Pixabay API 的 `lang=zh`）：中文口播稿分镜 → LLM 翻译成

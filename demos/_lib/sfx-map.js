@@ -183,17 +183,19 @@ window.SFX_MAP = {
     {"t": 0.8, "name": "pk:transition-wind-swoosh-short", "vol": 0.3, "rate": 1.1, "clip": 0.5, "note": "卡B甩出"},
     {"t": 1, "name": "pk:impact-hit-fast-exciting", "vol": 0.45, "rate": 1.08, "clip": 0.9, "note": "卡B急停"},
   ],
-  "multi-still-tour": [
-    /* 运镜卡：每段相机起步一记停靠 tick（stage-keyframe-tour 纪律，hold 段绝对不配）；拉回 / 拉开配一记压低的空气声。
-       两式巡演，timeline 式的 t = 8.2 + 式内秒；成片一镜只用一式 → 抄对应那几记（timeline 记数减 8.2） */
-    {"t": 0.8, "name": "pk:counter-clock-tick-single", "vol": 0.4, "rate": 1.05, "clip": 1.0, "note": "wall 推到第一张"},
-    {"t": 2.7, "name": "pk:counter-clock-tick-single", "vol": 0.4, "clip": 1.0, "note": "wall 推到第二张"},
-    {"t": 4.6, "name": "pk:counter-clock-tick-single", "vol": 0.4, "rate": 0.95, "clip": 1.0, "note": "wall 推到第三张"},
-    {"t": 6.5, "name": "pk:transition-air-whoosh-powerful", "vol": 0.26, "rate": 0.9, "clip": 1.2, "note": "wall 拉回全景"},
-    {"t": 9.6, "name": "pk:counter-clock-tick-single", "vol": 0.4, "rate": 1.05, "clip": 0.9, "note": "timeline 横移到第二站（式内 1.4）"},
-    {"t": 11.5, "name": "pk:counter-clock-tick-single", "vol": 0.4, "clip": 0.9, "note": "timeline 横移到第三站（式内 3.3）"},
-    {"t": 13.4, "name": "pk:counter-clock-tick-single", "vol": 0.4, "rate": 0.95, "clip": 0.9, "note": "timeline 横移到第四站（式内 5.2）"},
-    {"t": 15.3, "name": "pk:transition-air-whoosh-powerful", "vol": 0.26, "rate": 0.9, "clip": 1.1, "note": "timeline 拉开看全条（式内 7.1）"},
+  "gallery-wall-dolly": [
+    /* 停靠类：每段相机起步一记停靠 tick（hold 段绝对不配）；拉回配一记压低的空气声 */
+    {"t": 0.8, "name": "pk:counter-clock-tick-single", "vol": 0.4, "rate": 1.05, "clip": 1.0, "note": "推到第一张"},
+    {"t": 2.7, "name": "pk:counter-clock-tick-single", "vol": 0.4, "clip": 1.0, "note": "推到第二张"},
+    {"t": 4.6, "name": "pk:counter-clock-tick-single", "vol": 0.4, "rate": 0.95, "clip": 1.0, "note": "推到第三张"},
+    {"t": 6.5, "name": "pk:transition-air-whoosh-powerful", "vol": 0.26, "rate": 0.9, "clip": 1.2, "note": "拉回全景"},
+  ],
+  "timeline-photo-strip": [
+    /* 停靠类：每次横移起步一记 tick（hold 段不配）；拉开看全条配一记压低的空气声 */
+    {"t": 1.4, "name": "pk:counter-clock-tick-single", "vol": 0.4, "rate": 1.05, "clip": 0.9, "note": "横移到第二站"},
+    {"t": 3.3, "name": "pk:counter-clock-tick-single", "vol": 0.4, "clip": 0.9, "note": "横移到第三站"},
+    {"t": 5.2, "name": "pk:counter-clock-tick-single", "vol": 0.4, "rate": 0.95, "clip": 0.9, "note": "横移到第四站"},
+    {"t": 7.1, "name": "pk:transition-air-whoosh-powerful", "vol": 0.26, "rate": 0.9, "clip": 1.1, "note": "拉开看全条"},
   ],
   "news-card-desk": [
     {"t": 0.1, "name": "pk:paper-paper-slide", "vol": 0.5, "clip": 0.9, "note": "卡A铺上"},
@@ -470,12 +472,6 @@ window.SFX_MAP = {
   "crash-zoom-punch": [
     {"t": 1.0, "name": "pk:camera-ui-zoom-in", "vol": 0.5, "clip": 0.5, "note": "6 帧急推"},
     {"t": 1.2, "name": "pk:mech-lock-quick", "vol": 0.35, "note": "回收落定"},
-  ],
-  "freeze-frame-annotate": [
-    {"t": 1.3, "name": "pk:camera-camera-lens-shutter", "vol": 0.45, "note": "定格快门"},
-    {"t": 1.57, "name": "pk:text-marker-pen-line", "vol": 0.45, "clip": 0.35, "note": "椭圆描边"},
-    {"t": 1.84, "name": "pk:text-marker-pen-line", "vol": 0.35, "rate": 1.1, "clip": 0.25, "note": "箭头"},
-    {"t": 3.64, "name": "pk:transition-transition-soft", "vol": 0.3, "clip": 0.5, "note": "解冻追赶"},
   ],
   "word-slot-cycle": [
     {"t": 0.2, "name": "pk:paper-paper-slide", "vol": 0.3, "clip": 0.5, "note": "句干 + 胶囊入场"},

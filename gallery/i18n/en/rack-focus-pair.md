@@ -59,7 +59,7 @@ When narration speaks about A and B, cutting means two separate shots (the viewe
 
 ## Motion scope
 - Belongs to this card: the two-state definition (blur 8 / brightness .6 / scale 1.02 ↔ .97); the 0.7s power2.inOut rack with both cards starting together; the soft card staying in place; the one-corner overlap of the stack; the ≥1.8s interval; the 0.08-staggered entrance and joint exit.
-- Not this card: the grey placeholders, the exact sizes and positions, the label copy, the white stage.
+- Not this card: the sample photos (demo context, `demos/_lib/media`, not part of the card), the exact sizes and positions, the label copy, the white stage.
 - Migration: `srcs` / `labels`; `focusAt` follows the narration; for 1080p blur 8→16, border 10→20, labels 20→40; on a dark stage deepen the shadow to `rgba(0,0,0,.4)`.
 - Background: white is fine (the white border plus a single shadow lifts the cards off the stage); the lab prototype used a dark radial bed, the library version switched to white, and both hold.
 

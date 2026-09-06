@@ -31,7 +31,7 @@ The slide reveal stacks both images on one camera position; every pixel the divi
 - Timetable: `0–0.6` full "before" (see it first) → `0.6–2.0` p 100→50 `power3.inOut` → `2.0–3.5` hold (the viewer looks at both sides) → `3.5–3.95` p 50→42 `power2.inOut` (nudge, "look right") → `4.0–4.45` back to 50 → `4.5–5.5` p 50→8 `power3.inOut` (almost fully "after") → `5.5–7.0` hold → `7.0–8.0` back to 50 → `8.0–9.0` deliberate hold → `9.0–9.48` exit (labels → divider → both images, 0.04 stagger, `power2.in` 0.4s).
 - Both images share one ultra-slow push `scale 1 → 1.04`, `ease: none`, **duration = the shot** (9.48s) — one curve for both layers is what keeps the seam from drifting.
 - Easing: reveal and far moves use `power3.inOut` (soft start and stop, the feel of a hand pushing a slider); the short nudge uses `power2.inOut`.
-- The demo guarantees identical framing by using one grey placeholder with two filter sets: left `saturate(.3) brightness(.82) contrast(.9) grayscale(.4)`, right `saturate(1.25) contrast(1.06)`; the tsx applies these automatically when given one image (or two identical ones), and skips them when given two different images.
+- The demo guarantees identical framing by using one sample photo (Picsum 1043, `demos/_lib/media`) with two filter sets: left `saturate(.3) brightness(.82) contrast(.9) grayscale(.4)`, right `saturate(1.25) contrast(1.06)`; the tsx applies these automatically when given one image (or two identical ones), and skips them when given two different images.
 
 ## Parameters
 | Parameter | Typical | Feel |
@@ -64,7 +64,7 @@ The slide reveal stacks both images on one camera position; every pixel the divi
 
 ## Motion scope
 - Belongs to this card: cropping the top layer with `clip-path inset` (not moving images) and driving divider and crop edge from one progress value; the four-move timetable (0.6 lead / 1.4 reveal to centre / 1.5 hold / 0.45 nudge to 42 and back / 1.0 to 8 / 1.5 hold / 1.0 back / 1.0 hold) and easings (`power3.inOut` for reveal/far, `power2.inOut` for the nudge); the "label lights at ≥40%" rule; the shared 1→1.04 ultra-slow push lasting the whole shot; the 0.04-stagger exit with both images.
-- Not this card: the grey placeholder and the two grades (demo context for "colour grading"), the "before / after" copy, the white colour and knob shape of the divider (recolourable, but keep the "draggable boundary" cue), the white stage.
+- Not this card: the sample photo and the two grades (demo context for "colour grading"), the "before / after" copy, the white colour and knob shape of the divider (recolourable, but keep the "draggable boundary" cue), the white stage.
 - Migration: `srcBefore` / `srcAfter` for material (same size, same framing); `hold` / `tailHold` follow the narration; `nudge` / `farLeft` follow which side to emphasise (to stress "before", nudge to 58 and far to 92); geometry scales with the frame (the divider is in percent, label offsets scale proportionally).
 - Background: white is fine — the stage is invisible while the images cover it; white shows after the exit.
 

@@ -62,7 +62,7 @@ The source card had a "hard-cut strike-through of the old price + spring of the 
 
 ## Motion scope
 - Belongs to this card: the recipe-frame field timetable (2 frames within a group, 4–14 between groups); the rise / pop split; the 5-frame marker sweep; the 1→1.06 card push-in; the shared exit.
-- Not this card: the grey cover placeholder, the specific copy, the light stage, the exact card size.
+- Not this card: the sample cover photo (demo context, `demos/_lib/media`, not part of the card), the specific copy, the light stage, the exact card size.
 - Migration interface: `src / title / pills / price / lines / highlightLines / swatches`; `D` follows narration; at 1080p the card is 840×920, type ×2, riseY 6→12.
 - Background: light parchment #f5f5f7 (the white card lifts off via the hairline); pure white also works; on dark, swap the card for a dark tile with light text.
 
