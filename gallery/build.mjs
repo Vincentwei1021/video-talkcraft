@@ -96,7 +96,7 @@ function mdToHtml(md) {
 }
 
 // 本批新增卡（画廊里标 NEW）——每次入库新卡后更新这份名单，下批入新卡时把 slug 填回这里。
-const NEW_SLUGS = new Set(["word-slot-cycle", "lead-word-zoom-assemble", "title-demote-to-label", "scanline-annotate", "crash-zoom-punch", "freeze-frame-annotate", "unit-grid-proportion", "source-converge", "line-carry-transition",
+const NEW_SLUGS = new Set(["word-slot-cycle", "lead-word-zoom-assemble", "title-demote-to-label", "scanline-annotate", "crash-zoom-punch", "gallery-wall-dolly", "timeline-photo-strip", "unit-grid-proportion", "source-converge", "line-carry-transition",
   "error-retype", "countdown-arc-scatter", "flying-words", "split-text-stagger", "word-relay-filmstrip", "doc-park-left-pill-deal", "info-card-assemble", "chip-grid-single-select", "reticle-lock-on", "host-card-glass-board"]);   // 2026-09-05/06 video-shotcraft 移植 ◎ 两批 19 张（上一批：素材呈现拓展 ◉ 10 张）
 
 const cards = [];
