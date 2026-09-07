@@ -267,6 +267,7 @@ python3 scripts/contact_sheet.py /tmp/qa_vN /tmp/qa_vN_sheets
 **关卡 2 独立审片**（协议正主 `references/review-protocol.md`，评审 subagent 被派时必须先读它）：
 必须派**全新上下文**的 subagent——不许制作者自评、禁止 fork/复用制作对话当"评审"、禁止对同一评审做 followup 复审
 （fork 出来的评审继承制作者视角，对照物又是制作者自己写的 SHOTBOOK，形成自证闭环）。
+派发 / 等待 / 判活 / 重派按 review-protocol §1.6 的 **harness 无关原语表**（PACKET / DISPATCH / FAN-OUT / WAIT / LIVENESS / RE-DISPATCH，Claude Code · Codex · headless 各一列）；**WAIT 以落盘 `REVIEW.md` 的结束行为准，不以子代理完成通知为准**。
 制作者自己的首轮版式过目也委托子代理（只回文字缺陷清单，几十张图的图像 token 不进主上下文）。
 备齐协议 §1.2 的材料四件套，评审按 rubric 出 P0/P1/P2 清单，**修完 P0 + P1 才算过关**；返修按协议 §3 给量测数字、只渲受影响段。
 **关卡 3 规则合规**：cinematography.md §5 八条逐镜核 + 交付前终检（调试 overlay 关、成片缩到 390px 宽可读），条目见 review-protocol.md §2。
