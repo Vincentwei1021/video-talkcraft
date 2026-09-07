@@ -40,7 +40,7 @@ camera moves, plain-cut subtitles, and film-grade SFX, all locked to the voice.
 
 **2026-09-05**
 
-- 🔁 **19 cards ported from video-shotcraft (89 → 108)** — two review rounds over the sister library [video-shotcraft](https://github.com/Vincentwei1021/video-shotcraft) kept 19 (freeze-frame annotate removed 2026-09-06, 18 remain), each tsx rewritten into this library's self-contained contract with source attribution (→ batch ◎ in `references/taxonomy.md`).
+- 🔁 **19 cards ported from video-shotcraft (89 → 108)** — two review rounds over the sister library [video-shotcraft](https://github.com/Vincentwei1021/video-shotcraft) kept 19 (freeze-frame annotate removed 2026-09-06, 18 remain), each tsx rewritten to this library's self-contained contract, source cited (→ batch ◎ in `references/taxonomy.md`).
 - 🎨 **Domain-driven style and card skinning** — derive a style profile from the script's domain before storyboarding (SHOTBOOK G0); library cards are neutral UI and are re-skinned to that profile without touching their motion vitals, one skinning line per shot (→ `references/design-language.md` §0).
 - 🧩 **10 new multi-asset cards (79 → 89)** — parallel-sentence layouts, triptych relay, compare slider, filmstrip, stack fan-out, gallery-wall dolly / timeline photo strip and more; every card lists its input types and common scenarios, so card selection starts by filtering on the shot's material (→ input-type index in `references/taxonomy.md`).
 - 📐 **Layout spec `references/layout.md`** — 12-column grid, spacing tokens, minimum type sizes, non-overlapping boxes and a 9-point still check; each chosen card's pitfalls / placement checks must be copied into the SHOTBOOK.
