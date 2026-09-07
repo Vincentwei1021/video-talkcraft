@@ -46,7 +46,7 @@ python3 scripts/make_timing.py audio/timestamps.json remotion/src/timing.json
 ```
 - timestamps_cpu.py：ASR 词级时间戳 → 与口播稿字符级对齐（**CJK 是可靠锚点**，
   匹配键=繁简归一+无声调拼音，同音字不算错；拉丁词各家 ASR 都常拼错，在锚点间插值）→
-  每句 match 质检，<0.90 标出人工听核。默认后端 FireRedASR2-CTC（尾部最稳、零误报），备选 faster-whisper；
+  每句 match 质检，<0.90 标出人工听核。默认后端 FireRedASR2-CTC（尾部最稳、零误报；整段喂入 ~200s 崩、内存平方涨，脚本默认按静音切 ≤75s 段再加回偏移，`--chunk-sec` 可调），备选 faster-whisper；
   各后端横评数据与模型下载地址见脚本头注释。
 - timestamps.json schema：`{sr, total, sentences:[{i,text,start,end,match,ok,words:[{text,start,end}]}]}`
   ——words 为 CJK 逐字 + 拉丁整段 token（标点跳过）；满足此 schema 的任何对齐工具都可替换。
