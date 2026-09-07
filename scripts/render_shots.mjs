@@ -22,6 +22,8 @@
 //        [--audio out/full-mix.wav] [--force-audio]        # 整条音轨（缓存过时长+指纹校验才复用）
 //        [--audio-concurrency 4]                           # 音轨渲染并发 tab 数（音轨无光栅问题，不受视频段单并发纪律约束）
 //        [--mux out/preview.mp4]                           # assembled + audio → 有声预览
+//        [--preview-dir out/preview]                        # 本次渲的每一段各出一条有声单镜预览 <dir>/<id>.mp4（段视频 + 整条音轨对应区间），
+//                                                           #   配 --only s01 + --audio 用：首镜验效 / 逐镜节奏（SKILL.md ⑥-1.5），不必等整片拼装
 //        [--props '{"k":1}' | --props @props.json]         # 合成 inputProps（工作台 Main 等吃工程 JSON 的合成必须给）
 //        [--public-dir .render-public]                     # 覆盖 public/（Remotion 静态服务器拒绝符号链接素材时先解引用同步）
 //        [--image-format png|jpeg] [--jpeg-quality 95] [--crf 18]   # 中间帧/编码：覆盖 remotion.config.ts；不给则读配置，配置没设用 Remotion 默认（JPEG-80）
@@ -296,6 +298,24 @@ if (audioOut) {
     console.log(`audio → ${audioOut}  ${got} 帧  ${((Date.now() - st) / 1000).toFixed(0)}s ✓`);
   } else {
     console.log(`audio 复用缓存 ${audioOut}（时长 + 素材/props/时序配置指纹均未变；${fp.nAssets} 个音频文件、${fp.nTiming} 个时序配置文件在册——指纹看不见的改动请 --force-audio）`);
+  }
+}
+
+// —— 单镜有声预览（SKILL.md ⑥-1.5 首镜验效 / 逐镜节奏）：本次渲的每段 + 整条音轨的对应区间 → <preview-dir>/<id>.mp4 ——
+//   音轨仍整条渲一次（纪律 A 不破），预览只是从整条里按段边界裁一刀；帧边界与段表同一 Math.round 规则（纪律 B）
+const previewDir = opt('preview-dir', null);
+if (previewDir) {
+  if (!audioOut) { console.error('--preview-dir 需要同时给 --audio（单镜预览的声音从整条音轨裁）'); process.exit(2); }
+  if (!todo.length) console.warn('--preview-dir：本次没有渲任何段（缓存全在）——要出预览请配 --only <id>');
+  fs.mkdirSync(previewDir, {recursive: true});
+  for (const seg of todo) {
+    const out = path.join(previewDir, `${seg.id}.mp4`);
+    execFileSync('ffmpeg', ['-y', '-v', 'error', '-i', seg.file,
+      '-ss', (seg.from / fps).toFixed(6), '-t', (seg.frames / fps).toFixed(6), '-i', audioOut,
+      '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '256k', '-shortest', out]);
+    const got = probeFrames(out);
+    if (got !== seg.frames) { console.error(`FAIL: 预览 ${seg.id} 帧数 ${got} != ${seg.frames}`); process.exit(1); }
+    console.log(`preview → ${out}  ${seg.id} 帧 ${seg.from}-${seg.to} + 音轨 ${(seg.from / fps).toFixed(2)}s 起 ${(seg.frames / fps).toFixed(2)}s ✓`);
   }
 }
 
