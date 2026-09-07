@@ -217,6 +217,20 @@ cd remotion && python3 ../scripts/freeze_probe.py --shots shots.json          # 
 node <skill根>/scripts/render_stills.mjs --times 2.0,7.2,...   # 抽样点=每镜入/出+关键锚点+状态切换窗
 ```
 
+**⑥-1.5 首镜验效 · 定渲染节奏**（2026-09-07 用户定版，母版首渲的必经关——**首渲禁止直接 `--all`**）：
+```bash
+# 在工程 remotion/ 目录下：只渲第一镜 + 整条音轨，出一条有声单镜预览
+node <skill根>/scripts/render_shots.mjs --shots shots.json --only s01 \
+     --audio out/full-mix.wav --preview-dir out/preview
+open out/preview/s01.mp4        # 打开给用户看
+```
+第一镜是全片的样板（蒙皮 / 字幕样式 / 相机幅度 / 音效电平），它不对整片就都不对——预览有问题先修再问节奏。
+用户看过后**问一次**（AskUserQuestion 类工具，两个选项，不替用户决定）：
+1. **整片渲**：⑥-2 的 `--all --parallel 4 --concat … --audio … --mux …`（s01 段与音轨走缓存，不重渲）；
+2. **逐镜节奏**：`--only s02 --audio … --preview-dir out/preview` 渲一镜、开给用户看一镜、等用户说"继续 / 改"再下一镜，
+   改动用 `--changed sNN`；全部看完再 `--concat + --mux` 拼装。
+两种节奏最后都要过 ⑥-2 的帧数断言与 ⑦ 三重验收——逐镜模式下"用户看过"不等于"验收过"，机器闸与独立审片照做。
+
 **⑥-2 分段渲染母版制**——按镜头切段、段内单进程连续渲（段内光栅自洽；多 tab 并发会产生周期性相位抖动），
 段间 `--parallel 4` 实测比单进程快 1.3~1.8×（本机负载不同两次分别 253→139s、307→230s，4 镜 900 帧）；
 整条音轨没有光栅问题，`--audio-concurrency 4`（默认）实测 419s→175s（116s 片），`imageFormat:'none'` 只省 6%——浏览器逐帧 seek 才是音轨渲染的主成本；
@@ -332,5 +346,5 @@ X [`@VincentWei93`](https://x.com/VincentWei93) ·
 | 字级时间戳（本机 CPU） | `scripts/timestamps_cpu.py`（FireRedASR2-CTC 默认 / faster-whisper 备选，+ 口播稿逐字对齐）→ `scripts/make_timing.py` |
 | **闸报 FAIL 了怎么办 · 怎么少烧母版** | ⑥⑦「迭代纪律」三条——先读闸怎么量的再改 · 静帧优先 · 改哪段渲哪段、复审改动攒批 |
 | 机器闸（画面健康 / 保真 / 词落点+镜尾 / 音效） | `scripts/motion_check.py`（静止段+并发光栅抖动双判定）/ `scripts/card_lint.py`（卡片须复制自 template/cards）/ `scripts/beat_lint.py`（词落点对 timestamps + `--shots` 镜尾保护带）/ `scripts/sfx_check.py`（solo 在场 + `--mix` 可听度） |
-| 渲染提速（分段母版 / 批量静帧 / 空台预检 / 评审拼图） | `scripts/render_shots.mjs`（段渲+拼装+音轨混入+帧数断言；`--changed sNN` 单镜头迭代 53s）/ `scripts/render_stills.mjs`（一次 bundle 批量 still）/ `scripts/beat_gap_check.py`（渲染前空台预检）/ `scripts/contact_sheet.py`（QA 帧拼 3×4 网格） |
+| 渲染提速（分段母版 / 批量静帧 / 空台预检 / 评审拼图）· 首镜验效 | `scripts/render_shots.mjs`（段渲+拼装+音轨混入+帧数断言；`--changed sNN` 单镜头迭代 53s；`--only s01 --preview-dir` 有声单镜预览 → ⑥-1.5 问用户整片还是逐镜）/ `scripts/render_stills.mjs`（一次 bundle 批量 still）/ `scripts/beat_gap_check.py`（渲染前空台预检）/ `scripts/contact_sheet.py`（QA 帧拼 3×4 网格） |
 | 动效配套音效 | 逐卡 cue 表 `demos/_lib/sfx-map.js`（口味纪律见 `references/demo-spec.md`「Demo 硬性要求」第 8 条）；制作端 `node scripts/sfx_dump.mjs` 导出采样 |
