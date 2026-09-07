@@ -79,7 +79,7 @@
 | DISPATCH | `Agent` 工具，`subagent_type: "general-purpose"`；**禁 `fork`**（继承制作上下文 = 自证闭环） | `spawn_agent`，PACKET 随 prompt 传；子代理继承父 cwd，正好共享工程目录 | headless CLI 子进程：PACKET 写成文件，`claude -p "$(cat packet.md)"` / `codex exec` 后台起，stdin 接 /dev/null，stdout 进日志 |
 | FAN-OUT | 同一条消息里多个 Agent 调用，各带 `run_in_background: true` | 多个 `spawn_agent`（本身异步） | 多个后台进程 |
 | WAIT | 完成通知会自动到，**只当提示**——收到后仍读 `REVIEW.md` 认结束行 | `wait_agent` 收齐全部 id 后同样读盘认结束行 | 轮询 `REVIEW.md`，不以进程退出码为准 |
-| LIVENESS / KILL | `TaskStop` 停掉无增量的子代理 | 不再 `wait_agent` 该 id，直接起新的；必要时结束其进程 | `kill` 进程 |
+| LIVENESS / KILL | `TaskStop` 停掉无增量的子代理 | `interrupt_agent` **真正打断它**（卡住的子代理占着并发槽，不打断 RE-DISPATCH 可能起不来；要释放槽位再 `close_agent`），然后才 `spawn_agent` 新上下文 | `kill` 进程 |
 | RE-DISPATCH | 新的 Agent 调用；**禁**用 `SendMessage` 对同一评审做 followup 复审（§1.1） | 新的 `spawn_agent`，不复用旧线程 | 新进程 |
 | 返修后复审 | 同 DISPATCH：又一个全新上下文 | 同 DISPATCH | 同 DISPATCH |
 
