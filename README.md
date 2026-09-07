@@ -25,22 +25,18 @@
 [![video-talkcraft 在线画廊](assets/gallery-zh.png)](https://vincentwei1021.github.io/video-talkcraft/)
 
 ## 🆕 更新（What's new）
+<!-- 写法约定：每条一句话、≤ 200 字（含指向链接），只写"是什么 + 改了什么行为"；细节、参数、卡名清单一律 → 指向 references / SKILL.md 章节，不在这里展开；中英同步。口径由 2026-09-05 PR #12 定，#14/#18 曾回到长段落，2026-09-07 收回。 -->
 
 **2026-09-07**
 
-- ✏️ **G5 线稿示意图系统**——纯文字镜"只有文字动效往上堆"的解药：拆一支零素材却不单调的参考片，把它的机制收进来（每句抽象话配一张图标 + 方框 + 箭头的线稿图 / 文字从不裸放 / 每句至少一个可见变化 / 语义图形代替素材；背景星点那套不收）。
-  `template/motion-systems/schematic.tsx`（DrawPath · DrawIcon · Connector · Node · Plate · Panel · Cross · Tick · Traveller · Label，机器一笔画 + 线到哪亮哪 + 一套皮）+ `icons.ts`（`scripts/fetch_icons.py` 抓 Iconify lucide，ISC）+ `references/schematic.md`（语义图形词典 · 节拍错峰纪律 · 落位自检）；
-  SKILL.md ④ 新规「纯文镜必配陪衬图形」，preflight 对缺行的纯文镜 WARN。首用于《实测 GPT-6 Astra》五个纯文镜（弯路 vs 直路 / 模型核心环 / 提示词卡堆 / 任务卡 / 四方向扇出）。
-- 🎞️ **视频容器边框八式 + 章节主题层**——用户反馈两条："章节卡四张同一块色板太单调"、"镜头里只有一段视频时要有个有设计感的框（不要假播放器）"。
-  `chapter-title-card` 加**章节主题层**：每章一套 bg / ink / accent + 一个与本章内容相关的线稿 motif（L6 背景描画、0.6× 视差）+ 章节名下 accent 短线，SHOTBOOK 写章节主题行；
-  新组件 **`template/components/theme-frame.tsx`**（与 backdrop / pencil 同层，不入卡）：八式一层——复古浏览器窗口 / 杂志相框 / 35mm 胶片 / 拍立得 / 工程图纸 / 笔记本 / 邮票齿边 / 双发丝线，任何卡的视频区都能包一层，框只管造型与自己的装饰接力，框里画面零处理；
-  SKILL.md ③ 新硬规「单视频镜头要有主题边框」（裸贴满幅 / 裸放白卡 / 假播放器都不行，一片只用一式；规则与八式表 design-language §1.3）。
+- ✏️ **G5 线稿示意图系统**——纯文字镜必配一张图标 + 方框 + 箭头的线稿陪衬图，文字不裸放、每句至少一个可见变化，缺陪衬行 preflight 报 WARN（→ `template/motion-systems/schematic.tsx`、`references/schematic.md`）。
+- 🎞️ **视频容器边框八式 + 章节主题层**——单视频镜头必须包一式主题边框（浏览器窗 / 胶片 / 拍立得 / 图纸等八式，一片一式、不做假播放器），章节卡按章换色 + 线稿 motif（→ `template/components/theme-frame.tsx`、design-language §1.3）。
 
 **2026-09-05**
 
-- 🔁 **19 张 video-shotcraft 移植卡（89 → 108）**——通读姊妹库 [video-shotcraft](https://github.com/Vincentwei1021/video-shotcraft) 的 157 张产品片镜头卡，两轮实验室原型、用户两次筛选留 19 张（2026-09-06 删去定格圈注，现 18 张）：词槽轮换 · 首词占满补句 · 标题降格成标签 · 打字改口 · 数字弧落标题 · 关键词隧道 · 逐字裂升 · 动词接力胶片 · 扫描线逐处点名 · 急推特写 · 准星咬合 · 点阵比例图 · 多源汇聚 · 五选一反黑 · 文档驻留发牌 · 信息卡逐字段自建 · 线条接力转场 · 人物竖卡玻璃台（按用户截图的版式新设计）；tsx 以母本为起点改成本库自包含契约，「复用指引」带母本溯源（→ `references/taxonomy.md` 第八批◎）。
-- 🎨 **领域定风格 · 中性卡蒙皮**（`references/design-language.md` §0）——开工先从口播稿判定领域派生风格档写进 SHOTBOOK G0；库里的卡是中性 UI，进片按风格档改皮（颜色 / 字体 / 材质 / 图表语言）不改运动命门，每镜写蒙皮行。
-- 🧩 **10 张多素材同屏新卡（79 → 89）**——并列句排版、三联画接力、对比分屏、传送带、卡堆扇开、照片墙推轨、时间线照片带（后两张 2026-09-06 由多图巡览拆分）等，每卡标注输入类型与常用场景，选卡先按素材类型过滤（→ `references/taxonomy.md` 输入类型索引）。
+- 🔁 **19 张 video-shotcraft 移植卡（89 → 108）**——从姊妹库 [video-shotcraft](https://github.com/Vincentwei1021/video-shotcraft) 两轮筛选移植（09-06 删定格圈注余 18），tsx 改成本库自包含契约、带母本溯源（→ `references/taxonomy.md` 第八批◎）。
+- 🎨 **领域定风格 · 中性卡蒙皮**——开工先由口播稿判定领域、派生风格档写进 SHOTBOOK G0；库里的卡是中性 UI，进片按风格档改皮不改运动命门，每镜写蒙皮行（→ `references/design-language.md` §0）。
+- 🧩 **10 张多素材同屏新卡（79 → 89）**——并列句排版、三联画接力、对比分屏、传送带、卡堆扇开、照片墙推轨 / 时间线照片带等，每卡标注输入类型与常用场景，选卡先按素材类型过滤（→ `references/taxonomy.md` 输入类型索引）。
 - 📐 **排版规范 `references/layout.md`**——12 栏栅格、间距令牌、字阶最小档、包围盒不相交等九项自检，选中卡的「已知坑 / 落位自检」必须抄进 SHOTBOOK。
 - 🎨 **12 款动态幕底入库**——`template/motion-systems/backdrop.tsx` 深浅各 6 款、frame 驱动零随机，默认幕底改为浅 `pastel-mesh-flow` / 深 `mesh-flow-dark`。
 
