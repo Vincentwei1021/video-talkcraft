@@ -51,17 +51,6 @@ window.SFX_MAP = {
     {"t": 0.61, "name": "pk:ui-ui-click-tone", "vol": 0.4, "rate": 1.12},
     {"t": 0.71, "name": "pk:ui-ui-click-tone", "vol": 0.4, "rate": 1.18},
   ],
-  "video-theme-frame": [
-    {"t": 0.35, "name": "pk:ui-pop", "vol": 0.38, "clip": 0.6},
-    {"t": 2.55, "name": "pk:ui-pop", "vol": 0.38, "clip": 0.6},
-    {"t": 4.75, "name": "pk:ui-pop", "vol": 0.38, "clip": 0.6},
-    {"t": 6.95, "name": "pk:ui-pop", "vol": 0.38, "clip": 0.6},
-    {"t": 9.15, "name": "pk:ui-pop", "vol": 0.38, "clip": 0.6},
-    {"t": 11.35, "name": "pk:ui-pop", "vol": 0.38, "clip": 0.6},
-    {"t": 13.55, "name": "pk:ui-pop", "vol": 0.38, "clip": 0.6},
-    {"t": 15.75, "name": "pk:ui-pop", "vol": 0.38, "clip": 0.6},
-    {"t": 9.6, "name": "pk:text-pen-write-paper", "vol": 0.3, "dur": 0.9},
-  ],
   "chapter-title-card": [
     {"t": 0.5, "name": "pk:paper-paper-slide", "vol": 0.65, "dur": 0.34},
     {"t": 2.75, "name": "pk:paper-paper-slide", "vol": 0.55, "dur": 0.34, "rate": 1.15, "clip": 0.9},
