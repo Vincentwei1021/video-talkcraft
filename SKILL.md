@@ -70,11 +70,11 @@ python3 scripts/make_timing.py audio/timestamps.json remotion/src/timing.json
   **真图上的标注坐标一律机器实测，禁目测**：页面元素用 DOM `getBoundingClientRect`、成图用逐像素量测
   （目测偏 ±30px 就会把环框到别的元素上）；**会滚动/移动的真图，标注（环/框/pill）必须钉在内容坐标系上随内容动**，
   钉屏幕固定位就是错位根源
-- **单视频镜头要有播放器**（2026-09-07 用户定版）：镜头里唯一主体是一段视频（录屏 / 单条 B-roll / 引用别人的成片或采访）时，
-  **禁止裸贴满幅、禁止裸放白卡**，必须用 `video-player-frame◑` 承载——标题 chip 说它是什么、来源 pill 说从哪来、进度条按**真实播放进度**走、
-  播放键先按下进度才起步；播放器皮按 SHOTBOOK §0 风格档蒙（浅底白边卡 + hairline / 深底深 tile + 亮 hairline，已播条与刻度用本片 accent），
-  网页录屏用 `chrome: "browser"` 变体。例外只有两种：视频当**底床**不当主体（bed-echo-blur / §1.2 实拍底床），以及已在对比 / 画廊类卡（split-compare-slider / gallery-wall-dolly）里的内嵌视频。
-  `clipSec` 填 ffprobe 真实时长，静图不进播放器（进度在走画面不动一眼假）
+- **单视频镜头要有主题边框**（2026-09-07 用户定版）：镜头里唯一主体是一段视频（录屏 / 单条 B-roll / 引用别人的成片或采访）时，
+  **禁止裸贴满幅、禁止裸放白卡、也不装假播放器**（进度条 / 播放键 / 时间码一律不要——不是真播放器就是在撒谎），必须用 `video-theme-frame◑` 承载：
+  八式一卡（复古浏览器窗口 / 杂志相框 / 35mm 胶片 / 拍立得 / 工程图纸 / 笔记本 / 邮票齿边 / 双发丝线），**按片子调性选一式、一片只用一式**，写进 SHOTBOOK 蒙皮行；
+  框里的画面零处理（不滤镜 / 不缩放 / 不淡入淡出），活由整框极缓推负责。例外只有两种：视频当**底床**不当主体（bed-echo-blur / §1.2 实拍底床），
+  以及已在对比 / 画廊类卡（split-compare-slider / gallery-wall-dolly）里的内嵌视频。静图不进框（框说"这是录像"，画面不动一眼假；图用 media-pop-in / slow-push-in）
 - **网页拍摄不贴图**：找资料/找素材时判定可用的网页，成片里**禁止以静态截图贴屏**，
   必须像手持镜头一样"拍"它——**滚**（`evidence-scroll-tour◆`：匀速上滚 ≈10% 页高/s，讲到关键条提前减速停 1~2s）/
   **巡**（`stage-keyframe-tour◇`：长页躺台上不动，相机挨个停靠兴趣点）/ **放大**（`magnifier-detail` 圆形放大镜
@@ -167,7 +167,7 @@ python3 scripts/preflight.py --shotbook SHOTBOOK.md --host remotion/public/dh/ho
 元素压暗缩小后仍占着原槽、计入同屏预算，新主体不得摆进它的位置；旧名 `retireAt` 仍可用但已 deprecated，2026-09-06 因名字误导出过 P0 文字相撞）；
 G2 视差、G4 分幕色温可选、默认不装；主体 idle / 环境呼吸 vignette / 扫光 / 曝光脉冲 / 相机脉冲一律不做。
 **G5 线稿示意图**（`schematic.tsx` + `icons.ts`）只给纯文镜装：DrawPath / DrawIcon / Connector / Node / Plate / Panel / Cross / Tick / Traveller / Label，
-全部 abs 秒驱动、机器一笔画、线到哪亮哪、一套皮；图标缺什么跑 `python3 scripts/fetch_icons.py <slug,...> --merge --out <工程里 icons.ts 的路径>`（不带 `--out` 写的是库内 `template/motion-systems/icons.ts`；Iconify lucide，ISC，登记进 sources.md）。
+全部 abs 秒驱动、机器一笔画、线到哪亮哪、一套皮；图标缺什么跑 `python3 scripts/fetch_icons.py <slug,...> --merge --out <工程里 icons.ts 的路径>`（不带 `--out` 写的是库内 `template/motion-systems/icons.ts`；Iconify lucide = ISC + 部分 Feather MIT，**根目录 `THIRD_PARTY_NOTICES.md` 随 icons.ts 一起拷进工程**并登记进 sources.md）。
 
 **每个镜头边界必须有明确转场处置，禁止裸切**：运动承接六式（lead/tail 重叠 12–16 帧 + ShotFade，
 代码 `template/motion-systems/transitions.tsx`）或 caret/shape-wipe 轻量式，选型见 cinematography.md §3；

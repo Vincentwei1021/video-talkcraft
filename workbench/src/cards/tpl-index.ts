@@ -104,7 +104,7 @@ import * as t100 from "@tpl/typewriter-reveal";
 import * as t101 from "@tpl/ui-flow-theater";
 import * as t102 from "@tpl/ui-prop-theater";
 import * as t103 from "@tpl/unit-grid-proportion";
-import * as t104 from "@tpl/video-player-frame";
+import * as t104 from "@tpl/video-theme-frame";
 import * as t105 from "@tpl/whip-pan-transition";
 import * as t106 from "@tpl/word-relay-filmstrip";
 import * as t107 from "@tpl/word-slot-cycle";
@@ -220,7 +220,7 @@ export const TPL_MODULES: Record<string, TplModule> = {
   "ui-flow-theater": t101 as unknown as TplModule,
   "ui-prop-theater": t102 as unknown as TplModule,
   "unit-grid-proportion": t103 as unknown as TplModule,
-  "video-player-frame": t104 as unknown as TplModule,
+  "video-theme-frame": t104 as unknown as TplModule,
   "whip-pan-transition": t105 as unknown as TplModule,
   "word-relay-filmstrip": t106 as unknown as TplModule,
   "word-slot-cycle": t107 as unknown as TplModule,

@@ -1,5 +1,5 @@
-// 自动生成（scripts/fetch_icons.py 抓取 Iconify lucide，ISC 免署名）：
-// 每个图标 = 24×24 viewBox 的一组 path d，供 schematic.tsx DrawIcon 逐段描画。增删请重跑脚本，不要手改。
+// 自动生成（scripts/fetch_icons.py 抓取 Iconify lucide）。许可：ISC，其中源自 Feather 的图标为 MIT——版权与许可声明见仓库根 THIRD_PARTY_NOTICES.md，
+// 把本文件复制进成片工程时须一并携带该声明并登记进 sources.md。每个图标 = 24×24 viewBox 的一组 path d，供 schematic.tsx DrawIcon 逐段描画。增删请重跑脚本，不要手改。
 export const ICONS: Record<string, string[]> = {
   "arrow-right": ["M5 12h14m-7-7l7 7l-7 7"],
   "bar-chart-3": ["M3 3v18h18m-3-4V9m-5 8V5M8 17v-3"],

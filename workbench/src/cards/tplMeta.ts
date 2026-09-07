@@ -85,7 +85,7 @@ export const TPL_META: Record<string, { name: string; category: string }> = {
   "grid-to-hero": { name: "网格收成主角", category: "素材呈现" },
   "gallery-wall-dolly": { name: "照片墙推轨", category: "素材呈现" },
   "timeline-photo-strip": { name: "时间线照片带", category: "素材呈现" },
-  "video-player-frame": { name: "单视频播放器框", category: "素材呈现" },
+  "video-theme-frame": { name: "单视频主题边框", category: "素材呈现" },
   "rack-focus-pair": { name: "焦点接力", category: "素材呈现" },
   "split-60-40-story": { name: "60/40 主从分屏", category: "素材呈现" },
   "split-compare-slider": { name: "对比双分屏（滑动揭示）", category: "素材呈现" },

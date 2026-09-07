@@ -13,7 +13,8 @@
  *  - 一切以 abs（绝对秒）驱动，零 Math.random、零 ref 量测，seek-safe。
  *
  * 依赖：react、remotion、@remotion/paths（Traveller 用；`npm i @remotion/paths@<remotion 版本>`，与 components/pencil.tsx 同一依赖）。
- * 图标：./icons.ts（Iconify lucide 线稿，ISC 免署名）——增删图标跑 `python3 scripts/fetch_icons.py <slug,...>` 重生成。
+ * 图标：./icons.ts（Iconify lucide 线稿，ISC / 部分 Feather 衍生为 MIT——许可声明在仓库根 THIRD_PARTY_NOTICES.md，随 icons.ts 一起进工程）——
+ * 增删图标跑 `python3 scripts/fetch_icons.py <slug,...>` 重生成。
  *
  * 用法：<Sketch>（一张 1920×1080 的透明 SVG 舞台）里放 DrawPath / DrawIcon / Connector / Node / Plate / Panel / Cross / Tick / Traveller / Label。
  * 竖屏或其他画幅：给 <Sketch width height> 传舞台尺寸即可（坐标随之按舞台像素写）。

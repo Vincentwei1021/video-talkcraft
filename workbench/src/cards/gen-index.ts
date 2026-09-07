@@ -123,7 +123,7 @@ import { card as g119 } from "./gen/typewriter-reveal";
 import { card as g120 } from "./gen/ui-flow-theater";
 import { card as g121 } from "./gen/ui-prop-theater";
 import { card as g122 } from "./gen/unit-grid-proportion";
-import { card as g123 } from "./gen/video-player-frame";
+import { card as g123 } from "./gen/video-theme-frame";
 import { card as g124 } from "./gen/whip-pan-transition";
 import { card as g125 } from "./gen/word-relay-filmstrip";
 import { card as g126 } from "./gen/word-slot-cycle";

@@ -5,8 +5,9 @@
   python3 scripts/fetch_icons.py file-text,laptop,gauge [--set lucide] [--out <icons.ts 路径>] [--merge]
   --out 缺省 = 库内 template/motion-systems/icons.ts（相对本脚本定位，任何 cwd 都可跑）；进片工程传 --out remotion/src/<schematic.tsx 所在目录>/icons.ts
   --merge：与已有 icons.ts 合并（保留旧图标，追加 / 覆盖新抓的）；输出按名字排序、文件头固定，因此重跑是幂等的
-授权：lucide = ISC（免署名可商用）；tabler = MIT。其他集合先查 https://api.iconify.design/collections?prefixes=<set> 的 license 再用。
-把来源与授权写进工程 sources.md（broll-sources.md 规则 6 同样适用于图标）。
+授权：lucide = ISC，其中源自 Feather 的图标为 MIT——两者都要求**版权与许可声明随副本保留**（不是"免署名"）：声明全文在仓库根
+THIRD_PARTY_NOTICES.md，icons.ts 拷进成片工程时把它一起带上，并把来源与授权写进工程 sources.md（broll-sources.md 规则 6 同样适用于图标）。
+tabler = MIT（同样要带声明）。其他集合先查 https://api.iconify.design/collections?prefixes=<set> 的 license 再用。
 
 为什么转成 path d：DrawIcon 用 pathLength=1 + dashoffset 逐段描画，circle / rect / line / polyline 都要先变成 path 才能"一笔画"。
 """
@@ -77,8 +78,9 @@ def main():
     icons = parse_existing(out_path) if merge else {}
     for k, v in data['icons'].items():
         icons[k] = to_paths(v['body'])
-    lines = [f'// 自动生成（scripts/fetch_icons.py 抓取 Iconify {icon_set}，{"ISC" if icon_set == "lucide" else "见 collections 的 license"} 免署名）：',
-             '// 每个图标 = 24×24 viewBox 的一组 path d，供 schematic.tsx DrawIcon 逐段描画。增删请重跑脚本，不要手改。',
+    lic = "ISC，其中源自 Feather 的图标为 MIT" if icon_set == "lucide" else "见 https://api.iconify.design/collections?prefixes=<set> 的 license"
+    lines = [f'// 自动生成（scripts/fetch_icons.py 抓取 Iconify {icon_set}）。许可：{lic}——版权与许可声明见仓库根 THIRD_PARTY_NOTICES.md，',
+             '// 把本文件复制进成片工程时须一并携带该声明并登记进 sources.md。每个图标 = 24×24 viewBox 的一组 path d，供 schematic.tsx DrawIcon 逐段描画。增删请重跑脚本，不要手改。',
              'export const ICONS: Record<string, string[]> = {']
     for k in sorted(icons):
         lines.append(f'  {json.dumps(k)}: {json.dumps(icons[k], ensure_ascii=False)},')
