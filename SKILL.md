@@ -70,6 +70,13 @@ python3 scripts/make_timing.py audio/timestamps.json remotion/src/timing.json
   **真图上的标注坐标一律机器实测，禁目测**：页面元素用 DOM `getBoundingClientRect`、成图用逐像素量测
   （目测偏 ±30px 就会把环框到别的元素上）；**会滚动/移动的真图，标注（环/框/pill）必须钉在内容坐标系上随内容动**，
   钉屏幕固定位就是错位根源
+- **单视频镜头要有主题边框**（2026-09-07 用户定版）：镜头里唯一主体是一段视频（录屏 / 单条 B-roll / 引用别人的成片或采访）时，
+  **禁止裸贴满幅、禁止裸放白卡、也不装假播放器**（进度条 / 播放键 / 时间码一律不要——不是真播放器就是在撒谎），视频区必须包一层
+  `template/components/theme-frame.tsx` 的 `<ThemeFrame kind>`：八式（复古浏览器窗口 / 杂志相框 / 35mm 胶片 / 拍立得 / 工程图纸 / 笔记本 / 邮票齿边 / 双发丝线），
+  **按片子调性选一式、一片只用一式**，写进 SHOTBOOK 蒙皮行；多视频的卡（bed-echo-blur 前景 / split-60-40-story 左格 / gallery-wall-dolly）的视频区也包同一式。
+  框只管造型与自己的装饰接力，整体入场 / 退场 / 极缓推归镜头层；框里的画面零处理（不滤镜 / 不缩放 / 不淡入淡出）。
+  例外只有两种：视频当**底床**不当主体（bed-echo-blur / §1.2 实拍底床），以及产品界面卡（chat-gpt / claude-code 类，皮即内容）。
+  静图不进框（框说"这是录像"，画面不动一眼假；图用 media-pop-in / slow-push-in）。规则与八式表：design-language §1.3
 - **网页拍摄不贴图**：找资料/找素材时判定可用的网页，成片里**禁止以静态截图贴屏**，
   必须像手持镜头一样"拍"它——**滚**（`evidence-scroll-tour◆`：匀速上滚 ≈10% 页高/s，讲到关键条提前减速停 1~2s）/
   **巡**（`stage-keyframe-tour◇`：长页躺台上不动，相机挨个停靠兴趣点）/ **放大**（`magnifier-detail` 圆形放大镜
@@ -119,13 +126,15 @@ V / 图 / 截图 必须括号给路径，写"待采"= FAIL；纯动效镜也要�
 **幕级转场事件同样入 beats.json**：shape wipe/换幕的**遮挡峰值**时刻也由词锚生成入表——
 手敲绝对秒的转场事件表游离在机器可验体系外，静帧 QA 与 beat_lint 都看不见。
 **排版预算**（全表 cinematography.md §4.5）：分镜按语义段落切、每镜一个 primary visual job；
+**纯文镜必配陪衬图形**（2026-09-07 用户反馈"只有文字动效往上堆太单一"）：素材行只有「文」的镜头（章节卡除外），层矩阵必须多一行
+「G5 线稿示意图 ← 讲 X 所以画 Y」（`references/schematic.md`，代码 `template/motion-systems/schematic.tsx`），preflight 对缺行的纯文镜 WARN；
 枢轴句（"但这次不是X"式转折/设问）的动效归它**开启**的下一镜；任一时刻同屏主体组 ≤3（降权留守**计入**）、
 每镜至少留一个空象限；hero 造型一屏一个。
 **排版规范**（全表 `references/layout.md`）：预算管"放多少"，规范管"放哪、多大、怎么对齐"——
 SHOTBOOK 每镜写**版式行**（栏跨度 + 组包围盒 + 对齐基准 + 字阶），定妆帧开 `debugOverlay` 核九项，任一失败 = P1；
 独句 hero 居中但不得覆盖人脸（含 B-roll 里的人脸，纵向改取人脸之外的三分线）。
 **选卡必读卡经验**：每张选中的卡，把 `references/cards/<slug>.md` 的「已知坑」与「落位自检」**逐条抄进该镜层矩阵的自检列**，
-实现后按条核（例：取景框 / 圈注 / 下划线类卡必核标注是否套住目标；`gooey-morph` 只用于图不用于字且无人物时居中；`chapter-title-card` 按章换色）——
+实现后按条核（例：取景框 / 圈注 / 下划线类卡必核标注是否套住目标；`gooey-morph` 只用于图不用于字且无人物时居中；`chapter-title-card` **每章一套主题色 + 一个与本章内容相关的线稿 motif**，SHOTBOOK 写章节主题行——四张同色同纹样的章节卡是"又来了"不是"翻页"）——
 卡经验不进 SHOTBOOK 就等于没读。
 动效词汇从 **108 张配方卡** 里选：**先按这一镜的输入过滤**（口播人物 / B-roll 视频 / 图片 / 纯文字——`references/taxonomy.md`「输入类型索引」；新卡 md 开头有「输入类型」表 + 「常用场景」四条），再 `references/taxonomy.md` 分类索引 → `references/cards/<slug>.md` 参数与坑 → `template/cards/<slug>.tsx` **自包含 Remotion 源码（实现以它为准，复制进工程改 CONFIG 即用）**；`demos/<slug>/index.html` 是同画面的 HTML 预览（`open gallery/index.html` 一屏浏览、demo 滚入即自动播放；带★实战卡的生产母本另在 template/motion-systems|components）。
 **保真铁律**：每张用到的卡在工程里必须真实存在 `src/cards/<slug>.tsx`
@@ -159,6 +168,8 @@ python3 scripts/preflight.py --shotbook SHOTBOOK.md --host remotion/public/dh/ho
 与 **G3 让位状态机**（`Live demoteAt` = 下一主体锚点 / Defocus，`idle` 关、落定即静置；**demoteAt 是降权留守不是退场**——
 元素压暗缩小后仍占着原槽、计入同屏预算，新主体不得摆进它的位置；旧名 `retireAt` 仍可用但已 deprecated，2026-09-06 因名字误导出过 P0 文字相撞）；
 G2 视差、G4 分幕色温可选、默认不装；主体 idle / 环境呼吸 vignette / 扫光 / 曝光脉冲 / 相机脉冲一律不做。
+**G5 线稿示意图**（`schematic.tsx` + `icons.ts`）只给纯文镜装：DrawPath / DrawIcon / Connector / Node / Plate / Panel / Cross / Tick / Traveller / Label，
+全部 abs 秒驱动、机器一笔画、线到哪亮哪、一套皮；图标缺什么跑 `python3 scripts/fetch_icons.py <slug,...> --merge --out <工程里 icons.ts 的路径>`（不带 `--out` 写的是库内 `template/motion-systems/icons.ts`；Iconify lucide = ISC + 部分 Feather MIT，**根目录 `THIRD_PARTY_NOTICES.md` 随 icons.ts 一起拷进工程**并登记进 sources.md）。
 
 **每个镜头边界必须有明确转场处置，禁止裸切**：运动承接六式（lead/tail 重叠 12–16 帧 + ShotFade，
 代码 `template/motion-systems/transitions.tsx`）或 caret/shape-wipe 轻量式，选型见 cinematography.md §3；
@@ -335,6 +346,8 @@ X [`@VincentWei93`](https://x.com/VincentWei93) ·
 | 镜头方法论/反PPT/SHOTBOOK格式/验收 | `references/cinematography.md`（+ shotbook-example.md） |
 | 审片：关卡 2 材料四件套 / rubric / 缺陷分级 · 关卡 3 · 返修纪律 · 审片循环 | `references/review-protocol.md`（评审 subagent 必读） |
 | 转场（六式代码）/ 长镜头 | `template/motion-systems/transitions.tsx` / `longtake.tsx`（cinematography.md §3、§3.5） |
+| 纯文字镜配线稿示意图（G5：词汇 · 语义图形词典 · 节拍纪律 · 落位自检）| `references/schematic.md` → `template/motion-systems/schematic.tsx` + `icons.ts`（`scripts/fetch_icons.py` 抓 Iconify lucide） |
+| 视频容器边框八式（单视频镜不裸贴、不装假播放器；任何卡的视频区可包） | `template/components/theme-frame.tsx`（规则与选式：design-language §1.3） |
 | 选动效/查参数和坑 | `references/taxonomy.md` → `references/cards/` → `template/cards/`（tsx 源码）+ `demos/`/`gallery/`（预览） |
 | 找素材 · 配图采集 · 网页拍摄素材采集（全页 2× 长图 + DOM 坐标 JSON） | `references/broll-sources.md` |
 | 开工体检（③ 素材期 `--media-only` / ④→⑤ 闸全量：人物素材帧率·重复帧·时长·比例 + SHOTBOOK 素材对账·未完成清单） | `scripts/preflight.py` |

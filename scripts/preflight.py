@@ -26,6 +26,7 @@ SHOTBOOK 机器可读约定（cinematography.md §4）：
   素材盘点   实拍/图片文件总数 0 → media-only 时 WARN、全量时由 SHOTBOOK 对账判 FAIL
   SHOTBOOK   缺「素材：」行 / 声明了 V·图·截图却无路径 / 路径不存在 → FAIL；全片零 V·图 → FAIL（只有动效 + 口播 = PPT 感，SKILL.md ③ 硬规）；
              V·图 镜头占比 < --min-footage-ratio → WARN；缺「未完成 / 未采集清单」节 → FAIL；sources.md 不存在 → FAIL
+             纯文字镜（素材只有 文）层矩阵里没有 G5 线稿示意图行 → WARN（章节卡除外；references/schematic.md）
 """
 from __future__ import annotations
 
@@ -175,6 +176,7 @@ def check_inventory(root: str, media_only: bool) -> None:
 # ---------- C) SHOTBOOK 对账 ----------
 
 SHOT_HEAD = re.compile(r"^#{2,4}\s+([SsVv]\d+[A-Za-z0-9_']*)\b")
+HEADING = re.compile(r"^(#{1,6})\s")          # 任意 markdown 标题：与镜头标题同级或更高的非镜头标题 = 该镜正文结束
 MEDIA_LINE = re.compile(r"^\s*[-*]?\s*\**素材\**\s*[:：]\s*(.+)$")
 UNFINISHED_HEAD = re.compile(r"^#{2,4}\s+.*未完成")
 TOKEN = re.compile(r"(B-roll|b-roll|V|图片|图|截图|页|界|文|人|纯动效)\s*(?:[（(]([^）)]*)[）)])?")
@@ -188,9 +190,15 @@ def parse_shotbook(text: str):
     for line in text.splitlines():
         m = SHOT_HEAD.match(line)
         if m:
-            cur = {"id": m.group(1), "media": None}
+            cur = {"id": m.group(1), "media": None, "body": [line], "level": len(line) - len(line.lstrip("#"))}
             shots.append(cur)
             continue
+        hm = HEADING.match(line)
+        if cur is not None and hm and len(hm.group(1)) <= cur["level"]:
+            cur = None                        # 下一幕 / 「未完成清单」等同级标题：镜头正文到此为止，别把后面的节算进这一镜
+            continue
+        if cur is not None:
+            cur["body"].append(line)          # 该镜到下一镜标题之间的全文（层矩阵 / 自检列），给纯文镜陪衬图形检查用
         if cur is not None and cur["media"] is None:
             mm = MEDIA_LINE.match(line)
             if mm:
@@ -257,6 +265,23 @@ def check_shotbook(root: str, shotbook: str, shots_json: str | None, min_ratio: 
                          f"要么采回来，要么写进「未完成 / 未采集清单」并把该镜改成别的素材模式")
     if bad_path:
         rec("FAIL", sec, f"素材文件不在盘上：{' '.join(bad_path)}（相对工程根 / remotion/ / public/ 均已尝试）")
+    # 纯文镜陪衬图形（advisory，SKILL.md ④ / references/schematic.md §1）：素材只有「文 / 纯动效」的镜头，
+    # 层矩阵里要有一行 G5 线稿示意图（关键词 G5 / 示意图 / 陪衬图形）；章节卡镜（chapter-title-card / 章节卡）除外。
+    TEXT_ONLY = {"文", "纯动效"}
+    G5_RE = re.compile(r"G5|示意图|陪衬图形|schematic")
+    CHAPTER_RE = re.compile(r"chapter-title-card|章节卡|章节标题卡", re.I)   # 章节卡镜免检：认卡名 / 「章节卡」，不认泛泛的"章节"（口播稿里提到"上一章节"不算）
+    bare_text = []
+    for s in shots:
+        if not s["media"]:
+            continue
+        kinds = {m for m, _ in TOKEN.findall(s["media"])}
+        if kinds and kinds <= TEXT_ONLY:
+            body = "\n".join(s.get("body", []))
+            if not CHAPTER_RE.search(body) and not G5_RE.search(body):
+                bare_text.append(s["id"])
+    if bare_text:
+        rec("WARN", sec, f"{len(bare_text)} 个纯文字镜没有陪衬图形行：{' '.join(bare_text)}——只有文字动效在堆 = 幻灯片（2026-09-07 用户反馈）；"
+                         f"层矩阵加一行「G5 线稿示意图 ← 讲 X 所以画 Y」（references/schematic.md §1、§3 语义图形词典），章节卡镜不算")
     ratio = len(footage) / len(shots)
     if not footage:
         rec("FAIL", sec, "全片零 B-roll / 图片镜头——只有动效 + 口播人物 = 讲 PPT（SKILL.md ③ 硬规：实拍或图片素材是必需项，"

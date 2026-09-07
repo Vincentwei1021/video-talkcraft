@@ -26,6 +26,16 @@
 
 ## 🆕 更新（What's new）
 
+**2026-09-07**
+
+- ✏️ **G5 线稿示意图系统**——纯文字镜"只有文字动效往上堆"的解药：拆一支零素材却不单调的参考片，把它的机制收进来（每句抽象话配一张图标 + 方框 + 箭头的线稿图 / 文字从不裸放 / 每句至少一个可见变化 / 语义图形代替素材；背景星点那套不收）。
+  `template/motion-systems/schematic.tsx`（DrawPath · DrawIcon · Connector · Node · Plate · Panel · Cross · Tick · Traveller · Label，机器一笔画 + 线到哪亮哪 + 一套皮）+ `icons.ts`（`scripts/fetch_icons.py` 抓 Iconify lucide，ISC）+ `references/schematic.md`（语义图形词典 · 节拍错峰纪律 · 落位自检）；
+  SKILL.md ④ 新规「纯文镜必配陪衬图形」，preflight 对缺行的纯文镜 WARN。首用于《实测 GPT-6 Astra》五个纯文镜（弯路 vs 直路 / 模型核心环 / 提示词卡堆 / 任务卡 / 四方向扇出）。
+- 🎞️ **视频容器边框八式 + 章节主题层**——用户反馈两条："章节卡四张同一块色板太单调"、"镜头里只有一段视频时要有个有设计感的框（不要假播放器）"。
+  `chapter-title-card` 加**章节主题层**：每章一套 bg / ink / accent + 一个与本章内容相关的线稿 motif（L6 背景描画、0.6× 视差）+ 章节名下 accent 短线，SHOTBOOK 写章节主题行；
+  新组件 **`template/components/theme-frame.tsx`**（与 backdrop / pencil 同层，不入卡）：八式一层——复古浏览器窗口 / 杂志相框 / 35mm 胶片 / 拍立得 / 工程图纸 / 笔记本 / 邮票齿边 / 双发丝线，任何卡的视频区都能包一层，框只管造型与自己的装饰接力，框里画面零处理；
+  SKILL.md ③ 新硬规「单视频镜头要有主题边框」（裸贴满幅 / 裸放白卡 / 假播放器都不行，一片只用一式；规则与八式表 design-language §1.3）。
+
 **2026-09-05**
 
 - 🔁 **19 张 video-shotcraft 移植卡（89 → 108）**——通读姊妹库 [video-shotcraft](https://github.com/Vincentwei1021/video-shotcraft) 的 157 张产品片镜头卡，两轮实验室原型、用户两次筛选留 19 张（2026-09-06 删去定格圈注，现 18 张）：词槽轮换 · 首词占满补句 · 标题降格成标签 · 打字改口 · 数字弧落标题 · 关键词隧道 · 逐字裂升 · 动词接力胶片 · 扫描线逐处点名 · 急推特写 · 准星咬合 · 点阵比例图 · 多源汇聚 · 五选一反黑 · 文档驻留发牌 · 信息卡逐字段自建 · 线条接力转场 · 人物竖卡玻璃台（按用户截图的版式新设计）；tsx 以母本为起点改成本库自包含契约，「复用指引」带母本溯源（→ `references/taxonomy.md` 第八批◎）。
@@ -136,7 +146,7 @@ ln -s "$(pwd)" ~/.codex/skills/video-talkcraft    # Codex
 | 108 张动效配方卡 | 意图、能量档、参数、实现要点、已知坑——每张都配自包含 Remotion tsx 源码（`template/cards/`，复制单文件即用）+ 可跑的 HTML demo |
 | 画廊 | [在线版](https://vincentwei1021.github.io/video-talkcraft/)或本地 `open gallery/index.html`——108 个预览一页自动播放，按名称/关键词搜索 |
 | 动效系统 | CameraRig（极缓推拉）、让位生命周期、六式转场、长镜头世界画布；视差 / 环境层可选（`template/motion-systems/`） |
-| 组件 | 素排字幕、花字、砸字、荧光笔、铅笔手绘、数字滚动（`template/components/`） |
+| 组件 | 素排字幕、花字、砸字、荧光笔、铅笔手绘、数字滚动、视频容器边框八式（`template/components/`） |
 | 管线脚本 | 字级时间戳（双 ASR 后端）、人脸安全区检测、静止检测、音效在场检查、QA 抽帧（`scripts/`） |
 | 方法论 | 设计语言（Apple 范式默认）、镜头三面工作单、电影感规范、分镜格式、验收口径（`references/`） |
 | 内嵌音效 | 逐卡 cue 表 + 真采样内嵌 demo 库（授权见 `demos/_lib/sfx/ATTRIBUTION.md`） |
