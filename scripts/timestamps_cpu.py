@@ -15,6 +15,14 @@
                              words: [{text, start, end}, ...]}]}
   words = CJK 逐字 token + 拉丁/数字整段 token（标点跳过）——scripts/make_timing.py 直接可吃。
 
+长音频（2026-09-07 实测）：FireRed 整段喂入有硬上限——193s 能跑（62s、峰值内存 8.1GB），210s 起 onnxruntime 在
+encoder 自注意力层崩（相对位置编码表定长），且内存随长度平方涨。脚本默认**按静音切 ≤75s 段**（≥0.3s 气口处取中点，
+窗内选最长静音；没有静音才硬切），各段识别后把偏移加回，后面的逐字对齐不受影响；`--chunk-sec 0` 关闭切段，
+`--chunk-sec 60` 改上限。whisper 后端自带 30s 窗口，不走这套。
+切段 vs 整段实测（193s 真实口播，4 段）：token 数相同 975、98.6% 逐 token 可配，|Δstart| 中位 10ms / p95 30ms / 最大 150ms，
+超一帧（33ms）的 3%；耗时 54s→34s，峰值内存 8.6GB→2.4GB；317s 拼接音频 6 段 56s / 3.8GB 正常出结果。
+（试过把切点吸附到 40ms 编码帧网格：中位降到 0 但超一帧的升到 11%——差值全变成整格 40ms，不如不吸附，已撤。）
+
 依赖：pip install zhconv pypinyin + 按后端：pip install sherpa-onnx soundfile numpy（firered，默认）
 或 pip install faster-whisper（--backend whisper）。zhconv/pypinyin 缺了也能跑但锚点大量流失
 （ASR 随机吐繁体、同音字错写是常态）。
@@ -266,7 +274,49 @@ def asr_whisper(audio_path: str, model_name: str) -> list[dict]:
     return words
 
 
-def asr_firered(audio_path: str, model_dir: str) -> list[dict]:
+def split_on_silence(x, sr: int, max_sec: float = 75.0, min_sec: float = 20.0, min_sil: float = 0.30, hop_ms: float = 20.0) -> list[tuple[int, int]]:
+    """按静音切段 → [(start_sample, end_sample)]。整段 ≤ max_sec 原样一段。
+    切点只落在 ≥min_sil 的静音里（取中点）；在 [min_sec, max_sec] 窗内选最长的完整静音，没有完整的就取窗内最后一个静音起点，再没有才硬切。
+    静音阈值 = 语音电平（帧 RMS 的 90 分位）以下 35dB，且不低于 −60dBFS——相对阈值，配音响度不同也不用调。"""
+    import numpy as np
+    n = len(x)
+    if n / sr <= max_sec:
+        return [(0, n)]
+    hop = max(1, int(sr * hop_ms / 1000))
+    nfr = n // hop
+    rms = np.sqrt(np.mean(x[: nfr * hop].reshape(nfr, hop) ** 2, axis=1) + 1e-12)
+    db = 20 * np.log10(rms)
+    thr = max(float(np.percentile(db, 90)) - 35.0, -60.0)
+    sil = db < thr
+    regions: list[tuple[int, int]] = []
+    i = 0
+    while i < nfr:
+        if sil[i]:
+            j = i
+            while j < nfr and sil[j]:
+                j += 1
+            if (j - i) * hop / sr >= min_sil:
+                regions.append((i * hop, j * hop))
+            i = j
+        else:
+            i += 1
+    chunks: list[tuple[int, int]] = []
+    start = 0
+    while (n - start) / sr > max_sec:
+        lo, hi = start + int(min_sec * sr), start + int(max_sec * sr)
+        inside = [(b - a, (a + b) // 2) for a, b in regions if a >= lo and b <= hi]
+        if inside:
+            cut = max(inside)[1]
+        else:
+            heads = [a for a, b in regions if lo <= a < hi]
+            cut = max(heads) if heads else hi
+        chunks.append((start, cut))
+        start = cut
+    chunks.append((start, n))
+    return chunks
+
+
+def asr_firered(audio_path: str, model_dir: str, chunk_sec: float = 75.0) -> list[dict]:
     import numpy as np
     import sherpa_onnx
     import soundfile as sf
@@ -274,18 +324,26 @@ def asr_firered(audio_path: str, model_dir: str) -> list[dict]:
     rec = sherpa_onnx.OfflineRecognizer.from_fire_red_asr_ctc(
         model=f"{model_dir}/model.int8.onnx", tokens=f"{model_dir}/tokens.txt", num_threads=4)
     audio, sr = sf.read(audio_path, dtype="float32", always_2d=True)
-    stream = rec.create_stream()
-    stream.accept_waveform(sample_rate=sr, waveform=np.ascontiguousarray(audio[:, 0]))
-    rec.decode_stream(stream)
-    r = stream.result
-    words, times = [], list(r.timestamps)
-    for k, (tok, ts) in enumerate(zip(r.tokens, times)):
-        tok = tok.replace("▁", " ").strip()
-        if not tok:
-            continue
-        end = times[k + 1] if k + 1 < len(times) else ts + 0.2
-        end = min(end, ts + 0.6)  # 长静音前的 token 不吃整段静音
-        words.append({"text": tok, "start": float(ts), "end": float(end)})
+    x = np.ascontiguousarray(audio[:, 0])
+    chunks = split_on_silence(x, sr, max_sec=chunk_sec) if chunk_sec > 0 else [(0, len(x))]
+    if len(chunks) > 1:
+        print(f"firered: {len(x) / sr:.1f}s 按静音切成 {len(chunks)} 段："
+              + " ".join(f"{a / sr:.1f}-{b / sr:.1f}" for a, b in chunks))
+    words: list[dict] = []
+    for a, b in chunks:
+        stream = rec.create_stream()
+        stream.accept_waveform(sample_rate=sr, waveform=np.ascontiguousarray(x[a:b]))
+        rec.decode_stream(stream)
+        r = stream.result
+        off = a / sr
+        times = list(r.timestamps)
+        for k, (tok, ts) in enumerate(zip(r.tokens, times)):
+            tok = tok.replace("▁", " ").strip()
+            if not tok:
+                continue
+            end = times[k + 1] if k + 1 < len(times) else ts + 0.2
+            end = min(end, ts + 0.6)  # 长静音前的 token 不吃整段静音
+            words.append({"text": tok, "start": float(ts + off), "end": float(end + off)})
     return words
 
 
@@ -294,8 +352,8 @@ DEFAULT_FIRERED_DIR = str(Path.home() / ".cache/koubo/sherpa-onnx-fire-red-asr2-
 
 def main() -> None:
     argv = sys.argv[1:]
-    model_name, backend, model_dir = "small", "firered", ""
-    for flag in ("--model", "--backend", "--model-dir"):
+    model_name, backend, model_dir, chunk_sec = "small", "firered", "", 75.0
+    for flag in ("--model", "--backend", "--model-dir", "--chunk-sec"):
         if flag in argv:
             i = argv.index(flag)
             v = argv[i + 1]
@@ -304,6 +362,8 @@ def main() -> None:
                 model_name = v
             elif flag == "--backend":
                 backend = v
+            elif flag == "--chunk-sec":
+                chunk_sec = float(v)   # firered 切段上限秒；0 = 整段喂入（≤~190s 才安全）
             else:
                 model_dir = v
     if len(argv) != 3:
@@ -324,7 +384,7 @@ def main() -> None:
                 "下载一次（GitHub 慢时用 HF 镜像，两个文件放进该目录即可）：\n"
                 "  https://huggingface.co/csukuangfj2/sherpa-onnx-fire-red-asr2-ctc-zh_en-int8-2026-02-25\n"
                 "  （model.int8.onnx + tokens.txt）；或改用 --backend whisper（免手动下载）")
-        asr_words = asr_firered(audio_path, model_dir)
+        asr_words = asr_firered(audio_path, model_dir, chunk_sec)
     else:
         asr_words = asr_whisper(audio_path, model_name)
     if not asr_words:
