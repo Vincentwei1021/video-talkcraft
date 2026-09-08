@@ -334,7 +334,7 @@ sleep 4 && curl -s http://localhost:5199 | grep -q '动效工作台' && echo "�
 X [`@VincentWei93`](https://x.com/VincentWei93) ·
 抖音 [@Vincent](https://www.douyin.com/user/MS4wLjABAAAAK1pkjBxilk2Oi_9h_vFyD-lTAu9CTlvhmOtkosDvvxg) ·
 小红书 [@Vincent](https://xhslink.cn/m/At9iP2d5C1V)。
-有建议、反馈欢迎扫根 README「微信讨论群」小节的二维码进反馈群。
+有建议、反馈欢迎扫 README「微信讨论群」小节的二维码进交流群。
 
 ## 目录路由
 

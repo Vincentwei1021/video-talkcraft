@@ -231,8 +231,8 @@ agent 读方法论、选动效配方卡、写 [Remotion](https://www.remotion.de
 
 ## 微信讨论群
 
-有建议、反馈或使用问题？扫码加入 video-talkcraft 内测反馈群：
+有建议、反馈或使用问题？扫码加入 video-talkcraft 交流群（2 群）：
 
-<img src="assets/wechat-group.jpg" alt="video-talkcraft 微信内测反馈群二维码" width="300">
+<img src="assets/wechat-group.jpg" alt="video-talkcraft 微信交流群二维码" width="300">
 
-二维码过期后会不定期更新；也可通过上方社媒直接联系作者。
+二维码更新于 2026-09-08，过期后会不定期更新；也可通过上方社媒直接联系作者。
