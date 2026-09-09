@@ -15,7 +15,7 @@ description: 终极口播视频 skill：中文口播稿 + 成品配音 → CPU �
 ## 流程
 
 ```
-① 文案 → ② 配音输入+时间戳(本机CPU) → ③ 素材 → ④ SHOTBOOK 层矩阵 → ⑤ 实现(全局系统先行)
+① 文案 → ② 配音输入+时间戳(本机CPU) → ③ 素材 → ④ SHOTBOOK 层矩阵 → ⑤ 实现(全局系统 → 首镜先做先确认 → 其余镜头)
                                 → ⑥ 渲染 → ⑦ 三重验收（机器闸全过 + 1 轮审片修 P0/P1）→ ⑧ 交付（可选续审 ≤3 轮）
 ```
 
@@ -113,6 +113,7 @@ python3 scripts/preflight.py --media-only --host remotion/public/dh/host.webm --
 V / 图 / 截图 必须括号给路径，写"待采"= FAIL；纯动效镜也要写 `素材：文`。
 **必填「## 未完成 / 未采集清单」节**：任何"本片不做 X"二选一——归入 §0 的设计决定（+依据），或归入本节（+阻塞原因 + 兜底源是否试过）；
 允许写"无"，不允许缺节。这一节专门拦"未完成被包装成设计原则、进而变成不再被质疑的前提"（2026-09-06 复盘的真正失效模式）。
+**G0 写一行「样板镜：sNN」**（⑤-1 首镜先做先确认用）：默认 s01；s01 是章节卡 / 空镜等不带主体动效的镜头时，选第一个有卡、有字幕、有人物或素材的镜头。
 **节拍必须机器可验**：每条画面重音落成 `remotion/beats.json`
 （`{t, anchor, sentence, what}`，t 一律由 timing.json/`atChar()` 查得，**禁止手敲近似秒数**——
 手敲的误差静帧 QA 看不出来），SHOTBOOK 节拍表与 beats.json 一致，
@@ -182,6 +183,23 @@ SHOTBOOK 抄来的 cue 表落成一张 `sfx.ts`（绝对秒），场景里 `<Aud
 音效电平比人声低 ~12dB、同帧最多一条 cue。
 anime.js v4 / three.js 走 `anime-remotion.ts` / `three-anime.ts` 桥（seek-safe，工程铁律见 cinematography.md §6：零 Math.random、初始 opacity:0、lead 补偿收敛一处）。
 
+### ⑤-1 首镜先做先确认（2026-09-09 用户定版——其余镜头动工前的必经关）
+不再"整片做完再看第一镜"：全片共性（蒙皮 / 字幕样式 / 相机幅度 / 卡的密度 / 音效电平）在一镜上就判得出，做完 13 镜再改是 13 倍返工；
+"改一行就整渲"的冲动也集中在这一段（2026-09-08 issue #24：9 次整片直渲全发生在制作完、验收前）。
+1. **先搭全合成骨架**：entry / 全片时长 / `shots.ts` + `shots.json` 全表（时间来自 SHOTBOOK 与 timestamps，此时就写全）/ 全局系统（G1 相机、G3 让位、幕底、字幕、theme）；
+   **其余镜头一律占位**——`MainVideo-example.tsx` 里 `SCENES[shot.id]` 查不到就落到 `PlaceholderScene`（只露幕底 + 字幕，不写任何动效）。
+   骨架搭全是为了 render_shots 的段表 / 时长断言原样生效，不为首镜开豁免。
+2. **只实现样板镜**（SHOTBOOK G0「样板镜」行，默认 s01）：按 SHOTBOOK 全量落地——蒙皮行、卡 tsx 复制、音效 cue、转场处置——不做"先糙后精"。
+3. **渲一条有声单镜预览给用户看**：只渲这一段的视频和这一段的音频，不渲整条音轨（其余镜头都是占位，整条音轨没意义；2026-09-09 demo v4 实测 6s 首镜 47s 出预览：段 34s + 段音频 10s）：
+```bash
+# 在工程 remotion/ 目录下
+node <skill根>/scripts/render_shots.mjs --shots shots.json --only s01 --seg-audio --preview-dir out/preview
+open out/preview/s01.mp4        # 打开给用户看
+```
+   `--seg-audio` 的段音频只活在这条预览里（渲完即删）；拼装 / 交付仍走 `--audio` 整条音轨，纪律 A 不破。
+4. **问一次，等回答**（AskUserQuestion 类工具，两个选项，不替用户决定）：「样板确认，继续做其余镜头」/「先改样板」。
+   改完重渲同一条预览再问；**样板未确认前不得动其余镜头**。确认后样板镜的蒙皮 / 字幕 / 相机幅度就是全片基线，其余镜头不得另起一套。
+
 ### 布局红线（数值表 design-language.md §5；几何总纲 `references/layout.md`）
 - 字幕位置 / 宽度 / 字号 / 常驻件方位按画幅取 design-language §5 表（竖屏常驻件必须**左下**，右缘是抖音点赞栏）
 - 横屏内容主列 ≤1440px 居中、边距 action-safe 96 / 标题 160（design-language §3；栏跨度与吸附见 layout.md §1）
@@ -228,19 +246,13 @@ cd remotion && python3 ../scripts/freeze_probe.py --shots shots.json          # 
 node <skill根>/scripts/render_stills.mjs --times 2.0,7.2,...   # 抽样点=每镜入/出+关键锚点+状态切换窗
 ```
 
-**⑥-1.5 首镜验效 · 定渲染节奏**（2026-09-07 用户定版，母版首渲的必经关——**首渲禁止直接 `--all`**）：
-```bash
-# 在工程 remotion/ 目录下：只渲第一镜 + 整条音轨，出一条有声单镜预览
-node <skill根>/scripts/render_shots.mjs --shots shots.json --only s01 \
-     --audio out/full-mix.wav --preview-dir out/preview
-open out/preview/s01.mp4        # 打开给用户看
-```
-第一镜是全片的样板（蒙皮 / 字幕样式 / 相机幅度 / 音效电平），它不对整片就都不对——预览有问题先修再问节奏。
-用户看过后**问一次**（AskUserQuestion 类工具，两个选项，不替用户决定）：
-1. **整片渲**：⑥-2 的 `--all --parallel 4 --concat … --audio … --mux …`（s01 段与音轨走缓存，不重渲）；
+**⑥-1.5 定渲染节奏**（样板镜已在 ⑤-1 由用户确认，这里不再单独渲首镜给用户看；**首渲仍禁止直接 `--all`**——先问节奏）：
+若 ⑤-1 之后改过全局系统（theme / 字幕 / 相机 / 幕底），先 `--only s01 --seg-audio --preview-dir out/preview` 重出样板镜，自查与确认版一致即可，不必再问用户。
+然后**问一次**（AskUserQuestion 类工具，两个选项，不替用户决定）：
+1. **整片渲**：⑥-2 的 `--all --parallel 4 --concat … --audio … --mux …`；
 2. **逐镜节奏**：`--only s02 --audio … --preview-dir out/preview` 渲一镜、开给用户看一镜、等用户说"继续 / 改"再下一镜，
    改动用 `--changed sNN`；全部看完再 `--concat + --mux` 拼装。
-两种节奏最后都要过 ⑥-2 的帧数断言与 ⑦ 三重验收——逐镜模式下"用户看过"不等于"验收过"，机器闸与独立审片照做。
+两种节奏最后都要过 ⑥-2 的帧数断言与 ⑦ 三重验收——"用户看过"不等于"验收过"，机器闸与独立审片照做。
 
 **⑥-2 分段渲染母版制**——按镜头切段、段内单进程连续渲（段内光栅自洽；多 tab 并发会产生周期性相位抖动），
 段间 `--parallel 4` 实测比单进程快 1.3~1.8×（本机负载不同两次分别 253→139s、307→230s，4 镜 900 帧）；
@@ -359,5 +371,5 @@ X [`@VincentWei93`](https://x.com/VincentWei93) ·
 | 字级时间戳（本机 CPU） | `scripts/timestamps_cpu.py`（FireRedASR2-CTC 默认 / faster-whisper 备选，+ 口播稿逐字对齐）→ `scripts/make_timing.py` |
 | **闸报 FAIL 了怎么办 · 怎么少烧母版** | ⑥⑦「迭代纪律」三条——先读闸怎么量的再改 · 静帧优先 · 改哪段渲哪段、复审改动攒批 |
 | 机器闸（画面健康 / 保真 / 词落点+镜尾 / 音效） | `scripts/motion_check.py`（静止段+并发光栅抖动双判定）/ `scripts/card_lint.py`（卡片须复制自 template/cards）/ `scripts/beat_lint.py`（词落点对 timestamps + `--shots` 镜尾保护带）/ `scripts/sfx_check.py`（solo 在场 + `--mix` 可听度） |
-| 渲染提速（分段母版 / 批量静帧 / 空台预检 / 评审拼图）· 首镜验效 | `scripts/render_shots.mjs`（段渲+拼装+音轨混入+帧数断言；`--changed sNN` 单镜头迭代 53s；`--only s01 --preview-dir` 有声单镜预览 → ⑥-1.5 问用户整片还是逐镜）/ `scripts/render_stills.mjs`（一次 bundle 批量 still）/ `scripts/beat_gap_check.py`（渲染前空台预检）/ `scripts/contact_sheet.py`（QA 帧拼 3×4 网格） |
+| 渲染提速（分段母版 / 批量静帧 / 空台预检 / 评审拼图）· 首镜先做先确认（⑤-1） | `scripts/render_shots.mjs`（段渲+拼装+音轨混入+帧数断言；`--changed sNN` 单镜头迭代 53s；`--only s01 --seg-audio --preview-dir` 样板镜有声预览、不渲整条音轨（⑤-1）；⑥-1.5 问用户整片还是逐镜）/ `scripts/render_stills.mjs`（一次 bundle 批量 still）/ `scripts/beat_gap_check.py`（渲染前空台预检）/ `scripts/contact_sheet.py`（QA 帧拼 3×4 网格） |
 | 动效配套音效 | 逐卡 cue 表 `demos/_lib/sfx-map.js`（口味纪律见 `references/demo-spec.md`「Demo 硬性要求」第 8 条）；制作端 `node scripts/sfx_dump.mjs` 导出采样 |
