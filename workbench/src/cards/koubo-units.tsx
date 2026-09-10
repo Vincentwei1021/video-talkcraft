@@ -53,7 +53,7 @@ const KouboShot: React.FC<{ shotId?: string }> = ({ shotId }) => {
   return (
     <KScale>
       <Envelope lead={lead} tail={tail} total={total}>
-        <AbsoluteFill style={{ background: "#fff" }}>
+        <AbsoluteFill className="wb-shot-bg" style={{ background: "#fff" }}>
           <CameraRig path={shot.path} impulses={shot.impulses} durationSec={shot.end - shot.start} leadFrames={lead}>
             <PromoScene shot={shot} leadFrames={lead} />
           </CameraRig>

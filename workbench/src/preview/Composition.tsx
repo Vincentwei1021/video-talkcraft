@@ -17,11 +17,26 @@ const TimeRemap: React.FC<{
   return <Freeze frame={Math.max(0, inOffset + frame * speed)}>{children}</Freeze>;
 };
 
-export const MainComposition: React.FC<{ project: ProjectData }> = ({ project }) => {
+/** 透明通道导出（右键片段 → 导出透明通道）时注入：
+ *  108 张卡的根 AbsoluteFill 都画了不透明幕底（中性白 / 深底），透明导出要的是"动效本体"，
+ *  所以把每个 clip 图层的直接子层（= 卡根层）背景去掉；人物剪影占位（HostSilhouette）与
+ *  口播镜头卡的白底层（wb-shot-bg）也一并去掉。只动根层与这两处标记层——卡内部的色块 / 底板 /
+ *  转场色面是动效内容，不能动。样式表 !important 能压过 React 的 inline style（inline 没有 !important）。 */
+const ALPHA_CSS = `
+.wb-alpha > div { background: transparent !important; }
+.wb-alpha .wb-shot-bg { background: transparent !important; }
+.wb-alpha .wb-host-silhouette { display: none !important; }
+`;
+
+export const MainComposition: React.FC<{ project: ProjectData; transparent?: boolean }> = ({
+  project,
+  transparent,
+}) => {
   // UI 中 tracks[0] 是最上层轨 → 最后渲染（覆盖在上）
   const ordered = [...project.tracks].reverse();
   return (
-    <AbsoluteFill style={{ background: "#0e0e10" }}>
+    <AbsoluteFill style={{ background: transparent ? "transparent" : "#0e0e10" }}>
+      {transparent && <style>{ALPHA_CSS}</style>}
       {ordered.map(
         (track) =>
           !track.hidden &&
@@ -50,6 +65,7 @@ export const MainComposition: React.FC<{ project: ProjectData }> = ({ project })
                 durationInFrames={Math.max(1, Math.round(clip.duration))}
               >
                 <AbsoluteFill
+                  className={transparent ? "wb-alpha" : undefined}
                   style={{
                     opacity: clip.opacity,
                     transform: `translate(${clip.x}px, ${clip.y}px) scale(${clip.scale})`,

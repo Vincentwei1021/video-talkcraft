@@ -55,9 +55,15 @@ const renderExportPlugin = (): Plugin => {
           req.on("data", (c) => (raw += c));
           req.on("end", () => {
             let project: { name?: string };
+            let transparent = false;
+            let format: "mp4" | "mov" | "webm" = "mp4";
             try {
-              project = JSON.parse(raw).project;
-              if (!project) throw new Error("no project");
+              const body = JSON.parse(raw) as { project?: { name?: string }; transparent?: boolean; format?: string };
+              if (!body.project) throw new Error("no project");
+              project = body.project;
+              transparent = !!body.transparent;
+              // 透明通道只有两种容器：mov = ProRes 4444（剪辑软件通吃）/ webm = VP9 yuva420p（网页 / 小体积）
+              if (transparent) format = body.format === "webm" ? "webm" : "mov";
             } catch {
               send(400, { error: "缺少工程 JSON" });
               return;
@@ -68,9 +74,18 @@ const renderExportPlugin = (): Plugin => {
             const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
             const safeName =
               (project.name ?? "工程").replace(/[^\w一-龥·-]+/g, "_").slice(0, 40) || "工程";
-            const output = `exports/${safeName}-${stamp}.mp4`;
+            const output = `exports/${safeName}-${stamp}${transparent ? "-alpha" : ""}.${format}`;
             const propsFile = path.join(outDir, `.props-${id}.json`);
-            writeFileSync(propsFile, JSON.stringify({ project, renderExact: true }));
+            writeFileSync(propsFile, JSON.stringify({ project, renderExact: true, transparent }));
+            // Remotion 官方透明渲染参数：png 中间帧 + 带 alpha 的像素格式 + 支持 alpha 的编码
+            //（https://www.remotion.dev/docs/transparent-videos）；不透明导出沿用 h264 mp4 缺省
+            // 透明片段是给别的剪辑软件当叠加层用的，不带音轨（--muted；否则 Remotion 会附一条空音轨）
+            const codecArgs =
+              format === "mov"
+                ? ["--image-format=png", "--pixel-format=yuva444p10le", "--codec=prores", "--prores-profile=4444", "--muted"]
+                : format === "webm"
+                  ? ["--image-format=png", "--pixel-format=yuva420p", "--codec=vp9", "--muted"]
+                  : [];
             const dropProps = () => rmSync(propsFile, { force: true });
 
             const job: ExportJob = {
@@ -120,6 +135,7 @@ const renderExportPlugin = (): Plugin => {
                   output,
                   `--props=${propsFile}`,
                   `--public-dir=${renderPublic}`,
+                  ...codecArgs,
                 ],
                 { cwd: root },
               );

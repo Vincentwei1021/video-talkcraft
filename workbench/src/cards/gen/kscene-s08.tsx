@@ -101,7 +101,7 @@ const SceneS08: React.FC<Props> = ({
   return (
     <KScale>
       <Envelope lead={LEAD} tail={TAIL} total={TOTAL}>
-        <AbsoluteFill style={{ background: bgColor }}>
+        <AbsoluteFill className="wb-shot-bg" style={{ background: bgColor }}>
           <CameraRig path={SHOT.path} impulses={SHOT.impulses} durationSec={SHOT.end - SHOT.start} leadFrames={LEAD}>
             <AbsoluteFill style={{ background: bgColor, color: C.ink, fontFamily: FONT.cn, overflow: "hidden" }}>
               <Plane depth={1}>

@@ -1,7 +1,9 @@
-import React from "react";
+import React, { useState } from "react";
 import type { ClipData } from "../types";
 import { CARDS } from "../cards/registry";
 import { useStore } from "../store";
+import { ContextMenu, type MenuItem } from "./ContextMenu";
+import { alphaProjectFor, startExport } from "../exportJob";
 
 const SNAP_PX = 6;
 
@@ -105,6 +107,43 @@ export const ClipView: React.FC<{
 
   const accent = card?.accent ?? "#666";
   const durSec = (clip.duration / 30).toFixed(1);
+  const label = clip.label ?? card?.name ?? clip.cardId;
+
+  // —— 右键菜单：分割 / 复制 / 删除 + 导出透明通道（只渲这一段，起点归零、时长精确）——
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
+  const exportAlpha = (format: "mov" | "webm") => {
+    const s = useStore.getState();
+    const hit = s.project.tracks.flatMap((t) => t.clips).find((c) => c.id === clip.id) ?? clip;
+    const fmtLabel = format === "mov" ? "透明 MOV（ProRes 4444）" : "透明 WebM（VP9）";
+    void startExport(
+      { project: alphaProjectFor(s.project, hit, label), transparent: true, format },
+      "alpha",
+      `${label} · ${fmtLabel}`,
+    );
+  };
+  const menuItems = (): MenuItem[] => {
+    const s = useStore.getState();
+    const inside = s.playhead > clip.start && s.playhead < clip.start + clip.duration;
+    const noVisual = card?.kind === "audio";
+    return [
+      { label: "在播放头处分割", hint: "S", disabled: !inside, onClick: () => s.splitClip(clip.id, s.playhead) },
+      { label: "复制", hint: "⌘D", onClick: () => s.duplicateClip(clip.id) },
+      { label: "删除", hint: "⌫", danger: true, onClick: () => s.removeClip(clip.id) },
+      { label: "", sep: true },
+      {
+        label: "导出透明通道 · MOV",
+        hint: noVisual ? "音频片段没有画面" : "ProRes 4444 · 剪映 / PR / AE",
+        disabled: noVisual,
+        onClick: () => exportAlpha("mov"),
+      },
+      {
+        label: "导出透明通道 · WebM",
+        hint: noVisual ? "音频片段没有画面" : "VP9 alpha · 小体积 / 网页",
+        disabled: noVisual,
+        onClick: () => exportAlpha("webm"),
+      },
+    ];
+  };
 
   return (
     <div
@@ -115,9 +154,16 @@ export const ClipView: React.FC<{
         borderLeftColor: accent,
       }}
       onPointerDown={onBodyDown}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        select(clip.id);
+        setMenu({ x: e.clientX, y: e.clientY });
+      }}
     >
+      {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems()} onClose={() => setMenu(null)} />}
       <div className="clip-label">
-        <span className="clip-name">{clip.label ?? card?.name ?? clip.cardId}</span>
+        <span className="clip-name">{label}</span>
         <span className="clip-meta">
           {durSec}s
           {clip.speed !== 1 && <em className="badge">{clip.speed}×</em>}

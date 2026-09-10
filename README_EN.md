@@ -33,6 +33,10 @@ camera moves, plain-cut subtitles, and film-grade SFX, all locked to the voice.
 ## 🆕 What's new
 <!-- Style rule: one sentence per entry, ≤ 350 characters including the pointer link, stating what it is and what behaviour changed; details, parameters and card lists point to references / SKILL.md sections instead of being expanded here. Keep zh and en in sync. Set by PR #12 (2026-09-05); #14/#18 drifted back to long paragraphs, tightened again 2026-09-07. -->
 
+**2026-09-11**
+
+- 🫥 **Workbench: right-click → export with alpha** — right-click any motion clip on the timeline to render just that clip as a transparent video (MOV ProRes 4444 or WebM VP9 alpha) with a transparent canvas, the card's root backdrop and host-silhouette placeholder stripped automatically, ready as an overlay in CapCut / Premiere / After Effects; the same menu carries split / duplicate / delete (→ `workbench/GUIDE.md` ⑦).
+
 **2026-09-07**
 
 - ✏️ **G5 line-art schematic system** — every text-only shot must carry an icon + box + arrow line drawing, text is never placed bare, at least one visible change per sentence, and preflight WARNs when that companion row is missing (→ `template/motion-systems/schematic.tsx`, `references/schematic.md`).

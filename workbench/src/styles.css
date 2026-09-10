@@ -384,3 +384,40 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover { background-color: rgba(255, 255, 255, 0.26); }
 ::-webkit-scrollbar-corner { background: transparent; }
+
+/* —— 片段右键菜单（timeline/ContextMenu.tsx，portal 到 body）—— */
+.ctx-menu {
+  position: fixed; z-index: 1000; min-width: 236px; padding: 5px;
+  display: flex; flex-direction: column; gap: 1px;
+  background: rgba(40, 40, 46, 0.96); backdrop-filter: blur(18px);
+  border-radius: 10px;
+  box-shadow: 0 0 0 1px var(--line-strong), 0 12px 32px rgba(0, 0, 0, 0.45);
+  user-select: none;
+}
+.ctx-item {
+  display: flex; justify-content: space-between; align-items: center; gap: 18px;
+  width: 100%; text-align: left;
+  background: transparent; border: 0; border-radius: 6px;
+  color: var(--text); font: inherit; font-size: 12.5px; padding: 6px 10px;
+  cursor: pointer;
+}
+.ctx-item:hover:not(:disabled) { background: var(--accent); color: #fff; }
+.ctx-item:hover:not(:disabled) .ctx-hint { color: rgba(255, 255, 255, 0.75); }
+.ctx-item:disabled { opacity: 0.4; cursor: default; }
+.ctx-item.danger { color: #ff8078; }
+.ctx-item.danger:hover:not(:disabled) { background: var(--danger); color: #fff; }
+.ctx-hint { font-size: 11px; color: var(--text-dim); white-space: nowrap; }
+.ctx-sep { height: 1px; background: var(--line); margin: 4px 6px; }
+
+/* —— 右键导出的进度浮层（App.tsx ExportToast）—— */
+.export-toast {
+  position: fixed; right: 16px; bottom: 16px; z-index: 900;
+  display: flex; align-items: center; gap: 10px; max-width: 520px;
+  padding: 10px 14px; font-size: 12.5px;
+  background: rgba(40, 40, 46, 0.96); backdrop-filter: blur(18px);
+  border-radius: 10px;
+  box-shadow: 0 0 0 1px var(--line-strong), 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+.export-toast .toast-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px; }
+.export-toast .bar { width: 110px; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.12); overflow: hidden; }
+.export-toast .bar i { display: block; height: 100%; background: var(--accent); transition: width 0.4s; }

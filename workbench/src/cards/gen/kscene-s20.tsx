@@ -98,7 +98,7 @@ const KsceneS20: React.FC<Props> = ({
   return (
     <KScale>
       <Envelope lead={TIMING.lead} tail={TIMING.tail} total={TIMING.total}>
-        <AbsoluteFill style={{ background: bgColor }}>
+        <AbsoluteFill className="wb-shot-bg" style={{ background: bgColor }}>
           <CameraRig path={TIMING.shot.path} impulses={TIMING.shot.impulses} durationSec={TIMING.shot.end - TIMING.shot.start} leadFrames={TIMING.lead}>
             <AbsoluteFill style={{ background: bgColor, color: inkColor, fontFamily: FONT.cn, overflow: "hidden" }}>
               <Plane depth={1}>

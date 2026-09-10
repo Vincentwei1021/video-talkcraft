@@ -162,7 +162,7 @@ const KSceneS22: React.FC<Props> = ({
     <KScale>
       <Envelope lead={T22.lead} tail={T22.tail} total={T22.total}>
         {/* 底色层：n=22 ∈ ACT_ALT → Shell bg = C.bgAlt */}
-        <AbsoluteFill style={{ background: C.bgAlt }}>
+        <AbsoluteFill className="wb-shot-bg" style={{ background: C.bgAlt }}>
           <CameraRig path={shot.path} impulses={shot.impulses} durationSec={shot.end - shot.start} leadFrames={T22.lead}>
             <AbsoluteFill style={{ background: C.bgAlt, color: C.ink, fontFamily: FONT.cn, overflow: "hidden" }}>
               <Plane depth={1}>
