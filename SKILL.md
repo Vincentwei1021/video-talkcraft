@@ -190,6 +190,31 @@ anime.js v4 / three.js 走 `anime-remotion.ts` / `three-anime.ts` 桥（seek-saf
 - **人物在场**：先跑 `scripts/face_bbox.py` 实测人脸安全区（口径 host-footage.md §3），
   任何文字/卡片/字幕**及其背景**全时刻不得进入；主信息面板放人物对侧
 
+### ⑤-2 工作台实时看板（骨架搭完就开，制作全程常开）
+把 ⑧ 里"交付后才打开工作台"前移到这里：**⑤-1 合成骨架搭完（shots.json + Main.tsx 落盘）就接入并打开工作台**，用户此后随时能看到
+"做到哪了、哪镜什么状态"、能播当前实时成片、能点单镜有声预览；agent 每存一次盘预览就刷新，不用等成片（`workbench/docs/live-pipeline.md`）。
+```bash
+cd <skill根>/workbench && npm install                                  # 首次
+ln -sfn <本片工程>/remotion/src kbsrc && mkdir -p public && for f in <本片工程>/remotion/public/*; do ln -sfn "$f" "public/$(basename "$f")"; done
+npm run dev &                                                          # 已在跑就跳过；链接变了要重跑一次 npm run gen
+sleep 4 && curl -s http://localhost:5199 | grep -q '动效工作台' && echo "工作台 OK" || echo "FAIL: 工作台未起"
+open 'http://localhost:5199/?live'                                     # ?live = 直接装上本片主合成 + 进度轨
+```
+- **状态清单 `pipeline.json`**（工程根）：工作台 dev server 按盘上产物**实时推导**每镜状态（占位 / 已实现 / 已渲 / 已过闸、场景比段新 = 过期），
+  不依赖 agent 记得写；agent 只在盘上推不出的事上落一笔，都走 `node <skill根>/scripts/pipeline_state.mjs`（在工程根或 remotion/ 下执行）：
+
+  | 时机 | 命令 | 说明 |
+  |---|---|---|
+  | ⑥⑦ 某镜机器闸 + 审片过 | `--pass s03,s04` | 进度轨变绿；`--pass all` 整片 |
+  | 审片发现未清缺陷 | `--issue "s07\|P1\|字幕带压到人脸安全区 12.3–12.8s"` | 进度块红点 + 镜头面板列出；修完 `--clear-issues s07` |
+  | 阶段与推断不符时 | `--stage ⑥⑦` | 平时不用，阶段按产物自动推 |
+  | 任何时候想核对 | 不带参数 | 重算并落盘，末行打印摘要 |
+
+- **半成品不盖页**：Vite 报错不再罩住整个工作台，右下角一条提示 + 画面停在上一版；单 clip 渲染出错只把那一格画红。
+- **Main 组件别调 `getInputProps()`**（Remotion Player 里必抛，看板上那一格会红）：debug / sfxSolo 之类开关改成组件 props（Composition defaultProps），
+  或守卫 `typeof window !== 'undefined' && !(window as any).remotion_isPlayer`。
+- 看板只看不驱动：不提供"点按钮触发某一步"的接口，skill 仍是主控。
+
 ## ⑥⑦ 渲染 + 三重验收（机器闸全过 → 1 轮审片 → 交付）
 
 ### 迭代纪律（管着本节全部循环）
@@ -313,14 +338,14 @@ ffmpeg -i out/final.mp4 -c:v copy \
 **agent 自己听不了成品，`sfx_check.py --mix` 就是耳听的机器替身：交付前必须对 delivery.mp4 重跑一次**；
 简介附素材来源行（用了库内采样时加 sfx 来源，见 demos/_lib/sfx/ATTRIBUTION.md）。
 
-**交付成片后主动打开动效工作台**（不要等用户问；与"是否继续自动审改"的询问同时给出，
-见 ⑥⑦ 审片循环制度）——给用户一个剪映式界面做人工微调：
+**交付时工作台应已自 ⑤-2 起常开**（没开就按 ⑤-2 那段接入并打开；不要等用户问；与"是否继续自动审改"的询问同时给出，
+见 ⑥⑦ 审片循环制度）——给用户一个剪映式界面做人工微调，并 `pipeline_state.mjs --pass …` 把过闸镜头钉绿：
 
 ```bash
 cd <skill根>/workbench && npm install            # 首次
 ln -sfn <本片工程>/remotion/src kbsrc            # 链接本片工程（机器本地符号链接，不进库）
 mkdir -p public && for f in <本片工程>/remotion/public/*; do ln -sfn "$f" "public/$(basename "$f")"; done
-npm run dev &                                     # 浏览器打开 http://localhost:5199 并告知用户
+npm run dev &                                     # 浏览器打开 http://localhost:5199/?live 并告知用户
 sleep 4 && curl -s http://localhost:5199 | grep -q '动效工作台' && echo "工作台 OK" || echo "FAIL: 工作台未起——禁止用 remotion studio 代替"
 ```
 **防误操作**：交付给用户的界面**只能是这个工作台**（页面标题「TalkCraft Workbench · 动效工作台」，上面那行断言就是核验）。
@@ -358,6 +383,7 @@ X [`@VincentWei93`](https://x.com/VincentWei93) ·
 | 新增配方卡 | `references/demo-spec.md`，验证 `node scripts/verify-demo.mjs <slug>` |
 | 可复制代码 | `template/cards/`（108 卡逐卡自包含 tsx）、`template/motion-systems/`（极缓推拉相机/让位/桥）、`template/components/`（字幕/花字/铅笔/吉祥物） |
 | 成片后人工微调 / 导出 | `workbench/`（剪映式工作台：多轨时间线 + 全卡参数化 + 成片拆解 + Remotion 渲染导出） |
+| 制作全程实时看板（⑤-2 起常开：进度轨 / 阶段栏 / 单镜预览 / 半成品不盖页）· 状态清单 | `workbench/docs/live-pipeline.md` · `scripts/pipeline_state.mjs`（`--pass` / `--issue` / `--stage`；状态按产物自动推） |
 | 字级时间戳（本机 CPU） | `scripts/timestamps_cpu.py`（FireRedASR2-CTC 默认 / faster-whisper 备选，+ 口播稿逐字对齐）→ `scripts/make_timing.py` |
 | **闸报 FAIL 了怎么办 · 怎么少烧母版** | ⑥⑦「迭代纪律」三条——先读闸怎么量的再改 · 静帧优先 · 改哪段渲哪段、复审改动攒批 |
 | 机器闸（画面健康 / 保真 / 词落点+镜尾 / 音效） | `scripts/motion_check.py`（静止段+并发光栅抖动双判定）/ `scripts/card_lint.py`（卡片须复制自 template/cards）/ `scripts/beat_lint.py`（词落点对 timestamps + `--shots` 镜尾保护带）/ `scripts/sfx_check.py`（solo 在场 + `--mix` 可听度） |

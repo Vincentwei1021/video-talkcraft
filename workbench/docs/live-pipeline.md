@@ -1,7 +1,10 @@
-# 工作台全流程直播 · 实现讨论（提案，未实现）
+# 工作台全流程直播 · 设计与实现记录
 
-> 状态：**讨论稿**（2026-09-11）。目的是把"能不能在制作过程中就打开工作台、实时看到最新进度"这件事拆成可独立交付的层，
-> 列清现状能复用什么、缺什么、风险在哪、先做哪个最小实验。所有代码改动都还没做；本文只定方向与取舍，等拍板再开 PR。
+> 状态（2026-09-11）：用户拍板"先修 kbsrc 解析问题，再做 L1"。**缺口 4 已修**（PR #31：真实路径 + 契约模块逐个回退 + `src/kb/` 适配层），
+> **L1 已实现**（本 PR）：`scripts/pipeline_state.mjs` 状态推导 + `pipeline.json` 手工字段 · dev server `/api/pipeline` + SSE ·
+> 阶段栏 / 进度轨 / 镜头视图 · `kb-main` 实时成片卡（动态 import 隔离半成品）· `hmr.overlay=false` + 角落提示 + 单 clip ErrorBoundary ·
+> 拆解导入稳定 id + 增量同步 · SKILL.md ⑤-2 前移接入（L0 一并落地）。**L2 未做**（§3 L2、§7 问题 2/3 仍待拍板）。
+> §1–§8 保留为当时的分析原文；与实现的差异见文末「§9 实现与提案的差异」。
 
 ## 0 一句话
 
@@ -136,3 +139,18 @@ SSE（`/api/pipeline/events`）推到前端；tsx 改动仍走 Vite HMR，不重
 - #26 ⑤-1 骨架：L0 / L1 的前提（全部镜头从第一天起就在时间线上）。
 - #28 `voice_trim` / `cuts.json`：L2 配音视图的数据源；`peaks.json` 是它顺手能产出的增量。
 - #29 透明导出 / `exportJob.ts`：进度轨"渲染中"态与右下角浮层可复用同一任务模型。
+
+## 9 实现与提案的差异（2026-09-11，L1 落地时）
+
+- **状态由工作台服务端实时推导，不靠 skill 每步写入**：提案是"skill 每步末尾更新 `pipeline.json`（写入点 ×8）"；实现改为 dev server 直接 import
+  `scripts/pipeline_state.mjs` 的 `derivePipeline`，按盘上产物算（shots.json → SCENES 表 / scenes/ 文件 → out/segments|preview → review/*.md），
+  `pipeline.json` 只保留盘上推不出的 `manual`（`--pass` / `--issue` / `--stage` / `--note`）。写入点从 8 个降到"过闸时 `--pass`、有缺陷时 `--issue`"两个。
+- **issues 分两层**：手工 `--issue` 才算"未清"（红点）；REVIEW 里 `[P0]/[P1]/[P2]` 点名镜头的行自动抽成 `mentions`，只在镜头面板里可展开看
+  （test04 实测 4 份 REVIEW 抽出 155 条，绝大多数早已修掉——若计红点整条进度轨全红）。
+- **画面源是"整条主合成一个 clip"，不是逐镜 clip**：skill 正式工程没有 promo 形态的 PromoScenes 契约，逐镜卡无从拆；
+  `kb-main` 按实时代码渲整条 `Main`，进度轨负责逐镜导航。逐镜 clip 化留给拆解导入（promo 形态）。
+- **`kb-main` 动态 import**：工程代码语法错时只这张卡报错、初次载入也不白屏；Remotion CLI 导出下 Suspense 正常（已验 2 帧）。
+- **发现一个工程侧规则**：`Main` 里调 `getInputProps()` 在 Player 必抛（test04 / promo 都这么写）——看板那一格会红并给出改法提示；SKILL ⑤-2 新增"别在组件里调 getInputProps"。
+- **监听**：借 Vite 自己的 chokidar（`server.watcher.add`）+ 4s 轮询兜底（out/ 等目录首次渲染才出现），只在状态 JSON 变了才推。
+- **L0 一并落地**：SKILL ⑤-2 把接入时机前移到骨架搭完，`?live` 直接装上实时成片。
+

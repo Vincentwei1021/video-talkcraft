@@ -21,10 +21,19 @@ npm run dev        # http://localhost:5199
 - **导出成片**：顶栏「导出成片」→ dev server 内起 Remotion CLI 渲染当前工程为 MP4（内容精确时长、单并发保光栅一致），输出到 `exports/`，完成后一键在 Finder 显示
 - **Remotion Studio 入口**：`npm run studio`（卡片 Zod schema 自动生成，官方 Inspector 调参 + 渲染 UI）
 
-## 讨论中：制作全程直播
+## 制作全程实时看板（L1）
 
-把工作台从"交付后的后期台"前移成"制作全程的实时看板"（配音预剪 → 时间戳 → 骨架 → 逐镜 → 音效 → 验收，落盘即出现在时间线上）的
-分层方案、风险与最小实验，见 [docs/live-pipeline.md](docs/live-pipeline.md)（提案，未实现）。
+skill 在 ⑤-1 合成骨架搭完就把工程接进来、开着工作台（SKILL.md ⑤-2），此后制作过程在这里实时可见：
+
+- **阶段栏**（顶栏下）：①…⑧ 当前步高亮、hover 看产物路径；右侧镜头计数（占位 / 已实现 / 已渲 / 已过 / 过期 / P0-P1）与直播点（SSE 连接状态）。
+- **进度轨**（时间轨最上一行，随标尺吸顶）：每镜一个色块——灰 占位 · 蓝 已实现 · 青 已渲 · 绿 已过闸 · 黄框 过期（场景文件比渲出的段新）· 红点 未清 P0/P1。
+  点一下：播放头跳到该镜，属性面板切成**镜头视图**（区间 / 场景文件 / 渲出时间 / 单镜有声预览可直接播 / 未清 issues / 评审提及 / SHOTBOOK 段落）。
+- **成片（实时）**：`?live` 打开或点「▶ 实时看板」，时间线装上接入工程的主合成（一条轨一个 clip，画幅随工程横竖屏），
+  agent 存盘即经 Vite HMR 刷新。工程代码有语法错时**不再盖整页**（右下角提示 + 画面停在上一版）；单 clip 渲染出错只把那一格画红。
+- **状态从哪来**：dev server 按盘上产物实时推导（`scripts/pipeline_state.mjs` 的 `derivePipeline`：shots.json → SCENES 表 / scenes/ 文件 → out/segments|preview → review/*.md），
+  再合上工程根 `pipeline.json` 里 `manual` 一节（`--pass` / `--issue` / `--stage`，盘上推不出的才手写）。文件变化经 Vite 的 chokidar + 4s 兜底轮询，只在状态变了才推（`/api/pipeline/events`）。
+- **拆解导入可增量同步**：拆解单元 id 稳定（`kb-shot-s03`、`kb-sfx-12`…），再点一次变成「⟳ 同步拆解」——起点 / 时长跟新，你改过的文案 / 颜色 / 图层保留。
+- 看板只看不驱动：没有"点按钮触发某一步"的接口，skill 是主控。设计、取舍与 L2（配音预剪波形视图 + 双向编辑契约）见 [docs/live-pipeline.md](docs/live-pipeline.md)。
 
 ## 接入口播成片工程（可选）
 
@@ -81,6 +90,8 @@ src/
   panels/               素材库四 tab / schema 属性面板
   remotion/             Remotion CLI 入口（Studio + 渲染导出共用 Main 合成）
   kb/                   接入工程适配层：按契约归一导出形态（缺导出 / 改名 → stub 兜底），工作台源码只从这里取接入工程的东西
+    liveProject.ts      实时看板工程：一条轨一个 kb-main clip（接入工程主合成）
+  pipeline/             实时看板：store（SSE 客户端 + vite:error 接住）/ StageBar / ProgressTrack / ShotPanel / CodeErrorToast
   cards/
     registry.ts         注册表：手写核心卡 + gen 参数化卡 + 模板卡兜底
     gen/                批量参数化产物（108 卡 + 23 口播镜头 kscene-*）
@@ -90,7 +101,7 @@ src/
     tplMeta.ts          卡 id → 中文名/分类（由 gallery 数据生成）
 scripts/gen-index.mjs   卡片静态索引生成（dev/build/studio 前置钩子自动跑）
 remotion.config.ts      Remotion CLI 打包配置（@kbsrc/@tpl 别名 + 单并发）
-vite.config.ts          Vite + 导出渲染 API（POST /api/export → Remotion CLI）
+vite.config.ts          Vite + 导出渲染 API（POST /api/export → Remotion CLI）+ 实时看板 API（/api/pipeline[/events|/shotbook|/file|/refresh]）
 kbsrc.map.mjs           kbsrc 解析地图：真实路径 + 契约模块逐个回退 stub（vite.config / remotion.config / gen-index 共用）
 kbsrc-stub/             外部口播工程未链接（或缺某模块）时的降级实现——它的文件清单就是契约
 exports/                导出成片输出目录（不进库）

@@ -2,6 +2,8 @@ import React, { useRef } from "react";
 import type { PropField } from "../cards/types";
 import { CARDS } from "../cards/registry";
 import { findClip, useStore } from "../store";
+import { usePipeline } from "../pipeline/store";
+import { ShotPanel } from "../pipeline/ShotPanel";
 
 /** 单个属性控件：按 schema 字段类型渲染 */
 const PropControl: React.FC<{
@@ -123,9 +125,13 @@ export const Inspector: React.FC = () => {
   const removeClip = useStore((s) => s.removeClip);
   const commit = useStore((s) => s.commit);
 
+  const selectedShotId = usePipeline((s) => s.selectedShotId);
   const hit = selectedClipId ? findClip(project, selectedClipId) : null;
   // 连续编辑合并为一步撤销：间隔 >800ms 才压新快照
   const lastBeginRef = useRef(0);
+
+  // 进度轨点选的镜头（无片段选中时）→ 镜头视图
+  if (!hit && selectedShotId) return <ShotPanel shotId={selectedShotId} />;
 
   if (!hit) {
     return (
