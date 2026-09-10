@@ -140,7 +140,8 @@ npm run dev          # http://localhost:5199
 
 ## ⑥ 口播成片拆解
 
-需要先接入口播成片工程。点素材 tab 顶部的「⇣ 拆解导入：口播成片」，原片被拆成七类独立单元，
+需要先接入口播成片工程（README「接入口播成片工程」；须是 promo 形态——有 PromoScenes / camera / Host / Environment / timing 模块。
+接入 skill 正式产出的工程时按钮会禁用并说明原因，其余功能照常）。点素材 tab 顶部的「⇣ 拆解导入：口播成片」，原片被拆成七类独立单元，
 每一项都成了可以单独挪动、改参数、删掉的片段：
 
 ![拆解导入后的总览](docs/img/12-koubo-import.png)

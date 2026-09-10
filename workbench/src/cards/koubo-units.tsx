@@ -5,14 +5,17 @@ import {
 } from "remotion";
 import type { CardDef } from "./types";
 // 外部口播工程子组件/数据（经 workbench/kbsrc 符号链接，源码零改动）
-import { CameraRig } from "@kbsrc/camera";
-import { Environment, ShapeWipes as _unused } from "@kbsrc/Environment";
-import { Host } from "@kbsrc/Host";
-import { PromoScene } from "@kbsrc/PromoScenes";
-import { SHOTS, FPS, TOTAL_FRAMES } from "@kbsrc/shots";
-import { Subtitles } from "@kbsrc/Subtitles";
-import { C, FONT } from "@kbsrc/theme";
-import { timing, cleanText } from "@kbsrc/timing";
+import { CameraRig } from "../kb/camera";
+import { Environment, ShapeWipes as _unused } from "../kb/Environment";
+import { Host } from "../kb/Host";
+import { PromoScene } from "../kb/PromoScenes";
+import { SHOTS, FPS, TOTAL_FRAMES } from "../kb/shots";
+import { Subtitles } from "../kb/Subtitles";
+import { C, FONT } from "../kb/theme";
+import { timing, cleanText } from "../kb/timing";
+import { KB_LINKED, KB_PROMO } from "../kbMeta";
+/** promo 专属拆解卡：接入的不是 promo 形态工程时素材库不列出（仍可被已存工程引用；未链接时保留占位提示） */
+const PROMO_ONLY = KB_LINKED && !KB_PROMO;
 
 // —— 口播成片拆解单元卡：镜头 / 数字人 / 字幕 / 环境 / 转场 / 音频 ——
 // 1080p 内容统一 0.5 缩放适配 960×540 画布
@@ -38,7 +41,10 @@ const Envelope: React.FC<{ lead: number; tail: number; total: number; children: 
 
 type ShotT = { id: string; label: string; start: number; end: number; path: unknown; impulses?: unknown };
 export const shotTiming = (idx: number) => {
-  const shot: ShotT = SHOTS[idx];
+  // kscene-sNN 卡在模块顶层就调这里；接入工程镜头数少于 23 时越界不能抛（否则整张注册表挂）
+  const shot: ShotT = SHOTS[idx] ?? {
+    id: `s${String(idx + 1).padStart(2, "0")}`, label: "（接入工程无此镜）", start: 0, end: 0, path: [],
+  };
   const lead = idx === 0 ? 0 : OVERLAP;
   const tail = idx === SHOTS.length - 1 ? 0 : OVERLAP;
   const narration = Math.round((shot.end - shot.start) * FPS);
@@ -67,12 +73,13 @@ export const kouboShotCard: CardDef = {
   id: "koubo-shot",
   name: "口播镜头",
   category: "口播拆解",
+  hidden: PROMO_ONLY,
   durationInFrames: 90,
   accent: "#4c9aff",
   component: KouboShot as React.ComponentType<Record<string, unknown>>,
   schema: [
     {
-      type: "select", key: "shotId", label: "镜头", default: SHOTS[0].id,
+      type: "select", key: "shotId", label: "镜头", default: SHOTS[0]?.id ?? "s01",
       options: SHOTS.map((s: ShotT) => ({ value: s.id, label: `${s.id} ${s.label}` })),
     },
   ],
@@ -83,6 +90,7 @@ export const kouboHostCard: CardDef = {
   id: "koubo-host",
   name: "数字人",
   category: "口播拆解",
+  hidden: PROMO_ONLY,
   durationInFrames: TOTAL_FRAMES,
   accent: "#34c759",
   component: (() => <KScale><Host /></KScale>) as React.ComponentType<Record<string, unknown>>,
@@ -94,6 +102,7 @@ export const kouboSubtitlesCard: CardDef = {
   id: "koubo-subtitles",
   name: "字幕",
   category: "口播拆解",
+  hidden: PROMO_ONLY,
   durationInFrames: TOTAL_FRAMES,
   accent: "#ffd60a",
   component: (() => <KScale><Subtitles /></KScale>) as React.ComponentType<Record<string, unknown>>,
@@ -105,6 +114,7 @@ export const kouboEnvironmentCard: CardDef = {
   id: "koubo-environment",
   name: "口播环境（暗角+光扫）",
   category: "口播拆解",
+  hidden: PROMO_ONLY,
   durationInFrames: TOTAL_FRAMES,
   accent: "#8e8e93",
   component: (() => <KScale><Environment /></KScale>) as React.ComponentType<Record<string, unknown>>,
@@ -171,6 +181,7 @@ export const kouboSubtitleLineCard: CardDef = {
   id: "koubo-subtitle-line",
   name: "字幕句",
   category: "口播拆解",
+  hidden: PROMO_ONLY,
   durationInFrames: 60,
   accent: "#ffd60a",
   component: SubtitleLine as React.ComponentType<Record<string, unknown>>,
@@ -209,6 +220,7 @@ export const kouboWipeCard: CardDef = {
   id: "koubo-wipe",
   name: "三色扫转场",
   category: "口播拆解",
+  hidden: PROMO_ONLY,
   durationInFrames: Math.ceil((WIPE_PRE + WIPE_POST) * 30),
   accent: "#75baff",
   component: KouboWipe as React.ComponentType<Record<string, unknown>>,

@@ -2,10 +2,10 @@ import React from "react";
 import { AbsoluteFill, Easing, interpolate, useCurrentFrame } from "remotion";
 import type { CardDef } from "../types";
 import { shotTiming } from "../koubo-units";
-import { CameraRig, Plane } from "@kbsrc/camera";
-import { SHOTS } from "@kbsrc/shots";
-import { FONT } from "@kbsrc/theme";
-import { atChar } from "@kbsrc/timing";
+import { CameraRig, Plane } from "../../kb/camera";
+import { SHOTS } from "../../kb/shots";
+import { FONT } from "../../kb/theme";
+import { atChar } from "../../kb/timing";
 
 // kscene-s12 · 荧光笔扫重点 —— Scene12（highlighter-sweep）逐镜参数化卡
 // 结构与 koubo-units 的 KouboShot 同构：KScale > Envelope > 底色 > CameraRig > 场景。
@@ -22,7 +22,7 @@ const tw = (t: number, t0: number, d: number, e: (x: number) => number) => e(cl0
 const power2Out = (x: number) => 1 - Math.pow(1 - x, 3);
 const AV = 0.048;
 const A = (si: number, q: string, occ = 0): number => atChar(si, q, occ) + AV;
-const ST = (n: number): number => SHOTS[n - 1].start;
+const ST = (n: number): number => (SHOTS[n - 1]?.start ?? 0);
 const HL_AT: number = A(18, "荧光笔") - ST(12);
 
 // —— KouboShot 的包装组件（koubo-units 未导出，按原样复制）——
