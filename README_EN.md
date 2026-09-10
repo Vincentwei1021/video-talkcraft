@@ -33,6 +33,10 @@ camera moves, plain-cut subtitles, and film-grade SFX, all locked to the voice.
 ## 🆕 What's new
 <!-- Style rule: one sentence per entry, ≤ 350 characters including the pointer link, stating what it is and what behaviour changed; details, parameters and card lists point to references / SKILL.md sections instead of being expanded here. Keep zh and en in sync. Set by PR #12 (2026-09-05); #14/#18 drifted back to long paragraphs, tightened again 2026-09-07. -->
 
+**2026-09-11**
+
+- 🔗 **Hardened workbench project linking** — `kbsrc` now resolves through the real path, each contract module falls back to its stub individually, and `src/kb/` normalises export shapes: linking a regular skill-built project (`Main.tsx` + `scenes/`, no promo modules) no longer 500s the whole page, and "拆解导入" (split import) disables itself with a reason when the contract isn't met (→ `workbench/README.md`, "接入口播成片工程").
+
 **2026-09-07**
 
 - ✏️ **G5 line-art schematic system** — every text-only shot must carry an icon + box + arrow line drawing, text is never placed bare, at least one visible change per sentence, and preflight WARNs when that companion row is missing (→ `template/motion-systems/schematic.tsx`, `references/schematic.md`).

@@ -330,6 +330,8 @@ sleep 4 && curl -s http://localhost:5199 | grep -q '动效工作台' && echo "�
 工作台里点「素材 → 拆解导入」即把成片拆成逐句字幕/逐镜参数化/逐条音效/转场/环境的多轨工程，
 文字内容、颜色、字号、位置、变速逐项可调（词锚节拍与相机保持固定）；改完点「导出成片」
 （内置 Remotion 渲染，遵守单并发纪律）。详见 `workbench/README.md`。
+接入按真实路径解析、契约模块缺哪个只降级哪个（`workbench/kbsrc.map.mjs`）：本 skill 正式产出的工程（`Main.tsx` + `scenes/`）
+没有 promo 形态的 PromoScenes / camera 等模块，「拆解导入」会禁用，成片预览 / 素材 / 导出照常——不算故障，不要去补造那些模块。
 发布时**推荐（非强制）**在简介 @ 一下本 skill 作者——对作者是最好的支持：
 X [`@VincentWei93`](https://x.com/VincentWei93) ·
 抖音 [@Vincent](https://www.douyin.com/user/MS4wLjABAAAAK1pkjBxilk2Oi_9h_vFyD-lTAu9CTlvhmOtkosDvvxg) ·

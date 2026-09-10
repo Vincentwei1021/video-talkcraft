@@ -2,10 +2,10 @@ import React from "react";
 import { AbsoluteFill, Easing, interpolate, useCurrentFrame } from "remotion";
 import type { CardDef } from "../types";
 import { shotTiming } from "../koubo-units";
-import { CameraRig, Plane } from "@kbsrc/camera";
-import { SHOTS } from "@kbsrc/shots";
-import { atChar } from "@kbsrc/timing";
-import { C, FONT } from "@kbsrc/theme";
+import { CameraRig, Plane } from "../../kb/camera";
+import { SHOTS } from "../../kb/shots";
+import { atChar } from "../../kb/timing";
+import { C, FONT } from "../../kb/theme";
 
 // kscene-s23 · 开源 · CTA · 23 镜头回收 —— 口播成片 Scene23 的逐镜参数化卡（源出 kbsrc/PromoScenes.tsx）
 // 三段收尾：开源宣言 → 评论区扣「口播」CTA → 23 格镜头回收网。
@@ -29,7 +29,7 @@ const backOut = (s = 1.70158) => (x: number) => { const u = x - 1; return 1 + (s
 // 词锚：字级时间戳 + 47.7ms 混音补偿 —— FIXED
 const AV = 0.048;
 const A = (si: number, q: string, occ = 0): number => atChar(si, q, occ) + AV;
-const ST23: number = SHOTS[22].start;
+const ST23: number = (SHOTS[22]?.start ?? 0);
 const PILL_AT: number = A(38, "口播") - ST23;
 const GRID_AT: number = A(39, "二十三") - ST23;
 

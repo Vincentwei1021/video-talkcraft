@@ -2,10 +2,10 @@ import React from "react";
 import { AbsoluteFill, Easing, interpolate, useCurrentFrame } from "remotion";
 import type { CardDef } from "../types";
 import { shotTiming } from "../koubo-units";
-import { CameraRig, Plane } from "@kbsrc/camera";
-import { SHOTS } from "@kbsrc/shots";
-import { atChar } from "@kbsrc/timing";
-import { C, FONT } from "@kbsrc/theme";
+import { CameraRig, Plane } from "../../kb/camera";
+import { SHOTS } from "../../kb/shots";
+import { atChar } from "../../kb/timing";
+import { C, FONT } from "../../kb/theme";
 
 // kscene-s21 · 章节与段落 —— 口播成片 Scene21 的逐镜参数化卡（源出 kbsrc/PromoScenes.tsx）
 // 双幕换场：深色章节幕（编号 04 + 章节标题）→ 浅色段落幕（几层色块一扫）。
@@ -28,7 +28,7 @@ const power3Out = (x: number) => 1 - Math.pow(1 - x, 4);
 // 词锚：字级时间戳 + 47.7ms 混音补偿（beats.json 同源）—— FIXED
 const AV = 0.048;
 const A = (si: number, q: string, occ = 0): number => atChar(si, q, occ) + AV;
-const ST21: number = SHOTS[20].start;
+const ST21: number = (SHOTS[20]?.start ?? 0);
 const SWEEP_AT: number = A(31, "一扫") - ST21; // 换幕词锚（峰值=词锚，P1-2）
 const SLAB_AT: number = A(30, "色块") - ST21;
 const NUM_AT: number = A(30, "编号") - ST21;
