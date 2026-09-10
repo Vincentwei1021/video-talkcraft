@@ -33,6 +33,10 @@ camera moves, plain-cut subtitles, and film-grade SFX, all locked to the voice.
 ## 🆕 What's new
 <!-- Style rule: one sentence per entry, ≤ 350 characters including the pointer link, stating what it is and what behaviour changed; details, parameters and card lists point to references / SKILL.md sections instead of being expanded here. Keep zh and en in sync. Set by PR #12 (2026-09-05); #14/#18 drifted back to long paragraphs, tightened again 2026-09-07. -->
 
+**2026-09-11**
+
+- ✂️ **Voice pre-trim `scripts/voice_trim.py`** — a human recording is now cleaned before timestamping, using the script as ground truth to cut filler words / stutters and re-takes / over-long pauses (only insertions absent from the script are cut, ASR mishearings of scripted characters never are); word timings come from FireRed ASR, a per-character SRT or a word-level JSON, cut points snap to the frame grid, and the same EDL can trim the host video so audio and picture stay frame-aligned (→ SKILL.md ②-0).
+
 **2026-09-07**
 
 - ✏️ **G5 line-art schematic system** — every text-only shot must carry an icon + box + arrow line drawing, text is never placed bare, at least one visible change per sentence, and preflight WARNs when that companion row is missing (→ `template/motion-systems/schematic.tsx`, `references/schematic.md`).
