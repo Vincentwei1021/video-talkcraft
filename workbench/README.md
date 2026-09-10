@@ -21,6 +21,11 @@ npm run dev        # http://localhost:5199
 - **导出成片**：顶栏「导出成片」→ dev server 内起 Remotion CLI 渲染当前工程为 MP4（内容精确时长、单并发保光栅一致），输出到 `exports/`，完成后一键在 Finder 显示
 - **Remotion Studio 入口**：`npm run studio`（卡片 Zod schema 自动生成，官方 Inspector 调参 + 渲染 UI）
 
+## 讨论中：制作全程直播
+
+把工作台从"交付后的后期台"前移成"制作全程的实时看板"（配音预剪 → 时间戳 → 骨架 → 逐镜 → 音效 → 验收，落盘即出现在时间线上）的
+分层方案、风险与最小实验，见 [docs/live-pipeline.md](docs/live-pipeline.md)（提案，未实现）。
+
 ## 接入口播成片工程（可选）
 
 口播拆解、逐镜编辑、成片素材依赖一个外部 Remotion 工程（video-talkcraft skill 的产物），通过符号链接接入（机器本地路径，不进库）：
