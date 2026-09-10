@@ -2,10 +2,10 @@ import React from "react";
 import { AbsoluteFill, Easing, interpolate, useCurrentFrame } from "remotion";
 import type { CardDef } from "../types";
 import { shotTiming } from "../koubo-units";
-import { CameraRig, Plane } from "@kbsrc/camera";
-import { C, FONT } from "@kbsrc/theme";
-import { atChar } from "@kbsrc/timing";
-import { SHOTS } from "@kbsrc/shots";
+import { CameraRig, Plane } from "../../kb/camera";
+import { C, FONT } from "../../kb/theme";
+import { atChar } from "../../kb/timing";
+import { SHOTS } from "../../kb/shots";
 
 // kscene-s05 · 口播成片 S05「前三秒钩子与人名条」逐镜参数化卡
 // 已知边界：砸屏踩「砸」、取景框收拢踩「一收」、色条踩「色条」、姓名揭示踩「姓名」——
@@ -46,7 +46,7 @@ const power2In = (x: number) => x * x * x;
 // 词级锚点：视觉节拍 = 字级时间戳 + 48ms 混音补偿（与成片 beats.json 同源）
 const AV = 0.048;
 const A = (si: number, q: string, occ = 0) => atChar(si, q, occ) + AV;
-const ST = (n: number) => SHOTS[n - 1].start;
+const ST = (n: number) => (SHOTS[n - 1]?.start ?? 0);
 
 // 取景框角括号（PromoScenes 原版复制：border 技法，各角只留两条边）
 const Corner: React.FC<{ pos: "tl" | "tr" | "bl" | "br"; x: number; y: number; size: number; off: number; opacity: number; color?: string; width?: number }> =

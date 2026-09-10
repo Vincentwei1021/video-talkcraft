@@ -2,11 +2,11 @@ import React from "react";
 import { AbsoluteFill, Easing, Img, interpolate, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import type { CardDef } from "../types";
 import { shotTiming } from "../koubo-units";
-import { CameraRig, Plane } from "@kbsrc/camera";
-import { WorldRig, WorldPlane, WorldItem, useArrive } from "@kbsrc/longtake";
-import { SHOTS } from "@kbsrc/shots";
-import { atChar } from "@kbsrc/timing";
-import { C, FONT, RADII } from "@kbsrc/theme";
+import { CameraRig, Plane } from "../../kb/camera";
+import { WorldRig, WorldPlane, WorldItem, useArrive } from "../../kb/longtake";
+import { SHOTS } from "../../kb/shots";
+import { atChar } from "../../kb/timing";
+import { C, FONT, RADII } from "../../kb/theme";
 
 // kscene-s22 · 一台相机 · 一镜到底 —— 口播成片 Scene22 的逐镜参数化卡（源出 kbsrc/PromoScenes.tsx）
 // 长镜头世界画布：所有内容钉在一张大画布上，WorldRig 站点表驱动相机巡游，
@@ -41,7 +41,7 @@ const Corner: React.FC<{ pos: "tl" | "tr" | "bl" | "br"; x: number; y: number; s
 // 词锚：字级时间戳 + 47.7ms 混音补偿 —— FIXED
 const AV = 0.048;
 const A = (si: number, q: string, occ = 0): number => atChar(si, q, occ) + AV;
-const ST22: number = SHOTS[21].start;
+const ST22: number = (SHOTS[21]?.start ?? 0);
 const S22_LEAD = 8 / 30;
 const s22t = (abs: number): number => abs - ST22 + S22_LEAD; // 绝对秒 → S22 序列内秒
 const S22_PATH = "M130 450 C 200 560 240 680 310 690 S 700 300 890 210 S 1300 540 1490 630 S 1930 340 2070 270";

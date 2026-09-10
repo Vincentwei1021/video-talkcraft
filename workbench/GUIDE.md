@@ -140,7 +140,8 @@ npm run dev          # http://localhost:5199
 
 ## ⑥ 口播成片拆解
 
-需要先接入口播成片工程。点素材 tab 顶部的「⇣ 拆解导入：口播成片」，原片被拆成七类独立单元，
+需要先接入口播成片工程（README「接入口播成片工程」；须是 promo 形态——有 PromoScenes / camera / Host / Environment / timing 模块。
+接入 skill 正式产出的工程时按钮会禁用并说明原因，其余功能照常）。点素材 tab 顶部的「⇣ 拆解导入：口播成片」，原片被拆成七类独立单元，
 每一项都成了可以单独挪动、改参数、删掉的片段：
 
 ![拆解导入后的总览](docs/img/12-koubo-import.png)
@@ -177,6 +178,17 @@ node ../scripts/render_shots.mjs --shots shots.json --entry src/remotion/index.t
      --props @project.json --public-dir .render-public --all --parallel 4 \
      --concat out/assembled.mp4 --audio out/full-mix.wav --mux out/preview.mp4
 ```
+
+## ⑧ 制作全程实时看板
+
+接入 skill 正式产出的工程（README「接入口播成片工程」）后，顶栏下多出一条**阶段栏**，时间轨最上面多出一条**进度轨**：
+
+- 阶段栏：①…⑧ 当前步高亮，hover 看该步的产物；右侧是镜头计数（占位 / 已实现 / 已渲 / 已过 / 过期 / P0-P1）和直播点（绿 = 实时连接中）。
+  「⟳」按盘上产物重算一次；「▶ 接入实时看板」把工程主合成装进时间线（或打开 `http://localhost:5199/?live` 直接进入）。
+- 进度轨：一镜一块，颜色即状态（灰 占位 · 蓝 已实现 · 青 已渲 · 绿 已过闸），黄框 = 场景文件比渲出的段新（该重渲），红点 = 有未清 P0/P1。
+  点一块：播放头跳到该镜，右侧属性面板变成镜头视图——区间、场景文件、渲出时间、单镜有声预览（可直接播）、未清 issues、评审提及（REVIEW 自动抽取）、SHOTBOOK 段落。
+- 制作中 agent 每存一次盘预览就刷新；代码写到一半有语法错时不会盖住整个工作台，只在右下角提示、画面停在上一版；某个片段渲染报错只把那一格画红。
+- 状态怎么来的、agent 什么时候写 `pipeline.json`：README「制作全程实时看板」与 SKILL.md ⑤-2。
 
 ## 快捷键
 

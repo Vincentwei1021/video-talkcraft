@@ -2,9 +2,9 @@ import React from "react";
 import { AbsoluteFill, Easing, interpolate, useCurrentFrame } from "remotion";
 import type { CardDef } from "../types";
 import { shotTiming } from "../koubo-units";
-import { CameraRig, Plane } from "@kbsrc/camera";
-import { C, FONT } from "@kbsrc/theme";
-import { atChar } from "@kbsrc/timing";
+import { CameraRig, Plane } from "../../kb/camera";
+import { C, FONT } from "../../kb/theme";
+import { atChar } from "../../kb/timing";
 
 // kscene-s18 · 界面自己演戏 —— 口播成片 Scene18 的逐镜参数化卡（深底 + 世界网格）
 // 已知边界：词锚时刻（A(25,'命令')/A(25,'一行一行')）、敲字速率 CPS=12、日志分块突进

@@ -50,6 +50,8 @@ export interface CardDef {
   schema: PropField[];
   /** 素材库色签 */
   accent?: string;
+  /** 素材库不列出（仍注册、已存工程可引用）——接入工程形态不匹配的专属卡用 */
+  hidden?: boolean;
 }
 
 export const defaultsOf = (card: CardDef): Record<string, unknown> =>

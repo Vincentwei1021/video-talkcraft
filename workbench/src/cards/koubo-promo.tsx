@@ -6,13 +6,14 @@ import {
 import type { CardDef } from "./types";
 // 外部口播成片工程的子组件经 workbench/kbsrc 符号链接引入（源码零改动）；
 // MainVideo 因调用 getInputProps()（Player 内会抛错）在下方按原样复刻并去掉该行。
-import { CameraRig } from "@kbsrc/camera";
-import { Environment, ShapeWipes } from "@kbsrc/Environment";
-import { Host } from "@kbsrc/Host";
-import { PromoScene } from "@kbsrc/PromoScenes";
-import { SHOTS, FPS } from "@kbsrc/shots";
-import { SFX_CUES } from "@kbsrc/sfx";
-import { Subtitles } from "@kbsrc/Subtitles";
+import { CameraRig } from "../kb/camera";
+import { Environment, ShapeWipes } from "../kb/Environment";
+import { Host } from "../kb/Host";
+import { PromoScene } from "../kb/PromoScenes";
+import { SHOTS, FPS } from "../kb/shots";
+import { SFX_CUES } from "../kb/sfx";
+import { Subtitles } from "../kb/Subtitles";
+import { KB_LINKED, KB_PROMO } from "../kbMeta";
 
 // —— 以下与 kbsrc/MainVideo.tsx 逐行同构，仅去掉 getInputProps() 的 sfxSolo 分支 ——
 const OVERLAP = 8;
@@ -83,6 +84,7 @@ export const kouboPromoCard: CardDef = {
   id: "koubo-promo",
   name: "口播成片 · TalkcraftPromo",
   category: "成片",
+  hidden: KB_LINKED && !KB_PROMO, // promo 形态专属：接入其它形态工程时不列出
   durationInFrames: Math.ceil(184.8 * 30), // 与其 Root.tsx 的 TOTAL_FRAMES 同式
   accent: "#1d1d1f",
   component: KouboPromo as React.ComponentType<Record<string, unknown>>,

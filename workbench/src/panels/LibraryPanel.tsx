@@ -6,8 +6,10 @@ import { CARD_LIST } from "../cards/registry";
 import { cardPreviewUrl, cardThumbUrl } from "../cards/templateCards";
 import { TPL_CATEGORIES, TPL_META } from "../cards/tplMeta";
 import { useStore } from "../store";
-import { buildKouboProject, SFX_FILES } from "../kouboImport";
+import { buildKouboProject, isKouboProject, SFX_FILES, syncKouboProject } from "../kouboImport";
+import { buildLiveProject, canBuildLive, isLiveProject } from "../kb/liveProject";
 import { MEDIA_ITEMS, SFX_ALL } from "../mediaManifest";
+import { KB_LINKED, KB_PROJECT, KB_PROMO } from "../kbMeta";
 import { setDragPayload } from "../dnd";
 
 const TABS = [
@@ -148,6 +150,8 @@ const sfxShort = (f: string) => f.replace(/^pk-/, "").replace(/\.mp3$/, "");
 
 export const LibraryPanel: React.FC = () => {
   const setProject = useStore((s) => s.setProject);
+  const hasKoubo = useStore((s) => isKouboProject(s.project));
+  const isLive = useStore((s) => isLiveProject(s.project));
   const setPreview = useStore((s) => s.setPreview);
   const [tab, setTab] = useState<TabId>("media");
   // 动效库分类默认折叠，点击标题展开
@@ -221,8 +225,11 @@ export const LibraryPanel: React.FC = () => {
     </div>
   );
 
-  const motionCards = CARD_LIST.filter((c) => !NON_MOTION_CATS.has(c.category));
-  const kouboCards = CARD_LIST.filter((c) => MEDIA_CARD_CATS.has(c.category));
+  const listed = CARD_LIST.filter((c) => !c.hidden);
+  const motionCards = listed.filter((c) => !NON_MOTION_CATS.has(c.category));
+  const kouboCards = listed.filter((c) => MEDIA_CARD_CATS.has(c.category));
+  // 拆解导入吃 promo 形态契约（PromoScenes / camera / Host / Environment / timing）；接入其它形态工程时禁用并说明
+  const kouboImportable = !KB_LINKED || KB_PROMO;
   const bgCards = CARD_LIST.filter((c) => c.category === "背景");
   const sfxUse = new Map(SFX_FILES.map((s) => [s.file, s.count]));
 
@@ -253,12 +260,33 @@ export const LibraryPanel: React.FC = () => {
       <div className="library-list">
         {tab === "media" && (
           <>
+            {canBuildLive && (
+              <button
+                className="btn wide"
+                disabled={isLive}
+                title={
+                  isLive
+                    ? "当前已是实时看板工程"
+                    : `把接入工程「${KB_PROJECT}」的主合成按实时代码放进时间线：agent 存盘即刷新，上方进度轨显示每镜状态（可撤销）`
+                }
+                onClick={() => setProject(buildLiveProject())}
+              >
+                ▶ 实时看板：{KB_PROJECT}
+              </button>
+            )}
             <button
               className="btn wide"
-              title="把口播成片拆解为逐句字幕/转场/环境/数字人/23 镜头/配音/逐条音效的多轨工程（可撤销）"
-              onClick={() => setProject(buildKouboProject())}
+              disabled={!kouboImportable}
+              title={
+                !kouboImportable
+                  ? `接入工程「${KB_PROJECT}」不是拆解契约形态（缺 PromoScenes / camera 等模块），拆解导入不可用`
+                  : hasKoubo
+                    ? "按稳定 id 把最新拆解合进当前工程：起点 / 时长跟新，你改过的文案 / 颜色 / 图层 / 位置保留（可撤销）"
+                    : "把口播成片拆解为逐句字幕/转场/环境/数字人/23 镜头/配音/逐条音效的多轨工程（可撤销）"
+              }
+              onClick={() => setProject(hasKoubo ? syncKouboProject(useStore.getState().project) : buildKouboProject())}
             >
-              ⇣ 拆解导入：口播成片
+              {hasKoubo ? "⟳ 同步拆解（保留改动）" : "⇣ 拆解导入：口播成片"}
             </button>
 
             <div className="lib-cat">素材文件</div>
@@ -288,7 +316,7 @@ export const LibraryPanel: React.FC = () => {
               ))}
             </div>
 
-            <div className="lib-cat">口播成片 · 拆解单元</div>
+            {kouboCards.length > 0 && <div className="lib-cat">口播成片 · 拆解单元</div>}
             <div className="lib-grid">
               {kouboCards.map((card) => (
                 <Cell
