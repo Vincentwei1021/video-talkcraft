@@ -6,6 +6,7 @@ import { Timeline } from "./timeline/Timeline";
 import { resetProject, useStore } from "./store";
 import { seekTo, togglePlay } from "./playerRef";
 import type { ProjectData } from "./types";
+import { revealExport, startExport, useExportStore } from "./exportJob";
 
 const isEditable = (el: EventTarget | null) =>
   el instanceof HTMLElement &&
@@ -39,53 +40,34 @@ const startSplit = (
   window.addEventListener("pointerup", up, { once: true });
 };
 
-/** 导出成片：提交当前工程给 dev server 的 Remotion 渲染任务，轮询进度 */
+/** 导出成片：提交当前工程给 dev server 的 Remotion 渲染任务，轮询进度（任务状态在 exportJob store，与右键透明导出共用） */
 const ExportButton: React.FC = () => {
-  const [job, setJob] = useState<{
-    id: string;
-    status: "running" | "done" | "error";
-    progress: number;
-    lastLine?: string;
-  } | null>(null);
-  const timer = useRef<number>();
-
-  const poll = (id: string) => {
-    timer.current = window.setInterval(async () => {
-      const r = await fetch(`/api/export/${id}`);
-      if (!r.ok) return;
-      const j = await r.json();
-      setJob({ id, ...j });
-      if (j.status !== "running") window.clearInterval(timer.current);
-    }, 1000);
-  };
-
-  const start = async () => {
+  const job = useExportStore((s) => s.job);
+  const mine = job?.kind === "full" ? job : null;
+  const start = () => {
     const project = useStore.getState().project;
-    const r = await fetch("/api/export", { method: "POST", body: JSON.stringify({ project }) });
-    const j = await r.json();
-    if (!r.ok) {
-      window.alert(j.error ?? "导出启动失败");
-      return;
-    }
-    setJob({ id: j.id, status: "running", progress: 0 });
-    poll(j.id);
+    void startExport({ project }, "full", project.name || "工程");
   };
 
-  useEffect(() => () => window.clearInterval(timer.current), []);
-
-  if (job?.status === "running")
+  if (job?.status === "running" && !mine)
     return (
-      <button className="btn primary" disabled>
-        导出中 {Math.round(job.progress * 100)}%
+      <button className="btn primary" disabled title="右键导出的透明片段正在渲染，完成后再导整片">
+        导出成片
       </button>
     );
-  if (job?.status === "done")
+  if (mine?.status === "running")
+    return (
+      <button className="btn primary" disabled>
+        导出中 {Math.round(mine.progress * 100)}%
+      </button>
+    );
+  if (mine?.status === "done")
     return (
       <>
         <button
           className="btn"
           title="在 Finder 中显示导出的 MP4"
-          onClick={() => fetch(`/api/export/${job.id}/reveal`, { method: "POST" })}
+          onClick={() => void revealExport(mine.id)}
         >
           ✓ 已导出 · 显示文件
         </button>
@@ -94,9 +76,9 @@ const ExportButton: React.FC = () => {
         </button>
       </>
     );
-  if (job?.status === "error")
+  if (mine?.status === "error")
     return (
-      <button className="btn danger" title={job.lastLine} onClick={start}>
+      <button className="btn danger" title={mine.lastLine} onClick={start}>
         导出失败 · 重试
       </button>
     );
@@ -108,6 +90,44 @@ const ExportButton: React.FC = () => {
     >
       导出成片
     </button>
+  );
+};
+
+/** 右键「导出透明通道」的进度浮层（右下角）：完成后可在 Finder 显示，可关闭 */
+const ExportToast: React.FC = () => {
+  const job = useExportStore((s) => s.job);
+  const setJob = useExportStore((s) => s.setJob);
+  if (!job || job.kind !== "alpha") return null;
+  return (
+    <div className="export-toast" role="status">
+      <span className="toast-title" title={job.title}>
+        {job.status === "running" ? "⏳ " : job.status === "done" ? "✓ " : "✕ "}
+        {job.title}
+      </span>
+      {job.status === "running" && (
+        <>
+          <span className="bar">
+            <i style={{ width: `${Math.round(job.progress * 100)}%` }} />
+          </span>
+          <span className="dim">{Math.round(job.progress * 100)}%</span>
+        </>
+      )}
+      {job.status === "done" && (
+        <button className="btn" onClick={() => void revealExport(job.id)} title={job.output}>
+          显示文件
+        </button>
+      )}
+      {job.status === "error" && (
+        <span className="dim" title={job.lastLine}>
+          失败：{(job.lastLine ?? "").slice(0, 60)}
+        </span>
+      )}
+      {job.status !== "running" && (
+        <button className="mini" title="关闭" onClick={() => setJob(null)}>
+          ✕
+        </button>
+      )}
+    </div>
   );
 };
 
@@ -252,6 +272,7 @@ export const App: React.FC = () => {
       <div className="panel-wrap" style={{ height: tlH }}>
         <Timeline />
       </div>
+      <ExportToast />
     </div>
   );
 };

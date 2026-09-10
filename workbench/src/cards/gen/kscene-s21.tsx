@@ -105,7 +105,7 @@ const KSceneS21: React.FC<Props> = ({
     <KScale>
       <Envelope lead={T21.lead} tail={T21.tail} total={T21.total}>
         {/* 底色层：s21 为 dark 镜头 → Shell bg = C.dark（Scene21 自带双幕全屏底色，此层照抄结构） */}
-        <AbsoluteFill style={{ background: act1Bg }}>
+        <AbsoluteFill className="wb-shot-bg" style={{ background: act1Bg }}>
           <CameraRig path={shot.path} impulses={shot.impulses} durationSec={shot.end - shot.start} leadFrames={T21.lead}>
             <AbsoluteFill style={{ background: act1Bg, color: C.lightInk, fontFamily: FONT.cn, overflow: "hidden" }}>
               <Plane depth={1}>
