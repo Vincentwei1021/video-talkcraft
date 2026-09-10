@@ -43,6 +43,19 @@ for f in /path/to/<口播工程>/remotion/public/*; do ln -sfn "$f" "public/$(ba
 字面量 → `beats.json` 里 `what` 含 wipe/换幕 的 `t`；都没有则转场轨为空并在控制台提示。
 未链接时工程照常构建运行（`@kbsrc` 自动落到 `kbsrc-stub/` 降级实现），口播相关卡显示占位提示，素材清单为空。
 
+**解析规则（`kbsrc.map.mjs`，Vite / Remotion CLI / `npm run gen` 三处共用）**：
+
+- `@kbsrc` 指向链接的**真实路径**，工程 `src/` 里引 `src/` 之外的文件（如 `../shots.json`）照常成立；
+  `react` / `react-dom` / `remotion` 去重到本工程的 node_modules（工程自己的 node_modules 只供它的其它依赖，如 animejs）。
+- **契约模块 = `kbsrc-stub/` 里的每个文件**（camera / Environment / Host / PromoScenes / Subtitles / theme / timing / longtake / shots / sfx / cards/…）：
+  接入工程有同名文件就用真实的，没有就那一个模块回退 stub——缺文件只影响用到它的卡，不再整页 500。
+- 导出形态差异（有文件但缺某个导出、字段改名，如 `CUES` vs `SFX_CUES`、shots 无 `label` / `darkAt`）由 `src/kb/*.ts` 适配层归一，
+  工作台源码只从 `src/kb/` 取接入工程的东西，不直接 `import "@kbsrc/…"`。
+- **两种接入形态**：口播成片 promo 工程（全部契约模块都有）→ 拆解导入 / 逐镜参数化 / 数字人 / 环境全可用；
+  skill 正式产出的工程（`Main.tsx` + `scenes/` + `motion-systems/`，没有 PromoScenes 等模块）→ 页面、素材、导出照常，
+  「拆解导入」按钮禁用并说明原因（`kbMeta.ts` 的 `KB_PROMO=false`），promo 专属卡不进素材库。
+  `npm run gen` 的末行会打印接入工程名、真实模块数、是否满足拆解契约、主合成模块与画幅。
+
 ## 快捷键
 
 | 键 | 动作 |
@@ -67,6 +80,7 @@ src/
   timeline/             标尺 / 轨道 / clip 拖拽裁剪 / 拖放接收
   panels/               素材库四 tab / schema 属性面板
   remotion/             Remotion CLI 入口（Studio + 渲染导出共用 Main 合成）
+  kb/                   接入工程适配层：按契约归一导出形态（缺导出 / 改名 → stub 兜底），工作台源码只从这里取接入工程的东西
   cards/
     registry.ts         注册表：手写核心卡 + gen 参数化卡 + 模板卡兜底
     gen/                批量参数化产物（108 卡 + 23 口播镜头 kscene-*）
@@ -77,7 +91,8 @@ src/
 scripts/gen-index.mjs   卡片静态索引生成（dev/build/studio 前置钩子自动跑）
 remotion.config.ts      Remotion CLI 打包配置（@kbsrc/@tpl 别名 + 单并发）
 vite.config.ts          Vite + 导出渲染 API（POST /api/export → Remotion CLI）
-kbsrc-stub/             外部口播工程未链接时的降级实现
+kbsrc.map.mjs           kbsrc 解析地图：真实路径 + 契约模块逐个回退 stub（vite.config / remotion.config / gen-index 共用）
+kbsrc-stub/             外部口播工程未链接（或缺某模块）时的降级实现——它的文件清单就是契约
 exports/                导出成片输出目录（不进库）
 ```
 
@@ -90,6 +105,7 @@ exports/                导出成片输出目录（不进库）
 - 同轨允许 clip 重叠（层级用多轨表达）；变速为匀速重映射（无曲线变速）
 - 口播拆解后相邻动效镜头各自带 8 帧重叠——这是原片的交叠转场设计（前后镜头在换幕期间同时在场），不是 bug；对齐首尾会丢转场交叠
 - 口播镜头改文案不改节拍——动效时机锚在原配音词级时间戳上；换口播词需重新走生产管线（配音+时间戳）
+- 拆解导入 / 逐镜参数化卡（kscene-sNN）是按口播成片 promo 工程做的：接入形态不同的工程时它们自动隐藏 / 禁用，成片预览、素材、导出不受影响
 - 导出成片走 dev server（`npm run dev` 时可用）。Remotion 静态服务器**拒绝服务符号链接**（默认 404），
   所以导出前会自动把 `public/` 解引用同步到 `.render-public/` 再渲染；命令行手动渲染同理：
   `npx remotion render src/remotion/index.ts Main out.mp4 --props=<{"project":…,"renderExact":true}> --public-dir=.render-public`

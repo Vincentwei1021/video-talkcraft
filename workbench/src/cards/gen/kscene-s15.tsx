@@ -2,10 +2,10 @@ import React from "react";
 import { AbsoluteFill, Easing, interpolate, useCurrentFrame } from "remotion";
 import type { CardDef } from "../types";
 import { shotTiming } from "../koubo-units";
-import { CameraRig, Plane } from "@kbsrc/camera";
-import { SHOTS } from "@kbsrc/shots";
-import { C, FONT } from "@kbsrc/theme";
-import { atChar } from "@kbsrc/timing";
+import { CameraRig, Plane } from "../../kb/camera";
+import { SHOTS } from "../../kb/shots";
+import { C, FONT } from "../../kb/theme";
+import { atChar } from "../../kb/timing";
 
 // kscene-s15 · 数字与趋势同拍 —— Scene15（metric-with-sparkline）逐镜参数化卡
 // 结构与 koubo-units 的 KouboShot 同构：KScale > Envelope > 底色 > CameraRig > 场景。
@@ -25,7 +25,7 @@ const Grid: React.FC<{ dark?: boolean }> = ({ dark }) => (
 );
 const AV = 0.048;
 const A = (si: number, q: string, occ = 0): number => atChar(si, q, occ) + AV;
-const ST = (n: number): number => SHOTS[n - 1].start;
+const ST = (n: number): number => (SHOTS[n - 1]?.start ?? 0);
 const ROLL_AT: number = A(21, "滚上去") - ST(15);
 const LINE_AT: number = A(21, "折线") - ST(15);
 

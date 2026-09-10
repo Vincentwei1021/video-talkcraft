@@ -2,8 +2,8 @@ import React from "react";
 import { AbsoluteFill, Easing, Img, interpolate, staticFile, useCurrentFrame } from "remotion";
 import type { CardDef } from "../types";
 import { shotTiming } from "../koubo-units";
-import { CameraRig, Plane } from "@kbsrc/camera";
-import { C, FONT, RADII, SHADOW_EVIDENCE } from "@kbsrc/theme";
+import { CameraRig, Plane } from "../../kb/camera";
+import { C, FONT, RADII, SHADOW_EVIDENCE } from "../../kb/theme";
 
 // kscene-s09 · 口播成片 Scene09「先细节 · 后全貌」逐镜参数化卡
 // 细节起手、拉开是一整张真 gallery 看板——「拉开」由镜头路径（shots.ts 的 slow-pull path）完成。

@@ -2,10 +2,10 @@ import React from "react";
 import { AbsoluteFill, Easing, interpolate, useCurrentFrame } from "remotion";
 import type { CardDef } from "../types";
 import { shotTiming } from "../koubo-units";
-import { CameraRig, Plane } from "@kbsrc/camera";
-import { C, FONT, RADII, SHADOW_EVIDENCE } from "@kbsrc/theme";
-import { atChar } from "@kbsrc/timing";
-import { SHOTS } from "@kbsrc/shots";
+import { CameraRig, Plane } from "../../kb/camera";
+import { C, FONT, RADII, SHADOW_EVIDENCE } from "../../kb/theme";
+import { atChar } from "../../kb/timing";
+import { SHOTS } from "../../kb/shots";
 
 // kscene-s04 · 口播成片 S04「video-talkcraft · 78 张配方卡」逐镜参数化卡
 // 已知边界：数字滚动落点踩「七十八」词锚（NumberRoll ≤26 帧到终值）、扇形卡错峰、
@@ -47,7 +47,7 @@ const power2Out = (x: number) => 1 - Math.pow(1 - x, 3);
 // 词级锚点：视觉节拍 = 字级时间戳 + 48ms 混音补偿（与成片 beats.json 同源）
 const AV = 0.048;
 const A = (si: number, q: string, occ = 0) => atChar(si, q, occ) + AV;
-const ST = (n: number) => SHOTS[n - 1].start;
+const ST = (n: number) => (SHOTS[n - 1]?.start ?? 0);
 
 interface Props {
   headPre?: string;
