@@ -121,6 +121,7 @@ const BehindTextTitle: React.FC<Props> = ({
       {/* 前景人物（实拍中来自抠像）：反向漂移。注意本卡人物层必须透底——
           标题要从身后穿出，故保留模板自带的透明剪影渐变，不用带白底的 HostSilhouette */}
       <div
+        className="wb-host-silhouette"
         style={{
           position: "absolute", zIndex: 2, left: "50%", bottom: 0,
           width: 470, height: 430,

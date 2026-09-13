@@ -110,9 +110,9 @@ const KSceneS23: React.FC<Props> = ({
     <KScale>
       <Envelope lead={T23.lead} tail={T23.tail} total={T23.total}>
         {/* 底色层：n=23 非 dark、非 ACT_ALT → Shell bg = C.bg */}
-        <AbsoluteFill style={{ background: C.bg }}>
+        <AbsoluteFill className="wb-shot-bg" style={{ background: C.bg }}>
           <CameraRig path={shot.path} impulses={shot.impulses} durationSec={shot.end - shot.start} leadFrames={T23.lead}>
-            <AbsoluteFill style={{ background: C.bg, color: C.ink, fontFamily: FONT.cn, overflow: "hidden" }}>
+            <AbsoluteFill className="wb-shot-bg" style={{ background: C.bg, color: C.ink, fontFamily: FONT.cn, overflow: "hidden" }}>
               <Plane depth={1}>
                 {/* 段1：开源宣言 */}
                 <div style={{ position: "absolute", left: act1X, top: act1Y, width: 900, opacity: 1 - second }}>

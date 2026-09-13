@@ -18,12 +18,20 @@ export const RemotionRoot: React.FC = () => {
     <>
       <Composition
         id="Main"
-        component={MainComposition as React.ComponentType<{ project: ProjectData; renderExact?: boolean }>}
+        component={
+          MainComposition as React.ComponentType<{
+            project: ProjectData;
+            renderExact?: boolean;
+            /** 透明通道导出：根底透明 + 去卡根层幕底（Composition.tsx ALPHA_CSS）；
+             *  配合 CLI --image-format=png --pixel-format=yuva444p10le|yuva420p 才真出 alpha */
+            transparent?: boolean;
+          }>
+        }
         durationInFrames={projectDuration(demo)}
         fps={demo.fps}
         width={demo.width}
         height={demo.height}
-        defaultProps={{ project: demo, renderExact: false }}
+        defaultProps={{ project: demo, renderExact: false, transparent: false }}
         calculateMetadata={({ props }) => ({
           // 导出成片（renderExact）用内容精确时长；Studio 预览留 1s 余量
           durationInFrames: props.renderExact

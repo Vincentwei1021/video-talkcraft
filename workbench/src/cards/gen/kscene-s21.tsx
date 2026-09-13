@@ -105,9 +105,9 @@ const KSceneS21: React.FC<Props> = ({
     <KScale>
       <Envelope lead={T21.lead} tail={T21.tail} total={T21.total}>
         {/* 底色层：s21 为 dark 镜头 → Shell bg = C.dark（Scene21 自带双幕全屏底色，此层照抄结构） */}
-        <AbsoluteFill style={{ background: act1Bg }}>
+        <AbsoluteFill className="wb-shot-bg" style={{ background: act1Bg }}>
           <CameraRig path={shot.path} impulses={shot.impulses} durationSec={shot.end - shot.start} leadFrames={T21.lead}>
-            <AbsoluteFill style={{ background: act1Bg, color: C.lightInk, fontFamily: FONT.cn, overflow: "hidden" }}>
+            <AbsoluteFill className="wb-shot-bg" style={{ background: act1Bg, color: C.lightInk, fontFamily: FONT.cn, overflow: "hidden" }}>
               <Plane depth={1}>
                 {/* 幕1：深色章节幕（左移 110% 出画） */}
                 <div style={{
@@ -153,6 +153,7 @@ const KSceneS21: React.FC<Props> = ({
 
 export const card: CardDef = {
   id: "kscene-s21",
+  alphaClear: ["act1Bg", "act2Bg"], // 两幕的满幅底板都是幕底：透明导出时一并清（只认 bgColor 的默认规则够不到）
   name: "章节与段落",
   category: "口播镜头",
   durationInFrames: T21.total,

@@ -35,6 +35,7 @@ camera moves, plain-cut subtitles, and film-grade SFX, all locked to the voice.
 
 **2026-09-11**
 
+- 🫥 **Workbench: right-click → export with alpha** — right-click any motion clip on the timeline to render just that clip as a transparent video (MOV ProRes 4444 or WebM VP9 alpha) with a transparent canvas, the card's root backdrop and host-silhouette placeholder stripped automatically, ready as an overlay in CapCut / Premiere / After Effects; the same menu carries split / duplicate / delete (→ `workbench/GUIDE.md` ⑦).
 - 📺 **Workbench live production board (L1)** — the workbench now attaches as soon as the ⑤-1 skeleton exists and stays open: a stage bar, a per-shot progress track (placeholder / implemented / rendered / passed / stale / open-issue dot), a shot view (single-shot preview, issues, SHOTBOOK excerpt) and a live composition card; status is derived from on-disk artifacts, `scripts/pipeline_state.mjs --pass/--issue` only records human verdicts, and half-written code no longer blanks the page (→ SKILL.md ⑤-2, `workbench/docs/live-pipeline.md`).
 - 🔗 **Hardened workbench project linking** — `kbsrc` now resolves through the real path, each contract module falls back to its stub individually, and `src/kb/` normalises export shapes: linking a regular skill-built project (`Main.tsx` + `scenes/`, no promo modules) no longer 500s the whole page, and "拆解导入" (split import) disables itself with a reason when the contract isn't met (→ `workbench/README.md`, "接入口播成片工程").
 

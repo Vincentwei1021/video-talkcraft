@@ -50,6 +50,9 @@ export interface CardDef {
   schema: PropField[];
   /** 素材库色签 */
   accent?: string;
+  /** 透明通道导出时要置为 transparent 的底色参数名（schema 里 color 类型）；`bgColor` 不用列，默认就清。
+   *  只列真正的幕底 / 纸底，别列动效本体的色块（exportJob.alphaProjectFor） */
+  alphaClear?: string[];
   /** 素材库不列出（仍注册、已存工程可引用）——接入工程形态不匹配的专属卡用 */
   hidden?: boolean;
 }
