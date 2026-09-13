@@ -6,6 +6,10 @@ import { Timeline } from "./timeline/Timeline";
 import { resetProject, useStore } from "./store";
 import { seekTo, togglePlay } from "./playerRef";
 import type { ProjectData } from "./types";
+import { StageBar } from "./pipeline/StageBar";
+import { CodeErrorToast } from "./pipeline/CodeErrorToast";
+import { connectPipeline } from "./pipeline/store";
+import { buildLiveProject, canBuildLive, isLiveProject } from "./kb/liveProject";
 
 const isEditable = (el: EventTarget | null) =>
   el instanceof HTMLElement &&
@@ -124,6 +128,14 @@ export const App: React.FC = () => {
   const [inspW, setInspW] = usePanelSize("wb-insp-w", 300);
   const [tlH, setTlH] = usePanelSize("wb-tl-h", 264);
 
+  // 实时看板：连 SSE；URL 带 ?live（SKILL ⑤-2 打开工作台用）且当前不是实时工程 → 直接装上接入工程的成片
+  useEffect(() => {
+    connectPipeline();
+    if (canBuildLive && new URLSearchParams(window.location.search).has("live") && !isLiveProject(useStore.getState().project)) {
+      useStore.getState().setProject(buildLiveProject());
+    }
+  }, []);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (isEditable(e.target)) return;
@@ -214,6 +226,7 @@ export const App: React.FC = () => {
           }}
         />
       </header>
+      <StageBar />
 
       <main className="main">
         <div className="panel-wrap" style={{ width: libW }}>
@@ -252,6 +265,7 @@ export const App: React.FC = () => {
       <div className="panel-wrap" style={{ height: tlH }}>
         <Timeline />
       </div>
+      <CodeErrorToast />
     </div>
   );
 };
