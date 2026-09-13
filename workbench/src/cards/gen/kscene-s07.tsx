@@ -2,9 +2,9 @@ import React from "react";
 import { AbsoluteFill, Easing, Img, interpolate, staticFile, useCurrentFrame } from "remotion";
 import type { CardDef } from "../types";
 import { shotTiming } from "../koubo-units";
-import { CameraRig, Plane } from "@kbsrc/camera";
-import { atChar } from "@kbsrc/timing";
-import { C, FONT, RADII, SHADOW_EVIDENCE } from "@kbsrc/theme";
+import { CameraRig, Plane } from "../../kb/camera";
+import { atChar } from "../../kb/timing";
+import { C, FONT, RADII, SHADOW_EVIDENCE } from "../../kb/theme";
 
 // kscene-s07 · 口播成片 Scene07「证据卡与 3D 页面」逐镜参数化卡
 // 结构与 KouboShot 同构：KScale > Envelope > 底色 > CameraRig > 场景内容。

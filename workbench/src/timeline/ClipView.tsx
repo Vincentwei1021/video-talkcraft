@@ -3,7 +3,7 @@ import type { ClipData } from "../types";
 import { CARDS } from "../cards/registry";
 import { useStore } from "../store";
 import { ContextMenu, type MenuItem } from "./ContextMenu";
-import { alphaProjectFor, startExport } from "../exportJob";
+import { alphaProjectFor, startExport, useExportStore } from "../exportJob";
 
 const SNAP_PX = 6;
 
@@ -125,6 +125,7 @@ export const ClipView: React.FC<{
     const s = useStore.getState();
     const inside = s.playhead > clip.start && s.playhead < clip.start + clip.duration;
     const noVisual = card?.kind === "audio";
+    const busy = useExportStore.getState().job?.status === "running"; // dev server 同时只跑一个渲染
     return [
       { label: "在播放头处分割", hint: "S", disabled: !inside, onClick: () => s.splitClip(clip.id, s.playhead) },
       { label: "复制", hint: "⌘D", onClick: () => s.duplicateClip(clip.id) },
@@ -132,14 +133,14 @@ export const ClipView: React.FC<{
       { label: "", sep: true },
       {
         label: "导出透明通道 · MOV",
-        hint: noVisual ? "音频片段没有画面" : "ProRes 4444 · 剪映 / PR / AE",
-        disabled: noVisual,
+        hint: noVisual ? "音频片段没有画面" : busy ? "已有渲染在进行中" : "ProRes 4444 · 剪映 / PR / AE",
+        disabled: noVisual || busy,
         onClick: () => exportAlpha("mov"),
       },
       {
         label: "导出透明通道 · WebM",
-        hint: noVisual ? "音频片段没有画面" : "VP9 alpha · 小体积 / 网页",
-        disabled: noVisual,
+        hint: noVisual ? "音频片段没有画面" : busy ? "已有渲染在进行中" : "VP9 alpha · 小体积 / 网页",
+        disabled: noVisual || busy,
         onClick: () => exportAlpha("webm"),
       },
     ];

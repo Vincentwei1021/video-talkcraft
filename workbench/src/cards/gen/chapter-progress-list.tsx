@@ -87,7 +87,7 @@ const ChapterProgressList: React.FC<Props> = ({
       background: bg, color: "#f5f5f7", overflow: "hidden", fontFamily: FONT_STACK,
     }}>
       {/* 左侧人物列：模板原生透明剪影，alpha 数字人直接落在暗场里 */}
-      <div style={{ position: "absolute", left: 36, bottom: 0, width: 448, height: "100%" }}>
+      <div className="wb-host-silhouette" style={{ position: "absolute", left: 36, bottom: 0, width: 448, height: "100%" }}>
         <div style={{
           position: "absolute", inset: 0, display: "flex",
           alignItems: "flex-end", justifyContent: "center", background: "transparent",

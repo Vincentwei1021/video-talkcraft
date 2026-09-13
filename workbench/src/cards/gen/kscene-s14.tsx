@@ -2,10 +2,10 @@ import React from "react";
 import { AbsoluteFill, Easing, Img, interpolate, staticFile, useCurrentFrame } from "remotion";
 import type { CardDef } from "../types";
 import { shotTiming } from "../koubo-units";
-import { CameraRig, Plane } from "@kbsrc/camera";
-import { SHOTS } from "@kbsrc/shots";
-import { C, FONT, RADII, SHADOW_EVIDENCE } from "@kbsrc/theme";
-import { atChar } from "@kbsrc/timing";
+import { CameraRig, Plane } from "../../kb/camera";
+import { SHOTS } from "../../kb/shots";
+import { C, FONT, RADII, SHADOW_EVIDENCE } from "../../kb/theme";
+import { atChar } from "../../kb/timing";
 
 // kscene-s14 · 放大镜看细节 —— Scene14（magnifier-detail）逐镜参数化卡
 // 结构与 koubo-units 的 KouboShot 同构：KScale > Envelope > 底色 > CameraRig > 场景。
@@ -35,7 +35,7 @@ const BrowserCard: React.FC<{ style?: React.CSSProperties; children?: React.Reac
 );
 const AV = 0.048;
 const A = (si: number, q: string, occ = 0): number => atChar(si, q, occ) + AV;
-const ST = (n: number): number => SHOTS[n - 1].start;
+const ST = (n: number): number => (SHOTS[n - 1]?.start ?? 0);
 const AT: number = A(20, "放大镜") - ST(14);
 
 // skill-page.png 与目标词「必须带 idle 微动」实测 rect（源自 PromoScenes，FIXED）

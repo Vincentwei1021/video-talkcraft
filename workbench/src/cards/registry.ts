@@ -5,6 +5,7 @@ import { countBadgeTitleCard } from "./count-badge-title";
 import { highlighterSweepCard } from "./highlighter-sweep";
 import { chapterTitleCardCard } from "./chapter-title-card";
 import { kouboPromoCard } from "./koubo-promo";
+import { kbMainCard } from "./kb-main";
 import {
   audioClipCard,
   kouboEnvironmentCard,
@@ -32,6 +33,7 @@ const CORE_CARDS: CardDef[] = [
   highlighterSweepCard,
   chapterTitleCardCard,
   kouboPromoCard,
+  kbMainCard,
   kouboShotCard,
   kouboHostCard,
   kouboSubtitleLineCard,

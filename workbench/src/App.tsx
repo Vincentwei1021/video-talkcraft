@@ -7,6 +7,10 @@ import { resetProject, useStore } from "./store";
 import { seekTo, togglePlay } from "./playerRef";
 import type { ProjectData } from "./types";
 import { revealExport, startExport, useExportStore } from "./exportJob";
+import { StageBar } from "./pipeline/StageBar";
+import { CodeErrorToast } from "./pipeline/CodeErrorToast";
+import { connectPipeline } from "./pipeline/store";
+import { buildLiveProject, canBuildLive, isLiveProject } from "./kb/liveProject";
 
 const isEditable = (el: EventTarget | null) =>
   el instanceof HTMLElement &&
@@ -122,11 +126,9 @@ const ExportToast: React.FC = () => {
           失败：{(job.lastLine ?? "").slice(0, 60)}
         </span>
       )}
-      {job.status !== "running" && (
-        <button className="mini" title="关闭" onClick={() => setJob(null)}>
-          ✕
-        </button>
-      )}
+      <button className="mini" title={job.status === "running" ? "关闭提示（渲染继续；任务若已在服务端丢失可借此解锁）" : "关闭"} onClick={() => setJob(null)}>
+        ✕
+      </button>
     </div>
   );
 };
@@ -143,6 +145,14 @@ export const App: React.FC = () => {
   const [libW, setLibW] = usePanelSize("wb-lib-w", 224);
   const [inspW, setInspW] = usePanelSize("wb-insp-w", 300);
   const [tlH, setTlH] = usePanelSize("wb-tl-h", 264);
+
+  // 实时看板：连 SSE；URL 带 ?live（SKILL ⑤-2 打开工作台用）且当前不是实时工程 → 直接装上接入工程的成片
+  useEffect(() => {
+    connectPipeline();
+    if (canBuildLive && new URLSearchParams(window.location.search).has("live") && !isLiveProject(useStore.getState().project)) {
+      useStore.getState().setProject(buildLiveProject());
+    }
+  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -234,6 +244,7 @@ export const App: React.FC = () => {
           }}
         />
       </header>
+      <StageBar />
 
       <main className="main">
         <div className="panel-wrap" style={{ width: libW }}>
@@ -272,7 +283,10 @@ export const App: React.FC = () => {
       <div className="panel-wrap" style={{ height: tlH }}>
         <Timeline />
       </div>
-      <ExportToast />
+      <div className="toast-stack">
+        <CodeErrorToast />
+        <ExportToast />
+      </div>
     </div>
   );
 };

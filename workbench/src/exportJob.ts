@@ -47,7 +47,18 @@ export const startExport = async (req: ExportRequest, kind: ExportJobState["kind
   setJob({ id: j.id, kind, title, status: "running", progress: 0 });
   window.clearInterval(timer);
   timer = window.setInterval(async () => {
-    const rr = await fetch(`/api/export/${j.id}`);
+    let rr: Response;
+    try {
+      rr = await fetch(`/api/export/${j.id}`);
+    } catch {
+      return; // 网络抖动：下一秒再问
+    }
+    if (rr.status === 404) {
+      // 任务在服务端没了（dev server 重启会清空任务表）：不能永远停在 running——两个导出入口都会被互斥锁死
+      window.clearInterval(timer);
+      setJob({ id: j.id, kind, title, status: "error", progress: 0, lastLine: "任务在服务端丢失（dev server 重启？）——请重新导出" });
+      return;
+    }
     if (!rr.ok) return;
     const s = await rr.json();
     setJob({ id: j.id, kind, title, ...s });
@@ -57,17 +68,20 @@ export const startExport = async (req: ExportRequest, kind: ExportJobState["kind
 
 export const revealExport = (id: string) => fetch(`/api/export/${id}/reveal`, { method: "POST" });
 
-/** 底色类参数名：透明导出时置为 transparent（口播镜头卡 kscene-* 的 bgColor 等）。
- *  只按 schema 里 color 类型且名字是底色的字段判，不碰强调色 / 墨色。 */
-const BG_PROP = /^(bg|bgColor|background|backgroundColor|baseColor|paper)$/i;
+/** 透明导出时置为 transparent 的底色参数：只认 `bgColor`（口播镜头卡 kscene-* 的幕底参数，全部 20 处都是幕底），
+ *  其余卡若要清某个底色参数，在 CardDef.alphaClear 里显式列出。
+ *  不再按名字猜（原 bg / background / baseColor / paper 一并清）：chart-grow 的 baseColor 是"普通柱色"、
+ *  chapter-title-card 的 bg 是滑入色板——都是动效本体，清掉就是删内容（2026-09-13 评审 P1）。 */
+const BG_PROP = /^bgColor$/;
 
 /** 单段透明导出用的最小工程：只含这一段、起点归零、时长精确、底色参数置透明；
  *  图层透明度 / 缩放 / 位移保留（它们是这段的造型）。不改用户工程本身。 */
 export const alphaProjectFor = (project: ProjectData, clip: ClipData, label: string): ProjectData => {
   const card = CARDS[clip.cardId];
   const props: Record<string, unknown> = { ...clip.props };
+  const explicit = new Set(card?.alphaClear ?? []);
   for (const f of card?.schema ?? []) {
-    if (f.type === "color" && BG_PROP.test(f.key)) props[f.key] = "transparent";
+    if (f.type === "color" && (BG_PROP.test(f.key) || explicit.has(f.key))) props[f.key] = "transparent";
   }
   return {
     name: label,

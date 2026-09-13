@@ -152,7 +152,7 @@ const HostShrinkToChip: React.FC<Props> = ({
           willChange: "transform",
         }}>
           {/* 模板原生透明剪影：白底会把对侧入场的图形卡糊掉，故不用 shared HostSilhouette */}
-          <div style={{
+          <div className="wb-host-silhouette" style={{
             position: "absolute", inset: 0, display: "flex",
             alignItems: "flex-end", justifyContent: "center", background: "transparent",
           }}>

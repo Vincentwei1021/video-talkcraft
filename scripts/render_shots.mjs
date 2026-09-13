@@ -22,8 +22,10 @@
 //        [--audio out/full-mix.wav] [--force-audio]        # 整条音轨（缓存过时长+指纹校验才复用）
 //        [--audio-concurrency 4]                           # 音轨渲染并发 tab 数（音轨无光栅问题，不受视频段单并发纪律约束）
 //        [--mux out/preview.mp4]                           # assembled + audio → 有声预览
-//        [--preview-dir out/preview]                        # 本次渲的每一段各出一条有声单镜预览 <dir>/<id>.mp4（段视频 + 整条音轨对应区间），
-//                                                           #   配 --only s01 + --audio 用：首镜验效 / 逐镜节奏（SKILL.md ⑥-1.5），不必等整片拼装
+//        [--preview-dir out/preview]                        # 本次渲的每一段各出一条有声单镜预览 <dir>/<id>.mp4，不必等整片拼装：
+//                                                           #   配 --audio：声音从整条音轨按段边界裁（⑥-1.5 逐镜节奏，整条音轨反正要渲）
+//        [--seg-audio]                                      # 配 --preview-dir：只渲本次各段自己区间的音频，不渲、不缓存整条音轨——
+//                                                           #   ⑤-1 首镜先做先确认用（其余镜头还是占位，整条音轨没意义）；与 --audio 二选一，不能配 --mux
 //        [--props '{"k":1}' | --props @props.json]         # 合成 inputProps（工作台 Main 等吃工程 JSON 的合成必须给）
 //        [--public-dir .render-public]                     # 覆盖 public/（Remotion 静态服务器拒绝符号链接素材时先解引用同步）
 //        [--image-format png|jpeg] [--jpeg-quality 95] [--crf 18]   # 中间帧/编码：覆盖 remotion.config.ts；不给则读配置，配置没设用 Remotion 默认（JPEG-80）
@@ -61,6 +63,17 @@ if (!Number.isInteger(parallel) || parallel < 1) {   // NaN→0 个 worker 会�
   console.error(`--parallel 需为 ≥1 的整数，得到：${opt('parallel', '4')}`);
   process.exit(2);
 }
+// 输出侧参数先校验再 bundle：参数组合错了不该等段渲完才知道
+const audioOut = opt('audio', null);
+const previewDir = opt('preview-dir', null);
+const muxOut = opt('mux', null);
+const segAudio = has('seg-audio');
+if (segAudio) {   // 预览专用的段音频：只服务 --preview-dir，绝不进拼装 / 交付（纪律 A）
+  if (!previewDir) { console.error('--seg-audio 只配 --preview-dir 用（单镜预览的段音频）'); process.exit(2); }
+  if (audioOut) { console.error('--seg-audio 与 --audio 二选一：要整条音轨就别开 --seg-audio'); process.exit(2); }
+  if (muxOut) { console.error('--mux 需要整条音轨（纪律 A：音轨整条不分段）——请用 --audio，不能用 --seg-audio'); process.exit(2); }
+}
+if (previewDir && !audioOut && !segAudio) { console.error('--preview-dir 需要 --audio（整条音轨裁段）或 --seg-audio（只渲本段音频）'); process.exit(2); }
 
 const require = createRequire(path.join(projDir, 'package.json'));
 const {bundle} = require('@remotion/bundler');
@@ -262,7 +275,6 @@ const audioFingerprint = () => {
   };
 };
 const FP_LABEL = {assets: 'public/ 音频素材变了（换过配音/SFX 文件）', props: 'inputProps 变了（--props 内容不同：工程 JSON 里的音效位置/音量等）', timing: '音频时序配置文件变了（beats/cues/sfx 等）'};
-const audioOut = opt('audio', null);
 if (audioOut) {
   const fpFile = `${audioOut}.fp.json`;
   const fp = audioFingerprint();
@@ -301,15 +313,30 @@ if (audioOut) {
   }
 }
 
-// —— 单镜有声预览（SKILL.md ⑥-1.5 首镜验效 / 逐镜节奏）：本次渲的每段 + 整条音轨的对应区间 → <preview-dir>/<id>.mp4 ——
-//   音轨仍整条渲一次（纪律 A 不破），预览只是从整条里按段边界裁一刀；帧边界与段表同一 Math.round 规则（纪律 B）
-const previewDir = opt('preview-dir', null);
+// —— 单镜有声预览（⑤-1 首镜先做先确认 / ⑥-1.5 逐镜节奏）：本次渲的每段 → <preview-dir>/<id>.mp4 ——
+//   声音两条路：--audio 从整条音轨按段边界裁一刀（帧边界与段表同一 Math.round 规则，纪律 B）；
+//   --seg-audio 只渲该段 frameRange 的音频（⑤-1 时其余镜头都是占位，整条音轨没意义，也省掉那 3 分钟）。
+//   段音频只活在这条预览里：渲完即删，不落 seg-dir、不写指纹——拼装 / 交付永远走 --audio 整条音轨（纪律 A）。
 if (previewDir) {
-  if (!audioOut) { console.error('--preview-dir 需要同时给 --audio（单镜预览的声音从整条音轨裁）'); process.exit(2); }
   if (!todo.length) console.warn('--preview-dir：本次没有渲任何段（缓存全在）——要出预览请配 --only <id>');
   fs.mkdirSync(previewDir, {recursive: true});
   for (const seg of todo) {
     const out = path.join(previewDir, `${seg.id}.mp4`);
+    if (segAudio) {
+      const st = Date.now();
+      const segWav = path.join(previewDir, `${seg.id}.audio.rendering.wav`);
+      await renderMedia({composition, serveUrl, codec: 'wav', outputLocation: segWav, inputProps, ...renderOpts,
+        frameRange: [seg.from, seg.to], imageFormat: 'none', concurrency: audioConcurrency});
+      const gotA = probeDurationFrames(segWav);
+      if (!(Math.abs(gotA - seg.frames) <= 1)) { console.error(`FAIL: 段音频 ${seg.id} 时长 ${gotA} 帧 != 段 ${seg.frames} 帧（文件留在 ${segWav}）`); process.exit(1); }
+      execFileSync('ffmpeg', ['-y', '-v', 'error', '-i', seg.file, '-i', segWav,
+        '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '256k', '-shortest', out]);
+      fs.unlinkSync(segWav);
+      const got = probeFrames(out);
+      if (got !== seg.frames) { console.error(`FAIL: 预览 ${seg.id} 帧数 ${got} != ${seg.frames}`); process.exit(1); }
+      console.log(`preview → ${out}  ${seg.id} 帧 ${seg.from}-${seg.to} + 本段音频 ${(seg.frames / fps).toFixed(2)}s（段音频 ${((Date.now() - st) / 1000).toFixed(0)}s，预览专用已删）✓`);
+      continue;
+    }
     execFileSync('ffmpeg', ['-y', '-v', 'error', '-i', seg.file,
       '-ss', (seg.from / fps).toFixed(6), '-t', (seg.frames / fps).toFixed(6), '-i', audioOut,
       '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '256k', '-shortest', out]);
@@ -320,7 +347,6 @@ if (previewDir) {
 }
 
 // —— 混入音轨（预览口径；交付仍走 SKILL.md ⑧ 的 loudnorm）——
-const muxOut = opt('mux', null);
 if (muxOut) {
   if (!concatOut || !audioOut) { console.error('--mux 需要同时给 --concat 与 --audio'); process.exit(2); }
   execFileSync('ffmpeg', ['-y', '-v', 'error', '-i', concatOut, '-i', audioOut,

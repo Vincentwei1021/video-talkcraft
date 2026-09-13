@@ -93,7 +93,7 @@ npm run dev          # http://localhost:5199
 
 - 预览用 `@remotion/player` 实时渲染，所见即导出所得（同一套 Remotion 合成）。
 - **⏮** 回到开头 · **▶ / ⏸** 播放暂停（空格）· **时间码** 当前位置 / 工程总长 · **循环** 到尾自动回头。
-- 右侧显示合成尺寸与帧率（默认 960×540 · 30fps；拆解导入的口播工程沿用原片参数）。
+- 右侧显示合成尺寸与帧率（默认 960×540 · 30fps；拆解导入沿用原片参数；实时看板工程直接用接入工程的原尺寸与帧率，Player 自适应缩放）。
 - **← / →** 步进 1 帧，**Shift + ← / →** 步进 10 帧，播放头与时间轨同步。
 
 ## ④ 属性面板
@@ -142,7 +142,8 @@ npm run dev          # http://localhost:5199
 
 ## ⑥ 口播成片拆解
 
-需要先接入口播成片工程。点素材 tab 顶部的「⇣ 拆解导入：口播成片」，原片被拆成七类独立单元，
+需要先接入口播成片工程（README「接入口播成片工程」；须是 promo 形态——有 PromoScenes / camera / Host / Environment / timing 模块。
+接入 skill 正式产出的工程时按钮会禁用并说明原因，其余功能照常）。点素材 tab 顶部的「⇣ 拆解导入：口播成片」，原片被拆成七类独立单元，
 每一项都成了可以单独挪动、改参数、删掉的片段：
 
 ![拆解导入后的总览](docs/img/12-koubo-import.png)
@@ -183,7 +184,8 @@ npm run dev          # http://localhost:5199
 
 做法：把这一段单独装进一个最小工程（起点归零、时长精确、图层透明度 / 缩放 / 位移保留），以 `transparent` 模式渲染——
 根底透明，并去掉**卡根层**的幕底（108 张卡的根 AbsoluteFill 都画了中性白 / 深底）、人物剪影占位（HostSilhouette）与
-口播镜头卡的底色层（`wb-shot-bg` 标记 + 底色类参数 `bgColor` 置透明）；卡内部的色块 / 底板 / 转场色面是动效本体，不动。
+口播镜头卡的底色层（`wb-shot-bg` 标记 + 幕底参数 `bgColor` 置透明；**只认 `bgColor` 这一个名字**，其余卡要清某个底色参数须在 CardDef.alphaClear 显式列出——
+不按名字猜，因为 chart-grow 的 baseColor 是柱色、chapter-title-card 的 bg 是滑入色板，那是动效本体）；卡内部的色块 / 底板 / 转场色面是动效本体，不动。
 Remotion CLI 参数按官方透明渲染文档：`--image-format=png` + alpha 像素格式 + prores 4444 / vp9，`--muted` 不带音轨（叠加素材的声音归目标剪辑软件管）。
 输出 `exports/<片段标签>-<时间>-alpha.mov|webm`。
 
@@ -198,6 +200,17 @@ node ../scripts/render_shots.mjs --shots shots.json --entry src/remotion/index.t
      --props @project.json --public-dir .render-public --all --parallel 4 \
      --concat out/assembled.mp4 --audio out/full-mix.wav --mux out/preview.mp4
 ```
+
+## ⑧ 制作全程实时看板
+
+接入 skill 正式产出的工程（README「接入口播成片工程」）后，顶栏下多出一条**阶段栏**，时间轨最上面多出一条**进度轨**：
+
+- 阶段栏：①…⑧ 当前步高亮，hover 看该步的产物；右侧是镜头计数（占位 / 已实现 / 已渲 / 已过 / 过期 / P0-P1）和直播点（绿 = 实时连接中）。
+  「⟳」按盘上产物重算一次；「▶ 接入实时看板」把工程主合成装进时间线（或打开 `http://localhost:5199/?live` 直接进入）。
+- 进度轨：一镜一块，颜色即状态（灰 占位 · 蓝 已实现 · 青 已渲 · 绿 已过闸），黄框 = 场景文件比渲出的段新（该重渲），红点 = 有未清 P0/P1。
+  点一块：播放头跳到该镜，右侧属性面板变成镜头视图——区间、场景文件、渲出时间、单镜有声预览（可直接播）、未清 issues、评审提及（REVIEW 自动抽取）、SHOTBOOK 段落。
+- 制作中 agent 每存一次盘预览就刷新；代码写到一半有语法错时不会盖住整个工作台，只在右下角提示、画面停在上一版；某个片段渲染报错只把那一格画红。
+- 状态怎么来的、agent 什么时候写 `pipeline.json`：README「制作全程实时看板」与 SKILL.md ⑤-2。
 
 ## 快捷键
 

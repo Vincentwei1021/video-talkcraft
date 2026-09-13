@@ -3,6 +3,7 @@ import { projectDuration, useStore } from "../store";
 import { Ruler } from "./Ruler";
 import { ClipView } from "./ClipView";
 import { DRAG_MIME, readDragPayload } from "../dnd";
+import { ProgressTrack } from "../pipeline/ProgressTrack";
 
 const HEADER_W = 140;
 
@@ -169,6 +170,8 @@ export const Timeline: React.FC = () => {
             <div className="tl-corner" style={{ width: HEADER_W }} />
             <Ruler durationFrames={duration} contentW={contentW} />
           </div>
+          {/* 接入工程的制作进度（实时看板 L1）：未链接 / 无 shots.json 时不渲染 */}
+          <ProgressTrack headerW={HEADER_W} contentW={contentW} />
 
           {project.tracks.map((track) => (
             <div

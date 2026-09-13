@@ -2,10 +2,10 @@ import React from "react";
 import { AbsoluteFill, Easing, interpolate, useCurrentFrame } from "remotion";
 import type { CardDef } from "../types";
 import { shotTiming } from "../koubo-units";
-import { CameraRig, Plane } from "@kbsrc/camera";
-import { SHOTS } from "@kbsrc/shots";
-import { FONT } from "@kbsrc/theme";
-import { atChar } from "@kbsrc/timing";
+import { CameraRig, Plane } from "../../kb/camera";
+import { SHOTS } from "../../kb/shots";
+import { FONT } from "../../kb/theme";
+import { atChar } from "../../kb/timing";
 
 // kscene-s11 · 讲到哪 · 亮到哪 —— Scene11（focus-dim-spotlight）逐镜参数化卡
 // 结构与 koubo-units 的 KouboShot 同构：KScale > Envelope > 底色 > CameraRig > 场景。
@@ -18,7 +18,7 @@ const { shot, lead, tail, total } = shotTiming(IDX);
 // —— 词锚（PromoScenes 同式）：视觉节拍 = 字级时间戳 + 0.048s 混音补偿 ——
 const AV = 0.048;
 const A = (si: number, q: string, occ = 0): number => atChar(si, q, occ) + AV;
-const ST = (n: number): number => SHOTS[n - 1].start;
+const ST = (n: number): number => (SHOTS[n - 1]?.start ?? 0);
 const S1: number = A(17, "亮") - ST(11);
 const S2: number = A(17, "压暗") - ST(11);
 
