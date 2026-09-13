@@ -2,6 +2,6 @@
 import type React from "react";
 import * as real from "@kbsrc/Host";
 import * as stub from "../../kbsrc-stub/Host";
-import { fnOr } from "./pick";
+import { compOr } from "./pick";
 
-export const Host: React.FC = fnOr(real.Host, stub.Host);
+export const Host: React.FC = compOr(real.Host, stub.Host);

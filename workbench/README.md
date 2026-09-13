@@ -59,7 +59,9 @@ for f in /path/to/<口播工程>/remotion/public/*; do ln -sfn "$f" "public/$(ba
 - **契约模块 = `kbsrc-stub/` 里的每个文件**（camera / Environment / Host / PromoScenes / Subtitles / theme / timing / longtake / shots / sfx / cards/…）：
   接入工程有同名文件就用真实的，没有就那一个模块回退 stub——缺文件只影响用到它的卡，不再整页 500。
 - 导出形态差异（有文件但缺某个导出、字段改名，如 `CUES` vs `SFX_CUES`、shots 无 `label` / `darkAt`）由 `src/kb/*.ts` 适配层归一，
-  工作台源码只从 `src/kb/` 取接入工程的东西，不直接 `import "@kbsrc/…"`。
+  工作台源码只从 `src/kb/` 取接入工程的**命名导出**，不直接 `import { x } from "@kbsrc/…"`（缺导出 = ESM 链接期 SyntaxError 整页挂）；
+  文件级契约的**默认导出**（如 `@kbsrc/cards/pencil-sketch-draw`）可以直接 import——缺文件时整个模块回退 stub，不存在缺导出问题。
+  组件类导出用 `compOr`（认 memo / forwardRef 对象），hook / 普通函数用 `fnOr`；分镜表同时认 `start/end` 与模板的 `startSec/durationSec`。
 - **两种接入形态**：口播成片 promo 工程（全部契约模块都有）→ 拆解导入 / 逐镜参数化 / 数字人 / 环境全可用；
   skill 正式产出的工程（`Main.tsx` + `scenes/` + `motion-systems/`，没有 PromoScenes 等模块）→ 页面、素材、导出照常，
   「拆解导入」按钮禁用并说明原因（`kbMeta.ts` 的 `KB_PROMO=false`），promo 专属卡不进素材库。

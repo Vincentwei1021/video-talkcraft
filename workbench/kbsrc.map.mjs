@@ -70,9 +70,22 @@ export const kbsrcMap = (root) => {
     .sort((a, b) => b.id.length - a.id.length || a.id.localeCompare(b.id));
 
   const srcDir = realSrc ?? stubDir;
-  // 约定链接目标是 <工程>/remotion/src；remotionDir = <工程>/remotion，projectRoot = <工程>
-  const remotionDir = realSrc ? path.dirname(realSrc) : null;
-  const projectRoot = remotionDir ? path.dirname(remotionDir) : null;
+  // remotionDir = 链接目标向上最近的含 package.json / remotion.config.* 的目录（常规 <工程>/remotion；扁平工程就是 <工程> 本身）；
+  // projectRoot = remotionDir 叫 remotion、或其父目录有 SHOTBOOK.md / script.json 等工程标记时取父目录，否则就是 remotionDir。
+  // 不能硬取上两层：链接到 <工程>/src 时会把工程的父目录（如 ~/personal）整个放进 Vite server.fs.allow（2026-09-13 审计）。
+  const hasPkg = (d) => ["package.json", "remotion.config.ts", "remotion.config.js", "remotion.config.mjs"].some((f) => existsSync(path.join(d, f)));
+  const isProjRoot = (d) => ["SHOTBOOK.md", "script.json", "review", "audio"].some((f) => existsSync(path.join(d, f)));
+  let remotionDir = null;
+  if (realSrc) {
+    for (let d = path.dirname(realSrc), i = 0; i < 4 && d !== path.dirname(d); d = path.dirname(d), i++) {
+      if (hasPkg(d)) { remotionDir = d; break; }
+    }
+    remotionDir ??= path.dirname(realSrc);
+  }
+  const parentDir = remotionDir ? path.dirname(remotionDir) : null;
+  const projectRoot = remotionDir
+    ? (path.basename(remotionDir) === "remotion" || isProjRoot(parentDir)) && parentDir !== remotionDir ? parentDir : remotionDir
+    : null;
 
   return {
     linked,

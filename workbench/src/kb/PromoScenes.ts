@@ -2,6 +2,6 @@
 import type React from "react";
 import * as real from "@kbsrc/PromoScenes";
 import * as stub from "../../kbsrc-stub/PromoScenes";
-import { fnOr } from "./pick";
+import { compOr } from "./pick";
 
-export const PromoScene: React.FC<Record<string, unknown>> = fnOr(real.PromoScene, stub.PromoScene);
+export const PromoScene: React.FC<Record<string, unknown>> = compOr(real.PromoScene, stub.PromoScene);
