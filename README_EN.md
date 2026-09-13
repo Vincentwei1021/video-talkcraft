@@ -33,6 +33,10 @@ camera moves, plain-cut subtitles, and film-grade SFX, all locked to the voice.
 ## 🆕 What's new
 <!-- Style rule: one sentence per entry, ≤ 350 characters including the pointer link, stating what it is and what behaviour changed; details, parameters and card lists point to references / SKILL.md sections instead of being expanded here. Keep zh and en in sync. Set by PR #12 (2026-09-05); #14/#18 drifted back to long paragraphs, tightened again 2026-09-07. -->
 
+**2026-09-09**
+
+- 🎬 **First shot before the rest** — step ⑤ now scaffolds the whole composition with placeholder shots, builds only the sample shot, renders it as a single-shot preview with `--seg-audio` (no full audio track) for user sign-off, and only then builds the remaining shots; ⑥-1.5 keeps just the "full render or shot by shot" question (→ SKILL.md ⑤-1).
+
 **2026-09-07**
 
 - ✏️ **G5 line-art schematic system** — every text-only shot must carry an icon + box + arrow line drawing, text is never placed bare, at least one visible change per sentence, and preflight WARNs when that companion row is missing (→ `template/motion-systems/schematic.tsx`, `references/schematic.md`).
