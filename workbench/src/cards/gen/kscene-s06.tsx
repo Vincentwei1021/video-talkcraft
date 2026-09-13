@@ -2,9 +2,9 @@ import React from "react";
 import { AbsoluteFill, Easing, Img, interpolate, staticFile, useCurrentFrame } from "remotion";
 import type { CardDef } from "../types";
 import { shotTiming } from "../koubo-units";
-import { CameraRig, Plane } from "@kbsrc/camera";
-import { atChar } from "@kbsrc/timing";
-import { C, FONT } from "@kbsrc/theme";
+import { CameraRig, Plane } from "../../kb/camera";
+import { atChar } from "../../kb/timing";
+import { C, FONT } from "../../kb/theme";
 
 // kscene-s06 · 口播成片 Scene06「人物让台 · 素材上桌」逐镜参数化卡
 // 结构与 KouboShot 同构：KScale > Envelope > 底色 > CameraRig > 场景内容。
@@ -117,7 +117,7 @@ const SceneS06: React.FC<Props> = ({
   return (
     <KScale>
       <Envelope lead={LEAD} tail={TAIL} total={TOTAL}>
-        <AbsoluteFill style={{ background: bgColor }}>
+        <AbsoluteFill className="wb-shot-bg" style={{ background: bgColor }}>
           <CameraRig path={SHOT.path} impulses={SHOT.impulses} durationSec={SHOT.end - SHOT.start} leadFrames={LEAD}>
             <AbsoluteFill style={{ background: bgColor, color: C.ink, fontFamily: FONT.cn, overflow: "hidden" }}>
               <Plane depth={1}>

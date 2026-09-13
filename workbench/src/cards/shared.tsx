@@ -39,6 +39,7 @@ export const FONT_STACK =
 /** 主持人占位剪影（演示语境素材，不属于动效本体） */
 export const HostSilhouette: React.FC = () => (
   <div
+    className="wb-host-silhouette" // 透明通道导出时整块隐藏（占位剪影不是动效本体）
     style={{
       position: "absolute",
       inset: 0,

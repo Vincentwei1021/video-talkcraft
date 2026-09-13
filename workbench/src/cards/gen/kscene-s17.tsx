@@ -2,9 +2,9 @@ import React from "react";
 import { AbsoluteFill, Easing, interpolate, useCurrentFrame } from "remotion";
 import type { CardDef } from "../types";
 import { shotTiming } from "../koubo-units";
-import { CameraRig, Plane } from "@kbsrc/camera";
-import { C, FONT } from "@kbsrc/theme";
-import { atChar } from "@kbsrc/timing";
+import { CameraRig, Plane } from "../../kb/camera";
+import { C, FONT } from "../../kb/theme";
+import { atChar } from "../../kb/timing";
 
 // kscene-s17 · 三步流程 —— 口播成片 Scene17 的逐镜参数化卡
 // 已知边界：词锚时刻（A(23,'竖线')/A(23,'这一步')）、线的 2.6s 描画、节点由缓动反函数
@@ -102,7 +102,7 @@ const KsceneS17: React.FC<Props> = ({
   return (
     <KScale>
       <Envelope lead={TIMING.lead} tail={TIMING.tail} total={TIMING.total}>
-        <AbsoluteFill style={{ background: bgColor }}>
+        <AbsoluteFill className="wb-shot-bg" style={{ background: bgColor }}>
           <CameraRig path={TIMING.shot.path} impulses={TIMING.shot.impulses} durationSec={TIMING.shot.end - TIMING.shot.start} leadFrames={TIMING.lead}>
             <AbsoluteFill style={{ background: bgColor, color: inkColor, fontFamily: FONT.cn, overflow: "hidden" }}>
               <Plane depth={1}>

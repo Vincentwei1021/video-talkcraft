@@ -2,9 +2,9 @@ import React from "react";
 import { AbsoluteFill, Easing, Img, interpolate, staticFile, useCurrentFrame } from "remotion";
 import type { CardDef } from "../types";
 import { shotTiming } from "../koubo-units";
-import { CameraRig, Plane } from "@kbsrc/camera";
-import { atChar } from "@kbsrc/timing";
-import { C, FONT, RADII, SHADOW_EVIDENCE } from "@kbsrc/theme";
+import { CameraRig, Plane } from "../../kb/camera";
+import { atChar } from "../../kb/timing";
+import { C, FONT, RADII, SHADOW_EVIDENCE } from "../../kb/theme";
 
 // kscene-s08 · 口播成片 Scene08「三站巡航」逐镜参数化卡
 // 真实长页在浏览器窗内随「巡航」下滚，三次停靠各套一枚 STOP 环。
@@ -101,7 +101,7 @@ const SceneS08: React.FC<Props> = ({
   return (
     <KScale>
       <Envelope lead={LEAD} tail={TAIL} total={TOTAL}>
-        <AbsoluteFill style={{ background: bgColor }}>
+        <AbsoluteFill className="wb-shot-bg" style={{ background: bgColor }}>
           <CameraRig path={SHOT.path} impulses={SHOT.impulses} durationSec={SHOT.end - SHOT.start} leadFrames={LEAD}>
             <AbsoluteFill style={{ background: bgColor, color: C.ink, fontFamily: FONT.cn, overflow: "hidden" }}>
               <Plane depth={1}>

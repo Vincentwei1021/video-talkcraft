@@ -21,6 +21,20 @@ import {S5Rebut} from './scenes/S5Rebut';
 import {S6Insight} from './scenes/S6Insight';
 import {S7Ending} from './scenes/S7Ending';
 
+/**
+ * ⑤-1 首镜先做先确认（SKILL.md）：合成骨架先搭全（全片时长 / SHOTS 全表 / 全局系统），
+ * 还没实现的镜头落到这个占位场景——只让幕底与字幕露出来，不写任何动效。
+ * 这样 render_shots 的段表 / 时长断言原样生效，样板镜就能先渲一条有声预览给用户看。
+ * 角落的小标签只提醒制作者“这镜还没做”，不是成片元素——全部镜头实现后 SCENES 覆盖它即消失。
+ */
+const PlaceholderScene: React.FC<{id: string}> = ({id}) => (
+  <AbsoluteFill style={{justifyContent: 'flex-end', alignItems: 'flex-end', padding: 24, pointerEvents: 'none'}}>
+    <div style={{fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 22, opacity: 0.35, color: C.text}}>
+      {id} · 占位（未实现）
+    </div>
+  </AbsoluteFill>
+);
+
 const SCENES: Record<string, React.FC> = {
   s1_hook: S1Hook,
   s2_event: S2Event,
@@ -77,7 +91,7 @@ export const MainVideo: React.FC = () => {
       <Audio src={staticFile('narration.wav')} />
       {SHOTS.map((shot) => {
         const {from, duration} = shotSequence(shot, fps);
-        const Scene = SCENES[shot.id];
+        const Scene = SCENES[shot.id];   // 未实现的镜头 → 占位（⑤-1）
         const narrationFrames = Math.round(shot.durationSec * fps);
         return (
           <Sequence key={shot.id} from={from} durationInFrames={duration}>
@@ -87,7 +101,7 @@ export const MainVideo: React.FC = () => {
               narrationFrames={narrationFrames}
               hardOut={shot.id === 's4_connes'}
             >
-              <Scene />
+              {Scene ? <Scene /> : <PlaceholderScene id={shot.id} />}
             </ShotFade>
           </Sequence>
         );

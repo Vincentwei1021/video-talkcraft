@@ -2,9 +2,9 @@ import React from "react";
 import { AbsoluteFill, Easing, interpolate, useCurrentFrame } from "remotion";
 import type { CardDef } from "../types";
 import { shotTiming } from "../koubo-units";
-import { CameraRig, Plane } from "@kbsrc/camera";
-import { C, FONT, RADII, SHADOW_EVIDENCE } from "@kbsrc/theme";
-import { atChar } from "@kbsrc/timing";
+import { CameraRig, Plane } from "../../kb/camera";
+import { C, FONT, RADII, SHADOW_EVIDENCE } from "../../kb/theme";
+import { atChar } from "../../kb/timing";
 
 // kscene-s16 · 术语卡进出 —— 口播成片 Scene16 的逐镜参数化卡
 // 已知边界：词锚时刻（A(22,'术语卡')）、进出场时长/错峰、相机路径全部 FIXED——
@@ -83,7 +83,7 @@ const KsceneS16: React.FC<Props> = ({
   return (
     <KScale>
       <Envelope lead={TIMING.lead} tail={TIMING.tail} total={TIMING.total}>
-        <AbsoluteFill style={{ background: bgColor }}>
+        <AbsoluteFill className="wb-shot-bg" style={{ background: bgColor }}>
           <CameraRig path={TIMING.shot.path} impulses={TIMING.shot.impulses} durationSec={TIMING.shot.end - TIMING.shot.start} leadFrames={TIMING.lead}>
             <AbsoluteFill style={{ background: bgColor, color: inkColor, fontFamily: FONT.cn, overflow: "hidden" }}>
               <Plane depth={1}>
