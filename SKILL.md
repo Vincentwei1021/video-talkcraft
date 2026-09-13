@@ -34,9 +34,28 @@ description: 终极口播视频 skill：中文口播稿 + 成品配音 → CPU �
 - **数字一律汉字**（时间戳按文本逐字锚定，`197747` 无法与"十九万七千"的读音对位）；英文品牌词直接写（中英混合对齐已验证）
 - 先调研核实事实，列"事实红线清单"（不可说错的数字/未验证数据不引用）
 
-## ② 配音输入 + 字级时间戳（本机 CPU）
+## ② 配音输入 → 预剪 → 字级时间戳（本机 CPU）
 **配音是输入，不是本 skill 的产物**：真人录音或任何 TTS 皆可，skill 不含合成技术。
 输入 = 一条完整配音（wav/mp3）+ 与之逐字一致的口播稿。
+
+**②-0 配音预剪（真人录音必做；TTS 只会压气口，可跳过）**——剪掉口水词（嗯 / 呃 / 那个…）、结巴重说、过长停顿，
+**在做时间戳之前**跑（时间戳做完再动音频 = timing / beats 全体错位；预剪 → 时间戳 → 一切后续，顺序不可换）：
+```bash
+python3 scripts/voice_trim.py audio/raw.wav script.json --dry-run --words-out audio/asr_words.json   # 先只出报告：逐条 [filler / repeat / pause] 起止 + 共剪多少；ASR 结果落盘
+python3 scripts/voice_trim.py audio/raw.wav script.json --words audio/asr_words.json --out audio/full.wav \
+    [--video dh/host_raw.mp4 --video-out dh/host.mp4]               # 用户认可后落盘（吃回上一步的词表，不再跑一次 ASR）；同一条录音的人物视频用同一 EDL 剪（音画逐帧同长）
+```
+- **稿子是真值，宁漏勿错**：只剪 ASR 里**稿子没有的插入段**——全由口水词表拼成的（filler）、等于紧邻稿文的结巴 / 重说（repeat）；
+  ASR 听错稿子里的字永不剪（剪它就剪掉了那个字的真实发音）；稿外改了措辞的重说只报告，`--cut-unmatched` 才剪。
+  词表来源缺省跑 FireRed（与下面时间戳同一后端），也吃剪映等导出的**逐字** SRT（`--srt`）或词级 JSON（`--words`）；
+  句级 SRT 定位不到口水词，脚本会警告。无稿时只剪**整 token 文字恰为**保守词表（嗯 / 呃 / 额 / um…）的口水词——按规范化文字精确比对、不认同音（五≠唔、饿≠呃）；
+  紧邻重复的短词无稿只报告不剪（逐字 token 下分不清叠词与结巴）。剪同录的透明 webm 时会解一帧核 alpha，帧数对但透明丢了也算 FAIL。
+- 停顿：≥0.7s 的静音压到 0.35s（留段内最安静的一窗真实房间音，不补数字零），首尾留白 0.25 / 0.5s；
+  切点先找能量谷、再吸附 30fps 帧网格；`cuts.json` 是 EDL（含源 → 新时间轴映射表，剪人物视频与后续任何对账都吃它）。
+- **dry-run 报告必须给用户过目再落盘**：标了「切点未落在静音里，听一下」的条目让用户听那一处；脚本只删不合成，不改语速不改音高。
+  剪完人物视频后跑 ③ 的 `preflight.py --media-only` 核时长——同一 EDL 只对同一条录音成立。
+
+字级时间戳（对**预剪后**的 `audio/full.wav`）：
 ```bash
 pip install zhconv pypinyin sherpa-onnx soundfile numpy   # 默认后端 FireRedASR2-CTC int8 的全部依赖
 # 首次：下载模型 767MB（model.int8.onnx + tokens.txt）放 ~/.cache/koubo/<模型名>/，地址见脚本头注释
@@ -400,6 +419,7 @@ X [`@VincentWei93`](https://x.com/VincentWei93) ·
 | 成片后人工微调 / 导出 | `workbench/`（剪映式工作台：多轨时间线 + 全卡参数化 + 成片拆解 + Remotion 渲染导出） |
 | 制作全程实时看板（⑤-2 起常开：进度轨 / 阶段栏 / 单镜预览 / 半成品不盖页）· 状态清单 | `workbench/docs/live-pipeline.md` · `scripts/pipeline_state.mjs`（`--pass` / `--issue` / `--stage`；状态按产物自动推） |
 | 字级时间戳（本机 CPU） | `scripts/timestamps_cpu.py`（FireRedASR2-CTC 默认 / faster-whisper 备选，+ 口播稿逐字对齐）→ `scripts/make_timing.py` |
+| 配音预剪（口水词 / 结巴重说 / 过长停顿，时间戳之前跑；同一 EDL 剪人物视频） | `scripts/voice_trim.py`（②-0；稿子为真值只剪稿外插入段；词表来源 ASR / 逐字 SRT / 词级 JSON；`cuts.json` EDL 含时间轴映射） |
 | **闸报 FAIL 了怎么办 · 怎么少烧母版** | ⑥⑦「迭代纪律」三条——先读闸怎么量的再改 · 静帧优先 · 改哪段渲哪段、复审改动攒批 |
 | 机器闸（画面健康 / 保真 / 词落点+镜尾 / 音效） | `scripts/motion_check.py`（静止段+并发光栅抖动双判定）/ `scripts/card_lint.py`（卡片须复制自 template/cards）/ `scripts/beat_lint.py`（词落点对 timestamps + `--shots` 镜尾保护带）/ `scripts/sfx_check.py`（solo 在场 + `--mix` 可听度） |
 | 渲染提速（分段母版 / 批量静帧 / 空台预检 / 评审拼图）· 首镜先做先确认（⑤-1） | `scripts/render_shots.mjs`（段渲+拼装+音轨混入+帧数断言；`--changed sNN` 单镜头迭代 53s；`--only s01 --seg-audio --preview-dir` 样板镜有声预览、不渲整条音轨（⑤-1）；⑥-1.5 问用户整片还是逐镜）/ `scripts/render_stills.mjs`（一次 bundle 批量 still）/ `scripts/beat_gap_check.py`（渲染前空台预检）/ `scripts/contact_sheet.py`（QA 帧拼 3×4 网格） |
