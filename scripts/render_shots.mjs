@@ -50,6 +50,13 @@ const opt = (name, dflt) => {
   return v;
 };
 const has = (name) => args.includes(`--${name}`);
+const selectionFlags = ['all', 'changed', 'only'].filter(has);
+if (selectionFlags.length > 1) {
+  console.error(`--all、--changed、--only 互斥，只能指定一个渲染范围（收到：${selectionFlags.map((name) => `--${name}`).join(', ')}）`);
+  process.exit(2);
+}
+const changedId = opt('changed', null);
+const onlyIds = has('only') ? opt('only', null).split(',') : null;
 const projDir = process.cwd();
 const entry = opt('entry', 'src/entry.ts');
 const shotsPath = opt('shots', 'shots.json');
@@ -61,10 +68,6 @@ if (!Number.isInteger(parallel) || parallel < 1) {   // NaN→0 个 worker 会�
   console.error(`--parallel 需为 ≥1 的整数，得到：${opt('parallel', '4')}`);
   process.exit(2);
 }
-
-const require = createRequire(path.join(projDir, 'package.json'));
-const {bundle} = require('@remotion/bundler');
-const {selectComposition, renderMedia, getCompositions} = require('@remotion/renderer');
 
 const shots = JSON.parse(fs.readFileSync(shotsPath, 'utf8'));
 if (!Array.isArray(shots) || !shots.length ||
@@ -92,6 +95,28 @@ for (let i = 1; i < shots.length; i++) {
     process.exit(1);
   }
 }
+
+// 渲染范围只依赖镜头表，先校验再加载 Remotion / 打包 / 启动浏览器。
+const changedIndex = changedId === null ? -1 : shots.findIndex((s) => s.id === changedId);
+if (changedId !== null && changedIndex < 0) {
+  console.error(`--changed 只接受一个已知镜头 id，未找到：${changedId || '（空）'}；批量选段请用 --only 并显式包含受影响的邻镜`);
+  process.exit(2);
+}
+if (onlyIds !== null) {
+  const unknownIds = onlyIds.filter((id) => !shots.some((s) => s.id === id));
+  if (unknownIds.length) {
+    console.error(`--only 里有未知镜头 id：${unknownIds.map((id) => id || '（空）').join(', ')}`);
+    process.exit(2);
+  }
+  if (new Set(onlyIds).size !== onlyIds.length) {
+    console.error(`--only 镜头 id 重复：${onlyIds.join(', ')}`);
+    process.exit(2);
+  }
+}
+
+const require = createRequire(path.join(projDir, 'package.json'));
+const {bundle} = require('@remotion/bundler');
+const {selectComposition, renderMedia, getCompositions} = require('@remotion/renderer');
 
 const t0 = Date.now();
 // 必须带上工程 remotion.config.ts 里的 webpack alias / publicDir 等（bundle() 自己不读配置文件，评审 P1）
@@ -145,16 +170,11 @@ for (let i = 0; i < segs.length; i++) {
 // —— 选段 ——
 let todo;
 if (has('all')) todo = segs;
-else if (opt('changed', null)) {
-  const id = opt('changed');
-  const k = segs.findIndex((s) => s.id === id);
-  if (k < 0) { console.error(`未找到镜头 ${id}`); process.exit(2); }
+else if (changedId !== null) {
   // 镜头衔接的 lead/tail 交叠会波及邻镜边缘几帧 → 邻段一并重渲
-  todo = segs.slice(Math.max(0, k - 1), Math.min(segs.length, k + 2));
-} else if (opt('only', null)) {
-  const ids = opt('only').split(',');
-  todo = segs.filter((s) => ids.includes(s.id));
-  if (todo.length !== ids.length) { console.error('--only 里有未知镜头 id'); process.exit(2); }
+  todo = segs.slice(Math.max(0, changedIndex - 1), Math.min(segs.length, changedIndex + 2));
+} else if (onlyIds !== null) {
+  todo = segs.filter((s) => onlyIds.includes(s.id));
 } else {
   todo = segs.filter((s) => !fs.existsSync(s.file));
 }
