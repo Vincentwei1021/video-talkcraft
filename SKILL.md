@@ -41,14 +41,15 @@ description: 终极口播视频 skill：中文口播稿 + 成品配音 → CPU �
 **②-0 配音预剪（真人录音必做；TTS 只会压气口，可跳过）**——剪掉口水词（嗯 / 呃 / 那个…）、结巴重说、过长停顿，
 **在做时间戳之前**跑（时间戳做完再动音频 = timing / beats 全体错位；预剪 → 时间戳 → 一切后续，顺序不可换）：
 ```bash
-python3 scripts/voice_trim.py audio/raw.wav script.json --dry-run     # 先只出报告：逐条 [filler / repeat / pause] 起止 + 共剪多少
-python3 scripts/voice_trim.py audio/raw.wav script.json --out audio/full.wav \
-    [--video dh/host_raw.mp4 --video-out dh/host.mp4]               # 用户认可后落盘；同一条录音的人物视频用同一 EDL 剪（音画逐帧同长）
+python3 scripts/voice_trim.py audio/raw.wav script.json --dry-run --words-out audio/asr_words.json   # 先只出报告：逐条 [filler / repeat / pause] 起止 + 共剪多少；ASR 结果落盘
+python3 scripts/voice_trim.py audio/raw.wav script.json --words audio/asr_words.json --out audio/full.wav \
+    [--video dh/host_raw.mp4 --video-out dh/host.mp4]               # 用户认可后落盘（吃回上一步的词表，不再跑一次 ASR）；同一条录音的人物视频用同一 EDL 剪（音画逐帧同长）
 ```
 - **稿子是真值，宁漏勿错**：只剪 ASR 里**稿子没有的插入段**——全由口水词表拼成的（filler）、等于紧邻稿文的结巴 / 重说（repeat）；
   ASR 听错稿子里的字永不剪（剪它就剪掉了那个字的真实发音）；稿外改了措辞的重说只报告，`--cut-unmatched` 才剪。
   词表来源缺省跑 FireRed（与下面时间戳同一后端），也吃剪映等导出的**逐字** SRT（`--srt`）或词级 JSON（`--words`）；
-  句级 SRT 定位不到口水词，脚本会警告。无稿时只剪保守词表（嗯 / 呃 / 额 / um…）与紧邻完全重复的短词。
+  句级 SRT 定位不到口水词，脚本会警告。无稿时只剪**整 token 文字恰为**保守词表（嗯 / 呃 / 额 / um…）的口水词——按规范化文字精确比对、不认同音（五≠唔、饿≠呃）；
+  紧邻重复的短词无稿只报告不剪（逐字 token 下分不清叠词与结巴）。剪同录的透明 webm 时会解一帧核 alpha，帧数对但透明丢了也算 FAIL。
 - 停顿：≥0.7s 的静音压到 0.35s（留段内最安静的一窗真实房间音，不补数字零），首尾留白 0.25 / 0.5s；
   切点先找能量谷、再吸附 30fps 帧网格；`cuts.json` 是 EDL（含源 → 新时间轴映射表，剪人物视频与后续任何对账都吃它）。
 - **dry-run 报告必须给用户过目再落盘**：标了「切点未落在静音里，听一下」的条目让用户听那一处；脚本只删不合成，不改语速不改音高。

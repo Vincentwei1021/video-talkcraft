@@ -63,23 +63,56 @@ HOP_MS = 10.0
 
 
 # ---------------------------------------------------------------- 音频 / 能量
-def load_audio(path: str):
-    """→ (mono float32, sr)。soundfile 读不了的格式（部分 mp3/m4a）退到 ffmpeg 解码。"""
+def _sf():
     try:
         import soundfile as sf
+    except ImportError:
+        sys.exit("缺 soundfile：pip install soundfile")
+    return sf
+
+
+def sf_readable(path: str) -> bool:
+    try:
+        _sf().info(path)
+        return True
+    except Exception:
+        return False
+
+
+def to_wav_tmp(path: str) -> str:
+    """ffmpeg 解成单声道临时 wav（soundfile 读不了的 m4a/aac 等）；调用方负责 unlink。"""
+    tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
+    tmp.close()
+    try:
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", path, "-ac", "1", "-f", "wav", tmp.name], check=True)
+    except Exception:
+        os.unlink(tmp.name)
+        raise
+    return tmp.name
+
+
+def load_audio(path: str):
+    """→ (mono float32, sr)。soundfile 读不了的格式（部分 mp3 / m4a / aac）退到 ffmpeg 解码。"""
+    sf = _sf()
+    if sf_readable(path):
         x, sr = sf.read(path, dtype="float32", always_2d=True)
         return np.ascontiguousarray(x.mean(axis=1) if x.shape[1] > 1 else x[:, 0]), int(sr)
-    except Exception:
-        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
-            subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", path, "-ac", "1", "-f", "wav", tmp.name], check=True)
-            import soundfile as sf
-            x, sr = sf.read(tmp.name, dtype="float32", always_2d=True)
-        os.unlink(tmp.name)
-        return np.ascontiguousarray(x[:, 0]), int(sr)
+    tmp = to_wav_tmp(path)
+    try:
+        x, sr = sf.read(tmp, dtype="float32", always_2d=True)
+    finally:
+        os.unlink(tmp)
+    return np.ascontiguousarray(x[:, 0]), int(sr)
+
+
+def hop_samples(sr: int, hop_ms: float = HOP_MS) -> int:
+    """能量帧步长（采样点）。主流程的 hop_s 必须用 hop_samples(sr)/sr，不能写死 0.01：
+    22050Hz 时 int(220.5)=220 → 220/22050 与 0.01 差 0.227%，400s 处漂 0.9s，切点会剪进语音（2026-09-13 评审 P1）。"""
+    return max(1, int(sr * hop_ms / 1000))
 
 
 def frame_db(x: np.ndarray, sr: int, hop_ms: float = HOP_MS) -> np.ndarray:
-    hop = max(1, int(sr * hop_ms / 1000))
+    hop = hop_samples(sr, hop_ms)
     nfr = max(1, len(x) // hop)
     rms = np.sqrt(np.mean(x[: nfr * hop].reshape(nfr, hop) ** 2, axis=1) + 1e-12)
     db = 20 * np.log10(rms)
@@ -122,14 +155,6 @@ def quietest_window(db: np.ndarray, hop_s: float, a: float, b: float, length: fl
     return (ia + k) * hop_s, (ia + k + w) * hop_s
 
 
-def energy_valley(db: np.ndarray, hop_s: float, lo: float, hi: float, fallback: float) -> tuple[float, float]:
-    """[lo,hi] 内能量谷的时刻及其 dB；窗空返回 fallback。"""
-    ia, ib = int(round(lo / hop_s)), int(round(hi / hop_s))
-    ia, ib = max(0, ia), min(len(db), ib)
-    if ib - ia < 1:
-        return fallback, float("inf")
-    k = int(np.argmin(db[ia:ib]))
-    return (ia + k) * hop_s, float(db[ia + k])
 
 
 # ---------------------------------------------------------------- 词表来源
@@ -281,36 +306,70 @@ def sentences_slice(script, sentences, i1, i2):
     return [sentences[si][ci] for si, ci, _ in script[i1:i2]]
 
 
+def norm_text(text: str) -> str:
+    """规范化文字（半角 / 小写 / 繁→简 / 数字归一，去标点），**不转拼音**。"""
+    return "".join(n for n in (tc.norm_char(c) for c in text) if n)
+
+
+def text_cover(text: str, lex: list[str]) -> bool:
+    """规范化文字能否被词表条目（贪心最长）完整拼出——"嗯嗯" / "呃那个" 算，"啊全" 不算；逐字精确，不认同音。"""
+    i, n = 0, len(text)
+    while i < n:
+        for e in lex:
+            if text.startswith(e, i):
+                i += len(e)
+                break
+        else:
+            return False
+    return True
+
+
 def detect_without_script(words: list[dict], lexicon: list[str]):
+    """无稿：没有真值可对，只剪**整 token 规范化文字恰为保守词表条目**的口水词。
+    不走拼音键——无声调拼音下 五/无/物≈唔、饿/俄≈呃，正文会被剪掉（2026-09-13 评审 P1）；
+    紧邻重复的短词只**报告不剪**：FireRed 逐字 token 下 谢谢 / 看看 / 慢慢 与结巴无法区分。"""
     cands = []
-    lex = lexicon_keys(lexicon)
+    lex = sorted({norm_text(e) for e in lexicon if norm_text(e)}, key=len, reverse=True)
     toks = [w for w in words if w["end"] - w["start"] > 0.01 and str(w["text"]).strip()]
     for i, w in enumerate(toks):
         text = str(w["text"]).strip()
-        seq = keys_of(text)
-        if not seq:
+        nt = norm_text(text)
+        if not nt:
             continue
-        kind = None
-        if lexicon_cover(seq, lex):
-            kind = "filler"
-        elif i + 1 < len(toks) and len(seq) <= 3 and tc.CJK.search(text) and seq == keys_of(str(toks[i + 1]["text"])):
-            kind = "repeat"
+        kind, cut, why = None, False, None
+        if text_cover(nt, lex):
+            kind, cut = "filler", True
+        elif i + 1 < len(toks) and len(nt) <= 3 and tc.CJK.search(text) and nt == norm_text(str(toks[i + 1]["text"])):
+            kind, cut, why = "repeat", False, "无稿分不清叠词与结巴，只报告；要剪给口播稿"
         if kind:
-            cands.append({"kind": kind, "start": w["start"], "end": w["end"], "text": text, "cut": True, "conf_hint": None,
+            cands.append({"kind": kind, "start": w["start"], "end": w["end"], "text": text, "cut": cut, "conf_hint": None, "why": why,
                           "prev_bound": toks[i - 1]["start"] + 0.05 if i > 0 else 0.0,
                           "next_bound": toks[i + 1]["end"] - 0.05 if i + 1 < len(toks) else float("inf")})
     return cands, []
 
 
 # ---------------------------------------------------------------- 切点
+def nearest_silent(db: np.ndarray, hop_s: float, lo: float, hi: float, target: float, thr: float) -> tuple[float, float]:
+    """[lo,hi] 内离 target 最近的静音帧（db<thr）的时刻及其 dB；没有静音帧返回 (target, inf)。"""
+    ia, ib = max(0, int(round(lo / hop_s))), min(len(db), int(round(hi / hop_s)))
+    if ib - ia < 1:
+        return target, float("inf")
+    idx = np.nonzero(db[ia:ib] < thr)[0]
+    if not len(idx):
+        return target, float("inf")
+    k = int(idx[np.argmin(np.abs((ia + idx) * hop_s - target))])
+    return (ia + k) * hop_s, float(db[ia + k])
+
+
 def refine_cut(c: dict, db: np.ndarray, hop_s: float, thr: float, search: float = 0.30, inner: float = 0.12):
-    """口水词的 ASR 边界（CTC 尖峰）在 ±search 内找能量谷；谷真在静音里才用它，否则退回尖峰位置——
+    """口水词的 ASR 边界（CTC 尖峰）在 ±search 内找**离边界最近的静音帧**；找到才用它，否则退回尖峰位置——
     左端保留尖峰（多留一点口水词的起音，不咬前字），右端退 40ms（CTC 尖峰略晚于下一字起音，退一点不咬下一字）。
+    不取窗内能量最低帧：全零静音里 argmin 恒取最左端，会把口水词前面整段静音吞进切段，plan_cuts 就没有房间音可留。
     两端都落在静音里 → conf high。"""
     lo = max(c["prev_bound"], c["start"] - search)
-    s, sdb = energy_valley(db, hop_s, lo, min(c["start"] + inner, c["end"]), c["start"])
+    s, sdb = nearest_silent(db, hop_s, lo, min(c["start"] + inner, c["end"]), c["start"], thr)
     hi = min(c["next_bound"], c["end"] + search)
-    e, edb = energy_valley(db, hop_s, max(c["end"] - inner, s), hi, c["end"])
+    e, edb = nearest_silent(db, hop_s, max(c["end"] - inner, s), hi, c["end"], thr)
     c["raw_start"], c["raw_end"] = c["start"], c["end"]
     c["start"] = s if sdb < thr else c["start"]
     c["end"] = e if edb < thr else max(c["start"] + 0.04, c["end"] - 0.04)
@@ -358,21 +417,28 @@ def plan_cuts(total: float, fillers: list[dict], db: np.ndarray, hop_s: float, t
         # 可保留的真实房间音：zone 减去口水词后的静音子段，取最长一段里最安静的一窗
         sil_parts = subtract(za, zb, inF)
         keep_len = keep_pause if (z_len - fill_len) >= keep_pause else max(0.0, z_len - fill_len)
-        if sil_parts and keep_len > 0:
-            pa, pb = max(sil_parts, key=lambda p: p[1] - p[0])
-            ka, kb = quietest_window(db, hop_s, pa, pb, min(keep_len, pb - pa))
-        else:
-            ka, kb = za, za  # 全是口水词、没有静音可留
-        inK = {c["kind"] for c in fillers if c["cut"] and c["end"] > za and c["start"] < zb}
+        # 可保留的真实房间音：静音子段按长到短，每段取最安静的一窗，凑够 keep_len
+        # （口水词把静音劈成两半时不再只留最长那半——0.2s+嗯+0.2s 原来只留 0.17s，文档说的是 0.35s）
+        kept, need = [], keep_len
+        for pa, pb in sorted(sil_parts, key=lambda p: p[0] - p[1]):
+            if need <= 1e-6:
+                break
+            ka, kb = quietest_window(db, hop_s, pa, pb, min(need, pb - pa))
+            if kb - ka > 1e-6:
+                kept.append((ka, kb))
+                need -= kb - ka
+        kept_len = sum(b - a for a, b in kept)
+        inZ = [c for c in fillers if c["cut"] and c["end"] > za and c["start"] < zb]
+        inK = {c["kind"] for c in inZ}
         base = "repeat" if inK == {"repeat"} else ("extra" if inK == {"extra"} else "filler")
         kind = "pause" if not inF else (base if (z_len - fill_len) < min_pause else f"{base}+pause")
-        text = label if inF else f"{z_len:.2f}s→{kb - ka:.2f}s"
+        text = label if inF else f"{z_len:.2f}s→{kept_len:.2f}s"
         if inF:
-            text = f"{label}（{z_len:.2f}s→{kb - ka:.2f}s）"
-        for a, b in ((za, ka), (kb, zb)):
+            text = f"{label}（{z_len:.2f}s→{kept_len:.2f}s）"
+        conf = "low" if any(c.get("conf") == "low" for c in inZ) else "high"  # 任一口水词切点没落在静音里就标低置信（原 min("high","low")="high" 丢标记）
+        for a, b in subtract(za, zb, sorted(kept)):
             if b - a >= 0.02:
-                cuts.append(dict(start=a, end=b, kind=kind, text=text,
-                                 conf=min((c.get("conf", "high") for c in fillers if c["cut"] and c["end"] > za and c["start"] < zb), default="high")))
+                cuts.append(dict(start=a, end=b, kind=kind, text=text, conf=conf))
     return cuts
 
 
@@ -406,6 +472,8 @@ def quantize(cuts: list[dict], fps: float, total: float) -> list[dict]:
                 out[-1]["text"] = f'{out[-1]["text"]} + {c["text"]}'
             if c["kind"] != out[-1]["kind"]:
                 out[-1]["kind"] = "mixed"
+            if c.get("conf") == "low":
+                out[-1]["conf"] = "low"
             continue
         out.append({**c, "start": s, "end": e})
     return out
@@ -439,44 +507,86 @@ def apply_audio(x: np.ndarray, sr: int, cuts: list[dict], fade_ms: float = 3.0):
 
 def probe_video(path: str) -> dict:
     out = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-count_frames",
-                          "-show_entries", "stream=r_frame_rate,avg_frame_rate,nb_read_frames,pix_fmt,width,height",
-                          "-show_entries", "format=duration", "-of", "json", path], capture_output=True, text=True, check=True).stdout
+                          "-show_entries", "stream=codec_name,r_frame_rate,avg_frame_rate,nb_read_frames,pix_fmt,width,height",
+                          "-show_entries", "stream_tags=alpha_mode", "-show_entries", "format=duration", "-of", "json", path],
+                         capture_output=True, text=True, check=True).stdout
     d = json.loads(out)
     st = d["streams"][0]
     num, den = st["r_frame_rate"].split("/")
-    return {"fps": float(num) / float(den), "frames": int(st.get("nb_read_frames") or 0), "pix_fmt": st.get("pix_fmt", ""),
-            "duration": float(d["format"]["duration"]), "avg": st.get("avg_frame_rate", "")}
+    an, ad = (st.get("avg_frame_rate") or "0/1").split("/")
+    pix = st.get("pix_fmt", "")
+    # VP9 alpha webm 的 ffprobe pix_fmt 只报 yuv420p，alpha 在流标签 alpha_mode=1 上
+    has_alpha = "a" in pix.replace("yuv", "").replace("gray", "") or str((st.get("tags") or {}).get("alpha_mode", "")) == "1"
+    return {"fps": float(num) / float(den), "avg_fps": float(an) / float(ad) if float(ad) else 0.0,
+            "frames": int(st.get("nb_read_frames") or 0), "pix_fmt": pix, "codec": st.get("codec_name", ""), "alpha": has_alpha,
+            "duration": float(d["format"]["duration"])}
+
+
+def alpha_decoder(info: dict) -> list[str]:
+    """ffmpeg 原生 vp9 解码器不解 alpha 面：VP9 一律在 -i 之前指定 libvpx-vp9（对不带 alpha 的 VP9 无害；2026-09-13 评审 P1）。"""
+    return ["-c:v", "libvpx-vp9"] if info["codec"] == "vp9" else []
+
+
+def alpha_minmax(path: str, decoder: list[str]) -> tuple[int, int] | None:
+    """首帧 alpha 面的 (min, max)；解不出返回 None。全 255 = 没有透明信息。"""
+    try:
+        raw = subprocess.run(["ffmpeg", "-v", "error", *decoder, "-i", path, "-frames:v", "1",
+                              "-vf", "format=rgba,alphaextract", "-pix_fmt", "gray", "-f", "rawvideo", "-"],
+                             capture_output=True, check=True).stdout
+    except subprocess.CalledProcessError:
+        return None
+    if not raw:
+        return None
+    arr = np.frombuffer(raw, dtype=np.uint8)
+    return int(arr.min()), int(arr.max())
 
 
 def apply_video(src: str, dst: str, cuts: list[dict], fps: float, audio_total: float) -> None:
     info = probe_video(src)
     if abs(info["fps"] - fps) > 0.01:
         sys.exit(f"视频 {src} 帧率 {info['fps']:.3f} ≠ --fps {fps}：切点网格对不上，先按 preflight 的口径统一 fps（禁 -r 直转）")
+    if info["avg_fps"] and abs(info["avg_fps"] - info["fps"]) > info["fps"] * 0.005:
+        sys.exit(f"视频 {src} 是可变帧率（标称 {info['fps']:.3f}、实际均值 {info['avg_fps']:.3f}）：帧号 ≠ 时间，按帧剪会错位——"
+                 f"先转成恒定帧率（ffmpeg -vsync cfr -r {fps:g}），再剪")
     if abs(info["duration"] - audio_total) > 1.5 / fps:
         print(f"⚠ 视频 {info['duration']:.3f}s 与配音 {audio_total:.3f}s 不同长（差 {info['duration'] - audio_total:+.3f}s）："
               f"同一 EDL 只对同一条录音成立，剪完请跑 preflight.py --media-only 核时长", file=sys.stderr)
-    ranges = [(int(round(c["start"] * fps)), int(round(c["end"] * fps))) for c in cuts]  # [a, b) 帧号
+    F = info["frames"]
+    # [a, b) 帧号；夹到 [0, F]——音频常比视频长不到 1 帧（AAC 帧 21ms），片尾剪切的 b 会指向不存在的帧，removed 多算 1 → 断言误 FAIL（评审 P1）
+    ranges = [(max(0, min(F, int(round(c["start"] * fps)))), max(0, min(F, int(round(c["end"] * fps))))) for c in cuts]
+    ranges = [(a, b) for a, b in ranges if b > a]
     removed = sum(b - a for a, b in ranges)
     expect = info["frames"] - removed
     expr = "+".join(f"between(n\\,{a}\\,{b - 1})" for a, b in ranges if b > a) or "0"
     ext = Path(dst).suffix.lower()
     if ext == ".webm":
-        codec = ["-c:v", "libvpx-vp9", "-pix_fmt", "yuva420p", "-b:v", "0", "-crf", "24", "-row-mt", "1"]
-    elif ext == ".mov" and "a" in info["pix_fmt"].replace("yuv", ""):
+        # alpha_mode=1 写进容器：浏览器 / 剪辑软件靠这个标签才把它当透明视频
+        codec = ["-c:v", "libvpx-vp9", "-pix_fmt", "yuva420p", "-b:v", "0", "-crf", "24", "-row-mt", "1", "-metadata:s:v:0", "alpha_mode=1"]
+    elif ext == ".mov" and info["alpha"]:
         codec = ["-c:v", "prores_ks", "-profile:v", "4", "-pix_fmt", "yuva444p10le"]
     else:
         codec = ["-c:v", "libx264", "-crf", "18", "-preset", "medium", "-pix_fmt", "yuv420p", "-movflags", "+faststart"]
     with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False) as f:
         f.write(f"select='not({expr})',setpts=N/FRAME_RATE/TB")
         script = f.name
+    dec = alpha_decoder(info)
     try:
-        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", src, "-filter_script:v", script, "-an", "-r", str(fps), *codec, dst], check=True)
+        subprocess.run(["ffmpeg", "-v", "error", "-y", *dec, "-i", src, "-filter_script:v", script, "-an", "-r", str(fps), *codec, dst], check=True)
     finally:
         os.unlink(script)
-    got = probe_video(dst)["frames"]
+    got_info = probe_video(dst)
+    got = got_info["frames"]
     if got != expect:
         sys.exit(f"FAIL 视频帧数断言：{dst} 实数 {got} 帧 ≠ 期望 {expect}（源 {info['frames']} − 剪 {removed}）")
-    print(f"视频：{src} {info['frames']}f → {dst} {got}f（剪 {removed}f，帧数断言通过）")
+    alpha_note = ""
+    if info["alpha"]:
+        # 帧数对了不等于透明保住了：解一帧看 alpha 面（源有透明像素而输出全 255 = alpha 丢了）
+        a_src = alpha_minmax(src, dec)
+        a_dst = alpha_minmax(dst, alpha_decoder(got_info))
+        if a_src and a_src[0] < 255 and (a_dst is None or a_dst[0] >= 255):
+            sys.exit(f"FAIL 透明通道丢失：{src} alpha 最小 {a_src[0]} → {dst} 解不出透明像素（输出 {got_info['pix_fmt']} / {got_info['codec']}）")
+        alpha_note = f"，alpha 保住（min {a_dst[0] if a_dst else '?'}）"
+    print(f"视频：{src} {info['frames']}f → {dst} {got}f（剪 {removed}f，帧数断言通过{alpha_note}）")
 
 
 # ---------------------------------------------------------------- 主流程
@@ -490,6 +600,7 @@ def main() -> None:
     src = ap.add_argument_group("词表来源（缺省跑 ASR）")
     src.add_argument("--srt")
     src.add_argument("--words")
+    src.add_argument("--words-out", help="把本次用到的词表（ASR 结果）写成 JSON；正式剪辑用 --words 吃回去，dry-run → 落盘不用再跑一次 ASR")
     src.add_argument("--backend", default="firered", choices=["firered", "whisper"])
     src.add_argument("--model-dir", default="")
     src.add_argument("--model", default="small")
@@ -519,7 +630,7 @@ def main() -> None:
 
     x, sr = load_audio(a.audio)
     total = len(x) / sr
-    hop_s = HOP_MS / 1000
+    hop_s = hop_samples(sr) / sr  # 与 frame_db 同一取整（见 hop_samples 注释）
     db = frame_db(x, sr)
     thr = silence_threshold(db, a.sil_db)
 
@@ -535,16 +646,27 @@ def main() -> None:
         words = load_words_json(a.words)
         source = f"words:{a.words}"
     else:
-        if a.backend == "firered":
-            mdir = a.model_dir or tc.DEFAULT_FIRERED_DIR
-            if not Path(f"{mdir}/model.int8.onnx").is_file():
-                sys.exit(f"firered 模型不在 {mdir}（下载地址见 timestamps_cpu.py 头注释），或 --backend whisper")
-            words = tc.asr_firered(a.audio, mdir, a.chunk_sec)
-        else:
-            words = tc.asr_whisper(a.audio, a.model)
+        # ASR 后端内部直接 soundfile.read：m4a / aac 等它读不了的格式先解成临时 wav（原来 LibsndfileError 栈崩）
+        asr_in = a.audio if sf_readable(a.audio) else to_wav_tmp(a.audio)
+        try:
+            if a.backend == "firered":
+                mdir = a.model_dir or tc.DEFAULT_FIRERED_DIR
+                if not Path(f"{mdir}/model.int8.onnx").is_file():
+                    sys.exit(f"firered 模型不在 {mdir}（下载地址见 timestamps_cpu.py 头注释），或 --backend whisper")
+                words = tc.asr_firered(asr_in, mdir, a.chunk_sec)
+            else:
+                words = tc.asr_whisper(asr_in, a.model)
+        finally:
+            if asr_in != a.audio:
+                os.unlink(asr_in)
         source = f"asr:{a.backend}"
     if not words:
         sys.exit("词表为空——音频里没有语音？")
+    if a.words_out:
+        Path(a.words_out).parent.mkdir(parents=True, exist_ok=True)
+        Path(a.words_out).write_text(json.dumps([{"text": str(w["text"]), "start": round(float(w["start"]), 4), "end": round(float(w["end"]), 4)} for w in words],
+                                                ensure_ascii=False), encoding="utf-8")
+        print(f"词表已写 {a.words_out}（正式剪辑加 --words {a.words_out}，不必再跑 ASR）")
 
     sentences = load_script(a.script) if a.script else None
     if a.fillers is not None:
@@ -578,8 +700,8 @@ def main() -> None:
         print(f"  [{c['kind']:<12}] {c['start']:8.3f}–{c['end']:8.3f}  −{c['end'] - c['start']:.2f}s  {c['text']}{flag}")
     skipped = [c for c in cands if not c["cut"]]
     for c in skipped:
-        print(f"  [skip:{c['kind']:<7}] {c['start']:8.3f}–{c['end']:8.3f}   稿子里没有但未剪：「{c['text']}」"
-              + ("（--cut-unmatched 才剪）" if c["kind"] == "extra" else "（--no-repeats）"))
+        why = c.get("why") or ("--cut-unmatched 才剪" if c["kind"] == "extra" else "--no-repeats")
+        print(f"  [skip:{c['kind']:<7}] {c['start']:8.3f}–{c['end']:8.3f}   {'稿子里没有但未剪' if sentences else '未剪'}：「{c['text']}」（{why}）")
     for n in notes[:20]:
         print(f"  [asr≠稿  ] {n['start']:8.3f}–{n['end']:8.3f}   听成「{n['text']}」稿是「{n['script']}」（不剪）")
     if len(notes) > 20:
