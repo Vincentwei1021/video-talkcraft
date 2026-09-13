@@ -1,4 +1,4 @@
-import { createReadStream, existsSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { createReadStream, existsSync, mkdirSync, readdirSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -168,7 +168,7 @@ const renderExportPlugin = (): Plugin => {
  *  - GET  /api/pipeline            全量状态（服务端按盘上产物实时推导：scripts/pipeline_state.mjs 同一套代码 + pipeline.json 的手工字段）
  *  - GET  /api/pipeline/events     SSE：产物变化（shots.json / scenes/ / out/segments / review/ / pipeline.json…）→ 推新状态
  *  - GET  /api/pipeline/shotbook?shot=sNN   SHOTBOOK.md 里该镜的段落（纯文本）
- *  - GET  /api/pipeline/file?p=<相对工程根>  取工程文件（单镜预览 mp4 等，支持 Range），只放行工程根之内
+ *  - GET  /api/pipeline/file?p=<相对工程根>  取工程文件（单镜预览 mp4 等，支持 Range），只放行工程根之内（按 realpath 判，指向外部的符号链接不放行）
  *  - POST /api/pipeline/refresh    强制重算并广播
  *  - POST /api/pipeline/reveal?p=  Finder 里显示该文件
  *  文件监听借 Vite 自己的 chokidar（server.watcher.add），另加 4s 轮询兜底（out/ 等目录可能在渲染时才出现）；
@@ -233,10 +233,13 @@ const pipelinePlugin = (projectRoot: string | null): Plugin => ({
       res.setHeader("Content-Type", "application/json");
       res.end(JSON.stringify(body));
     };
+    // 工程根之内：按 realpath 判——`..` 与绝对路径被 resolve 挡住，但工程内一个指向外部的符号链接逻辑路径合法、真实路径在外（2026-09-13 审计）
+    const rootReal = (() => { try { return projectRoot ? realpathSync(projectRoot) : null; } catch { return projectRoot; } })();
     const insideRoot = (rel: string): string | null => {
-      if (!projectRoot) return null;
-      const abs = path.resolve(projectRoot, rel);
-      return abs === projectRoot || abs.startsWith(projectRoot + path.sep) ? abs : null;
+      if (!projectRoot || !rootReal) return null;
+      let real: string;
+      try { real = realpathSync(path.resolve(projectRoot, rel)); } catch { return null; } // 不存在 → 交给调用方 404
+      return real === rootReal || real.startsWith(rootReal + path.sep) ? real : null;
     };
 
     server.middlewares.use("/api/pipeline", (req: IncomingMessage, res: ServerResponse) => {
@@ -284,10 +287,17 @@ const pipelinePlugin = (projectRoot: string | null): Plugin => ({
         if (!abs || !existsSync(abs) || !statSync(abs).isFile()) { send(res, 404, { error: "not found" }); return; }
         const size = statSync(abs).size;
         const type = /\.mp4$/i.test(abs) ? "video/mp4" : /\.webm$/i.test(abs) ? "video/webm" : /\.(wav)$/i.test(abs) ? "audio/wav" : /\.mp3$/i.test(abs) ? "audio/mpeg" : /\.png$/i.test(abs) ? "image/png" : /\.jpe?g$/i.test(abs) ? "image/jpeg" : /\.(md|txt|json)$/i.test(abs) ? "text/plain; charset=utf-8" : "application/octet-stream";
-        const range = req.headers.range?.match(/bytes=(\d*)-(\d*)/);
-        if (range) {
-          const start = range[1] ? Number(range[1]) : 0;
-          const end = range[2] ? Math.min(Number(range[2]), size - 1) : size - 1;
+        const range = req.headers.range?.match(/^bytes=(\d*)-(\d*)$/);
+        if (range && size > 0 && (range[1] !== "" || range[2] !== "")) {
+          // bytes=a-b / bytes=a- / bytes=-n（后缀 n 字节）；越界或倒序 → 416（段文件正在被 ffmpeg 写入时浏览器按旧 size 发的请求会踩到）
+          let start: number, end: number;
+          if (range[1] === "") { start = Math.max(0, size - Math.min(Number(range[2]), size)); end = size - 1; }
+          else { start = Number(range[1]); end = range[2] === "" ? size - 1 : Math.min(Number(range[2]), size - 1); }
+          if (!Number.isFinite(start) || !Number.isFinite(end) || start > end || start >= size) {
+            res.writeHead(416, { "Content-Range": `bytes */${size}` });
+            res.end();
+            return;
+          }
           res.writeHead(206, { "Content-Type": type, "Accept-Ranges": "bytes", "Content-Range": `bytes ${start}-${end}/${size}`, "Content-Length": end - start + 1 });
           createReadStream(abs, { start, end }).pipe(res);
         } else {

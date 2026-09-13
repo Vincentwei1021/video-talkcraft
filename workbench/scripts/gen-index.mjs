@@ -98,8 +98,14 @@ const kbModules = Object.fromEntries(kb.modules.map((m) => [m.id, m.real]));
 /** 拆解契约（口播成片 promo 形态）：逐镜拆解 / 数字人 / 环境 / 字幕句都吃这几个模块 */
 const kbPromo = kbLinked && ["PromoScenes", "camera", "Host", "Environment", "timing"].every((id) => kbModules[id]);
 /** 工程主合成入口：skill 正式工程 Main.tsx（export Main）/ promo 工程 MainVideo.tsx（export MainVideo） */
+let kbMainFile = null;
 const kbMain = kbLinked
-  ? ["Main", "MainVideo"].find((n) => ["tsx", "ts", "jsx", "js"].some((e) => existsSync(join(kb.realSrc, `${n}.${e}`)))) ?? null
+  ? ["Main", "MainVideo"].find((n) => ["tsx", "ts", "jsx", "js"].some((e) => {
+      const f = join(kb.realSrc, `${n}.${e}`);
+      if (!existsSync(f)) return false;
+      kbMainFile = f;
+      return true;
+    })) ?? null
   : null;
 // 合成规格从 Root.tsx 的 <Composition … width={1920} height={1080} fps={30}> 字面量抓（横竖屏都靠它）
 const kbComp = { id: "", width: 1920, height: 1080, fps: 30 };
@@ -160,6 +166,8 @@ writeFileSync(
     `export const KB_PROMO = ${kbPromo};\n` +
     `/** 工程主合成模块名（Main.tsx → "Main"，MainVideo.tsx → "MainVideo"，没有则 null） */\n` +
     `export const KB_MAIN: "Main" | "MainVideo" | null = ${JSON.stringify(kbMain)};\n` +
+    `/** 主合成源文件的真实绝对路径（kb-main 载入失败后经 /@fs 直连重试用；未链接为 null） */\n` +
+    `export const KB_MAIN_FILE: string | null = ${JSON.stringify(kbMainFile)};\n` +
     `/** 合成规格（Root.tsx 字面量；抓不到时 1920×1080@30） */\n` +
     `export const KB_COMP: { id: string; width: number; height: number; fps: number } = ${JSON.stringify(kbComp)};\n` +
     `/** 换幕（shape wipe）峰值时刻（秒）；来源：${wipeSource} */\n` +

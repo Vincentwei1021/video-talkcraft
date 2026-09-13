@@ -154,3 +154,11 @@ SSE（`/api/pipeline/events`）推到前端；tsx 改动仍走 Vite HMR，不重
 - **监听**：借 Vite 自己的 chokidar（`server.watcher.add`）+ 4s 轮询兜底（out/ 等目录首次渲染才出现），只在状态 JSON 变了才推。
 - **L0 一并落地**：SKILL ⑤-2 把接入时机前移到骨架搭完，`?live` 直接装上实时成片。
 
+### 9.1 · 2026-09-13 审计后的修正
+- **导出不容错**：`ClipBoundary` / kb-main 的载入与渲染边界只在 Player / Studio 里画红板；`getRemotionEnvironment().isRendering` 为真时原样抛出，Remotion CLI 渲染失败（原来红图会被当成功产物）。
+- **看板画布 = 工程原尺寸**：`buildLiveProject` 直接用 `KB_COMP` 的宽高（原 960×540 内嵌 1920×1080 再 CSS 缩放，工程内 `useVideoConfig()` 读到外层尺寸，幕底 / 长镜头画布按尺寸算的层会偏）。
+- **载入失败不缓存**：kb-main 失败后 `kb/liveLoad.retry()` 重建 lazy；重试经 `/@fs/<真实路径>?t=` 直连绕开浏览器 module map 的失败缓存；触发点是 `vite:afterUpdate` 与 SSE 推来的工程文件变化（首次转换失败的模块 Vite 不向导入方传播 HMR）。
+- **`--pass` 绑定产物**：段删了 / 场景之后又改过 → 回到推导状态，`verdict` 字段记着"曾通过"，镜头面板提示重渲复核；过期按母版段算，新预览不掩盖旧母版。
+- `/api/pipeline/file` 按 realpath 判工程根（指向外部的符号链接不放行）；Range 越界 / 倒序回 416，支持 `bytes=-n` 后缀区间。
+- 「⟳ 同步拆解」记住上次见过的 kb- id，用户删掉的单元不复活；分割过的片段同步会重置左半（已知限制，写进 README）。
+- `pipeline_state.mjs` 带值参数缺值时给提示 exit 2，不再栈崩。

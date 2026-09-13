@@ -5,15 +5,16 @@ import { TOTAL_FRAMES } from "./shots";
 export const LIVE_CLIP_ID = "kb-live-main";
 export const LIVE_TRACK_ID = "kb-live-track";
 
-/** 实时看板工程：一条轨、一个 clip = 接入工程的主合成按实时代码渲染（画幅随工程横竖屏），
- *  进度轨 / 阶段栏另从 pipeline 状态画，不是 clip。 */
+/** 实时看板工程：一条轨、一个 clip = 接入工程的主合成按实时代码渲染；
+ *  画布直接用工程原尺寸（Root.tsx 字面量）而不是工作台默认的 960×540——嵌套主合成再 CSS 缩放时，
+ *  工程内 useVideoConfig() 读到的是外层画布尺寸，按尺寸算布局的层（幕底 / 长镜头画布等）会偏（2026-09-13 审计 R4）；
+ *  Player 在展示层自适应缩放，导出成片也就是原尺寸。进度轨 / 阶段栏另从 pipeline 状态画，不是 clip。 */
 export const buildLiveProject = (): ProjectData => {
-  const portrait = KB_COMP.height > KB_COMP.width;
   return {
     name: `${KB_PROJECT || "接入工程"} · 实时看板`,
     fps: KB_COMP.fps || 30,
-    width: portrait ? 540 : 960,
-    height: portrait ? 960 : 540,
+    width: KB_COMP.width || 1920,
+    height: KB_COMP.height || 1080,
     tracks: [
       {
         id: LIVE_TRACK_ID,

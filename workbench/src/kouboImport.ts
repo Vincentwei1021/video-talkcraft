@@ -110,7 +110,7 @@ export const buildKouboProject = (): ProjectData => {
     label,
   });
 
-  return {
+  const project: ProjectData = {
     name: "口播成片 · 拆解",
     fps: 30,
     width: 960,
@@ -142,14 +142,18 @@ export const buildKouboProject = (): ProjectData => {
       })),
     ],
   };
+  return { ...project, kbSeen: project.tracks.flatMap((t) => t.clips.map((c) => c.id)) };
 };
 
 /** 增量同步（实时看板 L1）：按稳定 id 把新鲜拆解合进现有工程——
  *  - 同 id 的 clip：起点 / 时长跟新拆解（时间真值在 shots.json / 时间戳），props / 图层 / 变速 / 标签留用户改过的；
  *  - 新增的单元补进对应轨（轨不在就新建）；拆解里已没有的 kb- clip 删掉；
- *  - 用户自己加的 clip（uid 前缀）与轨道顺序、隐藏状态一律不动。 */
+ *  - 用户删掉的拆解单元不复活：工程 kbSeen 记着上次见过的 id，"新鲜有、工程没、见过"= 用户删的（2026-09-13 审计）；
+ *  - 用户自己加的 clip（uid 前缀）与轨道顺序、隐藏状态一律不动。
+ *  已知限制：分割过的 kb- clip 左半仍是 kb- id，同步会把它的时长重置成整段而右半（uid）留着 → 叠放；分割请在同步之后做。 */
 export const syncKouboProject = (existing: ProjectData): ProjectData => {
   const fresh = buildKouboProject();
+  const seen = new Set(existing.kbSeen ?? []);
   const freshClips = new Map<string, { clip: ClipData; trackId: string }>();
   for (const t of fresh.tracks) for (const c of t.clips) freshClips.set(c.id, { clip: c, trackId: t.id });
 
@@ -166,6 +170,7 @@ export const syncKouboProject = (existing: ProjectData): ProjectData => {
   }));
   // 新增单元 → 其在新鲜拆解里所属的轨；轨不存在就按新鲜顺序补建
   for (const { clip, trackId } of freshClips.values()) {
+    if (seen.has(clip.id)) continue; // 上次拆解就有、现在工程里没有 = 用户删的
     let t = tracks.find((x) => x.id === trackId);
     if (!t) {
       const ft = fresh.tracks.find((x) => x.id === trackId)!;
@@ -175,5 +180,5 @@ export const syncKouboProject = (existing: ProjectData): ProjectData => {
     }
     t.clips.push(clip);
   }
-  return { ...existing, tracks };
+  return { ...existing, tracks, kbSeen: fresh.kbSeen };
 };

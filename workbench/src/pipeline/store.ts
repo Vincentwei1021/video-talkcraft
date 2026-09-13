@@ -2,6 +2,7 @@ import { create } from "zustand";
 import type { PipelineState } from "./types";
 import { useStore } from "../store";
 import { LIVE_CLIP_ID } from "../kb/liveProject";
+import { useLiveLoad } from "../kb/liveLoad";
 
 /** 实时看板状态：与工程 store 分离（不进撤销栈、不进 localStorage）。
  *  进度轨 / 阶段栏 / 镜头面板只订阅这里的一小片，播放中不重渲染（PlayheadLine 同款纪律）。 */
@@ -30,6 +31,17 @@ export const usePipeline = create<PipelineStore>((set) => ({
   setCodeError: (codeError) => set({ codeError }),
 }));
 
+// kb-main 实时成片卡载入失败（语法错 / 缺导出）→ 同一条右下角提示；载入成功 → 清掉
+useLiveLoad.subscribe((s, prev) => {
+  if (s.error && s.error !== prev.error) usePipeline.getState().setCodeError(s.error);
+  else if (!s.error && prev.error) usePipeline.getState().setCodeError(null);
+});
+/** 上次载入失败的实时成片卡：重建 lazy 再试（还坏就再次报错、提示回来） */
+const retryLiveIfFailed = () => {
+  const ll = useLiveLoad.getState();
+  if (ll.error) ll.retry();
+};
+
 // 选中片段时取消镜头选中（属性面板二者只显示其一）
 useStore.subscribe((s, prev) => {
   if (s.selectedClipId && s.selectedClipId !== prev.selectedClipId) usePipeline.getState().selectShot(null);
@@ -56,6 +68,8 @@ export const connectPipeline = () => {
     const j = raw as { linked?: boolean; state?: PipelineState | null };
     usePipeline.getState().setState(j.state ?? null, Boolean(j.linked));
     if (j.state) syncLiveClip(j.state);
+    // 工程文件变了（SSE 推来）：首次转换失败的模块 Vite 不向导入方传播 HMR，只能靠这里触发重试
+    retryLiveIfFailed();
   };
   fetch("/api/pipeline").then((r) => (r.ok ? r.json() : null)).then((j) => j && apply(j)).catch(() => {});
   const es = new EventSource("/api/pipeline/events");
@@ -76,6 +90,9 @@ export const connectPipeline = () => {
       const file = err.loc?.file ? `${err.loc.file}${err.loc.line ? `:${err.loc.line}` : ""}` : err.id;
       usePipeline.getState().setCodeError({ message: String(err.message ?? "工程代码错误").split("\n")[0].slice(0, 300), file });
     });
-    hot.on("vite:afterUpdate", () => usePipeline.getState().setCodeError(null));
+    hot.on("vite:afterUpdate", () => {
+      usePipeline.getState().setCodeError(null);
+      retryLiveIfFailed();
+    });
   }
 };

@@ -68,6 +68,11 @@ export const ShotPanel: React.FC<{ shotId: string }> = ({ shotId }) => {
             <b>{sh.renderedAt ? new Date(sh.renderedAt).toLocaleString("zh-CN", { hour12: false }) : "未渲"}</b>
           </div>
           {sh.stale && <div className="note warn">场景文件比渲出的段新——重渲这一段（`render_shots --changed {sh.id}`）</div>}
+          {sh.verdict === "passed" && sh.status !== "passed" && (
+            <div className="note warn">
+              曾 `--pass` 通过，但{sh.stale ? "场景文件之后又改过" : "渲出的段已不在 / 镜头回到占位"}——按推导状态显示；重渲复核后再 `--pass {sh.id}`
+            </div>
+          )}
           <div className="ctl-row" style={{ marginTop: 8, gap: 6 }}>
             <button className="mini" onClick={jump}>
               ⤓ 跳到该镜

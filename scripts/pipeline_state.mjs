@@ -10,6 +10,8 @@
 // 状态推导（盘上事实优先，手工字段只补盘上推不出的）：
 //   shots[].status：planned（只在 shots.json）→ placeholder（骨架已搭、SCENES 表里没它）→ implemented（SCENES 表里有 / scenes/ 下有同名文件）
 //                   → rendered（out/segments|preview/<id>.mp4 在）→ passed（--pass）；场景文件比段新 → stale=true
+//   过期按母版段（out/segments）算，没有母版才看预览——新预览不能掩盖旧母版；
+//   --pass 只在该镜"仍已渲且未过期"时算 passed，产物删了 / 场景又改了就回到推导状态（verdict 字段仍记着"曾通过"，面板提示重渲复核）
 //   issues：--issue 手工登记的未清缺陷（算红点）；mentions：review/*.md / REVIEW*.md 里 `[P0]`/`[P1]`/`[P2]` 且点名 sNN 的行
 //           （自动抽取、标 source，可能早已修掉——只作镜头面板参考，不计红点）
 //   stages：① 口播稿 → ② 配音/时间戳 → ③ 素材 → ④ SHOTBOOK+shots.json → ⑤ 骨架/逐镜 → ⑥⑦ 渲染/验收 → ⑧ delivery.mp4
@@ -142,8 +144,12 @@ export const derivePipeline = (root, manual = readManual(root)) => {
     const preview = path.join(out, "preview", `${id}.mp4`);
     const renderedAt = Math.max(exists(segment) ? mtime(segment) : 0, exists(preview) ? mtime(preview) : 0);
     if (renderedAt > 0 && status === "implemented") status = "rendered";
-    const stale = renderedAt > 0 && sceneFile ? mtime(sceneFile) > renderedAt + 1000 : false;
-    if (manual.verdicts[id] === "passed") status = "passed";
+    // 过期看母版段；没有母版（只出过预览）才看预览——否则新预览会把旧母版掩盖掉（2026-09-13 审计 R5）
+    const masterAt = exists(segment) ? mtime(segment) : exists(preview) ? mtime(preview) : 0;
+    const stale = masterAt > 0 && sceneFile ? mtime(sceneFile) > masterAt + 1000 : false;
+    const verdict = manual.verdicts[id] === "passed" ? "passed" : null;
+    // 人工 --pass 绑定"当时看过的产物"：产物没了（映射删了 / 段删了）或场景之后又改过 → 不算通过，按推导状态显示
+    if (verdict && status === "rendered" && !stale) status = "passed";
     const key = id.toLowerCase();
     const issues = manualIssues.filter((x) => x.shot === key);
     const shotMentions = mentions.filter((x) => x.shot === key);
@@ -153,6 +159,7 @@ export const derivePipeline = (root, manual = readManual(root)) => {
       end: Number(s.end) || 0,
       status,
       stale,
+      verdict,
       sceneFile: rel(root, sceneFile),
       renderedAt: renderedAt ? new Date(renderedAt).toISOString() : null,
       segment: exists(segment) ? rel(root, segment) : null,
@@ -255,7 +262,11 @@ const parseArgs = (argv) => {
   const o = { pass: [], unpass: [], issue: [], clearIssues: [], note: [] };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    const val = () => argv[++i];
+    const val = () => {
+      const v = argv[++i];
+      if (v === undefined || v.startsWith("--")) { console.error(`${a} 缺参数值`); process.exit(2); }
+      return v;
+    };
     if (a === "--root") o.root = val();
     else if (a === "--stage") o.stage = val();
     else if (a === "--pass") o.pass.push(...val().split(","));

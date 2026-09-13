@@ -228,7 +228,10 @@ open 'http://localhost:5199/?live'                                     # ?live =
   | 阶段与推断不符时 | `--stage ⑥⑦` | 平时不用，阶段按产物自动推 |
   | 任何时候想核对 | 不带参数 | 重算并落盘，末行打印摘要 |
 
-- **半成品不盖页**：Vite 报错不再罩住整个工作台，右下角一条提示 + 画面停在上一版；单 clip 渲染出错只把那一格画红。
+- **半成品不盖页**：Vite 报错不再罩住整个工作台，右下角一条提示 + 画面停在上一版；单 clip 渲染出错只把那一格画红；
+  页面打开时工程就是坏的，修好后成片卡自动恢复（载入失败不缓存）。**只有 Player 里容错**——`render_shots` / 工作台导出走 Remotion CLI 时任何卡抛错就是渲染失败，不会把红色错误画面当成片。
+- 看板画布 = 工程原尺寸（Root.tsx 的 width / height / fps **必须写数字字面量**，写变量会按默认 1920×1080@30 并在 `npm run gen` 时告警）。
+- `--pass` 绑定当时的产物：段被删 / 场景之后又改过 → 该镜回到推导状态并提示"曾通过"，重渲复核后再 `--pass`。
 - **Main 组件别调 `getInputProps()`**（Remotion Player 里必抛，看板上那一格会红）：debug / sfxSolo 之类开关改成组件 props（Composition defaultProps），
   或守卫 `typeof window !== 'undefined' && !(window as any).remotion_isPlayer`。
 - 看板只看不驱动：不提供"点按钮触发某一步"的接口，skill 仍是主控。

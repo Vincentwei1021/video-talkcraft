@@ -16,6 +16,8 @@ export interface PipelineShot {
   end: number;
   status: ShotStatus;
   stale: boolean;
+  /** 人工 --pass 记录；status 只在仍已渲且未过期时才是 passed（否则面板提示"曾通过，重渲复核"） */
+  verdict?: "passed" | null;
   sceneFile: string | null;
   renderedAt: string | null;
   segment: string | null;

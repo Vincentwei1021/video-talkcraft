@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill, Freeze, Sequence, useCurrentFrame } from "remotion";
+import { AbsoluteFill, Freeze, Sequence, useCurrentFrame, getRemotionEnvironment } from "remotion";
 import type { ProjectData } from "../types";
 import { CARDS } from "../cards/registry";
 import { defaultsOf } from "../cards/types";
@@ -17,7 +17,9 @@ const TimeRemap: React.FC<{
   return <Freeze frame={Math.max(0, inOffset + frame * speed)}>{children}</Freeze>;
 };
 
-/** 单 clip 报错只把这一格画红（实时看板下 agent 半成品是常态），其余 clip 照常 */
+/** 单 clip 报错只把这一格画红（实时看板下 agent 半成品是常态），其余 clip 照常。
+ *  **只在 Player / Studio 里容错**：Remotion CLI 渲染（导出成片 / 透明导出）时原样抛出让任务失败——
+ *  否则红色错误画面会被当成功产物交付（2026-09-13 审计 R3）。 */
 class ClipBoundary extends React.Component<{ label: string; children: React.ReactNode }, { err: string | null }> {
   state = { err: null as string | null };
   static getDerivedStateFromError(e: unknown) {
@@ -28,13 +30,15 @@ class ClipBoundary extends React.Component<{ label: string; children: React.Reac
     if (this.state.err && prev.children !== this.props.children) this.setState({ err: null });
   }
   render() {
-    if (this.state.err)
+    if (this.state.err) {
+      if (getRemotionEnvironment().isRendering) throw new Error(`片段渲染出错 · ${this.props.label}：${this.state.err}`);
       return (
         <AbsoluteFill style={{ background: "rgba(90,20,24,0.92)", color: "#ffb4ad", padding: 36, fontFamily: "-apple-system, PingFang SC, sans-serif" }}>
           <div style={{ fontSize: 26, fontWeight: 600 }}>片段渲染出错 · {this.props.label}</div>
           <pre style={{ marginTop: 12, fontSize: 16, lineHeight: 1.5, whiteSpace: "pre-wrap", opacity: 0.85 }}>{this.state.err.slice(0, 400)}</pre>
         </AbsoluteFill>
       );
+    }
     return this.props.children;
   }
 }
