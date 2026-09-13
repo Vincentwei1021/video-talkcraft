@@ -2,6 +2,6 @@
 import type React from "react";
 import * as real from "@kbsrc/Subtitles";
 import * as stub from "../../kbsrc-stub/Subtitles";
-import { fnOr } from "./pick";
+import { compOr } from "./pick";
 
-export const Subtitles: React.FC<Record<string, unknown>> = fnOr(real.Subtitles, stub.Subtitles);
+export const Subtitles: React.FC<Record<string, unknown>> = compOr(real.Subtitles, stub.Subtitles);

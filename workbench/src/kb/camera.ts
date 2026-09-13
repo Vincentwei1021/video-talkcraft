@@ -2,10 +2,10 @@
 import type React from "react";
 import * as real from "@kbsrc/camera";
 import * as stub from "../../kbsrc-stub/camera";
-import { fnOr } from "./pick";
+import { compOr } from "./pick";
 
 export type CamKey = unknown;
 export type CamImpulse = unknown;
 type Rig = React.FC<Record<string, unknown> & { children?: React.ReactNode }>;
-export const CameraRig: Rig = fnOr(real.CameraRig, stub.CameraRig as Rig);
-export const Plane: Rig = fnOr(real.Plane, stub.Plane as Rig);
+export const CameraRig: Rig = compOr(real.CameraRig, stub.CameraRig as Rig);
+export const Plane: Rig = compOr(real.Plane, stub.Plane as Rig);

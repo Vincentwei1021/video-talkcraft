@@ -111,7 +111,12 @@ if (kbLinked) {
     const num = (k) => { const m = src.match(new RegExp(`\\b${k}=\\{\\s*(\\d+)\\s*\\}`)); return m ? Number(m[1]) : null; };
     const id = src.match(/\bid=["']([^"']+)["']/);
     if (id) kbComp.id = id[1];
-    for (const k of ["width", "height", "fps"]) { const v = num(k); if (v) kbComp[k] = v; }
+    for (const k of ["width", "height", "fps"]) {
+      const v = num(k);
+      if (v) kbComp[k] = v;
+      else if (new RegExp(`\\b${k}=\\{`).test(src))
+        console.warn(`gen-index: ${f} 的 ${k}={…} 不是数字字面量（用了变量 / 表达式），KB_COMP.${k} 按默认 ${kbComp[k]}——与工程真值不同时看板画幅 / 帧率会错，请在 Root.tsx 用字面量`);
+    }
     break;
   }
 }

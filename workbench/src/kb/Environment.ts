@@ -2,7 +2,7 @@
 import type React from "react";
 import * as real from "@kbsrc/Environment";
 import * as stub from "../../kbsrc-stub/Environment";
-import { fnOr } from "./pick";
+import { compOr } from "./pick";
 
-export const Environment: React.FC = fnOr(real.Environment, stub.Environment);
-export const ShapeWipes: React.FC = fnOr(real.ShapeWipes, stub.ShapeWipes);
+export const Environment: React.FC = compOr(real.Environment, stub.Environment);
+export const ShapeWipes: React.FC = compOr(real.ShapeWipes, stub.ShapeWipes);
