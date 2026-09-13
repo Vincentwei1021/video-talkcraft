@@ -2,10 +2,10 @@ import React from "react";
 import { AbsoluteFill, Easing, OffthreadVideo, interpolate, staticFile, useCurrentFrame } from "remotion";
 import type { CardDef } from "../types";
 import { shotTiming } from "../koubo-units";
-import { CameraRig, Plane } from "@kbsrc/camera";
-import { C, FONT, RADII, SHADOW_EVIDENCE } from "@kbsrc/theme";
-import { atChar } from "@kbsrc/timing";
-import { SHOTS } from "@kbsrc/shots";
+import { CameraRig, Plane } from "../../kb/camera";
+import { C, FONT, RADII, SHADOW_EVIDENCE } from "../../kb/theme";
+import { atChar } from "../../kb/timing";
+import { SHOTS } from "../../kb/shots";
 
 // kscene-s02 · 口播成片 S02「横屏 · 竖屏 · 无人物」逐镜参数化卡
 // 已知边界：三张卡踩「这样」词锚（A(2,'这样',i)）与动画时长/错峰、相机路径全部 FIXED——
@@ -48,7 +48,7 @@ const backOut = (s = 1.70158) => (x: number) => { const u = x - 1; return 1 + (s
 // 词级锚点：视觉节拍 = 字级时间戳 + 48ms 混音补偿（与成片 beats.json 同源）
 const AV = 0.048;
 const A = (si: number, q: string, occ = 0) => atChar(si, q, occ) + AV;
-const ST = (n: number) => SHOTS[n - 1].start;
+const ST = (n: number) => (SHOTS[n - 1]?.start ?? 0);
 
 // 三张卡的素材/几何/节拍基准（FIXED）：真实成片片段，不许灰底 mock
 const S02_CARDS = [

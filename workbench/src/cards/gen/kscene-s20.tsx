@@ -2,9 +2,9 @@ import React from "react";
 import { AbsoluteFill, Easing, interpolate, useCurrentFrame } from "remotion";
 import type { CardDef } from "../types";
 import { shotTiming } from "../koubo-units";
-import { CameraRig, Plane } from "@kbsrc/camera";
-import { C, FONT, RADII } from "@kbsrc/theme";
-import { atChar } from "@kbsrc/timing";
+import { CameraRig, Plane } from "../../kb/camera";
+import { C, FONT, RADII } from "../../kb/theme";
+import { atChar } from "../../kb/timing";
 
 // kscene-s20 · 金句与口碑 —— 口播成片 Scene20 的逐镜参数化卡
 // 前半 quote-bracket-pull（双引号对拉出金句），后半 danmu-bubble-praise（评论逐枚飘上）。

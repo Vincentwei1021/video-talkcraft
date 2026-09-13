@@ -8,6 +8,7 @@ import { TPL_CATEGORIES, TPL_META } from "../cards/tplMeta";
 import { useStore } from "../store";
 import { buildKouboProject, SFX_FILES } from "../kouboImport";
 import { MEDIA_ITEMS, SFX_ALL } from "../mediaManifest";
+import { KB_LINKED, KB_PROJECT, KB_PROMO } from "../kbMeta";
 import { setDragPayload } from "../dnd";
 
 const TABS = [
@@ -221,8 +222,11 @@ export const LibraryPanel: React.FC = () => {
     </div>
   );
 
-  const motionCards = CARD_LIST.filter((c) => !NON_MOTION_CATS.has(c.category));
-  const kouboCards = CARD_LIST.filter((c) => MEDIA_CARD_CATS.has(c.category));
+  const listed = CARD_LIST.filter((c) => !c.hidden);
+  const motionCards = listed.filter((c) => !NON_MOTION_CATS.has(c.category));
+  const kouboCards = listed.filter((c) => MEDIA_CARD_CATS.has(c.category));
+  // 拆解导入吃 promo 形态契约（PromoScenes / camera / Host / Environment / timing）；接入其它形态工程时禁用并说明
+  const kouboImportable = !KB_LINKED || KB_PROMO;
   const bgCards = CARD_LIST.filter((c) => c.category === "背景");
   const sfxUse = new Map(SFX_FILES.map((s) => [s.file, s.count]));
 
@@ -255,7 +259,12 @@ export const LibraryPanel: React.FC = () => {
           <>
             <button
               className="btn wide"
-              title="把口播成片拆解为逐句字幕/转场/环境/数字人/23 镜头/配音/逐条音效的多轨工程（可撤销）"
+              disabled={!kouboImportable}
+              title={
+                kouboImportable
+                  ? "把口播成片拆解为逐句字幕/转场/环境/数字人/23 镜头/配音/逐条音效的多轨工程（可撤销）"
+                  : `接入工程「${KB_PROJECT}」不是拆解契约形态（缺 PromoScenes / camera 等模块），拆解导入不可用`
+              }
               onClick={() => setProject(buildKouboProject())}
             >
               ⇣ 拆解导入：口播成片
@@ -288,7 +297,7 @@ export const LibraryPanel: React.FC = () => {
               ))}
             </div>
 
-            <div className="lib-cat">口播成片 · 拆解单元</div>
+            {kouboCards.length > 0 && <div className="lib-cat">口播成片 · 拆解单元</div>}
             <div className="lib-grid">
               {kouboCards.map((card) => (
                 <Cell

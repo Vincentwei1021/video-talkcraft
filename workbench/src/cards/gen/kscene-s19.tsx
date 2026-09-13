@@ -2,9 +2,9 @@ import React from "react";
 import { AbsoluteFill, Easing, interpolate, staticFile, useCurrentFrame } from "remotion";
 import type { CardDef } from "../types";
 import { shotTiming } from "../koubo-units";
-import { CameraRig, Plane } from "@kbsrc/camera";
+import { CameraRig, Plane } from "../../kb/camera";
 import PencilCard from "@kbsrc/cards/pencil-sketch-draw";
-import { FONT } from "@kbsrc/theme";
+import { FONT } from "../../kb/theme";
 
 // kscene-s19 · 当场画出来 —— 口播成片 Scene19 的逐镜参数化卡（bgAlt 浅灰底）
 // Scene19 整卡引入 pencil-sketch-draw（手握铅笔骑在笔迹生长端）：

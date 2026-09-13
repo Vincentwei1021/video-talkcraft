@@ -2,10 +2,10 @@ import React from "react";
 import { AbsoluteFill, Easing, interpolate, useCurrentFrame } from "remotion";
 import type { CardDef } from "../types";
 import { shotTiming } from "../koubo-units";
-import { CameraRig, Plane } from "@kbsrc/camera";
-import { SHOTS } from "@kbsrc/shots";
-import { C, FONT, RADII, SHADOW_EVIDENCE } from "@kbsrc/theme";
-import { atChar } from "@kbsrc/timing";
+import { CameraRig, Plane } from "../../kb/camera";
+import { SHOTS } from "../../kb/shots";
+import { C, FONT, RADII, SHADOW_EVIDENCE } from "../../kb/theme";
+import { atChar } from "../../kb/timing";
 
 // kscene-s13 · 引线标注 —— Scene13（callout-line-label）逐镜参数化卡
 // 结构与 koubo-units 的 KouboShot 同构：KScale > Envelope > 底色 > CameraRig > 场景。
@@ -29,7 +29,7 @@ const backOut = (s = 1.70158) => (x: number) => { const u = x - 1; return 1 + (s
 const cardBase: React.CSSProperties = { background: "#fff", border: `1px solid ${C.hairline}`, borderRadius: RADII.card };
 const AV = 0.048;
 const A = (si: number, q: string, occ = 0): number => atChar(si, q, occ) + AV;
-const ST = (n: number): number => SHOTS[n - 1].start;
+const ST = (n: number): number => (SHOTS[n - 1]?.start ?? 0);
 const DOT_AT: number = A(19, "引线") - ST(13);
 
 // —— KouboShot 的包装组件（koubo-units 未导出，按原样复制）——

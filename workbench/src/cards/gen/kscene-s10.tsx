@@ -2,8 +2,8 @@ import React from "react";
 import { AbsoluteFill, Easing, Img, interpolate, staticFile, useCurrentFrame } from "remotion";
 import type { CardDef } from "../types";
 import { shotTiming } from "../koubo-units";
-import { CameraRig, Plane } from "@kbsrc/camera";
-import { C, FONT, RADII, SHADOW_EVIDENCE } from "@kbsrc/theme";
+import { CameraRig, Plane } from "../../kb/camera";
+import { C, FONT, RADII, SHADOW_EVIDENCE } from "../../kb/theme";
 
 // kscene-s10 · 口播成片 Scene10「镜头持续漂移」逐镜参数化卡（orbit-drift 原版）
 // 3D 空间双正弦 90° 相位差环绕（不是平面摇摆），影子随环绕反向漂。

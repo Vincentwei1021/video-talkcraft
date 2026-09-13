@@ -4,13 +4,15 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
+import { kbsrcMap } from "./kbsrc.map.mjs";
 
 // @kbsrc = 外部口播成片工程源码（本机经 workbench/kbsrc 符号链接接入，不进库）。
-// 未链接时自动落到 kbsrc-stub 降级实现：工程可构建可运行，口播拆解相关能力显示占位。
-// preserveSymlinks 让 kbsrc 按虚拟路径解析，其 'react'/'remotion' 裸导入
-// 落到本工程 node_modules（避免双实例）；src/kbsrc.d.ts 让 tsc 不检查外部源码。
+// 解析策略见 kbsrc.map.mjs：按真实路径接入（工程内 `../shots.json` 之类 src 之外的相对引用成立）、
+// 契约模块逐个回退到 kbsrc-stub（接入工程缺哪个文件就只有那张卡降级，不再整页 500）；
+// react / react-dom / remotion 用 resolve.dedupe 收到本工程 node_modules（避免双实例）。
+// src/kbsrc.d.ts 让 tsc 不检查外部源码；导出形态差异由 src/kb/*.ts 适配层兜底。
 const root = fileURLToPath(new URL(".", import.meta.url));
-const kbsrc = existsSync(path.join(root, "kbsrc")) ? "kbsrc" : "kbsrc-stub";
+const kb = kbsrcMap(root);
 
 /** 导出成片：dev server 内起 Remotion CLI 渲染（remotion.config.ts 已锁单并发），
  *  前端 POST /api/export 提交工程 JSON，轮询 GET /api/export/:id 取进度。 */
@@ -162,9 +164,16 @@ const renderExportPlugin = (): Plugin => {
 
 export default defineConfig({
   plugins: [react(), renderExportPlugin()],
-  server: { port: 5199 },
+  server: {
+    port: 5199,
+    // 接入工程按真实路径解析后位于本目录之外：显式放行其工程根（默认只放行 workspace root，
+    // 而 Vite 不把 .git 当 workspace 标记，仓库根也要显式列上——tplcards → ../template/cards）
+    fs: { allow: [root, path.resolve(root, ".."), ...(kb.projectRoot ? [kb.projectRoot] : [])] },
+  },
   resolve: {
+    // tplcards（→ ../template/cards）仍按虚拟路径解析：模板正主源码的裸导入落回本工程 node_modules
     preserveSymlinks: true,
-    alias: { "@kbsrc": path.join(root, kbsrc), "@tpl": path.join(root, "tplcards") },
+    dedupe: ["react", "react-dom", "remotion"],
+    alias: [...kb.viteAlias, { find: "@tpl", replacement: path.join(root, "tplcards") }],
   },
 });
