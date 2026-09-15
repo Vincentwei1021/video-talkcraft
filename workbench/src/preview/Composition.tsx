@@ -46,12 +46,13 @@ class ClipBoundary extends React.Component<{ label: string; children: React.Reac
 /** 透明通道导出（右键片段 → 导出透明通道）时注入：
  *  108 张卡的根 AbsoluteFill 都画了不透明幕底（中性白 / 深底），透明导出要的是"动效本体"，
  *  所以把每个 clip 图层的直接子层（= 卡根层）背景去掉；人物剪影占位（HostSilhouette）与
- *  口播镜头卡的白底层（wb-shot-bg）也一并去掉。只动根层与这两处标记层——卡内部的色块 / 底板 /
+ *  口播镜头卡的白底层（wb-shot-bg）、skill 工程镜头里的实拍底床（wb-bed：整幅 B-roll 是背景不是动效本体，2026-09-16 用户导出 s01 看到棋盘"背景图"）也一并去掉。只动根层与这几处标记层——卡内部的色块 / 底板 /
  *  转场色面是动效内容，不能动。样式表 !important 能压过 React 的 inline style（inline 没有 !important）。 */
 const ALPHA_CSS = `
 .wb-alpha > div { background: transparent !important; }
 .wb-alpha .wb-shot-bg { background: transparent !important; }
 .wb-alpha .wb-host-silhouette { display: none !important; }
+.wb-alpha .wb-bed { display: none !important; }
 `;
 
 export const MainComposition: React.FC<{ project: ProjectData; transparent?: boolean }> = ({

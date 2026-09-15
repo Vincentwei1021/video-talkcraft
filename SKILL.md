@@ -271,7 +271,8 @@ open 'http://localhost:5199/?live'                                     # ?live =
   （文案 / 颜色 / 字号 / 位置 / 入场方向），词锚时刻、时长、缓动、几何比例、层级是命门不进表（design-language §0.4 同一条线）；
   `Subtitles.tsx` 导出 `Subtitles` + `phrases()`（全部可见字幕段：已扣静音区、已做显示映射）+ `SubtitleLine`（单句静态渲染，Subtitles 自己也用它画）；
   `Environment.tsx` 导出 `Environment`（幕底画布，画在所有镜头之下）与 `Overlays`（幕级覆盖：黑震切帧 / 落幕等，画在镜头之上、字幕之下），`Main.tsx` 从这里取；
-  `params.ts` 照模板抄（`useParams` / `ParamsProvider` / `OVERRIDES`），`remotion/overrides.json` 建成 `{}`。
+  `params.ts` 照模板抄（`useParams` / `ParamsProvider` / `OVERRIDES`），`remotion/overrides.json` 建成 `{}`；
+  实拍底床用 `template/components/bed.tsx` 的 `Bed`（根元素 `className="wb-bed"`）——工作台右键导透明通道时按这个标记把底床去掉，只留动效本体。
   **`overrides.json` 归工作台写、agent 永不改**：用户在面板改的键以它为准，agent 只改 tsx 默认值——这就是双写冲突的解法；
   渲染（render_shots / 工作台导出）读同一份，所以定版前要看一眼它是否为空（用户调过参就以调过的为准交付，交付说明里写明）。
   契约是否齐全由机器闸 `python3 scripts/workbench_contract_lint.py <工程根>` 核（⑥⑦ 六条闸之一；样板镜阶段加 `--allow-placeholder`）。
