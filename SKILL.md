@@ -34,11 +34,16 @@ description: 终极口播视频 skill：中文口播稿 + 成品配音 → CPU �
 **配音是输入，不是本 skill 的产物**（2026-08-28 定版）：真人录音或任何 TTS 皆可，
 skill 不含合成技术。输入 = 一条完整配音（wav/mp3）+ 与之逐字一致的口播稿。
 ```bash
+# 方案 A（已有录音，本机 CPU 对齐）：
 pip install zhconv pypinyin sherpa-onnx soundfile numpy   # 默认后端 FireRedASR2-CTC int8 的全部依赖
 # 首次：下载模型 767MB（model.int8.onnx + tokens.txt）放 ~/.cache/koubo/<模型名>/，地址见脚本头注释
 python3 scripts/timestamps_cpu.py audio/full.wav script.json audio/timestamps.json
 # 备选（免手动下模型）：pip install faster-whisper 后加 --backend whisper（首跑自动下载 460MB）
 python3 scripts/make_timing.py audio/timestamps.json remotion/src/timing.json
+
+# 方案 B（一键生成配音 + 时间戳，Fish Audio 免费层 s2.1-pro-free）：
+# 在 .env 配置 FISH_AUDIO_API_KEY=xxx 及可选 FISH_AUDIO_REFERENCE_ID=xxx（见 .env.example）
+python3 scripts/tts_fishaudio.py script.json audio/full.wav audio/timestamps.json --timing-out remotion/src/timing.json
 ```
 - timestamps_cpu.py：ASR 词级时间戳 → 与口播稿字符级对齐（**CJK 是可靠锚点**，
   匹配键=繁简归一+无声调拼音，同音字不算错；拉丁词各家 ASR 都常拼错，在锚点间插值）→
@@ -235,5 +240,6 @@ X [`@VincentWei93`](https://x.com/VincentWei93) ·
 | 新增配方卡 | `references/demo-spec.md`，验证 `node scripts/verify-demo.mjs <slug>` |
 | 可复制代码 | `template/cards/`（78 卡逐卡自包含 tsx）、`template/motion-systems/`（相机/让位/环境/桥）、`template/components/`（字幕/花字/铅笔/吉祥物） |
 | 字级时间戳（本机 CPU） | `scripts/timestamps_cpu.py`（FireRedASR2-CTC 默认 / faster-whisper 备选，+ 口播稿逐字对齐）→ `scripts/make_timing.py` |
+| 一键配音+时间戳（Fish Audio 免费层） | `scripts/tts_fishaudio.py`（基于 s2.1-pro-free 流式 TTS，生成 full.wav + timestamps.json + 可选 timing.json） |
 | 机器闸（画面健康 / 保真 / 词落点+镜尾 / 音效） | `scripts/motion_check.py`（静止段+并发光栅抖动双判定）/ `scripts/card_lint.py`（卡片须复制自 template/cards）/ `scripts/beat_lint.py`（词落点对 timestamps + `--shots` 镜尾保护带）/ `scripts/sfx_check.py`（solo 在场 + `--mix` 可听度） |
 | 动效配套音效 | 逐卡 cue 表 `demos/_lib/sfx-map.js`（口味纪律见 `references/demo-spec.md` §8）；制作端 `node scripts/sfx_dump.mjs` 导出采样 |

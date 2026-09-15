@@ -84,10 +84,10 @@ ln -s "$(pwd)" ~/.codex/skills/video-talkcraft    # Codex
 Environment (the agent will set this up as needed):
 
 - Node 18+ (Remotion render; `npm install` inside the per-video project)
-- Python 3.10+ and `pip install zhconv pypinyin sherpa-onnx soundfile numpy`
-  for the timestamp pipeline (first use downloads the 767 MB FireRedASR2-CTC
-  model once — URLs in `scripts/timestamps_cpu.py`; or use
-  `--backend whisper` to skip the manual download)
+- Python 3.10+
+  - For local CPU timestamp alignment: `pip install zhconv pypinyin sherpa-onnx soundfile numpy`
+    (downloads 767 MB FireRedASR2-CTC model once; or use `--backend whisper`)
+  - For 1-step cloud TTS + timestamps (Fish Audio free tier): `pip install requests python-dotenv`
 - ffmpeg
 
 Then make requests like:
@@ -96,6 +96,21 @@ Then make requests like:
 Use video-talkcraft to turn this narration script + voiceover.wav into a video.
 Make a 100-second explainer about <topic>; here is the script and the audio.
 ```
+
+### 🎙️ 1-Step Voiceover + Timestamps via Fish Audio (Free Tier)
+
+If you don't already have pre-recorded voiceover, you can synthesize high-quality speech and word-level timestamps in a single step using Fish Audio's free developer tier (`s2.1-pro-free`):
+
+1. Copy `.env.example` to `.env` and set your `FISH_AUDIO_API_KEY` (and optional `FISH_AUDIO_REFERENCE_ID`):
+   ```bash
+   cp .env.example .env
+   # Add your key to .env: FISH_AUDIO_API_KEY=your_key_here
+   ```
+2. Generate `audio/full.wav`, `audio/timestamps.json`, and `timing.json`:
+   ```bash
+   python scripts/tts_fishaudio.py script.json audio/full.wav audio/timestamps.json --timing-out remotion/src/timing.json
+   ```
+
 
 ## 🎞 What you bring vs. what it does
 
