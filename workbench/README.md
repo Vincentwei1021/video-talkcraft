@@ -46,6 +46,7 @@ bash scripts/link-project.sh /path/to/<口播工程>     # kbsrc → remotion/sr
 ```
 
 （手写 `ln -sfn` 循环在 `public/<name>` 已是指向别的工程目录的符号链接时不会替换，上一支片的 logos / 素材会留下来——脚本就是为这个写的。）
+接入前先跑 `python3 ../scripts/workbench_contract_lint.py <口播工程>`：它逐项核对拆解契约（六个契约文件、SCENES / SCENE_PARAMS 与 shots.json 对账、每镜 PARAMS + useParams、params.ts / overrides.json、Subtitles 的 phrases / SubtitleLine），FAIL 会直接说缺哪个导出——比打开工作台看到按钮灰再猜快得多。
 链接后 `npm run gen` 已跑过（`npm install` 的 prepare 与 dev/build/studio 的前置钩子也会跑）：它扫描 `public/`
 生成素材清单 `src/mediaManifest.ts`，并从工程读出换幕时刻表生成 `src/kbMeta.ts`——两个文件按本机链接生成、不进库。
 换幕时刻表的取值顺序：工程 `Environment.tsx` 导出的 `WIPE_TIMES`（推荐显式导出）→ 其中 ShapeWipes 的 `times = [...]`

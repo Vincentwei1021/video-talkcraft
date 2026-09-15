@@ -263,6 +263,7 @@ open 'http://localhost:5199/?live'                                     # ?live =
   `params.ts` 照模板抄（`useParams` / `ParamsProvider` / `OVERRIDES`），`remotion/overrides.json` 建成 `{}`。
   **`overrides.json` 归工作台写、agent 永不改**：用户在面板改的键以它为准，agent 只改 tsx 默认值——这就是双写冲突的解法；
   渲染（render_shots / 工作台导出）读同一份，所以定版前要看一眼它是否为空（用户调过参就以调过的为准交付，交付说明里写明）。
+  契约是否齐全由机器闸 `python3 scripts/workbench_contract_lint.py <工程根>` 核（⑥⑦ 六条闸之一；样板镜阶段加 `--allow-placeholder`）。
 
 ## ⑥⑦ 渲染 + 三重验收（机器闸全过 → 1 轮审片 → 交付）
 
@@ -332,7 +333,7 @@ npx remotion render src/entry.ts <Comp> out/sfx-solo.wav --props='{"sfxSolo":tru
 **修复验证同理只渲受影响段过闸**（freezedetect 单段可跑），不整渲。
 
 ```bash
-# —— 关卡 1 机器闸：五条命令一次跑完，全 PASS 才进关卡 2 独立审片 ——
+# —— 关卡 1 机器闸：六条命令一次跑完，全 PASS 才进关卡 2 独立审片 ——
 python3 scripts/motion_check.py out/vN.mp4 --baseline remotion/public/dh/host.webm --window <t>,<人物区 W:H:X:Y>
                                                   # 画面健康：静止段 + 抖动。抖动先查重复帧签名（人物区周期性近零差 = 素材帧率病，
                                                   # 处方在 preflight，--concurrency=1 治不了），再查并发光栅；--baseline 同窗量源片，
@@ -343,6 +344,9 @@ python3 scripts/sfx_check.py --mix out/vN.mp4 audio/full.wav cues.json --timesta
 python3 scripts/card_lint.py remotion/src <slug,slug,...>                # 卡片保真（复制自 template/cards）
 python3 scripts/beat_lint.py remotion/beats.json audio/timestamps.json --shots remotion/shots.json --anchors anchors.json
                                                   # 词落点 |Δ|≤0.1s + 镜尾保护带 ≥0.5s + label 只许 [A-Za-z0-9_-]（进文件名/JS 字符串）
+python3 scripts/workbench_contract_lint.py <本片工程根>                      # 工作台拆解契约（⑤-2）：六个契约文件 · SCENES/SCENE_PARAMS 与 shots.json 对账 ·
+                                                  # 每镜 PARAMS + useParams · params.ts / overrides.json · Subtitles 的 phrases/SubtitleLine——
+                                                  # 漏一个导出 = 用户打开工作台才发现按钮灰 / 面板空；⑤-1 只有样板镜时加 --allow-placeholder
 # 评审材料抽帧：每句 2 帧 + 动效锚点帧（anchors.json 从 beats.json 导出）
 # 连拍三帧对只抽 anchors.json 里标了 "burst": true 的锚点——状态切换（两态翻转/换场/砸入落位）
 # 与高风险区域必须标；其余锚点只抽定妆帧。
