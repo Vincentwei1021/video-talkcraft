@@ -19,7 +19,16 @@ description: 终极口播视频 skill：中文口播稿 + 成品配音 → CPU �
                                 → ⑥ 渲染 → ⑦ 三重验收（机器闸全过 + 1 轮审片修 P0/P1）→ ⑧ 交付（可选续审 ≤3 轮）
 ```
 
-## ⓪ 画幅与视觉语言（开工先定，全流程引用）
+## ⓪ 开工体检：统一依赖 + 画幅与视觉语言
+**依赖只有一份**：所有口播工程的 `remotion/node_modules` 与 `workbench/node_modules` 都是指向 `<skill根>/runtime/node_modules` 的软链，版本只在
+`runtime/package.json` 里钉（`@remotion/*` 全家同号）。**新片开工第一件事**（用户 2026-09-15 定版：每次新做视频都要检查更新）：
+```bash
+bash <skill根>/runtime/check-runtime.sh --upgrade   # 装好共享依赖 + 共享无头浏览器 + 链好 workbench；Remotion 有新版就全家升级并冒烟渲 1 帧，不过自动回滚
+```
+末行 `[runtime] OK` 才往下走；升了级要把 `runtime/package.json` / `package-lock.json` 的改动提交。**制作中途不升级**（母版段缓存不认依赖版本，混版本渲出的段不一致）。
+工程目录里**永远不跑 `npm install`**（会写进共享目录）；要加包 → 加进 `runtime/package.json`，`npm ci`，再提交。
+
+### 画幅与视觉语言（开工先定，全流程引用）
 - **画幅默认横屏 1920×1080**（用户偏好）；明确要发抖音/竖屏渠道才用 1080×1920
 - 视觉语言：**用户明确点了风格就按用户的来**（整套 token 替换）；没点时**先从口播稿判定领域、派生本片风格档**
   （`references/design-language.md` §0：读全稿答"讲什么 / 对谁讲 / 什么口吻"→ 领域 → 风格档表给底色策略 / accent / 字体气质 / 材质与卡造型 / 图表语言 / 素材气质 / 能量档，
@@ -205,7 +214,8 @@ anime.js v4 / three.js 走 `anime-remotion.ts` / `three-anime.ts` 桥（seek-saf
 ### ⑤-1 首镜先做先确认（2026-09-09 用户定版——其余镜头动工前的必经关）
 不再"整片做完再看第一镜"：全片共性（蒙皮 / 字幕样式 / 相机幅度 / 卡的密度 / 音效电平）在一镜上就判得出，做完 13 镜再改是 13 倍返工；
 "改一行就整渲"的冲动也集中在这一段（2026-09-08 issue #24：9 次整片直渲全发生在制作完、验收前）。
-1. **先搭全合成骨架**：entry / 全片时长 / `shots.ts` + `shots.json` 全表（时间来自 SHOTBOOK 与 timestamps，此时就写全）/ 全局系统（G1 相机、G3 让位、幕底、字幕、theme）；
+1. **先搭全合成骨架**：`remotion/` 目录建好后先 `bash <skill根>/runtime/link-runtime.sh <本片工程>`（`node_modules` 软链到统一依赖、`package.json` 依赖版本抄 runtime——不自建、不 `npm install`），
+   然后 entry / 全片时长 / `shots.ts` + `shots.json` 全表（时间来自 SHOTBOOK 与 timestamps，此时就写全）/ 全局系统（G1 相机、G3 让位、幕底、字幕、theme）；
    **其余镜头一律占位**——`MainVideo-example.tsx` 里 `SCENES[shot.id]` 查不到就落到 `PlaceholderScene`（只露幕底 + 字幕，不写任何动效）。
    骨架搭全是为了 render_shots 的段表 / 时长断言原样生效，不为首镜开豁免。
 2. **只实现样板镜**（SHOTBOOK G0「样板镜」行，默认 s01）：按 SHOTBOOK 全量落地——蒙皮行、卡 tsx 复制、音效 cue、转场处置——不做"先糙后精"。
@@ -231,7 +241,8 @@ open out/preview/s01.mp4        # 打开给用户看
 把 ⑧ 里"交付后才打开工作台"前移到这里：**⑤-1 合成骨架搭完（shots.json + Main.tsx 落盘）就接入并打开工作台**，用户此后随时能看到
 "做到哪了、哪镜什么状态"、能播当前实时成片、能点单镜有声预览；agent 每存一次盘预览就刷新，不用等成片（`workbench/docs/live-pipeline.md`）。
 ```bash
-cd <skill根>/workbench && npm install                                  # 首次
+bash <skill根>/runtime/check-runtime.sh                                # 依赖统一在 runtime/，这一步顺手把 workbench/node_modules 链好（不在 workbench 里 npm install）
+cd <skill根>/workbench
 bash scripts/link-project.sh <本片工程>       # kbsrc → remotion/src；public/ 先清掉指向别的工程的旧链接再逐项软链；末行打印拆解契约判定
 npm run dev &                                                          # 已在跑就跳过；链接变了要重跑一次 npm run gen
 sleep 4 && curl -s http://localhost:5199 | grep -q '动效工作台' && echo "工作台 OK" || echo "FAIL: 工作台未起"
@@ -260,7 +271,8 @@ open 'http://localhost:5199/?live'                                     # ?live =
   （文案 / 颜色 / 字号 / 位置 / 入场方向），词锚时刻、时长、缓动、几何比例、层级是命门不进表（design-language §0.4 同一条线）；
   `Subtitles.tsx` 导出 `Subtitles` + `phrases()`（全部可见字幕段：已扣静音区、已做显示映射）+ `SubtitleLine`（单句静态渲染，Subtitles 自己也用它画）；
   `Environment.tsx` 导出 `Environment`（幕底画布，画在所有镜头之下）与 `Overlays`（幕级覆盖：黑震切帧 / 落幕等，画在镜头之上、字幕之下），`Main.tsx` 从这里取；
-  `params.ts` 照模板抄（`useParams` / `ParamsProvider` / `OVERRIDES`），`remotion/overrides.json` 建成 `{}`。
+  `params.ts` 照模板抄（`useParams` / `ParamsProvider` / `OVERRIDES`），`remotion/overrides.json` 建成 `{}`；
+  实拍底床用 `template/components/bed.tsx` 的 `Bed`（根元素 `className="wb-bed"`）——工作台右键导透明通道时按这个标记把底床去掉，只留动效本体。
   **`overrides.json` 归工作台写、agent 永不改**：用户在面板改的键以它为准，agent 只改 tsx 默认值——这就是双写冲突的解法；
   渲染（render_shots / 工作台导出）读同一份，所以定版前要看一眼它是否为空（用户调过参就以调过的为准交付，交付说明里写明）。
   契约是否齐全由机器闸 `python3 scripts/workbench_contract_lint.py <工程根>` 核（⑥⑦ 六条闸之一；样板镜阶段加 `--allow-placeholder`）。
@@ -389,7 +401,8 @@ ffmpeg -i out/final.mp4 -c:v copy \
 见 ⑥⑦ 审片循环制度）——给用户一个剪映式界面做人工微调，并 `pipeline_state.mjs --pass …` 把过闸镜头钉绿：
 
 ```bash
-cd <skill根>/workbench && npm install            # 首次
+bash <skill根>/runtime/check-runtime.sh          # 统一依赖体检 + 链好 workbench/node_modules（不在 workbench 里 npm install）
+cd <skill根>/workbench
 bash scripts/link-project.sh <本片工程>          # 链接本片工程（机器本地符号链接，不进库；手写 ln -sfn 循环不会替换指向旧工程目录的链接——2026-09-15 实测 logos 仍指上一支片）
 mkdir -p public && for f in <本片工程>/remotion/public/*; do ln -sfn "$f" "public/$(basename "$f")"; done
 npm run dev &                                     # 浏览器打开 http://localhost:5199/?live 并告知用户

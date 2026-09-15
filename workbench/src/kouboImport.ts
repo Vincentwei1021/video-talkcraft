@@ -133,7 +133,8 @@ const buildSkillProject = (): ProjectData => {
     // tracks[0] 为最上层：字幕 > 幕级覆盖 > 转场标记 > 镜头 > 幕底；音频轨在最后
     tracks: [
       { id: kbId("track", "subtitles"), name: "字幕", clips: subtitleClips },
-      ...(hasEnv ? [{ id: kbId("track", "overlays"), name: "幕级覆盖", clips: [full("kskill-overlays", "黑震切 / 落幕")] }] : []),
+      // 幕级覆盖（黑震切帧 / 落幕压黑）：没有可编辑内容，只为成片一致——系统层，不在时间轨显示（Composition 照常渲染）
+      ...(hasEnv ? [{ id: kbId("track", "overlays"), name: "幕级覆盖", system: true, clips: [full("kskill-overlays", "黑震切 / 落幕")] }] : []),
       { id: kbId("track", "transitions"), name: "转场（标记）", clips: markerClips },
       { id: kbId("track", "shots"), name: "动效镜头", clips: shotClips },
       ...(hasEnv ? [{ id: kbId("track", "backdrop"), name: "幕底", clips: [full("kskill-backdrop", "分幕幕底")] }] : []),
@@ -237,6 +238,8 @@ export const syncKouboProject = (existing: ProjectData): ProjectData => {
 
   const tracks = existing.tracks.map((t) => ({
     ...t,
+    // 轨道属性（系统层标记）以新鲜拆解为准——老工程同步时把"幕级覆盖"收成系统层
+    ...(fresh.tracks.find((x) => x.id === t.id)?.system !== undefined ? { system: fresh.tracks.find((x) => x.id === t.id)!.system } : {}),
     clips: t.clips
       .filter((c) => !c.id.startsWith(KB_ID_PREFIX) || c.id === "kb-live-main" || freshClips.has(c.id))
       .map((c) => {
@@ -252,7 +255,7 @@ export const syncKouboProject = (existing: ProjectData): ProjectData => {
     let t = tracks.find((x) => x.id === trackId);
     if (!t) {
       const ft = fresh.tracks.find((x) => x.id === trackId)!;
-      t = { id: ft.id, name: ft.name, clips: [] };
+      t = { id: ft.id, name: ft.name, ...(ft.system ? { system: true } : {}), clips: [] };
       const at = fresh.tracks.findIndex((x) => x.id === trackId);
       tracks.splice(Math.min(at, tracks.length), 0, t);
     }
