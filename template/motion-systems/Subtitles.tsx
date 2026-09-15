@@ -35,6 +35,50 @@ const buildPhrases = (): Phrase[] => {
   return phrases;
 };
 
+/** 拆解契约：全部可见字幕段（工作台字幕轨一段一个片段；本模板按标点切句、句尾多留 0.3s、下一句起即接管） */
+export type SubPhrase = {text: string; start: number; end: number; dark: boolean};
+export const phrases = (): SubPhrase[] => {
+  const ps = buildPhrases();
+  return ps.map((p, i) => ({
+    text: p.chars.map((c) => c.ch).join('').trim(),
+    start: p.start,
+    end: Math.min(ps[i + 1]?.start ?? Infinity, p.end + 0.3),
+    dark: false,
+  }));
+};
+
+/** 拆解契约：单句静态渲染（与下面 Subtitles 同一套样式；工作台字幕句片段用它画，改文本不改样式） */
+export const SubtitleLine: React.FC<{text: string; dark?: boolean; bottom?: number; fontSize?: number; maxWidth?: number | string}> = ({
+  text,
+  bottom = 100,
+  fontSize = 44,
+  maxWidth = '66%',
+}) => {
+  if (!text) return null;
+  return (
+    <AbsoluteFill style={{justifyContent: 'flex-end', alignItems: 'center', pointerEvents: 'none'}}>
+      <div
+        style={{
+          marginBottom: bottom,
+          padding: '14px 42px',
+          borderRadius: 14,
+          background: 'rgba(7, 11, 20, 0.72)',
+          border: `1px solid ${C.line}`,
+          fontFamily: FONT.cn,
+          fontSize: text.length > 24 ? Math.round(fontSize * 0.86) : fontSize,
+          fontWeight: 600,
+          letterSpacing: 2,
+          maxWidth,
+          textAlign: 'center',
+          color: C.text,
+        }}
+      >
+        {text}
+      </div>
+    </AbsoluteFill>
+  );
+};
+
 type KeywordRun = {from: number; to: number; at: number}; // char index range [from, to) + 语音锚点秒
 
 // 在一个 phrase 里找关键词的字符区间（每个 phrase 只取首次出现），锚点 = 首字的 ASR 时间戳。

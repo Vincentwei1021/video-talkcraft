@@ -10,7 +10,13 @@ import { revealExport, startExport, useExportStore } from "./exportJob";
 import { StageBar } from "./pipeline/StageBar";
 import { CodeErrorToast } from "./pipeline/CodeErrorToast";
 import { connectPipeline } from "./pipeline/store";
+import { startOverridesSync } from "./overridesSync";
 import { buildLiveProject, canBuildLive, isLiveProject } from "./kb/liveProject";
+
+// 模块级也挂一次：接入工程源码 / overrides.json 变化会让 store 与本模块被 HMR 重新执行（见 store.ts 注释），
+// useEffect([]) 不会重跑，这里保证 SSE 与参数写回始终挂在**当前**store 上（两个函数都幂等）
+connectPipeline();
+startOverridesSync();
 
 const isEditable = (el: EventTarget | null) =>
   el instanceof HTMLElement &&
@@ -149,6 +155,7 @@ export const App: React.FC = () => {
   // 实时看板：连 SSE；URL 带 ?live（SKILL ⑤-2 打开工作台用）且当前不是实时工程 → 直接装上接入工程的成片
   useEffect(() => {
     connectPipeline();
+    startOverridesSync();
     if (canBuildLive && new URLSearchParams(window.location.search).has("live") && !isLiveProject(useStore.getState().project)) {
       useStore.getState().setProject(buildLiveProject());
     }

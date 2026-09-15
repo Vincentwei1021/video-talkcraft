@@ -232,7 +232,7 @@ open out/preview/s01.mp4        # 打开给用户看
 "做到哪了、哪镜什么状态"、能播当前实时成片、能点单镜有声预览；agent 每存一次盘预览就刷新，不用等成片（`workbench/docs/live-pipeline.md`）。
 ```bash
 cd <skill根>/workbench && npm install                                  # 首次
-ln -sfn <本片工程>/remotion/src kbsrc && mkdir -p public && for f in <本片工程>/remotion/public/*; do ln -sfn "$f" "public/$(basename "$f")"; done
+bash scripts/link-project.sh <本片工程>       # kbsrc → remotion/src；public/ 先清掉指向别的工程的旧链接再逐项软链；末行打印拆解契约判定
 npm run dev &                                                          # 已在跑就跳过；链接变了要重跑一次 npm run gen
 sleep 4 && curl -s http://localhost:5199 | grep -q '动效工作台' && echo "工作台 OK" || echo "FAIL: 工作台未起"
 open 'http://localhost:5199/?live'                                     # ?live = 直接装上本片主合成 + 进度轨
@@ -254,6 +254,15 @@ open 'http://localhost:5199/?live'                                     # ?live =
 - **Main 组件别调 `getInputProps()`**（Remotion Player 里必抛，看板上那一格会红）：debug / sfxSolo 之类开关改成组件 props（Composition defaultProps），
   或守卫 `typeof window !== 'undefined' && !(window as any).remotion_isPlayer`。
 - 看板只看不驱动：不提供"点按钮触发某一步"的接口，skill 仍是主控。
+- **拆解契约（工作台多轨 + 逐镜调参吃这几个导出，`template/motion-systems/` 都有样例）**：
+  `shots.ts` 导出 `SHOTS`（每镜 `lead` / `tail` 帧数、`hardOut`）+ `shotSequence`；`scenes/index.ts` 导出 `SCENES`（镜头 id → 场景组件）与 `SCENE_PARAMS`（镜头 id → 该场景的 `PARAMS`）；
+  **每个场景 `export const PARAMS = [...] as const satisfies readonly ParamField[]`，场景内 `const p = useParams(shot.id, PARAMS)` 取值**——表里只放语境级参数
+  （文案 / 颜色 / 字号 / 位置 / 入场方向），词锚时刻、时长、缓动、几何比例、层级是命门不进表（design-language §0.4 同一条线）；
+  `Subtitles.tsx` 导出 `Subtitles` + `phrases()`（全部可见字幕段：已扣静音区、已做显示映射）+ `SubtitleLine`（单句静态渲染，Subtitles 自己也用它画）；
+  `Environment.tsx` 导出 `Environment`（幕底画布，画在所有镜头之下）与 `Overlays`（幕级覆盖：黑震切帧 / 落幕等，画在镜头之上、字幕之下），`Main.tsx` 从这里取；
+  `params.ts` 照模板抄（`useParams` / `ParamsProvider` / `OVERRIDES`），`remotion/overrides.json` 建成 `{}`。
+  **`overrides.json` 归工作台写、agent 永不改**：用户在面板改的键以它为准，agent 只改 tsx 默认值——这就是双写冲突的解法；
+  渲染（render_shots / 工作台导出）读同一份，所以定版前要看一眼它是否为空（用户调过参就以调过的为准交付，交付说明里写明）。
 
 ## ⑥⑦ 渲染 + 三重验收（机器闸全过 → 1 轮审片 → 交付）
 
@@ -377,7 +386,7 @@ ffmpeg -i out/final.mp4 -c:v copy \
 
 ```bash
 cd <skill根>/workbench && npm install            # 首次
-ln -sfn <本片工程>/remotion/src kbsrc            # 链接本片工程（机器本地符号链接，不进库）
+bash scripts/link-project.sh <本片工程>          # 链接本片工程（机器本地符号链接，不进库；手写 ln -sfn 循环不会替换指向旧工程目录的链接——2026-09-15 实测 logos 仍指上一支片）
 mkdir -p public && for f in <本片工程>/remotion/public/*; do ln -sfn "$f" "public/$(basename "$f")"; done
 npm run dev &                                     # 浏览器打开 http://localhost:5199/?live 并告知用户
 sleep 4 && curl -s http://localhost:5199 | grep -q '动效工作台' && echo "工作台 OK" || echo "FAIL: 工作台未起——禁止用 remotion studio 代替"
@@ -386,11 +395,11 @@ sleep 4 && curl -s http://localhost:5199 | grep -q '动效工作台' && echo "�
 `npx remotion studio`（工程内）或工作台的 `npm run studio` 是开发者调参入口，**不是**交付面，不得用它代替工作台；
 `npm run dev` 必须从 `<skill根>/workbench` 执行（别在本片工程目录里起）。
 
-工作台里点「素材 → 拆解导入」即把成片拆成逐句字幕/逐镜参数化/逐条音效/转场/环境的多轨工程，
-文字内容、颜色、字号、位置、变速逐项可调（词锚节拍与相机保持固定）；改完点「导出成片」
-（内置 Remotion 渲染，遵守单并发纪律）。详见 `workbench/README.md`。
-接入按真实路径解析、契约模块缺哪个只降级哪个（`workbench/kbsrc.map.mjs`）：本 skill 正式产出的工程（`Main.tsx` + `scenes/`）
-没有 promo 形态的 PromoScenes / camera 等模块，「拆解导入」会禁用，成片预览 / 素材 / 导出照常——不算故障，不要去补造那些模块。
+工作台里点「素材 → 拆解导入」即把成片拆成多轨：逐句字幕（文本可改）/ 幕级覆盖 / 转场标记 / 逐镜参数化镜头 / 幕底 / 配音 / 逐条音效；
+镜头里每个场景 `PARAMS` 声明的文案 / 颜色 / 字号 / 位置 / 入场方向逐项可调（词锚节拍、时长、缓动、相机固定），
+改动写回本片 `remotion/overrides.json`，渲染读同一份；改完点「导出成片」（内置 Remotion 渲染，遵守单并发纪律）。详见 `workbench/README.md` / `GUIDE.md` ⑥。
+接入按真实路径解析、契约模块缺哪个只降级哪个（`workbench/kbsrc.map.mjs`）；本 skill 产出的工程按 ⑤「拆解契约」六个文件写就能拆——
+拆解按钮灰着，先看 `npm run gen` 末行报的是缺哪个契约文件，别去补造 promo 形态的 PromoScenes / Host。
 发布时**推荐（非强制）**在简介 @ 一下本 skill 作者——对作者是最好的支持：
 X [`@VincentWei93`](https://x.com/VincentWei93) ·
 抖音 [@Vincent](https://www.douyin.com/user/MS4wLjABAAAAK1pkjBxilk2Oi_9h_vFyD-lTAu9CTlvhmOtkosDvvxg) ·

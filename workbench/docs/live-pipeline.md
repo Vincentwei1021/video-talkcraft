@@ -162,3 +162,15 @@ SSE（`/api/pipeline/events`）推到前端；tsx 改动仍走 Vite HMR，不重
 - `/api/pipeline/file` 按 realpath 判工程根（指向外部的符号链接不放行）；Range 越界 / 倒序回 416，支持 `bytes=-n` 后缀区间。
 - 「⟳ 同步拆解」记住上次见过的 kb- id，用户删掉的单元不复活；分割过的片段同步会重置左半（已知限制，写进 README）。
 - `pipeline_state.mjs` 带值参数缺值时给提示 exit 2，不再栈崩。
+
+### 9.2 · 2026-09-15 L2 部分落地：skill 标准工程的拆解 + 逐镜参数写回
+- **背景**：第一支跑通完整 skill 流程再接工作台的正式产出（koubo-musk-chess）暴露了拆解契约只认 promo 形态——`?live` 只剩一条主合成，多轨全灰。
+- **拆解契约放宽为两种**（`gen-index.mjs` → `KB_FORM`）：skill 标准形态 = shots / scenes/index / Subtitles / sfx / timing / camera 六个真实文件；Environment、params 可选。
+  逐镜卡 `kshot-sNN` 按 SHOTS × SCENE_PARAMS 运行时生成（`src/cards/koubo-skill.tsx`），替代宣传片时代手抄的 23 张 kscene；字幕句 / 幕底 / 幕级覆盖用工程自己的组件；转场只出标记。
+- **双向编辑契约（§3 L2 / §7 问题 2 的答案）**：不改 tsx。每镜 `export const PARAMS`（只放语境级参数）+ `useParams(shot.id, PARAMS)`；取值 = 工作台 Player 注入（`ParamsProvider`）> `remotion/overrides.json` > tsx 默认值。
+  工作台把与默认值不同的键整表写回 `overrides.json`（`POST /api/pipeline/overrides`，600ms 防抖）；渲染读同一份。**分工：agent 只改 tsx，工作台只写 overrides.json**——双写冲突从制度上消掉。
+- **HMR 保命**（实测踩到）：接入工程任何源码变化都会传播到 `store.ts` 并重建 store（改一个参数属性面板当场清空）。修法：两处 zustand store 用 `import.meta.hot.data` 接回状态、`pipeline/store` dispose 时关 SSE、App 模块级重挂副作用；
+  overrides.json 的变化在工程 `params.ts` 里 `import.meta.hot.accept` 就地接住，不再往上传播（dev log 里只剩一行 `hmr update …/params.ts`）。
+- **验证**：koubo-musk-chess 14 镜重构成 PARAMS 后 29 张静帧逐像素与重构前一致（最大差 1）；工作台拆出 字幕 93 / 幕级覆盖 / 转场标记 13 / 镜头 14 / 幕底 / 配音 / 音效 7 轨 96 条；
+  改 s01「菜就多练」→ overrides.json 落盘 → `render_stills` 8.3s 出的画面即新文案；改回默认 → 文件回 `{}` → 与参考帧逐像素一致。
+- **仍未做**：配音预剪波形视图（§3 L2 前半）；参数面板改镜头**时长 / 词锚**（属节奏命门，按设计不开放）。

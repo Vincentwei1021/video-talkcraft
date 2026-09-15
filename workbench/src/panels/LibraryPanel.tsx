@@ -9,7 +9,7 @@ import { useStore } from "../store";
 import { buildKouboProject, isKouboProject, SFX_FILES, syncKouboProject } from "../kouboImport";
 import { buildLiveProject, canBuildLive, isLiveProject } from "../kb/liveProject";
 import { MEDIA_ITEMS, SFX_ALL } from "../mediaManifest";
-import { KB_LINKED, KB_PROJECT, KB_PROMO } from "../kbMeta";
+import { KB_DECOMPOSABLE, KB_FORM, KB_LINKED, KB_PROJECT } from "../kbMeta";
 import { setDragPayload } from "../dnd";
 
 const TABS = [
@@ -228,8 +228,8 @@ export const LibraryPanel: React.FC = () => {
   const listed = CARD_LIST.filter((c) => !c.hidden);
   const motionCards = listed.filter((c) => !NON_MOTION_CATS.has(c.category));
   const kouboCards = listed.filter((c) => MEDIA_CARD_CATS.has(c.category));
-  // 拆解导入吃 promo 形态契约（PromoScenes / camera / Host / Environment / timing）；接入其它形态工程时禁用并说明
-  const kouboImportable = !KB_LINKED || KB_PROMO;
+  // 拆解导入认两种契约：promo 形态（PromoScenes / camera / Host / Environment / timing）与 skill 标准形态（shots / scenes/index / Subtitles / sfx / timing / camera）；都不是时禁用并说明
+  const kouboImportable = !KB_LINKED || KB_DECOMPOSABLE;
   const bgCards = CARD_LIST.filter((c) => c.category === "背景");
   const sfxUse = new Map(SFX_FILES.map((s) => [s.file, s.count]));
 
@@ -279,10 +279,12 @@ export const LibraryPanel: React.FC = () => {
               disabled={!kouboImportable}
               title={
                 !kouboImportable
-                  ? `接入工程「${KB_PROJECT}」不是拆解契约形态（缺 PromoScenes / camera 等模块），拆解导入不可用`
+                  ? `接入工程「${KB_PROJECT}」不是拆解契约形态（promo 形态要 PromoScenes / camera / Host / Environment / timing；skill 标准形态要 shots / scenes/index / Subtitles / sfx / timing / camera），拆解导入不可用`
                   : hasKoubo
                     ? "按稳定 id 把最新拆解合进当前工程：起点 / 时长跟新，你改过的文案 / 颜色 / 图层 / 位置保留（可撤销）"
-                    : "把口播成片拆解为逐句字幕/转场/环境/数字人/23 镜头/配音/逐条音效的多轨工程（可撤销）"
+                    : KB_FORM === "skill"
+                      ? "把成片拆成多轨：逐句字幕（可改文本）/ 幕级覆盖 / 转场标记 / 逐镜参数化镜头（文案 / 颜色 / 位置 / 方向可调，写回工程 overrides.json）/ 幕底 / 配音 / 逐条音效（可撤销）"
+                      : "把口播成片拆解为逐句字幕/转场/环境/数字人/23 镜头/配音/逐条音效的多轨工程（可撤销）"
               }
               onClick={() => setProject(hasKoubo ? syncKouboProject(useStore.getState().project) : buildKouboProject())}
             >

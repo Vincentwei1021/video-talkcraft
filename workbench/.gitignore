@@ -11,8 +11,7 @@ src/kbMeta.ts
 # 机器本地符号链接：指向外部口播成片工程（绝对路径，不进库）。
 # 链接方法见 README「接入口播成片工程」；未链接时自动使用 kbsrc-stub 降级。
 kbsrc
-public/dh
-public/broll
-public/sfx
-public/shots
-public/full.wav
+# public/ 下除画廊资产外全是接入工程的机器本地软链（scripts/link-project.sh 生成），一律不进库
+public/*
+!public/cardpreviews
+!public/cardthumbs

@@ -19,12 +19,15 @@ interface PipelineStore {
   setCodeError: (e: { message: string; file?: string } | null) => void;
 }
 
+/** HMR 重建时接回上一份状态（同 ../store 的 Carried 做法），阶段栏 / 进度轨不闪空 */
+const carried = (import.meta.hot?.data as { pipeline?: Pick<PipelineStore, "linked" | "state" | "connected" | "selectedShotId" | "codeError"> } | undefined)?.pipeline;
+
 export const usePipeline = create<PipelineStore>((set) => ({
-  linked: false,
-  state: null,
-  connected: false,
-  selectedShotId: null,
-  codeError: null,
+  linked: carried?.linked ?? false,
+  state: carried?.state ?? null,
+  connected: carried?.connected ?? false,
+  selectedShotId: carried?.selectedShotId ?? null,
+  codeError: carried?.codeError ?? null,
   selectShot: (id) => set({ selectedShotId: id }),
   setState: (state, linked) => set({ state, linked }),
   setConnected: (connected) => set({ connected }),
@@ -60,7 +63,16 @@ const syncLiveClip = (state: PipelineState) => {
 };
 
 let started = false;
-/** App 挂载时调一次：拉一次全量 + SSE 订阅；断线自动重连（EventSource 自带） */
+let es: EventSource | null = null;
+if (import.meta.hot) {
+  // 本模块被 HMR 重新执行时，旧的 SSE 连接必须关掉（否则每次接入工程源码一变就多一条长连接，服务端 clients 只增不减）
+  import.meta.hot.dispose((data) => {
+    es?.close();
+    const s = usePipeline.getState();
+    data.pipeline = { linked: s.linked, state: s.state, connected: s.connected, selectedShotId: s.selectedShotId, codeError: s.codeError };
+  });
+}
+/** App 挂载时调一次：拉一次全量 + SSE 订阅；断线自动重连（EventSource 自带）。模块重建后 started 归零，需要再调一次（App 的 boot 里做） */
 export const connectPipeline = () => {
   if (started) return;
   started = true;
@@ -72,7 +84,7 @@ export const connectPipeline = () => {
     retryLiveIfFailed();
   };
   fetch("/api/pipeline").then((r) => (r.ok ? r.json() : null)).then((j) => j && apply(j)).catch(() => {});
-  const es = new EventSource("/api/pipeline/events");
+  es = new EventSource("/api/pipeline/events");
   es.onopen = () => usePipeline.getState().setConnected(true);
   es.onerror = () => usePipeline.getState().setConnected(false);
   es.onmessage = (ev) => {
