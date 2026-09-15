@@ -144,7 +144,7 @@ npm run dev          # http://localhost:5199
 
 需要先接入口播成片工程（README「接入口播成片工程」）。认两种契约：**skill 标准形态**（SKILL.md ⑤ 产出的工程：shots / scenes/index / Subtitles / sfx / timing / camera）
 与 **promo 形态**（宣传片工程：PromoScenes / camera / Host / Environment / timing）；两种都不是时按钮禁用并说明原因，其余功能照常。
-点素材 tab 顶部的「⇣ 拆解导入：口播成片」，原片被拆成独立单元，每一项都成了可以单独挪动、改参数、删掉的片段。
+点素材 tab 顶部的「⇣ 拆解导入：口播成片」，或直接打开 `http://localhost:5199/?tracks`（工程存在浏览器本地，换浏览器要重新拆或带这个参数），原片被拆成独立单元，每一项都成了可以单独挪动、改参数、删掉的片段。
 
 **skill 标准形态**（画布 = 工程原尺寸）：
 

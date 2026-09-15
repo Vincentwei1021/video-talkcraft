@@ -12,6 +12,8 @@ import { CodeErrorToast } from "./pipeline/CodeErrorToast";
 import { connectPipeline } from "./pipeline/store";
 import { startOverridesSync } from "./overridesSync";
 import { buildLiveProject, canBuildLive, isLiveProject } from "./kb/liveProject";
+import { buildKouboProject, isKouboProject, syncKouboProject } from "./kouboImport";
+import { KB_DECOMPOSABLE } from "./kbMeta";
 
 // 模块级也挂一次：接入工程源码 / overrides.json 变化会让 store 与本模块被 HMR 重新执行（见 store.ts 注释），
 // useEffect([]) 不会重跑，这里保证 SSE 与参数写回始终挂在**当前**store 上（两个函数都幂等）
@@ -152,11 +154,17 @@ export const App: React.FC = () => {
   const [inspW, setInspW] = usePanelSize("wb-insp-w", 300);
   const [tlH, setTlH] = usePanelSize("wb-tl-h", 264);
 
-  // 实时看板：连 SSE；URL 带 ?live（SKILL ⑤-2 打开工作台用）且当前不是实时工程 → 直接装上接入工程的成片
+  // URL 开关（SKILL ⑤-2 / ⑧ 打开工作台用）：?live → 装上接入工程的实时成片（一条轨，看进度）；
+  // ?tracks → 直接拆成多轨（字幕 / 转场 / 镜头 / 幕底 / 配音 / 音效；已是拆解工程则同步保留改动）。
+  // 工程存在浏览器 localStorage，换一个浏览器打开看到的是那个浏览器上次的工程——所以要有 URL 能一步到位。
   useEffect(() => {
     connectPipeline();
     startOverridesSync();
-    if (canBuildLive && new URLSearchParams(window.location.search).has("live") && !isLiveProject(useStore.getState().project)) {
+    const q = new URLSearchParams(window.location.search);
+    const cur = useStore.getState().project;
+    if (q.has("tracks") && KB_DECOMPOSABLE) {
+      useStore.getState().setProject(isKouboProject(cur) ? syncKouboProject(cur) : buildKouboProject());
+    } else if (canBuildLive && q.has("live") && !isLiveProject(cur)) {
       useStore.getState().setProject(buildLiveProject());
     }
   }, []);

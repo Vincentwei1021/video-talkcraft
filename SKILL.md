@@ -235,7 +235,7 @@ cd <skill根>/workbench && npm install                                  # 首次
 bash scripts/link-project.sh <本片工程>       # kbsrc → remotion/src；public/ 先清掉指向别的工程的旧链接再逐项软链；末行打印拆解契约判定
 npm run dev &                                                          # 已在跑就跳过；链接变了要重跑一次 npm run gen
 sleep 4 && curl -s http://localhost:5199 | grep -q '动效工作台' && echo "工作台 OK" || echo "FAIL: 工作台未起"
-open 'http://localhost:5199/?live'                                     # ?live = 直接装上本片主合成 + 进度轨
+open 'http://localhost:5199/?live'                                     # ?live = 直接装上本片主合成 + 进度轨；?tracks = 直接拆成多轨（字幕 / 镜头 / 音效…可改）
 ```
 - **状态清单 `pipeline.json`**（工程根）：工作台 dev server 按盘上产物**实时推导**每镜状态（占位 / 已实现 / 已渲 / 已过闸、场景比段新 = 过期），
   不依赖 agent 记得写；agent 只在盘上推不出的事上落一笔，都走 `node <skill根>/scripts/pipeline_state.mjs`（在工程根或 remotion/ 下执行）：
