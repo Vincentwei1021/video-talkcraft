@@ -9,7 +9,7 @@ import * as stub from "../../kbsrc-stub/shots";
 import { KB_COMP } from "../kbMeta";
 import { arrOr, fnOr, numOr } from "./pick";
 
-export type Shot = stub.Shot;
+export type Shot = stub.Shot & { lead?: number; tail?: number; hardOut?: boolean };
 
 export const FPS: number = numOr(real.FPS, numOr(KB_COMP.fps, stub.FPS));
 
@@ -28,6 +28,10 @@ export const SHOTS: Shot[] = (rawShots.length ? rawShots : (stub.SHOTS as unknow
       dark: Boolean(s.dark ?? s.onDark ?? false),
       path: arrOr<unknown>(s.path, []),
       impulses: arrOr<unknown>(s.impulses, []),
+      // skill 标准工程：交叠帧数与黑震切标记（promo 工程没有 → undefined，导入器用固定 OVERLAP）
+      lead: typeof s.lead === "number" ? s.lead : undefined,
+      tail: typeof s.tail === "number" ? s.tail : undefined,
+      hardOut: typeof s.hardOut === "boolean" ? s.hardOut : undefined,
     };
   },
 );

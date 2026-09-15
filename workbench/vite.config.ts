@@ -1,4 +1,4 @@
-import { createReadStream, existsSync, mkdirSync, readdirSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { createReadStream, existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -184,11 +184,14 @@ const renderExportPlugin = (): Plugin => {
  *  - GET  /api/pipeline/file?p=<相对工程根>  取工程文件（单镜预览 mp4 等，支持 Range），只放行工程根之内（按 realpath 判，指向外部的符号链接不放行）
  *  - POST /api/pipeline/refresh    强制重算并广播
  *  - POST /api/pipeline/reveal?p=  Finder 里显示该文件
+ *  - GET/POST /api/pipeline/overrides  逐镜语境参数覆盖（skill 标准工程 <remotion>/overrides.json）：工作台属性面板改镜头参数 → 整表写回；
+ *    agent 只改 tsx 默认值、永不写这个文件，两边不互相冲掉；render_shots / 导出读同一份
  *  文件监听借 Vite 自己的 chokidar（server.watcher.add），另加 4s 轮询兜底（out/ 等目录可能在渲染时才出现）；
  *  只在状态 JSON 变了才推。skill 是主控、这里只是看板：不提供触发制作步骤的接口（用户 2026-09-09 已否决机器闸式复杂度）。 */
-const pipelinePlugin = (projectRoot: string | null): Plugin => ({
+const pipelinePlugin = (projectRoot: string | null, remotionDir: string | null): Plugin => ({
   name: "wb-pipeline",
   configureServer(server) {
+    const overridesFile = remotionDir ? path.join(remotionDir, "overrides.json") : null;
     const clients = new Set<ServerResponse>();
     let lastJson = "";
     let cached: { at: number; json: string } | null = null;
@@ -289,6 +292,42 @@ const pipelinePlugin = (projectRoot: string | null): Plugin => ({
         res.end(projectRoot && /^[\w-]+$/.test(shot) ? shotbookExcerpt(projectRoot, shot) : "");
         return;
       }
+      if (sub === "/overrides") {
+        if (!overridesFile) { send(res, 404, { error: "未接入工程" }); return; }
+        if (req.method === "GET") {
+          let cur: unknown = {};
+          try { cur = existsSync(overridesFile) ? JSON.parse(readFileSync(overridesFile, "utf8")) : {}; } catch { cur = {}; }
+          send(res, 200, cur);
+          return;
+        }
+        if (req.method === "POST") {
+          let raw = "";
+          req.on("data", (c) => (raw += c));
+          req.on("end", () => {
+            let body: unknown;
+            try { body = JSON.parse(raw || "{}"); } catch { send(res, 400, { error: "bad json" }); return; }
+            if (!body || typeof body !== "object" || Array.isArray(body)) { send(res, 400, { error: "expect { [shotId]: { [key]: value } }" }); return; }
+            // 只收 { 镜头 id → { 参数 → 标量 } }；其余形态一律拒收，别把整份工程写进 overrides
+            const clean: Record<string, Record<string, unknown>> = {};
+            for (const [shot, vals] of Object.entries(body as Record<string, unknown>)) {
+              if (!/^[\w-]+$/.test(shot) || !vals || typeof vals !== "object" || Array.isArray(vals)) continue;
+              const o: Record<string, unknown> = {};
+              for (const [k, v] of Object.entries(vals as Record<string, unknown>)) {
+                if (/^[\w-]+$/.test(k) && (typeof v === "string" || typeof v === "number" || typeof v === "boolean")) o[k] = v;
+              }
+              if (Object.keys(o).length) clean[shot] = o;
+            }
+            const next = `${JSON.stringify(clean, null, 2)}\n`;
+            let prev = "";
+            try { prev = existsSync(overridesFile) ? readFileSync(overridesFile, "utf8") : ""; } catch { prev = ""; }
+            if (prev !== next) writeFileSync(overridesFile, next);
+            send(res, 200, { ok: true, shots: Object.keys(clean).length, changed: prev !== next });
+          });
+          return;
+        }
+        send(res, 405, { error: "GET / POST only" });
+        return;
+      }
       if (sub === "/reveal" && req.method === "POST") {
         const abs = insideRoot(url.searchParams.get("p") ?? "");
         if (abs && process.platform === "darwin") spawn("open", ["-R", abs]);
@@ -325,7 +364,7 @@ const pipelinePlugin = (projectRoot: string | null): Plugin => ({
 });
 
 export default defineConfig({
-  plugins: [react(), renderExportPlugin(), pipelinePlugin(kb.projectRoot)],
+  plugins: [react(), renderExportPlugin(), pipelinePlugin(kb.projectRoot, kb.remotionDir)],
   server: {
     port: 5199,
     // 实时看板：agent 半成品代码常态化，报错不盖整页（角落提示 + 上一版继续显示；见 src/pipeline/store.ts）

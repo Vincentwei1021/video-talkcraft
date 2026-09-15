@@ -6,3 +6,5 @@ import { compOr } from "./pick";
 
 export const Environment: React.FC = compOr(real.Environment, stub.Environment);
 export const ShapeWipes: React.FC = compOr(real.ShapeWipes, stub.ShapeWipes);
+/** skill 标准工程：幕级覆盖（黑震切帧 / 落幕压黑等），画在全部镜头之上、字幕之下 */
+export const Overlays: React.FC = compOr(real.Overlays, stub.Overlays);

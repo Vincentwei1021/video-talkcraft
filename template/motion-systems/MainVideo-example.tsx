@@ -35,6 +35,8 @@ const PlaceholderScene: React.FC<{id: string}> = ({id}) => (
   </AbsoluteFill>
 );
 
+// 拆解契约：正式工程把这张表放到 scenes/index.ts，同名导出 SCENES 与 SCENE_PARAMS（见 scenes/index-example.ts）；
+// 幕底 / 幕级覆盖放 Environment.tsx（Environment / Overlays，见 Environment-example.tsx）——工作台多轨拆解按这几个导出取件
 const SCENES: Record<string, React.FC> = {
   s1_hook: S1Hook,
   s2_event: S2Event,

@@ -142,9 +142,26 @@ npm run dev          # http://localhost:5199
 
 ## ⑥ 口播成片拆解
 
-需要先接入口播成片工程（README「接入口播成片工程」；须是 promo 形态——有 PromoScenes / camera / Host / Environment / timing 模块。
-接入 skill 正式产出的工程时按钮会禁用并说明原因，其余功能照常）。点素材 tab 顶部的「⇣ 拆解导入：口播成片」，原片被拆成七类独立单元，
-每一项都成了可以单独挪动、改参数、删掉的片段：
+需要先接入口播成片工程（README「接入口播成片工程」）。认两种契约：**skill 标准形态**（SKILL.md ⑤ 产出的工程：shots / scenes/index / Subtitles / sfx / timing / camera）
+与 **promo 形态**（宣传片工程：PromoScenes / camera / Host / Environment / timing）；两种都不是时按钮禁用并说明原因，其余功能照常。
+点素材 tab 顶部的「⇣ 拆解导入：口播成片」，或直接打开 `http://localhost:5199/?tracks`（工程存在浏览器本地，换浏览器要重新拆或带这个参数），原片被拆成独立单元，每一项都成了可以单独挪动、改参数、删掉的片段。
+
+**skill 标准形态**（画布 = 工程原尺寸）：
+
+| 轨道 | 内容 | 可以改什么 |
+|---|---|---|
+| 字幕 | 一段一个片段（工程 `phrases()` 给出的可见段：已扣掉画面大字同文的静音区、已做品牌名显示映射） | 文本、深浅底样式；样式用工程自己的 `SubtitleLine`，与成片同一份 |
+| 幕级覆盖 | 工程 `Overlays`（黑震切帧 / 落幕压黑），铺满全片 | 开关（隐藏轨道） |
+| 转场（标记） | `beats.json` 里 tr-* 事件一处一个 8 帧标记，只标不画 | 无——skill 工程的转场烤在相邻镜头的 lead/tail 运镜里，挪标记不改成片 |
+| 动效镜头 | 一镜一个参数化卡 `kshot-sNN`（按工程 SHOTS × SCENE_PARAMS 运行时生成；起点 − lead、长 lead + 叙事 + tail，与成片 Sequence 同帧） | 场景 `PARAMS` 里声明的语境参数：文案 / 颜色 / 字号 / 位置 / 入场方向（词锚节拍、时长、缓动、相机固定）。**改动 600ms 后写回工程 `remotion/overrides.json`**，成片渲染（render_shots / 导出）读同一份；只记与 tsx 默认值不同的键 |
+| 幕底 | 工程 `Environment`（分幕幕底画布），垫在全部镜头之下 | 开关 |
+| 配音 | 整条 full.wav | 音量 |
+| 音效 | 一 cue 一个片段（cue 的 rate 进变速），自动装箱进若干条互不重叠的轨 | 挪位置、改音量、删掉 |
+
+`overrides.json` 归工作台写、agent 不改：agent 改 tsx 默认值、你在面板改 overrides，两边永不互相冲掉；同一份文件也让你"面板里看到的"就是"渲出来的"。
+逐镜片段右键「导出透明通道」得到的就是这一镜的动效本体（幕底 / 字幕在别的轨上，不会带进去）。
+
+**promo 形态**（宣传片工程，画布 960×540）：
 
 ![拆解导入后的总览](docs/img/12-koubo-import.png)
 ![拆解后的多轨](docs/img/13-koubo-timeline.png)
