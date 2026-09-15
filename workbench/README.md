@@ -5,8 +5,8 @@
 📖 **图文指南：[GUIDE.md](GUIDE.md)**——五个区域的功能逐一截图讲解（素材库 / 预览 / 属性面板 / 时间轨 / 拆解导入 / 导出）。
 
 ```bash
+bash ../runtime/check-runtime.sh   # 依赖统一在 <仓库根>/runtime：装好 runtime/node_modules 并把 workbench/node_modules 软链过去（这里不跑 npm install）
 cd workbench
-npm install
 npm run dev        # http://localhost:5199
 ```
 
