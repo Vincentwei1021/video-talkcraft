@@ -1,0 +1,346 @@
+{
+  "zh-stream-mp3": {
+    "sentences": [
+      "这是第一句，我们测试配音和字级时间戳。",
+      "这是第二句，请注意两句话之间的停顿。",
+      "最后一句结束，检查字幕是否跟得上声音。"
+    ],
+    "event": {
+      "content": "这是第一句，我们测试配音和字级时间戳。 这是第二句，请注意两句话之间的停顿。 最后一句结束，检查字幕是否跟得上声音。",
+      "alignment": {
+        "segments": [
+          {
+            "text": "这",
+            "start": 0.0,
+            "end": 0.08
+          },
+          {
+            "text": "是",
+            "start": 0.08,
+            "end": 0.24
+          },
+          {
+            "text": "第",
+            "start": 0.24,
+            "end": 0.48
+          },
+          {
+            "text": "一",
+            "start": 0.48,
+            "end": 0.56
+          },
+          {
+            "text": "句",
+            "start": 0.56,
+            "end": 0.88
+          },
+          {
+            "text": "我",
+            "start": 1.04,
+            "end": 1.2
+          },
+          {
+            "text": "们",
+            "start": 1.2,
+            "end": 1.36
+          },
+          {
+            "text": "测",
+            "start": 1.36,
+            "end": 1.52
+          },
+          {
+            "text": "试",
+            "start": 1.52,
+            "end": 1.68
+          },
+          {
+            "text": "配",
+            "start": 1.68,
+            "end": 1.92
+          },
+          {
+            "text": "音",
+            "start": 1.92,
+            "end": 2.16
+          },
+          {
+            "text": "和",
+            "start": 2.16,
+            "end": 2.32
+          },
+          {
+            "text": "字",
+            "start": 2.32,
+            "end": 2.48
+          },
+          {
+            "text": "级",
+            "start": 2.48,
+            "end": 2.72
+          },
+          {
+            "text": "时",
+            "start": 2.72,
+            "end": 2.88
+          },
+          {
+            "text": "间",
+            "start": 2.88,
+            "end": 3.04
+          },
+          {
+            "text": "戳",
+            "start": 3.04,
+            "end": 3.44
+          },
+          {
+            "text": "这",
+            "start": 4.16,
+            "end": 4.32
+          },
+          {
+            "text": "是",
+            "start": 4.32,
+            "end": 4.4
+          },
+          {
+            "text": "第",
+            "start": 4.4,
+            "end": 4.56
+          },
+          {
+            "text": "二",
+            "start": 4.56,
+            "end": 4.8
+          },
+          {
+            "text": "句",
+            "start": 4.8,
+            "end": 5.04
+          },
+          {
+            "text": "请",
+            "start": 5.28,
+            "end": 5.52
+          },
+          {
+            "text": "注",
+            "start": 5.52,
+            "end": 5.68
+          },
+          {
+            "text": "意",
+            "start": 5.68,
+            "end": 5.76
+          },
+          {
+            "text": "两",
+            "start": 5.76,
+            "end": 6.0
+          },
+          {
+            "text": "句",
+            "start": 6.0,
+            "end": 6.16
+          },
+          {
+            "text": "话",
+            "start": 6.16,
+            "end": 6.32
+          },
+          {
+            "text": "之",
+            "start": 6.32,
+            "end": 6.48
+          },
+          {
+            "text": "间",
+            "start": 6.48,
+            "end": 6.64
+          },
+          {
+            "text": "的",
+            "start": 6.64,
+            "end": 6.72
+          },
+          {
+            "text": "停",
+            "start": 6.72,
+            "end": 7.04
+          },
+          {
+            "text": "顿",
+            "start": 7.04,
+            "end": 7.28
+          },
+          {
+            "text": "最",
+            "start": 7.84,
+            "end": 8.0
+          },
+          {
+            "text": "后",
+            "start": 8.0,
+            "end": 8.16
+          },
+          {
+            "text": "一",
+            "start": 8.16,
+            "end": 8.32
+          },
+          {
+            "text": "句",
+            "start": 8.32,
+            "end": 8.48
+          },
+          {
+            "text": "结",
+            "start": 8.48,
+            "end": 8.64
+          },
+          {
+            "text": "束",
+            "start": 8.64,
+            "end": 8.96
+          },
+          {
+            "text": "检",
+            "start": 9.2,
+            "end": 9.36
+          },
+          {
+            "text": "查",
+            "start": 9.36,
+            "end": 9.6
+          },
+          {
+            "text": "字",
+            "start": 9.6,
+            "end": 9.76
+          },
+          {
+            "text": "幕",
+            "start": 9.76,
+            "end": 10.0
+          },
+          {
+            "text": "是",
+            "start": 10.0,
+            "end": 10.16
+          },
+          {
+            "text": "否",
+            "start": 10.16,
+            "end": 10.32
+          },
+          {
+            "text": "跟",
+            "start": 10.32,
+            "end": 10.48
+          },
+          {
+            "text": "得",
+            "start": 10.48,
+            "end": 10.56
+          },
+          {
+            "text": "上",
+            "start": 10.56,
+            "end": 10.8
+          },
+          {
+            "text": "声",
+            "start": 10.8,
+            "end": 10.96
+          },
+          {
+            "text": "音",
+            "start": 10.96,
+            "end": 11.2
+          }
+        ],
+        "audio_duration": 11.517097505668934
+      },
+      "chunk_seq": 0,
+      "chunk_audio_offset_sec": 0.0
+    }
+  },
+  "en-stream-normalization": {
+    "sentences": [
+      "I have 2 cats.",
+      "I can’t believe it’s already 2026.",
+      "Hello world."
+    ],
+    "event": {
+      "content": "I have 2 cats. I can’t believe it’s already 2026. Hello world.",
+      "alignment": {
+        "segments": [
+          {
+            "text": "I",
+            "start": 0.0,
+            "end": 0.16
+          },
+          {
+            "text": "have",
+            "start": 0.16,
+            "end": 0.4
+          },
+          {
+            "text": "2",
+            "start": 0.48,
+            "end": 0.64
+          },
+          {
+            "text": "cats",
+            "start": 0.64,
+            "end": 1.2
+          },
+          {
+            "text": "I",
+            "start": 1.6,
+            "end": 1.76
+          },
+          {
+            "text": "can't",
+            "start": 1.76,
+            "end": 2.08
+          },
+          {
+            "text": "believe",
+            "start": 2.08,
+            "end": 2.48
+          },
+          {
+            "text": "it's",
+            "start": 2.48,
+            "end": 2.56
+          },
+          {
+            "text": "already",
+            "start": 2.56,
+            "end": 2.96
+          },
+          {
+            "text": "2026",
+            "start": 2.96,
+            "end": 4.08
+          },
+          {
+            "text": "Hello",
+            "start": 4.56,
+            "end": 4.88
+          },
+          {
+            "text": "world",
+            "start": 4.88,
+            "end": 5.44
+          }
+        ],
+        "audio_duration": 5.61922902494331
+      },
+      "chunk_seq": 0,
+      "chunk_audio_offset_sec": 0.0
+    }
+  }
+}

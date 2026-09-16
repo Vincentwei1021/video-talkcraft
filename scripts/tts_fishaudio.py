@@ -1,473 +1,328 @@
 #!/usr/bin/env python3
-"""Fish Audio TTS with Streaming Timestamps for video-talkcraft.
+"""Optional Fish Audio voiceover + aligned timestamps (default: s2.1-pro-free).
 
-Generates synchronized voiceover audio (WAV/MP3) and word-level timestamps.json
-from script.json using Fish Audio's text-to-speech API (default model: s2.1-pro-free).
+python3 scripts/tts_fishaudio.py script.json audio/full.wav audio/timestamps.json \
+    --timing-out remotion/src/timing.json
 
-Usage:
-    python scripts/tts_fishaudio.py script.json audio/full.wav audio/timestamps.json
-    python scripts/tts_fishaudio.py script.json audio/full.wav audio/timestamps.json --timing-out audio/timing.json
-
-Configuration:
-    Provide credentials via .env file or environment variables:
-        FISH_AUDIO_API_KEY=your_token_here
-        FISH_AUDIO_REFERENCE_ID=optional_voice_model_id
-        FISH_AUDIO_MODEL=s2.1-pro-free
+Requires requests and ffmpeg; python-dotenv is optional. Set FISH_AUDIO_API_KEY
+and optionally FISH_AUDIO_REFERENCE_ID in .env or the process environment.
+Both modes receive SSE; files are written after the entire synthesis completes.
 """
-
 from __future__ import annotations
 
 import argparse
 import base64
 import json
+import math
 import os
-import re
+import shutil
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
 
-API_URL = "https://api.fish.audio/v1/tts/stream/with-timestamp"
-DEFAULT_MODEL = "s2.1-pro-free"
-DEFAULT_FORMAT = "mp3"
-DEFAULT_LATENCY = "balanced"
+from make_timing import expand_chars, make_timing_data, normalized_text
+
+API_URL = 'https://api.fish.audio/v1/tts/stream/with-timestamp'
+DEFAULT_MODEL = 's2.1-pro-free'
+DEFAULT_FORMAT = 'mp3'
+DEFAULT_LATENCY = 'balanced'
 
 
 def load_env():
-    """Load variables from .env if present."""
-    env_paths = [
-        Path.cwd() / ".env",
-        Path(__file__).resolve().parent.parent / ".env",
-    ]
-    for p in env_paths:
-        if p.is_file():
-            try:
-                import dotenv
-                dotenv.load_dotenv(p)
-                return
-            except ImportError:
-                # Fallback simple parser
-                with open(p, "r", encoding="utf-8") as f:
-                    for line in f:
-                        line = line.strip()
-                        if not line or line.startswith("#") or "=" not in line:
-                            continue
-                        k, v = line.split("=", 1)
-                        k = k.strip()
-                        v = v.strip().strip("'\"")
-                        if k and k not in os.environ:
-                            os.environ[k] = v
-                return
-
-
-def load_script(path: Path) -> List[str]:
-    """Read sentences from a script.json or text file."""
-    if not path.exists():
-        raise FileNotFoundError(f"Script file not found: {path}")
-
-    suffix = path.suffix.lower()
-    if suffix == ".json":
-        with open(path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        if isinstance(data, dict) and "sentences" in data:
-            return [s.strip() for s in data["sentences"] if s.strip()]
-        elif isinstance(data, list):
-            return [s.strip() for s in data if isinstance(s, str) and s.strip()]
-        else:
-            raise ValueError("Invalid script.json: expected {'sentences': [...]} or array of strings")
-    else:
-        # Plain text
-        with open(path, "r", encoding="utf-8") as f:
-            return [line.strip() for line in f if line.strip()]
-
-
-def call_fish_audio_stream(
-    text: str,
-    api_key: str,
-    model: str = DEFAULT_MODEL,
-    reference_id: Optional[str] = None,
-    format_type: str = DEFAULT_FORMAT,
-    latency: str = DEFAULT_LATENCY,
-    max_retries: int = 3,
-) -> Tuple[bytes, List[Dict[str, Any]]]:
-    """Call Fish Audio timestamped streaming endpoint and return (audio_bytes, segments)."""
-    import requests
-
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-        "model": model,
-    }
-
-    payload: Dict[str, Any] = {
-        "text": text,
-        "format": format_type,
-        "latency": latency,
-        "normalize": True,
-    }
-    if reference_id:
-        payload["reference_id"] = reference_id
-
-    for attempt in range(max_retries):
+    for path in [Path.cwd() / '.env', Path(__file__).resolve().parent.parent / '.env']:
+        if not path.is_file():
+            continue
         try:
-            response = requests.post(
-                API_URL,
-                headers=headers,
-                json=payload,
-                stream=True,
-                timeout=60,
-            )
-            if response.status_code == 429:
-                wait_time = (attempt + 1) * 3
-                print(f"[FishAudio] Rate limited (429), retrying in {wait_time}s... (attempt {attempt+1}/{max_retries})")
-                time.sleep(wait_time)
-                continue
-            elif response.status_code == 503:
-                wait_time = (attempt + 1) * 2
-                print(f"[FishAudio] Service busy (503), retrying in {wait_time}s...")
-                time.sleep(wait_time)
-                continue
+            from dotenv import load_dotenv
+            load_dotenv(path)
+        except ImportError:
+            for line in path.read_text(encoding='utf-8').splitlines():
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, value = line.split('=', 1)
+                    os.environ.setdefault(key.strip(), value.strip().strip("'\""))
+        return
 
+
+def load_script(path: Path) -> list[str]:
+    raw = path.read_text(encoding='utf-8')
+    data = json.loads(raw) if path.suffix.lower() == '.json' else raw.splitlines()
+    if isinstance(data, dict):
+        data = data.get('sentences')
+    if not isinstance(data, list) or not all(isinstance(s, str) for s in data):
+        raise ValueError("Expected {'sentences': [...]} or a list of strings")
+    sentences = [s.strip() for s in data if s.strip()]
+    if not sentences or any(not normalized_text(s) for s in sentences):
+        raise ValueError('Script must contain nonempty sentences with spoken characters')
+    return sentences
+
+
+def sse_payloads(response):
+    # SSE is UTF-8 even when Content-Type has no charset. Split bytes first:
+    # Unicode splitlines would treat U+0085/U+2028 inside JSON as line breaks.
+    response.encoding = 'utf-8'
+    parts = []
+    for raw in response.iter_lines(decode_unicode=False):
+        line = raw.decode('utf-8') if isinstance(raw, bytes) else raw
+        if line == '':
+            if parts:
+                yield '\n'.join(parts)
+                parts = []
+        elif line.startswith('data:'):
+            parts.append(line[5:].removeprefix(' '))
+    if parts:
+        yield '\n'.join(parts)
+
+
+def validate_segments(segments, duration=None):
+    if not isinstance(segments, list) or not segments:
+        raise ValueError('Fish Audio returned no usable alignment; try local timestamps_cpu.py')
+    previous = -1.0
+    for seg in segments:
+        start, end = seg['start'], seg['end']
+        if not isinstance(seg['text'], str) or not all(isinstance(t, (float, int)) and math.isfinite(t)
+                                                      for t in (start, end)):
+            raise ValueError('Invalid alignment text or non-finite time')
+        if start < 0 or end < start or start < previous:
+            raise ValueError('Alignment times are negative, reversed or out of order')
+        if duration is not None and end > duration + 0.05:
+            raise ValueError('Alignment extends beyond the decoded audio')
+        previous = start
+    if not any(normalized_text(s['text']) for s in segments):
+        raise ValueError('Fish Audio returned no usable alignment; try local timestamps_cpu.py')
+
+
+def call_fish_audio_stream(text, api_key, model=DEFAULT_MODEL, reference_id=None,
+                           format_type=DEFAULT_FORMAT, latency=DEFAULT_LATENCY, max_retries=3):
+    import requests
+    headers = {'Authorization': f'Bearer {api_key}', 'Content-Type': 'application/json', 'model': model}
+    payload = {'text': text, 'format': format_type, 'latency': latency, 'normalize': True}
+    if reference_id:
+        payload['reference_id'] = reference_id
+    for attempt in range(max_retries):
+        response = None
+        try:
+            response = requests.post(API_URL, headers=headers, json=payload, stream=True, timeout=60)
+            if response.status_code in (429, 503):
+                if attempt + 1 == max_retries:
+                    raise RuntimeError(f'Fish Audio HTTP {response.status_code}: retries exhausted')
+                response.close()
+                delay = 2 ** (attempt + 1)
+                print(f'[FishAudio] HTTP {response.status_code}; retrying in {delay}s')
+                time.sleep(delay)
+                continue
             response.raise_for_status()
-
-            audio_chunks = []
-            alignment_by_chunk: Dict[int, Dict[str, Any]] = {}
-
-            for line in response.iter_lines(decode_unicode=True):
-                if not line:
-                    continue
-                if isinstance(line, bytes):
-                    line = line.decode("utf-8", errors="ignore")
-                if not line.startswith("data: "):
-                    continue
-                data_str = line[6:].strip()
-                if not data_str or data_str == "[DONE]":
-                    continue
-                try:
-                    event = json.loads(data_str)
-                except json.JSONDecodeError:
-                    continue
-
-                if event.get("audio_base64"):
-                    audio_chunks.append(base64.b64decode(event["audio_base64"]))
-
-                if event.get("alignment") is not None:
-                    # Replace previous alignment snapshot for chunk_seq
-                    alignment_by_chunk[event["chunk_seq"]] = {
-                        "content": event.get("content", ""),
-                        "offset": event.get("chunk_audio_offset_sec", 0.0),
-                        "alignment": event["alignment"],
-                    }
-
-            raw_audio = b"".join(audio_chunks)
-
-            # Build global timeline segments
-            segments: List[Dict[str, Any]] = []
-            for chunk_seq, item in sorted(alignment_by_chunk.items()):
-                offset = item["offset"]
-                al = item["alignment"]
-                for seg in al.get("segments", []):
-                    segments.append({
-                        "text": seg["text"],
-                        "start": round(seg["start"] + offset, 3),
-                        "end": round(seg["end"] + offset, 3),
-                        "chunk_seq": chunk_seq,
-                    })
-
+            audio, snapshots, audio_chunks = [], {}, set()
+            for data in sse_payloads(response):
+                if data == '[DONE]':
+                    break
+                event = json.loads(data)
+                if not isinstance(event, dict) or 'error' in event:
+                    raise ValueError('Fish Audio stream returned an error event')
+                seq = event['chunk_seq']
+                if not isinstance(seq, int) or isinstance(seq, bool) or seq < 0:
+                    raise ValueError('Invalid stream chunk sequence')
+                if event.get('audio_base64'):
+                    audio.append(base64.b64decode(event['audio_base64'], validate=True))
+                    audio_chunks.add(seq)
+                if event.get('alignment') is not None:
+                    # The latest snapshot replaces earlier snapshots for this chunk.
+                    snapshots[seq] = event
+            raw_audio = b''.join(audio)
+            if not raw_audio:
+                raise ValueError('Fish Audio returned empty audio')
+            if not audio_chunks.issubset(snapshots):
+                raise ValueError('Fish Audio alignment is unavailable for an audio chunk')
+            segments = []
+            for seq, event in sorted(snapshots.items()):
+                offset = float(event['chunk_audio_offset_sec'])
+                if not math.isfinite(offset) or offset < 0:
+                    raise ValueError('Invalid chunk audio offset')
+                chunk_segments = event['alignment']['segments']
+                if seq in audio_chunks and not chunk_segments:
+                    raise ValueError('Fish Audio alignment is empty for an audio chunk')
+                for seg in chunk_segments:
+                    segments.append({'text': seg['text'], 'start': float(seg['start']) + offset,
+                                     'end': float(seg['end']) + offset, 'chunk_seq': seq})
+            validate_segments(segments)
             return raw_audio, segments
-
-        except requests.RequestException as e:
-            if attempt == max_retries - 1:
-                raise RuntimeError(f"Fish Audio API request failed: {e}") from e
-            print(f"[FishAudio] Network error ({e}), retrying...")
-            time.sleep(2)
-
-    raise RuntimeError("Failed to obtain Fish Audio stream after retries.")
-
-
-def create_silence(duration_sec: float, sample_rate: int = 24000) -> bytes:
-    """Generate raw 16-bit mono PCM silence."""
-    import numpy as np
-    num_samples = int(duration_sec * sample_rate)
-    silence = np.zeros(num_samples, dtype=np.int16)
-    return silence.tobytes()
+        except requests.RequestException as error:
+            status = response.status_code if response is not None else None
+            if attempt + 1 == max_retries or (status is not None and 400 <= status < 500):
+                raise RuntimeError(f'Fish Audio API request failed: {error}') from error
+            time.sleep(2 ** (attempt + 1))
+        except (ValueError, KeyError, TypeError, UnicodeError) as error:
+            raise RuntimeError(f'Invalid Fish Audio stream: {error}') from error
+        finally:
+            if response is not None:
+                response.close()
+    raise RuntimeError('Failed to obtain Fish Audio stream after retries')
 
 
-def convert_audio_to_destination(input_audio_bytes: bytes, in_format: str, out_path: Path, sample_rate: int = 24000):
-    """Save audio bytes and convert using ffmpeg if needed."""
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    temp_file = out_path.with_suffix(f".tmp.{in_format}")
-    with open(temp_file, "wb") as f:
-        f.write(input_audio_bytes)
-
+def run_ffmpeg(arguments, *, input_data=None):
     try:
-        # Use ffmpeg to convert to clean output format
-        cmd = [
-            "ffmpeg", "-y",
-            "-i", str(temp_file),
-            "-ar", str(sample_rate),
-            "-ac", "1",
-            str(out_path),
-        ]
-        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except (subprocess.SubprocessError, FileNotFoundError):
-        # Fallback: rename directly
-        if out_path.suffix.lower() == temp_file.suffix.lower():
-            if out_path.exists():
-                out_path.unlink()
-            temp_file.rename(out_path)
-        else:
-            print(f"[Warning] ffmpeg not available or failed; writing {temp_file} directly to {out_path}")
-            if out_path.exists():
-                out_path.unlink()
-            temp_file.rename(out_path)
-    finally:
-        if temp_file.exists():
-            temp_file.unlink()
+        return subprocess.run(['ffmpeg', '-v', 'error', '-y', *arguments], input=input_data,
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True).stdout
+    except FileNotFoundError as error:
+        raise RuntimeError('ffmpeg is required to decode and assemble Fish Audio output') from error
+    except subprocess.CalledProcessError as error:
+        detail = error.stderr.decode('utf-8', errors='replace')[-1000:]
+        raise RuntimeError(f'ffmpeg failed: {detail}') from error
 
 
-def get_audio_duration(file_path: Path) -> float:
-    """Get duration of audio file in seconds via ffprobe or soundfile."""
-    try:
-        import soundfile as sf
-        with sf.SoundFile(str(file_path)) as f:
-            return float(len(f)) / f.samplerate
-    except Exception:
-        pass
-
-    try:
-        cmd = [
-            "ffprobe", "-v", "error",
-            "-show_entries", "format=duration",
-            "-of", "default=noprint_wrappers=1:nokey=1",
-            str(file_path),
-        ]
-        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, check=True)
-        return float(res.stdout.strip())
-    except Exception:
-        return 0.0
+def decode_audio(raw, fmt, sample_rate):
+    if not raw:
+        raise ValueError('Cannot decode empty audio')
+    # Seekable input preserves encoder delay/padding information in MP3 files.
+    with tempfile.TemporaryDirectory(prefix='fish-decode-') as tmp:
+        path = Path(tmp) / f'input.{fmt}'
+        path.write_bytes(raw)
+        pcm = run_ffmpeg(['-i', str(path), '-ar', str(sample_rate), '-ac', '1', '-f', 's16le', '-'])
+    if not pcm or len(pcm) % 2:
+        raise ValueError('Decoded audio contains no complete PCM samples')
+    return pcm
 
 
-def make_timing_data(timestamps_dict: Dict[str, Any]) -> Dict[str, Any]:
-    """Convert timestamps dict into timing dict (same logic as scripts/make_timing.py)."""
-    kept = re.compile(r"[一-鿿A-Za-z0-9']")
-
-    def clean(t):
-        return "".join(ch for ch in t if kept.match(ch)).lower()
-
-    scenes = []
-    for s in timestamps_dict["sentences"]:
-        tokens = [w for w in s["words"] if clean(w["text"])]
-        chars = []
-        ti = 0
-        ci_in_tok = 0
-        prev_end = s["start"]
-        for ch in s["text"]:
-            if kept.match(ch):
-                if ti >= len(tokens):
-                    chars.append({"ch": ch, "t": prev_end, "e": prev_end})
-                    continue
-                tok = tokens[ti]
-                n = len(clean(tok["text"]))
-                span = tok["end"] - tok["start"]
-                t0 = tok["start"] + span * (ci_in_tok / max(n, 1))
-                t1 = tok["start"] + span * ((ci_in_tok + 1) / max(n, 1))
-                chars.append({"ch": ch, "t": round(t0, 3), "e": round(t1, 3)})
-                prev_end = t1
-                ci_in_tok += 1
-                if ci_in_tok >= n:
-                    ti += 1
-                    ci_in_tok = 0
+def align_sentences(sentences, segments, duration):
+    validate_segments(segments, duration)
+    bounded = [{**s, 'start': min(s['start'], duration), 'end': min(s['end'], duration)} for s in segments]
+    chars = expand_chars(''.join(sentences), bounded, 0.0, strict=True)
+    token_ends, units = set(), 0
+    for segment in bounded:
+        units += len(normalized_text(segment['text']))
+        token_ends.add(units)
+    result, pos, consumed = [], 0, 0
+    for i, text in enumerate(sentences):
+        rows = chars[pos:pos + len(text)]
+        pos += len(text)
+        words, contiguous = [], False
+        for char in rows:
+            key = normalized_text(char['ch'])
+            if not key:
+                contiguous = False
+                continue
+            # Use original script characters so both timing conversion paths agree.
+            # CJK stays character-level; contiguous Latin/digit spans form words.
+            if contiguous and consumed not in token_ends and key.isascii() \
+                    and normalized_text(words[-1]['text']).isascii() \
+                    and words[-1]['end'] == char['t']:
+                words[-1]['text'] += char['ch']
+                words[-1]['end'] = char['e']
             else:
-                chars.append({"ch": ch, "t": round(prev_end, 3), "e": round(prev_end, 3)})
-        scenes.append({
-            "id": f"s{s['i'] + 1}",
-            "text": s["text"],
-            "startSec": s["start"],
-            "durationSec": round(s["end"] - s["start"], 3),
-            "chars": chars,
-        })
-    return {"totalSec": timestamps_dict["total"], "scenes": scenes}
+                words.append({'text': char['ch'], 'start': char['t'], 'end': char['e']})
+            contiguous = True
+            consumed += len(key)
+        if not words:
+            raise ValueError(f'No aligned words for sentence {i + 1}')
+        result.append({'i': i, 'text': text, 'start': words[0]['start'], 'end': words[-1]['end'],
+                       'asr': '', 'match': 1.0, 'ok': True, 'words': words})
+    return result
+
+
+def synthesize(args, sentences):
+    parts, records, frames = [], [], 0
+    pause_frames = round(args.pause_sec * args.sample_rate)
+    groups = [[s] for s in sentences] if args.mode == 'sentence' else [sentences]
+    for index, group in enumerate(groups):
+        print(f'[FishAudio] Synthesizing {index + 1}/{len(groups)}')
+        raw, segments = call_fish_audio_stream(text=' '.join(group), api_key=args.api_key, model=args.model,
+                           reference_id=args.reference_id, format_type=args.format, latency=args.latency)
+        pcm = decode_audio(raw, args.format, args.sample_rate)
+        count = len(pcm) // 2
+        rows = align_sentences(group, segments, count / args.sample_rate)
+        offset = frames / args.sample_rate
+        if args.mode == 'sentence':
+            row = rows[0]
+            row.update(i=index, start=round(offset, 3), end=round((frames + count) / args.sample_rate, 3))
+            row['words'] = [{**w, 'start': round(w['start'] + offset, 3),
+                            'end': round(w['end'] + offset, 3)} for w in row['words']]
+        records.extend(rows)
+        parts.append(pcm)
+        frames += count
+        if index < len(groups) - 1 and pause_frames:
+            parts.append(bytes(pause_frames * 2))
+            frames += pause_frames
+    return b''.join(parts), {'sr': args.sample_rate, 'total': round(frames / args.sample_rate, 3),
+                            'sentences': records}
+
+
+def write_outputs(args, pcm, timestamps):
+    args.audio_out.parent.mkdir(parents=True, exist_ok=True)
+    # Stage every output before replacing any destination. Failed decoding or
+    # encoding must not leave an empty file labelled WAV alongside success JSON.
+    with tempfile.TemporaryDirectory(prefix='.fish-output-', dir=args.audio_out.parent) as tmp:
+        audio_path = Path(tmp) / ('audio' + args.audio_out.suffix)
+        run_ffmpeg(['-f', 's16le', '-ar', str(args.sample_rate), '-ac', '1', '-i', 'pipe:0',
+                    str(audio_path)], input_data=pcm)
+        decoded = decode_audio(audio_path.read_bytes(), args.audio_out.suffix[1:], args.sample_rate)
+        duration = len(decoded) / (2 * args.sample_rate)
+        if abs(duration - len(pcm) / (2 * args.sample_rate)) > 0.05:
+            raise ValueError('Encoded audio duration differs from the assembled PCM')
+        timestamps['total'] = round(duration, 3)
+        timing = make_timing_data(timestamps)
+        outputs = [(args.timestamps_out, timestamps)]
+        if args.timing_out:
+            outputs.append((args.timing_out, timing))
+        staged = []
+        try:
+            for destination, data in outputs:
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                with tempfile.NamedTemporaryFile('w', encoding='utf-8', dir=destination.parent,
+                                                  prefix='.fish-json-', delete=False) as file:
+                    staged.append((Path(file.name), destination))
+                    json.dump(data, file, ensure_ascii=False, indent=1)
+            os.replace(audio_path, args.audio_out)
+            for path, destination in staged:
+                os.replace(path, destination)
+        finally:
+            for path, _ in staged:
+                path.unlink(missing_ok=True)
+    print(f'[FishAudio] Successfully wrote audio: {args.audio_out} ({duration:.3f}s)')
+    print(f'[FishAudio] Successfully wrote timestamps: {args.timestamps_out}')
+    if args.timing_out:
+        print(f'[FishAudio] Successfully wrote Remotion timing: {args.timing_out}')
 
 
 def main():
     load_env()
-
-    parser = argparse.ArgumentParser(description="Synthesize voiceover and timestamps using Fish Audio.")
-    parser.add_argument("script", type=Path, help="Path to script.json or text file")
-    parser.add_argument("audio_out", type=Path, help="Output audio path (e.g. audio/full.wav)")
-    parser.add_argument("timestamps_out", type=Path, help="Output timestamps JSON path (e.g. audio/timestamps.json)")
-    parser.add_argument("--timing-out", type=Path, default=None, help="Optional output timing JSON path for Remotion")
-    parser.add_argument("--api-key", default=os.getenv("FISH_AUDIO_API_KEY") or os.getenv("FISH_API_KEY"),
-                        help="Fish Audio API token (or set FISH_AUDIO_API_KEY in .env)")
-    parser.add_argument("--reference-id", default=os.getenv("FISH_AUDIO_REFERENCE_ID"),
-                        help="Optional voice model reference ID (or set FISH_AUDIO_REFERENCE_ID in .env)")
-    parser.add_argument("--model", default=os.getenv("FISH_AUDIO_MODEL", DEFAULT_MODEL),
-                        help=f"Model name (default: {DEFAULT_MODEL})")
-    parser.add_argument("--latency", default=os.getenv("FISH_AUDIO_LATENCY", DEFAULT_LATENCY),
-                        help=f"Streaming latency (default: {DEFAULT_LATENCY})")
-    parser.add_argument("--format", default=os.getenv("FISH_AUDIO_FORMAT", DEFAULT_FORMAT),
-                        choices=["mp3", "wav", "opus"], help=f"API audio format (default: {DEFAULT_FORMAT})")
-    parser.add_argument("--pause-sec", type=float, default=0.25,
-                        help="Silence duration between sentences in seconds (default: 0.25)")
-    parser.add_argument("--mode", choices=["sentence", "stream"], default="sentence",
-                        help="Synthesis mode: 'sentence' (recommended, per-sentence with pauses) or 'stream' (single-call)")
-    parser.add_argument("--sample-rate", type=int, default=24000, help="Output sample rate (default: 24000)")
-
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('script', type=Path)
+    parser.add_argument('audio_out', type=Path)
+    parser.add_argument('timestamps_out', type=Path)
+    parser.add_argument('--timing-out', type=Path)
+    parser.add_argument('--api-key', default=os.getenv('FISH_AUDIO_API_KEY') or os.getenv('FISH_API_KEY'))
+    parser.add_argument('--reference-id', default=os.getenv('FISH_AUDIO_REFERENCE_ID'))
+    parser.add_argument('--model', default=os.getenv('FISH_AUDIO_MODEL', DEFAULT_MODEL),
+                        choices=['s1', 's2-pro', 's2.1-pro', 's2.1-pro-free', 'drama-3-preview'])
+    parser.add_argument('--latency', default=os.getenv('FISH_AUDIO_LATENCY', DEFAULT_LATENCY),
+                        choices=['normal', 'balanced', 'low'])
+    parser.add_argument('--format', default=os.getenv('FISH_AUDIO_FORMAT', DEFAULT_FORMAT),
+                        choices=['mp3', 'wav', 'opus'])
+    parser.add_argument('--pause-sec', type=float, default=.25, help='Actual silence inserted between requests')
+    parser.add_argument('--mode', choices=['sentence', 'stream'], default='sentence')
+    parser.add_argument('--sample-rate', type=int, default=24000)
     args = parser.parse_args()
-
     if not args.api_key:
-        print("[Error] No Fish Audio API key found!", file=sys.stderr)
-        print("Please provide it via:", file=sys.stderr)
-        print("  1. Adding FISH_AUDIO_API_KEY=your_token to .env (see .env.example)", file=sys.stderr)
-        print("  2. Exporting FISH_AUDIO_API_KEY environment variable", file=sys.stderr)
-        print("  3. Passing --api-key argument", file=sys.stderr)
-        sys.exit(1)
-
-    sentences = load_script(args.script)
-    print(f"[FishAudio] Loaded {len(sentences)} sentences from {args.script}")
-    print(f"[FishAudio] Model: {args.model}, Reference ID: {args.reference_id or 'default'}")
-
-    sentences_data: List[Dict[str, Any]] = []
-    audio_segments_raw: List[bytes] = []
-    current_time = 0.0
-
-    if args.mode == "sentence":
-        for i, sentence_text in enumerate(sentences):
-            print(f"[{i+1}/{len(sentences)}] Synthesizing: {sentence_text[:40]}...")
-            raw_audio, segments = call_fish_audio_stream(
-                text=sentence_text,
-                api_key=args.api_key,
-                model=args.model,
-                reference_id=args.reference_id,
-                format_type=args.format,
-                latency=args.latency,
-            )
-
-            # Temporary file to get accurate audio duration of this sentence
-            temp_sentence = args.audio_out.parent / f"_temp_s_{i}.{args.format}"
-            temp_sentence.parent.mkdir(parents=True, exist_ok=True)
-            with open(temp_sentence, "wb") as f:
-                f.write(raw_audio)
-            dur = get_audio_duration(temp_sentence)
-            if temp_sentence.exists():
-                temp_sentence.unlink()
-
-            if dur <= 0 and segments:
-                dur = segments[-1]["end"]
-            dur = max(dur, 0.1)
-
-            # Offset segments to global timeline
-            words = []
-            for seg in segments:
-                words.append({
-                    "text": seg["text"],
-                    "start": round(seg["start"] + current_time, 3),
-                    "end": round(seg["end"] + current_time, 3),
-                })
-
-            sentence_start = current_time
-            sentence_end = round(current_time + dur, 3)
-
-            sentences_data.append({
-                "i": i,
-                "text": sentence_text,
-                "start": sentence_start,
-                "end": sentence_end,
-                "asr": "",
-                "match": 1.0,
-                "ok": True,
-                "words": words,
-            })
-
-            audio_segments_raw.append(raw_audio)
-            current_time = sentence_end
-
-            # Add inter-sentence pause if configured and not last sentence
-            if args.pause_sec > 0 and i < len(sentences) - 1:
-                current_time = round(current_time + args.pause_sec, 3)
-
-    else:
-        # Full stream mode
-        full_text = " ".join(sentences)
-        print(f"[FishAudio] Synthesizing entire script in single stream ({len(full_text)} characters)...")
-        raw_audio, segments = call_fish_audio_stream(
-            text=full_text,
-            api_key=args.api_key,
-            model=args.model,
-            reference_id=args.reference_id,
-            format_type=args.format,
-            latency=args.latency,
-        )
-        audio_segments_raw.append(raw_audio)
-
-        # Map global segments back to individual sentences
-        seg_idx = 0
-        for i, sentence_text in enumerate(sentences):
-            sentence_words = []
-            clean_sentence = re.sub(r"[^\w]", "", sentence_text).lower()
-            collected_chars = ""
-
-            while seg_idx < len(segments):
-                seg = segments[seg_idx]
-                sentence_words.append({
-                    "text": seg["text"],
-                    "start": seg["start"],
-                    "end": seg["end"],
-                })
-                collected_chars += re.sub(r"[^\w]", "", seg["text"]).lower()
-                seg_idx += 1
-                if len(collected_chars) >= len(clean_sentence) and clean_sentence in collected_chars:
-                    break
-
-            start_t = sentence_words[0]["start"] if sentence_words else current_time
-            end_t = sentence_words[-1]["end"] if sentence_words else start_t + 1.0
-            current_time = end_t
-
-            sentences_data.append({
-                "i": i,
-                "text": sentence_text,
-                "start": start_t,
-                "end": end_t,
-                "asr": "",
-                "match": 1.0,
-                "ok": True,
-                "words": sentence_words,
-            })
-
-    # Combine audio
-    combined_audio = b"".join(audio_segments_raw)
-    convert_audio_to_destination(
-        input_audio_bytes=combined_audio,
-        in_format=args.format,
-        out_path=args.audio_out,
-        sample_rate=args.sample_rate,
-    )
-    final_duration = get_audio_duration(args.audio_out)
-    if final_duration <= 0:
-        final_duration = current_time
-
-    # Output timestamps.json
-    timestamps_dict = {
-        "sr": args.sample_rate,
-        "total": round(final_duration, 3),
-        "sentences": sentences_data,
-    }
-    args.timestamps_out.parent.mkdir(parents=True, exist_ok=True)
-    with open(args.timestamps_out, "w", encoding="utf-8") as f:
-        json.dump(timestamps_dict, f, ensure_ascii=False, indent=1)
-
-    print(f"[FishAudio] Successfully wrote audio: {args.audio_out} ({final_duration:.2f}s)")
-    print(f"[FishAudio] Successfully wrote timestamps: {args.timestamps_out} ({len(sentences_data)} sentences)")
-
-    if args.timing_out:
-        timing_data = make_timing_data(timestamps_dict)
-        args.timing_out.parent.mkdir(parents=True, exist_ok=True)
-        with open(args.timing_out, "w", encoding="utf-8") as f:
-            json.dump(timing_data, f, ensure_ascii=False, indent=1)
-        print(f"[FishAudio] Successfully wrote Remotion timing: {args.timing_out}")
+        parser.error('Set FISH_AUDIO_API_KEY in .env or pass --api-key')
+    if not math.isfinite(args.pause_sec) or args.pause_sec < 0 or args.sample_rate <= 0:
+        parser.error('Pause must be finite and nonnegative; sample rate must be positive')
+    if args.audio_out.suffix.lower() not in ['.wav', '.mp3', '.opus']:
+        parser.error('Audio output must end in .wav, .mp3 or .opus')
+    paths = [args.script, args.audio_out, args.timestamps_out] + ([args.timing_out] if args.timing_out else [])
+    if len({p.resolve() for p in paths}) != len(paths):
+        parser.error('Input and output paths must be distinct')
+    if not shutil.which('ffmpeg'):
+        parser.error('Install ffmpeg before making synthesis requests')
+    try:
+        sentences = load_script(args.script)
+        pcm, timestamps = synthesize(args, sentences)
+        write_outputs(args, pcm, timestamps)
+    except (RuntimeError, ValueError, OSError) as error:
+        print(f'[FishAudio] Error: {error}', file=sys.stderr)
+        raise SystemExit(1) from error
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

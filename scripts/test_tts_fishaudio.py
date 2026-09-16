@@ -92,6 +92,7 @@ class TestFishAudioIntegration(unittest.TestCase):
             f"data: {json.dumps(event1)}".encode("utf-8"),
             b"",
             f"data: {json.dumps(event2)}".encode("utf-8"),
+            b"",
             b"data: [DONE]",
         ]
         mock_post.return_value = mock_response
