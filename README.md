@@ -125,9 +125,11 @@ ln -s "$(pwd)" ~/.codex/skills/video-talkcraft    # Codex
 环境（agent 会按需自行配置）：
 
 - Node 18+（Remotion 渲染；单片工程内 `npm install`）
-- Python 3.10+，时间戳管线 `pip install zhconv pypinyin sherpa-onnx soundfile numpy`
-  （首次使用下载一次 767MB 的 FireRedASR2-CTC 模型，地址见
-  `scripts/timestamps_cpu.py` 头注释；或加 `--backend whisper` 免手动下载）
+- Python 3.10+
+  - 本机 CPU 时间戳对齐：`pip install zhconv pypinyin sherpa-onnx soundfile numpy`
+    （首次使用下载一次 767MB 的 FireRedASR2-CTC 模型，地址见
+    `scripts/timestamps_cpu.py` 头注释；或加 `--backend whisper` 免手动下载）
+  - 一键流式配音+时间戳（Fish Audio 免费层）：`pip install requests python-dotenv`
 - ffmpeg
 
 然后这样下需求：
@@ -136,6 +138,21 @@ ln -s "$(pwd)" ~/.codex/skills/video-talkcraft    # Codex
 用 video-talkcraft 把这份口播稿 + voiceover.wav 做成视频。
 做一条 100 秒的 <话题> 解说，稿子和音频在这里。
 ```
+
+### 🎙️ 选项：Fish Audio 一键生成配音 + 字级时间戳（免费层）
+
+如果你手头没有成品录音，可以通过 Fish Audio 开发者免费层（`s2.1-pro-free`）一键流式生成高质量配音与字级时间戳：
+
+1. 复制 `.env.example` 为 `.env` 并填入你的 API Key（可选配音模型 ID）：
+   ```bash
+   cp .env.example .env
+   # 在 .env 中设置：FISH_AUDIO_API_KEY=your_key_here
+   ```
+2. 运行生成 `audio/full.wav`、`audio/timestamps.json` 与 Remotion `timing.json`：
+   ```bash
+   python scripts/tts_fishaudio.py script.json audio/full.wav audio/timestamps.json --timing-out remotion/src/timing.json
+   ```
+
 
 ## 🎞 你提供什么 vs. 它做什么
 

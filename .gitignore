@@ -34,6 +34,11 @@ PLAN*.md
 *-PLAN.md
 *_PLAN.md
 
+# 环境变量与密钥
+.env
+.env.local
+*.env
+
 # 库作者的制作端工具与过程资产（2026-08-27 定版，见 CLAUDE.md「什么不进库」）
 PLAN.md
 research/
