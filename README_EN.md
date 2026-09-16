@@ -146,10 +146,10 @@ ln -s "$(pwd)" ~/.codex/skills/video-talkcraft    # Codex
 Environment (the agent will set this up as needed):
 
 - Node 18+ (Remotion render; `npm install` inside the per-video project)
-- Python 3.10+ and `pip install zhconv pypinyin sherpa-onnx soundfile numpy`
-  for the timestamp pipeline (first use downloads the 767 MB FireRedASR2-CTC
-  model once — URLs in `scripts/timestamps_cpu.py`; or use
-  `--backend whisper` to skip the manual download)
+- Python 3.10+
+  - For local CPU timestamp alignment: `pip install zhconv pypinyin sherpa-onnx soundfile numpy`
+    (downloads 767 MB FireRedASR2-CTC model once; or use `--backend whisper`)
+  - For 1-step cloud TTS + timestamps (Fish Audio free tier): `pip install requests python-dotenv`
 - ffmpeg
 
 Then make requests like:
@@ -157,6 +157,30 @@ Then make requests like:
 ```text
 Use video-talkcraft to turn this narration script + voiceover.wav into a video.
 Make a 100-second explainer about <topic>; here is the script and the audio.
+```
+
+### 🎙️ Optional: Fish Audio voiceover + character timestamps
+
+Finished voiceover plus local CPU alignment remains the default workflow. When you need to synthesize narration, opt into Fish Audio. The script requests `s2.1-pro-free` by default; free quota and model availability are controlled by Fish Audio.
+
+1. Install `ffmpeg` and Python dependencies: `pip install requests python-dotenv`.
+2. Copy `.env.example` to `.env` and set `FISH_AUDIO_API_KEY`. Optionally set `FISH_AUDIO_REFERENCE_ID` to a voice ID from the voice library; leaving it empty uses the service's default voice.
+3. Prepare `script.json`, for example `{"sentences": ["First sentence.", "Second sentence."]}`. A JSON string array or a `.txt` file with one sentence per line also works.
+4. Generate audio and timestamps:
+   ```bash
+   # Default: one request per sentence, with 0.25 seconds of actual silence inserted between requests
+   python3 scripts/tts_fishaudio.py script.json audio/full.wav audio/timestamps.json --timing-out remotion/src/timing.json
+   # One request for the whole script; retain the model's natural pacing
+   python3 scripts/tts_fishaudio.py script.json audio/full.wav audio/timestamps.json --timing-out remotion/src/timing.json --mode stream
+   ```
+
+Both modes receive SSE audio and alignment snapshots. **Files are written after synthesis finishes; streaming playback is not implemented.** `--pause-sec` controls additional silence in sentence mode only. Each response is decoded to PCM before concatenation and encoding; offsets use actual decoded sample counts. `--format mp3|wav|opus` selects the API response format; the audio output extension selects the saved format.
+
+Chinese characters retain API alignment spans; English character times are interpolated within each word, with zero-duration punctuation. Empty audio, missing/invalid alignment, decoding failures, and mismatched normalized text cause an error exit. Normalization ignores punctuation, case and character width; it does not guess spoken-number substitutions such as `2` versus `two`. Use spoken-form text for such cases, or use local CPU alignment with an existing recording. `match=1` / `ok=true` confirms text mapping, not pronunciation or independently verified timing accuracy; listen to the result.
+
+Offline regression checks (no API key; requires `requests` and `ffmpeg`):
+```bash
+python3 -m unittest discover -s scripts -p 'test_*fish*.py' -v
 ```
 
 ## 🎞 What you bring vs. what it does

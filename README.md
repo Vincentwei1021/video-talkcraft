@@ -125,9 +125,11 @@ ln -s "$(pwd)" ~/.codex/skills/video-talkcraft    # Codex
 环境（agent 会按需自行配置）：
 
 - Node 18+（Remotion 渲染；单片工程内 `npm install`）
-- Python 3.10+，时间戳管线 `pip install zhconv pypinyin sherpa-onnx soundfile numpy`
-  （首次使用下载一次 767MB 的 FireRedASR2-CTC 模型，地址见
-  `scripts/timestamps_cpu.py` 头注释；或加 `--backend whisper` 免手动下载）
+- Python 3.10+
+  - 本机 CPU 时间戳对齐：`pip install zhconv pypinyin sherpa-onnx soundfile numpy`
+    （首次使用下载一次 767MB 的 FireRedASR2-CTC 模型，地址见
+    `scripts/timestamps_cpu.py` 头注释；或加 `--backend whisper` 免手动下载）
+  - 一键流式配音+时间戳（Fish Audio 免费层）：`pip install requests python-dotenv`
 - ffmpeg
 
 然后这样下需求：
@@ -135,6 +137,30 @@ ln -s "$(pwd)" ~/.codex/skills/video-talkcraft    # Codex
 ```text
 用 video-talkcraft 把这份口播稿 + voiceover.wav 做成视频。
 做一条 100 秒的 <话题> 解说，稿子和音频在这里。
+```
+
+### 🎙️ 可选：Fish Audio 生成配音 + 字级时间戳
+
+默认仍是「成品配音 + 本机 CPU 对齐」。没有录音时，可主动选择 Fish Audio 接入；脚本默认请求 `s2.1-pro-free`，模型的免费额度与可用期限以 Fish Audio 为准。
+
+1. 安装 `ffmpeg` 和 Python 依赖 `pip install requests python-dotenv`。
+2. 复制 `.env.example` 为 `.env`，填写 `FISH_AUDIO_API_KEY`。`FISH_AUDIO_REFERENCE_ID` 可填音色库中的音色 ID，留空使用服务默认音色。
+3. 准备 `script.json`，例如 `{"sentences": ["这是第一句。", "这是第二句。"]}`；也支持字符串数组或每行一句的 `.txt`。
+4. 生成音频与时间戳：
+   ```bash
+   # 默认逐句模式：每句一次请求，句间插入 0.25 秒真实静音
+   python3 scripts/tts_fishaudio.py script.json audio/full.wav audio/timestamps.json --timing-out remotion/src/timing.json
+   # 整稿一次请求，保留模型生成的句间节奏
+   python3 scripts/tts_fishaudio.py script.json audio/full.wav audio/timestamps.json --timing-out remotion/src/timing.json --mode stream
+   ```
+
+两种模式均接收 SSE 音频与对齐快照；`stream` 表示流式接收，**文件在全部生成完成后写出，不提供边生成边播放**。`--pause-sec` 只控制逐句模式额外插入的静音。音频先分别解码成 PCM，再拼接、编码，时间戳按实际采样数累计。`--format mp3|wav|opus` 控制接口返回格式，输出格式由音频文件扩展名决定。
+
+中文沿用接口的字级锚点；英文在词内按字符插值，标点零时长。空音频、缺失/无效对齐、解码失败、规范化后稿子与对齐文本不一致都会报错退出。规范化忽略标点、大小写与字符宽度，不推测 `2` 与 `two` 等读法转换；遇到此类差异请改写为实际朗读文本，或使用已有音频走本机 CPU 对齐。`match=1` / `ok=true` 表示文本映射通过，不代表已人工确认发音或字级精度，仍需试听。
+
+回归验证（无需 API Key，需要 `requests` 与 `ffmpeg`）：
+```bash
+python3 -m unittest discover -s scripts -p 'test_*fish*.py' -v
 ```
 
 ## 🎞 你提供什么 vs. 它做什么

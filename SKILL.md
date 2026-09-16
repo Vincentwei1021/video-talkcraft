@@ -1,6 +1,6 @@
 ---
 name: video-talkcraft
-description: 终极口播视频 skill：中文口播稿 + 成品配音 → CPU 字级时间戳 → SHOTBOOK 层矩阵分镜 → Remotion 电影感成片（横屏默认/竖屏）。当用户要"做口播视频"、"解说/科普视频"、"把文案变成视频"、"给配音配画面动效"时使用。TTS 合成与数字人生成技术不在本 skill 内（配音和人物素材是输入）。含统一视觉语言（Apple 范式）、108 张动效配方卡、镜头三面分层工作单、七层镜头反PPT系统（极缓推拉相机/让位，运动做减法）、六式运动承接转场（每式一卡）、长镜头世界画布、anime.js+three.js 桥、自动静止检测 + 独立 subagent 评估循环。
+description: 终极口播视频 skill：中文口播稿 + 成品配音 → CPU 字级时间戳 → SHOTBOOK 层矩阵分镜 → Remotion 电影感成片（横屏默认/竖屏）。当用户要"做口播视频"、"解说/科普视频"、"把文案变成视频"、"给配音配画面动效"时使用。默认使用成品配音，可选 Fish Audio 从稿子合成配音与时间戳；数字人生成技术不在本 skill 内（人物素材是输入）。含统一视觉语言（Apple 范式）、108 张动效配方卡、镜头三面分层工作单、七层镜头反PPT系统（极缓推拉相机/让位，运动做减法）、六式运动承接转场（每式一卡）、长镜头世界画布、anime.js+three.js 桥、自动静止检测 + 独立 subagent 评估循环。
 ---
 
 # video-talkcraft — 口播视频 skill
@@ -34,9 +34,9 @@ description: 终极口播视频 skill：中文口播稿 + 成品配音 → CPU �
 - **数字一律汉字**（时间戳按文本逐字锚定，`197747` 无法与"十九万七千"的读音对位）；英文品牌词直接写（中英混合对齐已验证）
 - 先调研核实事实，列"事实红线清单"（不可说错的数字/未验证数据不引用）
 
-## ② 配音输入 → 预剪 → 字级时间戳（本机 CPU）
-**配音是输入，不是本 skill 的产物**：真人录音或任何 TTS 皆可，skill 不含合成技术。
-输入 = 一条完整配音（wav/mp3）+ 与之逐字一致的口播稿。
+## ② 配音输入 → 预剪 → 字级时间戳（默认本机 CPU；可选 Fish Audio）
+**默认使用成品配音**：真人录音或任何 TTS 皆可，输入 = 一条完整配音（wav/mp3）+ 与之逐字一致的口播稿。
+没有录音且用户选择合成时，可使用下面方案 B；它不会替换已有配音或默认的本机 CPU 流程。
 
 **②-0 配音预剪（真人录音必做；TTS 只会压气口，可跳过）**——剪掉口水词（嗯 / 呃 / 那个…）、结巴重说、过长停顿，
 **在做时间戳之前**跑（时间戳做完再动音频 = timing / beats 全体错位；预剪 → 时间戳 → 一切后续，顺序不可换）：
@@ -57,12 +57,19 @@ python3 scripts/voice_trim.py audio/raw.wav script.json --words audio/asr_words.
 
 字级时间戳（对**预剪后**的 `audio/full.wav`）：
 ```bash
+# 方案 A（已有录音，本机 CPU 对齐）：
 pip install zhconv pypinyin sherpa-onnx soundfile numpy   # 默认后端 FireRedASR2-CTC int8 的全部依赖
 # 首次：下载模型 767MB（model.int8.onnx + tokens.txt）放 ~/.cache/koubo/<模型名>/，地址见脚本头注释
 python3 scripts/timestamps_cpu.py audio/full.wav script.json audio/timestamps.json
 # 备选（免手动下模型）：pip install faster-whisper 后加 --backend whisper（首跑自动下载 460MB）
 python3 scripts/make_timing.py audio/timestamps.json remotion/src/timing.json
+
+# 方案 B（可选生成配音 + 时间戳，默认请求 s2.1-pro-free；可用性以 Fish Audio 为准）：
+pip install requests python-dotenv   # 还需 ffmpeg，生成前会检查
+# 在 .env 配置 FISH_AUDIO_API_KEY=xxx 及可选 FISH_AUDIO_REFERENCE_ID=xxx（见 .env.example）
+python3 scripts/tts_fishaudio.py script.json audio/full.wav audio/timestamps.json --timing-out remotion/src/timing.json
 ```
+- tts_fishaudio.py：默认 `--mode sentence` 每句一次请求，插入 `--pause-sec` 指定的真实静音（默认 0.25 秒）；`--mode stream` 整稿一次请求、保留自然停顿。两者均接收 UTF-8 SSE，生成结束才写文件，不提供流式播放。先解码 PCM 再拼接，偏移按采样数计算。空音频、缺失/无效对齐或文本不匹配时报错；只忽略标点、大小写与字符宽度，不自动转换数字读法。中文用接口字级锚点，英文词内插值；`match/ok` 仅确认文本映射，仍需试听。合成后若再预剪，须重新运行 CPU 对齐。
 - timestamps_cpu.py：ASR 词级时间戳 → 与口播稿字符级对齐（**CJK 是可靠锚点**，
   匹配键=繁简归一+无声调拼音，同音字不算错；拉丁词各家 ASR 都常拼错，在锚点间插值）→
   每句 match 质检，<0.90 标出人工听核。默认后端 FireRedASR2-CTC（尾部最稳、零误报；整段喂入 ~200s 崩、内存平方涨，脚本默认按静音切 ≤75s 段再加回偏移，`--chunk-sec` 可调），备选 faster-whisper；
@@ -419,6 +426,7 @@ X [`@VincentWei93`](https://x.com/VincentWei93) ·
 | 成片后人工微调 / 导出 | `workbench/`（剪映式工作台：多轨时间线 + 全卡参数化 + 成片拆解 + Remotion 渲染导出） |
 | 制作全程实时看板（⑤-2 起常开：进度轨 / 阶段栏 / 单镜预览 / 半成品不盖页）· 状态清单 | `workbench/docs/live-pipeline.md` · `scripts/pipeline_state.mjs`（`--pass` / `--issue` / `--stage`；状态按产物自动推） |
 | 字级时间戳（本机 CPU） | `scripts/timestamps_cpu.py`（FireRedASR2-CTC 默认 / faster-whisper 备选，+ 口播稿逐字对齐）→ `scripts/make_timing.py` |
+| 一键配音+时间戳（Fish Audio 免费层） | `scripts/tts_fishaudio.py`（基于 s2.1-pro-free 流式 TTS，生成 full.wav + timestamps.json + 可选 timing.json） |
 | 配音预剪（口水词 / 结巴重说 / 过长停顿，时间戳之前跑；同一 EDL 剪人物视频） | `scripts/voice_trim.py`（②-0；稿子为真值只剪稿外插入段；词表来源 ASR / 逐字 SRT / 词级 JSON；`cuts.json` EDL 含时间轴映射） |
 | **闸报 FAIL 了怎么办 · 怎么少烧母版** | ⑥⑦「迭代纪律」三条——先读闸怎么量的再改 · 静帧优先 · 改哪段渲哪段、复审改动攒批 |
 | 机器闸（画面健康 / 保真 / 词落点+镜尾 / 音效） | `scripts/motion_check.py`（静止段+并发光栅抖动双判定）/ `scripts/card_lint.py`（卡片须复制自 template/cards）/ `scripts/beat_lint.py`（词落点对 timestamps + `--shots` 镜尾保护带）/ `scripts/sfx_check.py`（solo 在场 + `--mix` 可听度） |
