@@ -3,10 +3,12 @@ import type { ClipData, ProjectData, TrackData } from "./types";
 import { uid } from "./types";
 import { CARDS } from "./cards/registry";
 import { demoProject } from "./demoProject";
+import { KB_PROJECT_ROOT } from "./kbMeta";
 
 export { projectDuration } from "./types";
 
-const STORAGE_KEY = "talkcraft-workbench-project-v1";
+// 未标记来源的旧存档保留在原 key，不猜测它属于当前哪支视频。
+const STORAGE_KEY = `talkcraft-workbench-project-v1${KB_PROJECT_ROOT ? `:${encodeURIComponent(KB_PROJECT_ROOT)}` : ""}`;
 
 const loadInitial = (): ProjectData => {
   try {
@@ -95,7 +97,8 @@ const mutateProject = (
  *  Vite 会重新执行本文件、重建 store——不接住就丢选中 / 撤销栈（2026-09-15 实测：改一个镜头参数，属性面板当场清空）。
  *  dispose 时把状态存进 import.meta.hot.data，重建时原样接回；Remotion 渲染（webpack）没有 import.meta.hot，走正常初始化。 */
 type Carried = Pick<WorkbenchState, "project" | "selectedClipId" | "playhead" | "pxPerFrame" | "previewItem" | "past" | "future">;
-const carried = (import.meta.hot?.data as { store?: Carried } | undefined)?.store;
+const hotData = import.meta.hot?.data as { store?: Carried; projectRoot?: string } | undefined;
+const carried = hotData?.projectRoot === KB_PROJECT_ROOT ? hotData.store : undefined;
 
 export const useStore = create<WorkbenchState>((set, get) => ({
   project: carried?.project ?? loadInitial(),
@@ -308,6 +311,7 @@ if (import.meta.hot) {
   import.meta.hot.dispose((data) => {
     const s = useStore.getState();
     data.store = { project: s.project, selectedClipId: s.selectedClipId, playhead: s.playhead, pxPerFrame: s.pxPerFrame, previewItem: s.previewItem, past: s.past, future: s.future } satisfies Carried;
+    data.projectRoot = KB_PROJECT_ROOT;
   });
 }
 

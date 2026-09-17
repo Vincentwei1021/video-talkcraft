@@ -10,7 +10,7 @@ import { revealExport, startExport, useExportStore } from "./exportJob";
 import { StageBar } from "./pipeline/StageBar";
 import { CodeErrorToast } from "./pipeline/CodeErrorToast";
 import { connectPipeline } from "./pipeline/store";
-import { startOverridesSync } from "./overridesSync";
+import { startOverridesSync, useOverridesSave } from "./overridesSync";
 import { buildLiveProject, canBuildLive, isLiveProject } from "./kb/liveProject";
 import { buildKouboProject, isKouboProject, syncKouboProject } from "./kouboImport";
 import { KB_DECOMPOSABLE } from "./kbMeta";
@@ -150,6 +150,7 @@ export const App: React.FC = () => {
   const updateName = (name: string) =>
     useStore.setState((s) => ({ project: { ...s.project, name } }));
   const fileRef = useRef<HTMLInputElement>(null);
+  const saveError = useOverridesSave((s) => s.error);
   const [libW, setLibW] = usePanelSize("wb-lib-w", 224);
   const [inspW, setInspW] = usePanelSize("wb-insp-w", 300);
   const [tlH, setTlH] = usePanelSize("wb-tl-h", 264);
@@ -299,6 +300,7 @@ export const App: React.FC = () => {
         <Timeline />
       </div>
       <div className="toast-stack">
+        {saveError && <div className="code-toast" role="alert">{saveError}</div>}
         <CodeErrorToast />
         <ExportToast />
       </div>

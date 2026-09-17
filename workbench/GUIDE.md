@@ -146,12 +146,12 @@ npm run dev          # http://localhost:5199
 与 **promo 形态**（宣传片工程：PromoScenes / camera / Host / Environment / timing）；两种都不是时按钮禁用并说明原因，其余功能照常。
 点素材 tab 顶部的「⇣ 拆解导入：口播成片」，或直接打开 `http://localhost:5199/?tracks`（工程存在浏览器本地，换浏览器要重新拆或带这个参数），原片被拆成独立单元，每一项都成了可以单独挪动、改参数、删掉的片段。
 
-**skill 标准形态**（画布 = 工程原尺寸）：
+**skill 标准形态**（画布 = 工程原尺寸；时间轨上看到六类轨，幕级覆盖作为系统层隐去）：
 
 | 轨道 | 内容 | 可以改什么 |
 |---|---|---|
 | 字幕 | 一段一个片段（工程 `phrases()` 给出的可见段：已扣掉画面大字同文的静音区、已做品牌名显示映射） | 文本、深浅底样式；样式用工程自己的 `SubtitleLine`，与成片同一份 |
-| 幕级覆盖 | 工程 `Overlays`（黑震切帧 / 落幕压黑），铺满全片 | 开关（隐藏轨道） |
+| （幕级覆盖） | 工程 `Overlays`（黑震切帧 / 落幕压黑）——**系统层，不在时间轨显示**，导出照常带上，保证与成片一致 | 无（没有可编辑内容） |
 | 转场（标记） | `beats.json` 里 tr-* 事件一处一个 8 帧标记，只标不画 | 无——skill 工程的转场烤在相邻镜头的 lead/tail 运镜里，挪标记不改成片 |
 | 动效镜头 | 一镜一个参数化卡 `kshot-sNN`（按工程 SHOTS × SCENE_PARAMS 运行时生成；起点 − lead、长 lead + 叙事 + tail，与成片 Sequence 同帧） | 场景 `PARAMS` 里声明的语境参数：文案 / 颜色 / 字号 / 位置 / 入场方向（词锚节拍、时长、缓动、相机固定）。**改动 600ms 后写回工程 `remotion/overrides.json`**，成片渲染（render_shots / 导出）读同一份；只记与 tsx 默认值不同的键 |
 | 幕底 | 工程 `Environment`（分幕幕底画布），垫在全部镜头之下 | 开关 |
@@ -200,7 +200,8 @@ npm run dev          # http://localhost:5199
 | 体积 | 大（每秒几十 MB） | 小 |
 
 做法：把这一段单独装进一个最小工程（起点归零、时长精确、图层透明度 / 缩放 / 位移保留），以 `transparent` 模式渲染——
-根底透明，并去掉**卡根层**的幕底（108 张卡的根 AbsoluteFill 都画了中性白 / 深底）、人物剪影占位（HostSilhouette）与
+根底透明，并去掉**卡根层**的幕底（108 张卡的根 AbsoluteFill 都画了中性白 / 深底）、人物剪影占位（HostSilhouette）、
+skill 工程镜头里的**实拍底床**（`wb-bed` 标记：整幅 B-roll 是背景，不是动效本体——s01 / s02 / s08 / s14 这类带底床的镜头导出后只剩名牌 / 色块 / 数字）与
 口播镜头卡的底色层（`wb-shot-bg` 标记 + 幕底参数 `bgColor` 置透明；**只认 `bgColor` 这一个名字**，其余卡要清某个底色参数须在 CardDef.alphaClear 显式列出——
 不按名字猜，因为 chart-grow 的 baseColor 是柱色、chapter-title-card 的 bg 是滑入色板，那是动效本体）；卡内部的色块 / 底板 / 转场色面是动效本体，不动。
 Remotion CLI 参数按官方透明渲染文档：`--image-format=png` + alpha 像素格式 + prores 4444 / vp9，`--muted` 不带音轨（叠加素材的声音归目标剪辑软件管）。

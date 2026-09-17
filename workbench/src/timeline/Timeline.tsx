@@ -71,14 +71,17 @@ export const Timeline: React.FC = () => {
         dragging = true;
         setTrackDrag({ id: trackId, to });
       }
-      // 插入位 = 中线在指针上方的轨道数
-      let idx = 0;
-      for (const t of useStore.getState().project.tracks) {
+      // 插入位 = 中线在指针上方的**可见**轨道数，再换成原数组下标（系统层不占行，但在数组里占位）
+      const all = useStore.getState().project.tracks;
+      const visible = all.filter((t) => !t.system);
+      let vIdx = 0;
+      for (const t of visible) {
         const el = rowRefs.current.get(t.id);
         if (!el) continue;
         const r = el.getBoundingClientRect();
-        if (ev.clientY > r.top + r.height / 2) idx++;
+        if (ev.clientY > r.top + r.height / 2) vIdx++;
       }
+      const idx = vIdx < visible.length ? all.findIndex((t) => t.id === visible[vIdx].id) : all.length;
       // 指针贴近时间轨上下边时自动滚动，轨道多时能拖到看不见的位置
       const sc = scrollerRef.current;
       if (sc) {
@@ -106,11 +109,13 @@ export const Timeline: React.FC = () => {
     const tracks = project.tracks;
     const from = tracks.findIndex((t) => t.id === trackDrag.id);
     if (trackDrag.to === from || trackDrag.to === from + 1) return null;
-    if (trackDrag.to < tracks.length) {
-      const el = rowRefs.current.get(tracks[trackDrag.to].id);
-      return el ? el.offsetTop : null;
+    // 插入位可能落在系统层（无行）上：往下找第一条有行的可见轨道；都没有就画在最后一行之下
+    for (let i = trackDrag.to; i < tracks.length; i++) {
+      const el = rowRefs.current.get(tracks[i].id);
+      if (el) return el.offsetTop;
     }
-    const last = tracks.length ? rowRefs.current.get(tracks[tracks.length - 1].id) : null;
+    const visible = tracks.filter((t) => !t.system);
+    const last = visible.length ? rowRefs.current.get(visible[visible.length - 1].id) : null;
     return last ? last.offsetTop + last.offsetHeight : null;
   };
   const dropTop = dropLineTop();
@@ -173,7 +178,7 @@ export const Timeline: React.FC = () => {
           {/* 接入工程的制作进度（实时看板 L1）：未链接 / 无 shots.json 时不渲染 */}
           <ProgressTrack headerW={HEADER_W} contentW={contentW} />
 
-          {project.tracks.map((track) => (
+          {project.tracks.filter((track) => !track.system).map((track) => (
             <div
               className={`tl-row${trackDrag?.id === track.id ? " dragging" : ""}`}
               key={track.id}
