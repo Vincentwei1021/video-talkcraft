@@ -24,6 +24,13 @@
 
 [![video-talkcraft 在线画廊](assets/gallery-zh.png)](https://vincentwei1021.github.io/video-talkcraft/)
 
+## 统一依赖（runtime/）
+
+所有口播工程的 `remotion/node_modules` 与 `workbench/node_modules` 都软链到 `runtime/node_modules`，版本只在 `runtime/package.json` 钉一处（`@remotion/*` 全家同号）。
+- 新片开工：`bash runtime/check-runtime.sh --upgrade`（装依赖 + 共享无头浏览器 + 链 workbench；Remotion 有新版就升级并冒烟渲 1 帧，不过回滚）。
+- 接工程：`bash runtime/link-runtime.sh <工程根>`（软链 + package.json 版本对齐）。工程目录里不跑 `npm install`。
+- 一份 `node_modules` ≈ 760 MB（含 190 MB 无头浏览器）；之前每支片各装一份，六个工程 3.9 GB。
+
 ## 🆕 更新（What's new）
 <!-- 写法约定：每条一句话、≤ 200 字（含指向链接），只写"是什么 + 改了什么行为"；细节、参数、卡名清单一律 → 指向 references / SKILL.md 章节，不在这里展开；中英同步。口径由 2026-09-05 PR #12 定，#14/#18 曾回到长段落，2026-09-07 收回。 -->
 

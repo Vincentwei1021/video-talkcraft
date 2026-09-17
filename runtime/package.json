@@ -1,0 +1,42 @@
+{
+  "name": "talkcraft-runtime",
+  "private": true,
+  "description": "video-talkcraft 统一依赖：所有口播工程的 remotion/node_modules 与 workbench/node_modules 都软链到 runtime/node_modules；版本只在这一份文件里钉（@remotion/* 全家同号），升级走 check-runtime.sh --upgrade",
+  "scripts": {
+    "check": "bash check-runtime.sh",
+    "upgrade": "bash check-runtime.sh --upgrade",
+    "smoke": "remotion still smoke/index.ts Smoke /tmp/talkcraft-smoke.png --frame=5"
+  },
+  "dependencies": {
+    "remotion": "4.0.519",
+    "@remotion/cli": "4.0.519",
+    "@remotion/bundler": "4.0.519",
+    "@remotion/renderer": "4.0.519",
+    "@remotion/player": "4.0.519",
+    "@remotion/zod-types": "4.0.519",
+    "@remotion/media": "4.0.519",
+    "@remotion/media-utils": "4.0.519",
+    "@remotion/lottie": "4.0.519",
+    "@remotion/shapes": "4.0.519",
+    "@remotion/paths": "4.0.519",
+    "@remotion/noise": "4.0.519",
+    "@remotion/layout-utils": "4.0.519",
+    "@remotion/transitions": "4.0.519",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "gsap": "3.15.0",
+    "lottie-web": "5.13.0",
+    "animejs": "4.5.0",
+    "three": "0.186.0",
+    "zod": "4.4.3",
+    "zustand": "5.0.15"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@types/three": "0.186.0",
+    "typescript": "5.9.3",
+    "vite": "6.4.3",
+    "@vitejs/plugin-react": "4.7.0"
+  }
+}

@@ -3,7 +3,7 @@ import * as real from "@kbsrc/sfx";
 import * as stub from "../../kbsrc-stub/sfx";
 import { arrOr, numOr } from "./pick";
 
-export type SfxCue = stub.SfxCue;
+export type SfxCue = stub.SfxCue & { rate?: number };
 
 const raw = arrOr<Record<string, unknown>>(real.SFX_CUES ?? real.CUES ?? real.cues, []);
 export const SFX_CUES: SfxCue[] = raw.length
@@ -13,6 +13,7 @@ export const SFX_CUES: SfxCue[] = raw.length
         file: String(c.file ?? c.name ?? ""),
         vol: numOr(c.vol ?? c.volume, 1),
         dur: typeof c.dur === "number" ? c.dur : undefined,
+        rate: typeof c.rate === "number" ? c.rate : undefined,
       }))
       .filter((c) => Number.isFinite(c.t) && c.file)
   : stub.SFX_CUES;

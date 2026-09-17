@@ -1,5 +1,5 @@
 import type { ProjectData } from "../types";
-import { KB_COMP, KB_LINKED, KB_MAIN, KB_PROJECT } from "../kbMeta";
+import { KB_COMP, KB_LINKED, KB_MAIN, KB_PROJECT, KB_PROJECT_ROOT } from "../kbMeta";
 import { TOTAL_FRAMES } from "./shots";
 
 export const LIVE_CLIP_ID = "kb-live-main";
@@ -12,6 +12,7 @@ export const LIVE_TRACK_ID = "kb-live-track";
 export const buildLiveProject = (): ProjectData => {
   return {
     name: `${KB_PROJECT || "接入工程"} · 实时看板`,
+    kbProjectRoot: KB_PROJECT_ROOT,
     fps: KB_COMP.fps || 30,
     width: KB_COMP.width || 1920,
     height: KB_COMP.height || 1080,
@@ -41,4 +42,5 @@ export const buildLiveProject = (): ProjectData => {
 };
 
 export const canBuildLive = KB_LINKED && KB_MAIN !== null;
-export const isLiveProject = (p: ProjectData) => p.tracks.some((t) => t.clips.some((c) => c.id === LIVE_CLIP_ID));
+export const isLiveProject = (p: ProjectData) => !!KB_PROJECT_ROOT && p.kbProjectRoot === KB_PROJECT_ROOT &&
+  p.tracks.some((t) => t.clips.some((c) => c.id === LIVE_CLIP_ID));

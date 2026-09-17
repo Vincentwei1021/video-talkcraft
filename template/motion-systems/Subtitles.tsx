@@ -35,6 +35,61 @@ const buildPhrases = (): Phrase[] => {
   return phrases;
 };
 
+/** 保留原 Subtitles.find 的优先级：前句的 0.3s 留白结束后，后句才可接管。
+ * 两条渲染路径共用实际可见窗口，避免拆解后提前切到下一句。时间戳按时间顺序排列。 */
+const buildVisiblePhrases = (): Phrase[] => {
+  let coveredUntil = -Infinity;
+  return buildPhrases().flatMap((p) => {
+    const start = Math.max(p.start, coveredUntil);
+    const end = p.end + 0.3;
+    coveredUntil = Math.max(coveredUntil, end);
+    return end > start ? [{...p, start, end}] : [];
+  });
+};
+
+/** 拆解契约：全部可见字幕段，起止窗口与 Subtitles 共用。 */
+export type SubPhrase = {text: string; start: number; end: number; dark: boolean};
+export const phrases = (): SubPhrase[] => {
+  return buildVisiblePhrases().map((p) => ({
+    text: p.chars.map((c) => c.ch).join('').trim(),
+    start: p.start,
+    end: p.end,
+    dark: false,
+  }));
+};
+
+/** 拆解契约：单句静态渲染（与下面 Subtitles 同一套样式；工作台字幕句片段用它画，改文本不改样式） */
+export const SubtitleLine: React.FC<{text: string; dark?: boolean; bottom?: number; fontSize?: number; maxWidth?: number | string}> = ({
+  text,
+  bottom = 100,
+  fontSize = 44,
+  maxWidth = '66%',
+}) => {
+  if (!text) return null;
+  return (
+    <AbsoluteFill style={{justifyContent: 'flex-end', alignItems: 'center', pointerEvents: 'none'}}>
+      <div
+        style={{
+          marginBottom: bottom,
+          padding: '14px 42px',
+          borderRadius: 14,
+          background: 'rgba(7, 11, 20, 0.72)',
+          border: `1px solid ${C.line}`,
+          fontFamily: FONT.cn,
+          fontSize: text.length > 24 ? Math.round(fontSize * 0.86) : fontSize,
+          fontWeight: 600,
+          letterSpacing: 2,
+          maxWidth,
+          textAlign: 'center',
+          color: C.text,
+        }}
+      >
+        {text}
+      </div>
+    </AbsoluteFill>
+  );
+};
+
 type KeywordRun = {from: number; to: number; at: number}; // char index range [from, to) + 语音锚点秒
 
 // 在一个 phrase 里找关键词的字符区间（每个 phrase 只取首次出现），锚点 = 首字的 ASR 时间戳。
@@ -76,7 +131,7 @@ export const Subtitles: React.FC<{
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const t = frame / fps;
-  const phrases = useMemo(buildPhrases, []);
+  const phrases = useMemo(buildVisiblePhrases, []);
 
   const allRuns = useMemo(() => {
     const map = new Map<Phrase, KeywordRun[]>();
@@ -97,7 +152,7 @@ export const Subtitles: React.FC<{
     return map;
   }, [phrases, keywords, allowExtraKeywordPops]);
 
-  const phrase = phrases.find((p) => t >= p.start && t < p.end + 0.3);
+  const phrase = phrases.find((p) => t >= p.start && t < p.end);
   if (!phrase) return null;
 
   const runs = allRuns.get(phrase) ?? [];

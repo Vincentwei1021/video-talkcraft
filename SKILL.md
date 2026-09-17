@@ -19,7 +19,16 @@ description: 终极口播视频 skill：中文口播稿 + 成品配音 → CPU �
                                 → ⑥ 渲染 → ⑦ 三重验收（机器闸全过 + 1 轮审片修 P0/P1）→ ⑧ 交付（可选续审 ≤3 轮）
 ```
 
-## ⓪ 画幅与视觉语言（开工先定，全流程引用）
+## ⓪ 开工体检：统一依赖 + 画幅与视觉语言
+**依赖只有一份**：所有口播工程的 `remotion/node_modules` 与 `workbench/node_modules` 都是指向 `<skill根>/runtime/node_modules` 的软链，版本只在
+`runtime/package.json` 里钉（`@remotion/*` 全家同号）。**新片开工第一件事**（用户 2026-09-15 定版：每次新做视频都要检查更新）：
+```bash
+bash <skill根>/runtime/check-runtime.sh --upgrade   # 装好共享依赖 + 共享无头浏览器 + 链好 workbench；Remotion 有新版就全家升级并冒烟渲 1 帧，不过自动回滚
+```
+末行 `[runtime] OK` 才往下走；升了级要把 `runtime/package.json` / `package-lock.json` 的改动提交。**制作中途不升级**（母版段缓存不认依赖版本，混版本渲出的段不一致）。
+工程目录里**永远不跑 `npm install`**（会写进共享目录）；要加包 → 加进 `runtime/package.json`，`npm ci`，再提交。
+
+### 画幅与视觉语言（开工先定，全流程引用）
 - **画幅默认横屏 1920×1080**（用户偏好）；明确要发抖音/竖屏渠道才用 1080×1920
 - 视觉语言：**用户明确点了风格就按用户的来**（整套 token 替换）；没点时**先从口播稿判定领域、派生本片风格档**
   （`references/design-language.md` §0：读全稿答"讲什么 / 对谁讲 / 什么口吻"→ 领域 → 风格档表给底色策略 / accent / 字体气质 / 材质与卡造型 / 图表语言 / 素材气质 / 能量档，
@@ -212,7 +221,8 @@ anime.js v4 / three.js 走 `anime-remotion.ts` / `three-anime.ts` 桥（seek-saf
 ### ⑤-1 首镜先做先确认（2026-09-09 用户定版——其余镜头动工前的必经关）
 不再"整片做完再看第一镜"：全片共性（蒙皮 / 字幕样式 / 相机幅度 / 卡的密度 / 音效电平）在一镜上就判得出，做完 13 镜再改是 13 倍返工；
 "改一行就整渲"的冲动也集中在这一段（2026-09-08 issue #24：9 次整片直渲全发生在制作完、验收前）。
-1. **先搭全合成骨架**：entry / 全片时长 / `shots.ts` + `shots.json` 全表（时间来自 SHOTBOOK 与 timestamps，此时就写全）/ 全局系统（G1 相机、G3 让位、幕底、字幕、theme）；
+1. **先搭全合成骨架**：`remotion/` 目录建好后先 `bash <skill根>/runtime/link-runtime.sh <本片工程>`（`node_modules` 软链到统一依赖、`package.json` 依赖版本抄 runtime——不自建、不 `npm install`），
+   然后 entry / 全片时长 / `shots.ts` + `shots.json` 全表（时间来自 SHOTBOOK 与 timestamps，此时就写全）/ 全局系统（G1 相机、G3 让位、幕底、字幕、theme）；
    **其余镜头一律占位**——`MainVideo-example.tsx` 里 `SCENES[shot.id]` 查不到就落到 `PlaceholderScene`（只露幕底 + 字幕，不写任何动效）。
    骨架搭全是为了 render_shots 的段表 / 时长断言原样生效，不为首镜开豁免。
 2. **只实现样板镜**（SHOTBOOK G0「样板镜」行，默认 s01）：按 SHOTBOOK 全量落地——蒙皮行、卡 tsx 复制、音效 cue、转场处置——不做"先糙后精"。
@@ -238,11 +248,12 @@ open out/preview/s01.mp4        # 打开给用户看
 把 ⑧ 里"交付后才打开工作台"前移到这里：**⑤-1 合成骨架搭完（shots.json + Main.tsx 落盘）就接入并打开工作台**，用户此后随时能看到
 "做到哪了、哪镜什么状态"、能播当前实时成片、能点单镜有声预览；agent 每存一次盘预览就刷新，不用等成片（`workbench/docs/live-pipeline.md`）。
 ```bash
-cd <skill根>/workbench && npm install                                  # 首次
-ln -sfn <本片工程>/remotion/src kbsrc && mkdir -p public && for f in <本片工程>/remotion/public/*; do ln -sfn "$f" "public/$(basename "$f")"; done
+bash <skill根>/runtime/check-runtime.sh                                # 依赖统一在 runtime/，这一步顺手把 workbench/node_modules 链好（不在 workbench 里 npm install）
+cd <skill根>/workbench
+bash scripts/link-project.sh <本片工程>       # kbsrc → remotion/src；public/ 先清掉指向别的工程的旧链接再逐项软链；末行打印拆解契约判定
 npm run dev &                                                          # 已在跑就跳过；链接变了要重跑一次 npm run gen
 sleep 4 && curl -s http://localhost:5199 | grep -q '动效工作台' && echo "工作台 OK" || echo "FAIL: 工作台未起"
-open 'http://localhost:5199/?live'                                     # ?live = 直接装上本片主合成 + 进度轨
+open 'http://localhost:5199/?live'                                     # ?live = 直接装上本片主合成 + 进度轨；?tracks = 直接拆成多轨（字幕 / 镜头 / 音效…可改）
 ```
 - **状态清单 `pipeline.json`**（工程根）：工作台 dev server 按盘上产物**实时推导**每镜状态（占位 / 已实现 / 已渲 / 已过闸、场景比段新 = 过期），
   不依赖 agent 记得写；agent 只在盘上推不出的事上落一笔，都走 `node <skill根>/scripts/pipeline_state.mjs`（在工程根或 remotion/ 下执行）：
@@ -261,6 +272,17 @@ open 'http://localhost:5199/?live'                                     # ?live =
 - **Main 组件别调 `getInputProps()`**（Remotion Player 里必抛，看板上那一格会红）：debug / sfxSolo 之类开关改成组件 props（Composition defaultProps），
   或守卫 `typeof window !== 'undefined' && !(window as any).remotion_isPlayer`。
 - 看板只看不驱动：不提供"点按钮触发某一步"的接口，skill 仍是主控。
+- **拆解契约（工作台多轨 + 逐镜调参吃这几个导出，`template/motion-systems/` 都有样例）**：
+  `shots.ts` 导出 `SHOTS`（每镜 `lead` / `tail` 帧数、`hardOut`）+ `shotSequence`；`scenes/index.ts` 导出 `SCENES`（镜头 id → 场景组件）与 `SCENE_PARAMS`（镜头 id → 该场景的 `PARAMS`）；
+  **每个场景 `export const PARAMS = [...] as const satisfies readonly ParamField[]`，场景内 `const p = useParams(shot.id, PARAMS)` 取值**——表里只放语境级参数
+  （文案 / 颜色 / 字号 / 位置 / 入场方向），词锚时刻、时长、缓动、几何比例、层级是命门不进表（design-language §0.4 同一条线）；
+  `Subtitles.tsx` 导出 `Subtitles` + `phrases()`（全部可见字幕段：已扣静音区、已做显示映射）+ `SubtitleLine`（单句静态渲染，Subtitles 自己也用它画）；
+  `Environment.tsx` 导出 `Environment`（幕底画布，画在所有镜头之下）与 `Overlays`（幕级覆盖：黑震切帧 / 落幕等，画在镜头之上、字幕之下），`Main.tsx` 从这里取；
+  `params.ts` 照模板抄（`useParams` / `ParamsProvider` / `OVERRIDES`），`remotion/overrides.json` 建成 `{}`；
+  实拍底床用 `template/components/bed.tsx` 的 `Bed`（根元素 `className="wb-bed"`）——工作台右键导透明通道时按这个标记把底床去掉，只留动效本体。
+  **`overrides.json` 归工作台写、agent 永不改**：用户在面板改的键以它为准，agent 只改 tsx 默认值——这就是双写冲突的解法；
+  渲染（render_shots / 工作台导出）读同一份，所以定版前要看一眼它是否为空（用户调过参就以调过的为准交付，交付说明里写明）。
+  契约是否齐全由机器闸 `python3 scripts/workbench_contract_lint.py <工程根>` 核（⑥⑦ 六条闸之一；样板镜阶段加 `--allow-placeholder`）。
 
 ## ⑥⑦ 渲染 + 三重验收（机器闸全过 → 1 轮审片 → 交付）
 
@@ -330,7 +352,7 @@ npx remotion render src/entry.ts <Comp> out/sfx-solo.wav --props='{"sfxSolo":tru
 **修复验证同理只渲受影响段过闸**（freezedetect 单段可跑），不整渲。
 
 ```bash
-# —— 关卡 1 机器闸：五条命令一次跑完，全 PASS 才进关卡 2 独立审片 ——
+# —— 关卡 1 机器闸：六条命令一次跑完，全 PASS 才进关卡 2 独立审片 ——
 python3 scripts/motion_check.py out/vN.mp4 --baseline remotion/public/dh/host.webm --window <t>,<人物区 W:H:X:Y>
                                                   # 画面健康：静止段 + 抖动。抖动先查重复帧签名（人物区周期性近零差 = 素材帧率病，
                                                   # 处方在 preflight，--concurrency=1 治不了），再查并发光栅；--baseline 同窗量源片，
@@ -341,6 +363,9 @@ python3 scripts/sfx_check.py --mix out/vN.mp4 audio/full.wav cues.json --timesta
 python3 scripts/card_lint.py remotion/src <slug,slug,...>                # 卡片保真（复制自 template/cards）
 python3 scripts/beat_lint.py remotion/beats.json audio/timestamps.json --shots remotion/shots.json --anchors anchors.json
                                                   # 词落点 |Δ|≤0.1s + 镜尾保护带 ≥0.5s + label 只许 [A-Za-z0-9_-]（进文件名/JS 字符串）
+python3 scripts/workbench_contract_lint.py <本片工程根>                      # 工作台拆解契约（⑤-2）：六个契约文件 · SCENES/SCENE_PARAMS 与 shots.json 对账 ·
+                                                  # 每镜 PARAMS + useParams · params.ts / overrides.json · Subtitles 的 phrases/SubtitleLine——
+                                                  # 漏一个导出 = 用户打开工作台才发现按钮灰 / 面板空；⑤-1 只有样板镜时加 --allow-placeholder
 # 评审材料抽帧：每句 2 帧 + 动效锚点帧（anchors.json 从 beats.json 导出）
 # 连拍三帧对只抽 anchors.json 里标了 "burst": true 的锚点——状态切换（两态翻转/换场/砸入落位）
 # 与高风险区域必须标；其余锚点只抽定妆帧。
@@ -383,8 +408,9 @@ ffmpeg -i out/final.mp4 -c:v copy \
 见 ⑥⑦ 审片循环制度）——给用户一个剪映式界面做人工微调，并 `pipeline_state.mjs --pass …` 把过闸镜头钉绿：
 
 ```bash
-cd <skill根>/workbench && npm install            # 首次
-ln -sfn <本片工程>/remotion/src kbsrc            # 链接本片工程（机器本地符号链接，不进库）
+bash <skill根>/runtime/check-runtime.sh          # 统一依赖体检 + 链好 workbench/node_modules（不在 workbench 里 npm install）
+cd <skill根>/workbench
+bash scripts/link-project.sh <本片工程>          # 链接本片工程（机器本地符号链接，不进库；手写 ln -sfn 循环不会替换指向旧工程目录的链接——2026-09-15 实测 logos 仍指上一支片）
 mkdir -p public && for f in <本片工程>/remotion/public/*; do ln -sfn "$f" "public/$(basename "$f")"; done
 npm run dev &                                     # 浏览器打开 http://localhost:5199/?live 并告知用户
 sleep 4 && curl -s http://localhost:5199 | grep -q '动效工作台' && echo "工作台 OK" || echo "FAIL: 工作台未起——禁止用 remotion studio 代替"
@@ -393,11 +419,11 @@ sleep 4 && curl -s http://localhost:5199 | grep -q '动效工作台' && echo "�
 `npx remotion studio`（工程内）或工作台的 `npm run studio` 是开发者调参入口，**不是**交付面，不得用它代替工作台；
 `npm run dev` 必须从 `<skill根>/workbench` 执行（别在本片工程目录里起）。
 
-工作台里点「素材 → 拆解导入」即把成片拆成逐句字幕/逐镜参数化/逐条音效/转场/环境的多轨工程，
-文字内容、颜色、字号、位置、变速逐项可调（词锚节拍与相机保持固定）；改完点「导出成片」
-（内置 Remotion 渲染，遵守单并发纪律）。详见 `workbench/README.md`。
-接入按真实路径解析、契约模块缺哪个只降级哪个（`workbench/kbsrc.map.mjs`）：本 skill 正式产出的工程（`Main.tsx` + `scenes/`）
-没有 promo 形态的 PromoScenes / camera 等模块，「拆解导入」会禁用，成片预览 / 素材 / 导出照常——不算故障，不要去补造那些模块。
+工作台里点「素材 → 拆解导入」即把成片拆成多轨：逐句字幕（文本可改）/ 幕级覆盖 / 转场标记 / 逐镜参数化镜头 / 幕底 / 配音 / 逐条音效；
+镜头里每个场景 `PARAMS` 声明的文案 / 颜色 / 字号 / 位置 / 入场方向逐项可调（词锚节拍、时长、缓动、相机固定），
+改动写回本片 `remotion/overrides.json`，渲染读同一份；改完点「导出成片」（内置 Remotion 渲染，遵守单并发纪律）。详见 `workbench/README.md` / `GUIDE.md` ⑥。
+接入按真实路径解析、契约模块缺哪个只降级哪个（`workbench/kbsrc.map.mjs`）；本 skill 产出的工程按 ⑤「拆解契约」六个文件写就能拆——
+拆解按钮灰着，先看 `npm run gen` 末行报的是缺哪个契约文件，别去补造 promo 形态的 PromoScenes / Host。
 发布时**推荐（非强制）**在简介 @ 一下本 skill 作者——对作者是最好的支持：
 X [`@VincentWei93`](https://x.com/VincentWei93) ·
 抖音 [@Vincent](https://www.douyin.com/user/MS4wLjABAAAAK1pkjBxilk2Oi_9h_vFyD-lTAu9CTlvhmOtkosDvvxg) ·

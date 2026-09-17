@@ -95,8 +95,12 @@ const kb = kbsrcMap(wb);
 const kbLinked = kb.linked;
 /** 契约模块（kbsrc-stub 里的每个文件）在接入工程里是否真有同名文件 */
 const kbModules = Object.fromEntries(kb.modules.map((m) => [m.id, m.real]));
-/** 拆解契约（口播成片 promo 形态）：逐镜拆解 / 数字人 / 环境 / 字幕句都吃这几个模块 */
+/** 拆解契约 · promo 形态（宣传片工程）：逐镜拆解 / 数字人 / 环境 / 字幕句都吃这几个模块 */
 const kbPromo = kbLinked && ["PromoScenes", "camera", "Host", "Environment", "timing"].every((id) => kbModules[id]);
+/** 拆解契约 · skill 标准形态（SKILL.md ⑤ 产出的工程）：shots（SHOTS/lead/tail）+ scenes/index（SCENES/SCENE_PARAMS）+ Subtitles（phrases/SubtitleLine）+ sfx + timing + camera；
+ *  Environment（幕底 / Overlays）与 params（overrides）可选——缺了只少那条轨 / 不可调参 */
+const kbSkill = kbLinked && !kbPromo && ["shots", "scenes/index", "Subtitles", "sfx", "timing", "camera"].every((id) => kbModules[id]);
+const kbForm = kbPromo ? "promo" : kbSkill ? "skill" : "none";
 /** 工程主合成入口：skill 正式工程 Main.tsx（export Main）/ promo 工程 MainVideo.tsx（export MainVideo） */
 let kbMainFile = null;
 const kbMain = kbLinked
@@ -131,6 +135,8 @@ if (kbLinked) {
 // 取值优先级：工程导出 `WIPE_TIMES = [...]`（推荐）> 正则抓 `times = [...]` > beats.json 里 what 含 wipe/换幕 的 t > []
 let wipeTimes = [];
 let wipeSource = "none";
+/** skill 标准形态：转场标记 {t, label}（来自 beats.json） */
+let transitions = [];
 if (kbLinked) {
   const kbReal = kb.realSrc;
   const envFile = join(kbReal, "Environment.tsx");
@@ -151,6 +157,18 @@ if (kbLinked) {
     }
   }
   if (!wipeTimes.length && kbPromo) console.warn("gen-index: 接入工程没有可读的换幕时刻表（Environment.tsx 导出 WIPE_TIMES 或 beats.json 标 wipe）");
+  // skill 标准形态的转场是每镜 lead/tail 运动承接（烤在镜头里，拆不出来），只出"转场标记"：beats.json 里 label tr-* 或 what 含 切点/转场 的事件
+  const beats = join(kbReal, "..", "beats.json");
+  if (kbSkill && existsSync(beats)) {
+    try {
+      const arr = JSON.parse(readFileSync(beats, "utf8"));
+      const list = Array.isArray(arr) ? arr : arr.beats ?? arr.events ?? [];
+      transitions = list
+        .filter((b) => /^tr[-_]/.test(String(b.label ?? "")) || /切点|转场|wipe|换幕/i.test(String(b.what ?? "")))
+        .map((b) => ({ t: Number(b.t), label: String(b.what ?? b.label ?? "转场").replace(/^\[[^\]]*\]\s*/, "").slice(0, 40) }))
+        .filter((b) => Number.isFinite(b.t));
+    } catch { /* 坏 JSON：当没有 */ }
+  }
 }
 writeFileSync(
   join(wb, "src/kbMeta.ts"),
@@ -164,6 +182,13 @@ writeFileSync(
     `export const KB_MODULES: Record<string, boolean> = ${JSON.stringify(kbModules)};\n` +
     `/** 拆解契约（promo 形态：PromoScenes / camera / Host / Environment / timing 全为真实文件） */\n` +
     `export const KB_PROMO = ${kbPromo};\n` +
+    `/** 拆解契约（skill 标准形态：shots / scenes/index / Subtitles / sfx / timing / camera 全为真实文件） */\n` +
+    `export const KB_SKILL = ${kbSkill};\n` +
+    `export const KB_FORM: "promo" | "skill" | "none" = ${JSON.stringify(kbForm)};\n` +
+    `/** 任一拆解契约成立 → 素材库「拆解导入」可用 */\n` +
+    `export const KB_DECOMPOSABLE = ${kbPromo || kbSkill};\n` +
+    `/** skill 标准形态的转场标记（beats.json 的 tr-* 事件；promo 形态为空，看 WIPE_TIMES） */\n` +
+    `export const KB_TRANSITIONS: { t: number; label: string }[] = ${JSON.stringify(transitions)};\n` +
     `/** 工程主合成模块名（Main.tsx → "Main"，MainVideo.tsx → "MainVideo"，没有则 null） */\n` +
     `export const KB_MAIN: "Main" | "MainVideo" | null = ${JSON.stringify(kbMain)};\n` +
     `/** 主合成源文件的真实绝对路径（kb-main 载入失败后经 /@fs 直连重试用；未链接为 null） */\n` +
@@ -178,6 +203,6 @@ writeFileSync(
 console.log(
   `gen-index: ${gen.length} 张参数化卡, ${tpl.length} 张模板卡, ${media.length} 个素材文件 + ${sfxAll.length} 个音效, 换幕 ${wipeTimes.length} 处（${wipeSource}）` +
     (kbLinked
-      ? `; 接入 ${basename(kb.projectRoot)}：真实模块 ${kb.realIds.length}/${kb.modules.length}（${kb.realIds.join(" ") || "无"}）${kbPromo ? "，拆解契约 OK" : "，非拆解契约形态（拆解导入不可用，其余照常）"}${kbMain ? `，主合成 ${kbMain}` : "，无 Main/MainVideo"}，${kbComp.width}×${kbComp.height}@${kbComp.fps}`
+      ? `; 接入 ${basename(kb.projectRoot)}：真实模块 ${kb.realIds.length}/${kb.modules.length}（${kb.realIds.join(" ") || "无"}）${kbPromo ? "，拆解契约 OK（promo 形态）" : kbSkill ? `，拆解契约 OK（skill 标准形态，转场标记 ${transitions.length} 处）` : "，非拆解契约形态（拆解导入不可用，其余照常）"}${kbMain ? `，主合成 ${kbMain}` : "，无 Main/MainVideo"}，${kbComp.width}×${kbComp.height}@${kbComp.fps}`
       : "; 未链接口播工程（kbsrc-stub 降级）"),
 );

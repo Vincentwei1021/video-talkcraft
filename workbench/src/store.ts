@@ -3,10 +3,12 @@ import type { ClipData, ProjectData, TrackData } from "./types";
 import { uid } from "./types";
 import { CARDS } from "./cards/registry";
 import { demoProject } from "./demoProject";
+import { KB_PROJECT_ROOT } from "./kbMeta";
 
 export { projectDuration } from "./types";
 
-const STORAGE_KEY = "talkcraft-workbench-project-v1";
+// 未标记来源的旧存档保留在原 key，不猜测它属于当前哪支视频。
+const STORAGE_KEY = `talkcraft-workbench-project-v1${KB_PROJECT_ROOT ? `:${encodeURIComponent(KB_PROJECT_ROOT)}` : ""}`;
 
 const loadInitial = (): ProjectData => {
   try {
@@ -91,15 +93,22 @@ const mutateProject = (
   return draft;
 };
 
+/** HMR 保命：接入工程的任何源码变化（agent 改 tsx、overrides.json 写回）都会经 kb 适配层 → 卡注册表 → 本模块传播，
+ *  Vite 会重新执行本文件、重建 store——不接住就丢选中 / 撤销栈（2026-09-15 实测：改一个镜头参数，属性面板当场清空）。
+ *  dispose 时把状态存进 import.meta.hot.data，重建时原样接回；Remotion 渲染（webpack）没有 import.meta.hot，走正常初始化。 */
+type Carried = Pick<WorkbenchState, "project" | "selectedClipId" | "playhead" | "pxPerFrame" | "previewItem" | "past" | "future">;
+const hotData = import.meta.hot?.data as { store?: Carried; projectRoot?: string } | undefined;
+const carried = hotData?.projectRoot === KB_PROJECT_ROOT ? hotData.store : undefined;
+
 export const useStore = create<WorkbenchState>((set, get) => ({
-  project: loadInitial(),
-  selectedClipId: null,
-  playhead: 0,
+  project: carried?.project ?? loadInitial(),
+  selectedClipId: carried?.selectedClipId ?? null,
+  playhead: carried?.playhead ?? 0,
   playing: false,
-  pxPerFrame: 2,
-  previewItem: null,
-  past: [],
-  future: [],
+  pxPerFrame: carried?.pxPerFrame ?? 2,
+  previewItem: carried?.previewItem ?? null,
+  past: carried?.past ?? [],
+  future: carried?.future ?? [],
 
   commit: () =>
     set((s) => ({ past: [...s.past.slice(-49), clone(s.project)], future: [] })),
@@ -297,6 +306,14 @@ export const useStore = create<WorkbenchState>((set, get) => ({
       }),
     })),
 }));
+
+if (import.meta.hot) {
+  import.meta.hot.dispose((data) => {
+    const s = useStore.getState();
+    data.store = { project: s.project, selectedClipId: s.selectedClipId, playhead: s.playhead, pxPerFrame: s.pxPerFrame, previewItem: s.previewItem, past: s.past, future: s.future } satisfies Carried;
+    data.projectRoot = KB_PROJECT_ROOT;
+  });
+}
 
 // —— 自动保存：每次改动 800ms 防抖落 localStorage；关页/切后台时立即落盘 ——
 let saveTimer: ReturnType<typeof setTimeout> | undefined;

@@ -5,8 +5,8 @@
 📖 **图文指南：[GUIDE.md](GUIDE.md)**——五个区域的功能逐一截图讲解（素材库 / 预览 / 属性面板 / 时间轨 / 拆解导入 / 导出）。
 
 ```bash
+bash ../runtime/check-runtime.sh   # 依赖统一在 <仓库根>/runtime：装好 runtime/node_modules 并把 workbench/node_modules 软链过去（这里不跑 npm install）
 cd workbench
-npm install
 npm run dev        # http://localhost:5199
 ```
 
@@ -16,8 +16,8 @@ npm run dev        # http://localhost:5199
 - **时间轨**：多轨道（上层覆盖下层，拖轨道头可排序）、拖拽移动、两端裁剪、跨轨拖动、吸附、分割（S）、复制（⌘D）、缩放/适配；三栏与时间轨均可拖拽分隔条调整尺寸
 - **属性面板（schema 驱动）**：108 张动效卡 100% 参数化——全部文案（多条内容用逐行 DSL）、颜色、字号（派生几何等比联动）、内容块位置 posX/posY、语境节奏；动效节奏命门保持 FIXED 不暴露，保动效品相
 - **通用 clip 属性**：起点/时长（裁剪/定格延长）、**变速 0.25×–4×**（`<Freeze>` 时间重映射）、**裁入点**、不透明度/缩放/位移。音频与视频素材卡走 `trimBefore`/`playbackRate` 原生通道，裁剪变速不哑音
-- **口播成片拆解**（需链接外部工程，见下）：一键把成片拆为逐句字幕（127 句，文本可改）、23 个镜头（逐镜参数化卡，文案/颜色/字号/位置可调；词锚节拍/相机保持固定）、81 条音效（逐条可挪可调音量）、转场、数字人、环境层
-- **保存**：每次改动自动存 localStorage（800ms 防抖 + 关页即时落盘），导出/导入工程 JSON，撤销/重做（⌘Z/⇧⌘Z）
+- **口播成片拆解**（需链接外部工程，见下）：一键把成片拆为多轨。**skill 标准工程**（SKILL.md ⑤ 产出）：逐句字幕（文本可改，用工程自己的字幕样式）/ 转场标记 / 逐镜参数化镜头（每镜 `PARAMS` 声明的文案 / 颜色 / 字号 / 位置 / 入场方向可调，改动写回工程 `remotion/overrides.json`，成片渲染读同一份）/ 幕底 / 配音 / 逐条音效；**宣传片 promo 工程**：逐句字幕（127 句）、23 个手抄逐镜卡、81 条音效、转场、数字人、环境层
+- **保存**：每次改动自动存 localStorage（按接入工程真实路径分开存，800ms 防抖 + 关页即时落盘），导出/导入工程 JSON，撤销/重做（⌘Z/⇧⌘Z）
 - **导出成片**：顶栏「导出成片」→ dev server 内起 Remotion CLI 渲染当前工程为 MP4（内容精确时长、单并发保光栅一致），输出到 `exports/`，完成后一键在 Finder 显示
 - **导出透明通道**：时间轨上**右键片段** → 「导出透明通道 · MOV（ProRes 4444）/ WebM（VP9 alpha）」——只渲这一段、起点归零、根底透明并去掉卡根层幕底 / 人物剪影占位 / 口播镜头底色层，给剪映 / PR / AE 当叠加素材；右键菜单同时带分割 / 复制 / 删除（→ GUIDE ⑦）
 - **Remotion Studio 入口**：`npm run studio`（卡片 Zod schema 自动生成，官方 Inspector 调参 + 渲染 UI）
@@ -29,11 +29,14 @@ skill 在 ⑤-1 合成骨架搭完就把工程接进来、开着工作台（SKIL
 - **阶段栏**（顶栏下）：①…⑧ 当前步高亮、hover 看产物路径；右侧镜头计数（占位 / 已实现 / 已渲 / 已过 / 过期 / P0-P1）与直播点（SSE 连接状态）。
 - **进度轨**（时间轨最上一行，随标尺吸顶）：每镜一个色块——灰 占位 · 蓝 已实现 · 青 已渲 · 绿 已过闸 · 黄框 过期（场景文件比渲出的段新）· 红点 未清 P0/P1。
   点一下：播放头跳到该镜，属性面板切成**镜头视图**（区间 / 场景文件 / 渲出时间 / 单镜有声预览可直接播 / 未清 issues / 评审提及 / SHOTBOOK 段落）。
+- **多轨拆解一步到位**：`?tracks` 打开 = 点「拆解导入」（已是拆解工程则同步）；工程存在浏览器 localStorage，换一个浏览器打开看到的是它上次的工程，带参数才能保证进来就是多轨。
 - **成片（实时）**：`?live` 打开或点「▶ 实时看板」，时间线装上接入工程的主合成（一条轨一个 clip，画幅随工程横竖屏），
   agent 存盘即经 Vite HMR 刷新。工程代码有语法错时**不再盖整页**（右下角提示 + 画面停在上一版）；单 clip 渲染出错只把那一格画红。
 - **状态从哪来**：dev server 按盘上产物实时推导（`scripts/pipeline_state.mjs` 的 `derivePipeline`：shots.json → SCENES 表 / scenes/ 文件 → out/segments|preview → review/*.md），
   再合上工程根 `pipeline.json` 里 `manual` 一节（`--pass` / `--issue` / `--stage`，盘上推不出的才手写）。文件变化经 Vite 的 chokidar + 4s 兜底轮询，只在状态变了才推（`/api/pipeline/events`）。
 - **拆解导入可增量同步**：拆解单元 id 稳定（`kb-shot-s03`、`kb-sfx-12`…），再点一次变成「⟳ 同步拆解」——起点 / 时长跟新，你改过的文案 / 颜色 / 图层保留，你删掉的单元不复活（工程记着上次拆解的 id）。已知限制：分割过的拆解片段同步后左半会被重置成整段，分割请在同步之后做。
+- **切换工程**：只有来源路径相同的存档会增量同步；另一支视频或没有 `kbProjectRoot` 标记的旧存档会重新拆解当前工程，并读取它自己的 overrides。旧版本的未标记存档保留在原 localStorage key `talkcraft-workbench-project-v1`，不会猜测来源后自动写回。
+- **参数写盘**：保存失败会提示并自动重试，写入按顺序执行。请求带当前工程标记，切换了工程的 dev server 会拒绝旧标签页写入，并提示刷新。
 - 看板只看不驱动：没有"点按钮触发某一步"的接口，skill 是主控。设计、取舍与 L2（配音预剪波形视图 + 双向编辑契约）见 [docs/live-pipeline.md](docs/live-pipeline.md)。
 
 ## 接入口播成片工程（可选）
@@ -42,12 +45,12 @@ skill 在 ⑤-1 合成骨架搭完就把工程接进来、开着工作台（SKIL
 
 ```bash
 cd workbench
-ln -sfn /path/to/<口播工程>/remotion/src kbsrc
-mkdir -p public
-for f in /path/to/<口播工程>/remotion/public/*; do ln -sfn "$f" "public/$(basename "$f")"; done
+bash scripts/link-project.sh /path/to/<口播工程>     # kbsrc → remotion/src；public/ 清掉指向别的工程的旧链接再逐项软链；自动跑 npm run gen
 ```
 
-链接后跑一次 `npm run gen`（`npm install` 的 prepare 与 dev/build/studio 的前置钩子也会跑）：它扫描 `public/`
+（手写 `ln -sfn` 循环在 `public/<name>` 已是指向别的工程目录的符号链接时不会替换，上一支片的 logos / 素材会留下来——脚本就是为这个写的。）
+接入前先跑 `python3 ../scripts/workbench_contract_lint.py <口播工程>`：它逐项核对拆解契约（六个契约文件、SCENES / SCENE_PARAMS 与 shots.json 对账、每镜 PARAMS + useParams、params.ts / overrides.json、Subtitles 的 phrases / SubtitleLine），FAIL 会直接说缺哪个导出——比打开工作台看到按钮灰再猜快得多。
+链接后 `npm run gen` 已跑过（`npm install` 的 prepare 与 dev/build/studio 的前置钩子也会跑）：它扫描 `public/`
 生成素材清单 `src/mediaManifest.ts`，并从工程读出换幕时刻表生成 `src/kbMeta.ts`——两个文件按本机链接生成、不进库。
 换幕时刻表的取值顺序：工程 `Environment.tsx` 导出的 `WIPE_TIMES`（推荐显式导出）→ 其中 ShapeWipes 的 `times = [...]`
 字面量 → `beats.json` 里 `what` 含 wipe/换幕 的 `t`；都没有则转场轨为空并在控制台提示。
@@ -63,10 +66,28 @@ for f in /path/to/<口播工程>/remotion/public/*; do ln -sfn "$f" "public/$(ba
   工作台源码只从 `src/kb/` 取接入工程的**命名导出**，不直接 `import { x } from "@kbsrc/…"`（缺导出 = ESM 链接期 SyntaxError 整页挂）；
   文件级契约的**默认导出**（如 `@kbsrc/cards/pencil-sketch-draw`）可以直接 import——缺文件时整个模块回退 stub，不存在缺导出问题。
   组件类导出用 `compOr`（认 memo / forwardRef 对象），hook / 普通函数用 `fnOr`；分镜表同时认 `start/end` 与模板的 `startSec/durationSec`。
-- **两种接入形态**：口播成片 promo 工程（全部契约模块都有）→ 拆解导入 / 逐镜参数化 / 数字人 / 环境全可用；
-  skill 正式产出的工程（`Main.tsx` + `scenes/` + `motion-systems/`，没有 PromoScenes 等模块）→ 页面、素材、导出照常，
-  「拆解导入」按钮禁用并说明原因（`kbMeta.ts` 的 `KB_PROMO=false`），promo 专属卡不进素材库。
-  `npm run gen` 的末行会打印接入工程名、真实模块数、是否满足拆解契约、主合成模块与画幅。
+- **两种拆解契约（`kbMeta.ts` 的 `KB_FORM`）**：
+  - **skill 标准形态**（`KB_SKILL`，SKILL.md ⑤ 产出的工程）：`shots.ts`（SHOTS 带 lead/tail/hardOut + shotSequence）· `scenes/index.ts`（`SCENES` + `SCENE_PARAMS`）·
+    `Subtitles.tsx`（`Subtitles` + `phrases()` + `SubtitleLine`）· `sfx.ts` · `timing.ts` · `camera.tsx` 六个真实文件即成立；
+    `Environment.tsx`（`Environment` 幕底 / `Overlays` 幕级覆盖）与 `params.ts`（`useParams` / `ParamsProvider` / `OVERRIDES`）可选——缺了只少那条轨 / 不可调参。
+    逐镜卡 `kshot-sNN` 按 SHOTS × SCENE_PARAMS **运行时生成**（不再手抄 kscene）；片段 props 经 `ParamsProvider` 注入场景的 `useParams`，
+    与 tsx 默认值不同的键 600ms 防抖整表 `POST /api/pipeline/overrides` 写回 `<remotion>/overrides.json`——**这个文件归工作台写，agent 只改 tsx 默认值**，两边永不冲掉；
+    转场标记来自 `beats.json` 里 label `tr-*` / what 含「切点 / 转场」的事件（skill 工程的转场烤在相邻镜头的 lead/tail 运镜里，拆不出独立画面）。
+  - **promo 形态**（`KB_PROMO`，宣传片工程）：PromoScenes / camera / Host / Environment / timing 全在 → 手抄的 kscene-sNN 逐镜卡 / 数字人 / 环境 / 三色扫转场。
+  - 都不是 → 页面、素材、实时看板、导出照常，「拆解导入」按钮禁用并说明原因，专属卡不进素材库。
+  `npm run gen` 的末行会打印接入工程名、真实模块数、是哪种拆解契约、主合成模块与画幅。
+- **HMR 保命**：接入工程任何源码一变（agent 改 tsx / 写回 overrides）都会经 kb 适配层 → 卡注册表 → `store.ts` 传播，Vite 重建 store；
+  `store.ts` / `pipeline/store.ts` 用 `import.meta.hot.data` 接回状态（选中 / 撤销栈 / SSE 连接不丢），App 在模块级重挂 SSE 与写回订阅（幂等）；
+  overrides.json 的变化在工程 `params.ts` 里就地接住（`import.meta.hot.accept`），不向上传播。
+
+## 回归检查
+
+开发时可在仓库根运行回归检查（依赖先由 `runtime/check-runtime.sh` 安装）：
+
+```bash
+node --test workbench/tests/regressions.test.cjs scripts/render_shots.test.mjs
+python3 -m unittest discover -s runtime -p 'test_*.py' -v
+```
 
 ## 快捷键
 
@@ -119,7 +140,9 @@ exports/                导出成片输出目录（不进库）
 - 同轨允许 clip 重叠（层级用多轨表达）；变速为匀速重映射（无曲线变速）
 - 口播拆解后相邻动效镜头各自带 8 帧重叠——这是原片的交叠转场设计（前后镜头在换幕期间同时在场），不是 bug；对齐首尾会丢转场交叠
 - 口播镜头改文案不改节拍——动效时机锚在原配音词级时间戳上；换口播词需重新走生产管线（配音+时间戳）
-- 拆解导入 / 逐镜参数化卡（kscene-sNN）是按口播成片 promo 工程做的：接入形态不同的工程时它们自动隐藏 / 禁用，成片预览、素材、导出不受影响
+- 拆解导入认两种契约（skill 标准形态 / promo 形态，见上）；两种都不是的工程自动隐藏 / 禁用相关卡，成片预览、素材、导出不受影响
+- skill 形态的逐镜卡只开放场景 `PARAMS` 里声明的语境参数（词锚时刻 / 时长 / 缓动 / 几何比例是命门，不进表）；改 PARAMS 里没有的东西仍要改 tsx
+- 转场标记轨只标不画（挪它不改成片）；镜头轨的片段可挪可隐藏，但相邻镜头的 lead/tail 交叠是原片转场设计，对齐首尾会丢交叠
 - 导出成片走 dev server（`npm run dev` 时可用）。Remotion 静态服务器**拒绝服务符号链接**（默认 404），
   所以导出前会自动把 `public/` 解引用同步到 `.render-public/` 再渲染；命令行手动渲染同理：
   `npx remotion render src/remotion/index.ts Main out.mp4 --props=<{"project":…,"renderExact":true}> --public-dir=.render-public`
