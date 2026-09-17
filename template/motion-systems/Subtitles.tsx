@@ -35,14 +35,25 @@ const buildPhrases = (): Phrase[] => {
   return phrases;
 };
 
-/** 拆解契约：全部可见字幕段（工作台字幕轨一段一个片段；本模板按标点切句、句尾多留 0.3s、下一句起即接管） */
+/** 保留原 Subtitles.find 的优先级：前句的 0.3s 留白结束后，后句才可接管。
+ * 两条渲染路径共用实际可见窗口，避免拆解后提前切到下一句。时间戳按时间顺序排列。 */
+const buildVisiblePhrases = (): Phrase[] => {
+  let coveredUntil = -Infinity;
+  return buildPhrases().flatMap((p) => {
+    const start = Math.max(p.start, coveredUntil);
+    const end = p.end + 0.3;
+    coveredUntil = Math.max(coveredUntil, end);
+    return end > start ? [{...p, start, end}] : [];
+  });
+};
+
+/** 拆解契约：全部可见字幕段，起止窗口与 Subtitles 共用。 */
 export type SubPhrase = {text: string; start: number; end: number; dark: boolean};
 export const phrases = (): SubPhrase[] => {
-  const ps = buildPhrases();
-  return ps.map((p, i) => ({
+  return buildVisiblePhrases().map((p) => ({
     text: p.chars.map((c) => c.ch).join('').trim(),
     start: p.start,
-    end: Math.min(ps[i + 1]?.start ?? Infinity, p.end + 0.3),
+    end: p.end,
     dark: false,
   }));
 };
@@ -120,7 +131,7 @@ export const Subtitles: React.FC<{
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const t = frame / fps;
-  const phrases = useMemo(buildPhrases, []);
+  const phrases = useMemo(buildVisiblePhrases, []);
 
   const allRuns = useMemo(() => {
     const map = new Map<Phrase, KeywordRun[]>();
@@ -141,7 +152,7 @@ export const Subtitles: React.FC<{
     return map;
   }, [phrases, keywords, allowExtraKeywordPops]);
 
-  const phrase = phrases.find((p) => t >= p.start && t < p.end + 0.3);
+  const phrase = phrases.find((p) => t >= p.start && t < p.end);
   if (!phrase) return null;
 
   const runs = allRuns.get(phrase) ?? [];

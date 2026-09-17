@@ -1,0 +1,200 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const vm = require('node:vm');
+const {pathToFileURL} = require('node:url');
+const {EventEmitter} = require('node:events');
+const ts = require('typescript');
+const {create} = require('zustand');
+const root = path.resolve(__dirname, '../..');
+
+// Execute production TS with only its browser/project boundaries substituted.
+function load(file, deps, globals = {}) {
+  const source = fs.readFileSync(path.join(root, file), 'utf8')
+    .replaceAll('import.meta.hot', '__hot')
+    .replaceAll('import.meta.url', JSON.stringify(pathToFileURL(path.join(root, file)).href));
+  const result = ts.transpileModule(source, {fileName: file, reportDiagnostics: true, compilerOptions: {
+    module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.React, esModuleInterop: true,
+  }});
+  assert.equal(result.diagnostics.length, 0, result.diagnostics.map(d => ts.flattenDiagnosticMessageText(d.messageText, '\n')).join('\n'));
+  const exports = {};
+  vm.runInNewContext(result.outputText, {exports, console, URL, AbortController, __hot: undefined, ...globals, require(id) {
+    if (id in deps) return deps[id];
+    if (id.startsWith('node:')) return require(id);
+    throw new Error(`Missing dependency boundary: ${id}`);
+  }}, {filename: file});
+  return exports;
+}
+const plain = value => JSON.parse(JSON.stringify(value));
+const tick = async () => { for (let i = 0; i < 8; i++) await Promise.resolve(); };
+function clock() {
+  let now = 0, id = 0;
+  const tasks = new Map();
+  return {
+    setTimeout(fn, delay) { const key = ++id; tasks.set(key, {fn, at: now + delay}); return key; },
+    clearTimeout(key) { tasks.delete(key); },
+    async advance(ms) {
+      const end = now + ms;
+      for (;;) {
+        const next = [...tasks].filter(([, v]) => v.at <= end).sort((a, b) => a[1].at - b[1].at)[0];
+        if (!next) break;
+        now = next[1].at; tasks.delete(next[0]); next[1].fn(); await tick();
+      }
+      now = end; await tick();
+    },
+  };
+}
+const shot = {id: 's01', label: 's01', start: 0, end: 3};
+const cards = {'kshot-s01': {schema: [{key: 'title', default: 'default'}]}};
+const projectRoot = '/videos/项目 B';
+function importer() {
+  return load('workbench/src/kouboImport.ts', {
+    './cards/registry': {CARDS: cards}, './cards/koubo-units': {},
+    './kb/shots': {SHOTS: [shot], FPS: 30, TOTAL_FRAMES: 90}, './kb/sfx': {SFX_CUES: []},
+    './kb/Subtitles': {phrases: () => [
+      {text: '字幕', start: .041, end: .081, dark: false},
+      {text: '没有可见帧', start: .081, end: .09, dark: false},
+    ]},
+    './kb/params': {OVERRIDES: {s01: {title: 'B saved edit'}}}, './kb/timing': {timing: {scenes: []}},
+    './cards/koubo-skill': {KSHOT_PREFIX: 'kshot-', shotFrames: () => ({shot, from: 0, total: 90})},
+    './kbMeta': {KB_PROJECT_ROOT: projectRoot, KB_FORM: 'skill', KB_COMP: {width: 1080, height: 1920, fps: 30}, KB_MODULES: {}, KB_TRANSITIONS: [], WIPE_TIMES: []},
+  });
+}
+test('foreign and untagged projects rebuild from current source, including canvas and saved overrides', () => {
+  const kb = importer(), fresh = kb.buildKouboProject();
+  for (const source of [undefined, '/videos/A']) {
+    const old = plain(fresh); old.kbProjectRoot = source; old.width = 1920; old.height = 1080;
+    old.tracks.find(t => t.id === 'kb-track-shots').clips[0].props.title = 'A title';
+    assert.equal(kb.isKouboProject(old), false);
+    assert.deepEqual(plain(kb.syncKouboProject(old)), plain(fresh));
+  }
+  const own = plain(fresh);
+  own.tracks.find(t => t.id === 'kb-track-shots').clips[0].props.title = 'B user edit';
+  assert.equal(kb.syncKouboProject(own).tracks.find(t => t.id === 'kb-track-shots').clips[0].props.title, 'B user edit');
+  const sub = fresh.tracks[0].clips[0];
+  assert.equal(fresh.tracks[0].clips.length, 1);
+  assert.equal(sub.start, 2); assert.equal(sub.duration, 1);
+});
+
+test('localStorage and HMR state are isolated by source; legacy data is retained', async () => {
+  const values = new Map([['talkcraft-workbench-project-v1', JSON.stringify({name: 'legacy', tracks: []})]]);
+  const timer = clock();
+  function store(source, hot) {
+    return load('workbench/src/store.ts', {
+      zustand: {create}, './types': {}, './cards/registry': {CARDS: {}}, './kbMeta': {KB_PROJECT_ROOT: source},
+      './demoProject': {demoProject: () => ({name: 'demo', tracks: []})},
+    }, {...timer, __hot: hot, localStorage: {getItem: k => values.get(k), setItem: (k, v) => values.set(k, v)},
+      window: {addEventListener() {}}, document: {addEventListener() {}},
+    }).useStore;
+  }
+  const a = store('/videos/A'); a.getState().setProject({name: 'A edit', tracks: []}); await timer.advance(800);
+  const b = store(projectRoot, {data: {projectRoot: '/videos/A', store: a.getState()}, dispose() {}});
+  assert.equal(b.getState().project.name, 'demo');
+  b.getState().setProject({name: 'B edit', tracks: []}); await timer.advance(800);
+  assert.equal(store('/videos/A').getState().project.name, 'A edit');
+  assert.equal(store(projectRoot).getState().project.name, 'B edit');
+  assert.equal(JSON.parse(values.get('talkcraft-workbench-project-v1')).name, 'legacy');
+});
+
+function saver(fetchImpl) {
+  const kb = importer(), timer = clock();
+  const useStore = create(() => ({project: kb.buildKouboProject()}));
+  const requests = [];
+  const api = load('workbench/src/overridesSync.ts', {
+    zustand: {create}, './store': {useStore}, './cards/registry': {CARDS: cards},
+    './cards/types': {defaultsOf: card => Object.fromEntries(card.schema.map(f => [f.key, f.default]))},
+    './cards/koubo-skill': {KSHOT_PREFIX: 'kshot-'}, './kouboImport': kb,
+    './kbMeta': {KB_SKILL: true, KB_PROJECT_ROOT: projectRoot},
+  }, {...timer, fetch(url, init) { requests.push({url, ...init}); return fetchImpl(requests.length, init); }});
+  api.startOverridesSync();
+  return {requests, api, useStore, ...timer, edit(title) {
+    const project = plain(useStore.getState().project);
+    project.tracks.find(t => t.id === 'kb-track-shots').clips[0].props.title = title;
+    useStore.setState({project});
+  }};
+}
+for (const failure of ['http', 'network']) test(`failed ${failure} save is visible and retried without another edit`, async () => {
+  const s = saver(async n => {
+    if (n === 1 && failure === 'network') throw new Error('offline');
+    return {ok: n > 1, status: 500};
+  });
+  await s.advance(600);
+  assert.match(s.api.useOverridesSave.getState().error, /尚未保存/);
+  assert.equal(s.requests[0].headers['X-Workbench-Project'], encodeURIComponent(projectRoot));
+  await s.advance(1000);
+  assert.equal(s.requests.length, 2); assert.equal(s.api.useOverridesSave.getState().error, null);
+  s.edit('B saved edit'); await s.advance(600); assert.equal(s.requests.length, 2);
+});
+test('writes are serial and retain only the newest edit during an in-flight request', async () => {
+  let resolve;
+  const s = saver(n => n === 1 ? new Promise(r => {resolve = r;}) : Promise.resolve({ok: true}));
+  await s.advance(600);
+  s.edit('intermediate'); s.edit('latest'); await s.advance(600);
+  assert.equal(s.requests.length, 1);
+  resolve({ok: true}); await tick(); await s.advance(0);
+  assert.equal(s.requests.length, 2); assert.equal(JSON.parse(s.requests[1].body).s01.title, 'latest');
+});
+test('switching away cancels queued saves and retries, including foreign source projects', async () => {
+  for (const afterFailure of [false, true]) {
+    const s = saver(async () => ({ok: false, status: 500}));
+    if (afterFailure) await s.advance(600);
+    const foreign = plain(s.useStore.getState().project); foreign.kbProjectRoot = '/videos/A';
+    s.useStore.setState({project: foreign}); await s.advance(30000);
+    assert.equal(s.requests.length, afterFailure ? 1 : 0); assert.equal(s.api.useOverridesSave.getState().error, null);
+  }
+});
+test('hung requests time out and retry instead of blocking every later edit', async () => {
+  const s = saver((n, init) => n > 1 ? Promise.resolve({ok: true}) : new Promise((_, reject) => {
+    init.signal.addEventListener('abort', () => reject(new Error('aborted')));
+  }));
+  await s.advance(10600); assert.match(s.api.useOverridesSave.getState().error, /尚未保存/);
+  await s.advance(1000); assert.equal(s.requests.length, 2); assert.equal(s.api.useOverridesSave.getState().error, null);
+});
+
+test('subtitle windows preserve original first-match timing and match decomposed text on every frame', () => {
+  let frame = 0;
+  const raw = [{ch: '甲', t: .1, e: 1}, {ch: '乙', t: 1.1, e: 2}, {ch: '丙', t: 3, e: 4}];
+  const subtitle = load('template/motion-systems/Subtitles.tsx', {
+    react: {createElement(type, props, ...children) {return {type, props, children};}, useMemo: fn => fn()},
+    remotion: {AbsoluteFill: 'AbsoluteFill', useCurrentFrame: () => frame, useVideoConfig: () => ({fps: 30})},
+    './timing': {timing: {scenes: raw.map(c => ({chars: [c]}))}}, './theme': {C: {}, FONT: {}},
+  });
+  const flatten = el => typeof el === 'string' ? el : Array.isArray(el) ? el.map(flatten).join('') : (el?.children ?? []).map(flatten).join('');
+  for (frame = 0; frame < 150; frame++) {
+    const sec = frame / 30;
+    const expected = raw.find(c => sec >= c.t && sec < c.e + .3)?.ch ?? '';
+    const clip = subtitle.phrases().find(p => sec >= p.start && sec < p.end);
+    assert.equal(flatten(subtitle.Subtitles({})), expected, `original frame ${frame}`);
+    assert.equal(clip?.text ?? '', expected, `decomposed frame ${frame}`);
+  }
+});
+
+test('overrides endpoint rejects stale clients and reports disk failures', t => {
+  const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'wb-overrides-'));
+  t.after(() => fs.rmSync(temp, {recursive: true, force: true}));
+  const rem = path.join(temp, 'remotion'); fs.mkdirSync(rem);
+  const file = path.join(rem, 'overrides.json'); fs.writeFileSync(file, '{"saved":true}');
+  const config = load('workbench/vite.config.ts', {
+    vite: {defineConfig: c => c}, '@vitejs/plugin-react': () => ({}),
+    './kbsrc.map.mjs': {kbsrcMap: () => ({projectRoot: temp, remotionDir: rem, viteAlias: []})},
+    '../scripts/pipeline_state.mjs': {},
+  }, {setInterval() {}, clearInterval() {}, setTimeout() {}, clearTimeout() {}}).default;
+  let handler;
+  config.plugins.find(p => p.name === 'wb-pipeline').configureServer({
+    watcher: {add() {}, on() {}}, httpServer: {on() {}}, middlewares: {use(_route, fn) {handler = fn;}},
+  });
+  function post(source) {
+    const req = new EventEmitter(); req.method = 'POST'; req.url = '/overrides'; req.headers = {'x-workbench-project': source};
+    const res = {setHeader() {}, end(body) {this.body = JSON.parse(body);}};
+    handler(req, res); req.emit('data', '{"s01":{"title":"saved"}}'); req.emit('end'); return res;
+  }
+  assert.equal(post(undefined).statusCode, 409);
+  assert.equal(post(encodeURIComponent('/old/project')).statusCode, 409);
+  assert.equal(fs.readFileSync(file, 'utf8'), '{"saved":true}');
+  assert.equal(post(encodeURIComponent(temp)).statusCode, 200);
+  assert.equal(JSON.parse(fs.readFileSync(file)).s01.title, 'saved');
+  fs.unlinkSync(file); fs.mkdirSync(file);
+  assert.equal(post(encodeURIComponent(temp)).statusCode, 500);
+});

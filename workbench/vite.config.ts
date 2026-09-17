@@ -301,6 +301,11 @@ const pipelinePlugin = (projectRoot: string | null, remotionDir: string | null):
           return;
         }
         if (req.method === "POST") {
+          // 旧标签页可能仍连着已经切换工程的 dev server；来源不匹配时绝不写盘。
+          if (!projectRoot || req.headers["x-workbench-project"] !== encodeURIComponent(projectRoot)) {
+            send(res, 409, { error: "接入工程已切换，请刷新工作台" });
+            return;
+          }
           let raw = "";
           req.on("data", (c) => (raw += c));
           req.on("end", () => {
@@ -320,7 +325,12 @@ const pipelinePlugin = (projectRoot: string | null, remotionDir: string | null):
             const next = `${JSON.stringify(clean, null, 2)}\n`;
             let prev = "";
             try { prev = existsSync(overridesFile) ? readFileSync(overridesFile, "utf8") : ""; } catch { prev = ""; }
-            if (prev !== next) writeFileSync(overridesFile, next);
+            try {
+              if (prev !== next) writeFileSync(overridesFile, next);
+            } catch {
+              send(res, 500, { error: "参数写入失败，请检查工程目录是否可写" });
+              return;
+            }
             send(res, 200, { ok: true, shots: Object.keys(clean).length, changed: prev !== next });
           });
           return;

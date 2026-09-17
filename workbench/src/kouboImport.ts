@@ -7,7 +7,7 @@ import { phrases as skillPhrases } from "./kb/Subtitles";
 import { OVERRIDES } from "./kb/params";
 import { timing } from "./kb/timing";
 import { KSHOT_PREFIX, shotFrames } from "./cards/koubo-skill";
-import { KB_COMP, KB_FORM, KB_MODULES, KB_PROMO, KB_TRANSITIONS, WIPE_TIMES, WIPE_SOURCE } from "./kbMeta";
+import { KB_COMP, KB_FORM, KB_MODULES, KB_PROMO, KB_PROJECT_ROOT, KB_TRANSITIONS, WIPE_TIMES, WIPE_SOURCE } from "./kbMeta";
 
 /** 音效素材清单（去重 + 使用次数），素材库「音效」tab 用 */
 export const SFX_FILES: { file: string; count: number }[] = (() => {
@@ -31,7 +31,8 @@ const baseClip = (): Omit<ClipData, "id" | "cardId" | "start" | "duration"> => (
  *  syncKouboProject 才能把用户改过的 props / 图层 / 位置留住。用户自己加的 clip 是 uid()，前缀不同不受影响。 */
 export const KB_ID_PREFIX = "kb-";
 const kbId = (kind: string, key: string | number) => `${KB_ID_PREFIX}${kind}-${key}`;
-export const isKouboProject = (p: ProjectData) => p.tracks.some((t) => t.clips.some((c) => c.id.startsWith(KB_ID_PREFIX) && c.id !== "kb-live-main"));
+export const isKouboProject = (p: ProjectData) => !!KB_PROJECT_ROOT && p.kbProjectRoot === KB_PROJECT_ROOT &&
+  p.tracks.some((t) => t.clips.some((c) => c.id.startsWith(KB_ID_PREFIX) && c.id !== "kb-live-main"));
 
 /** 音效轨贪心装箱（同轨不重叠，便于单独挪动）；一 cue 一 clip，rate 透传成卡的变速 */
 type Cue = { t: number; file: string; vol: number; dur?: number; rate?: number };
@@ -98,17 +99,20 @@ const buildSkillProject = (): ProjectData => {
       label: shotLabel(shot),
     };
   });
-  const subtitleClips: ClipData[] = skillPhrases().map((p, i) => {
-    const start = Math.round(p.start * FPS);
-    return {
+  const subtitleClips: ClipData[] = skillPhrases().flatMap((p, i) => {
+    // 首个满足 frame / FPS >= start 的帧；与成片字幕的秒级窗口一致。
+    const start = Math.ceil(p.start * FPS - 1e-7);
+    const end = Math.ceil(p.end * FPS - 1e-7);
+    if (end <= start) return []; // 窗口内没有可见帧，不能人为多画一帧。
+    return [{
       ...baseClip(),
       id: kbId("sub", i),
       cardId: "kskill-subtitle-line",
       start,
-      duration: Math.max(1, Math.round(p.end * FPS) - start),
+      duration: end - start,
       props: { text: p.text, dark: p.dark },
       label: p.text.length > 14 ? `${p.text.slice(0, 14)}…` : p.text,
-    };
+    }];
   });
   // 转场标记：beats.json 的 tr-* 事件；没有就按镜头边界标
   const marks = KB_TRANSITIONS.length
@@ -146,7 +150,10 @@ const buildSkillProject = (): ProjectData => {
 };
 
 /** 把口播成片拆解为独立单元。promo 形态：字幕/转场/环境/数字人/23 镜头/配音/82 音效；skill 标准形态：见 buildSkillProject */
-export const buildKouboProject = (): ProjectData => (KB_FORM === "skill" ? buildSkillProject() : buildPromoProject());
+export const buildKouboProject = (): ProjectData => ({
+  ...(KB_FORM === "skill" ? buildSkillProject() : buildPromoProject()),
+  kbProjectRoot: KB_PROJECT_ROOT,
+});
 
 const buildPromoProject = (): ProjectData => {
   type ShotT = { id: string; label: string; start: number; end: number };
@@ -232,6 +239,7 @@ const buildPromoProject = (): ProjectData => {
  *  已知限制：分割过的 kb- clip 左半仍是 kb- id，同步会把它的时长重置成整段而右半（uid）留着 → 叠放；分割请在同步之后做。 */
 export const syncKouboProject = (existing: ProjectData): ProjectData => {
   const fresh = buildKouboProject();
+  if (!isKouboProject(existing)) return fresh;
   const seen = new Set(existing.kbSeen ?? []);
   const freshClips = new Map<string, { clip: ClipData; trackId: string }>();
   for (const t of fresh.tracks) for (const c of t.clips) freshClips.set(c.id, { clip: c, trackId: t.id });

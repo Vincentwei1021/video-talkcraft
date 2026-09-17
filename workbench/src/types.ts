@@ -36,6 +36,8 @@ export interface TrackData {
 
 export interface ProjectData {
   name: string;
+  /** 绑定的口播工程真实路径；缺省的旧存档不能自动写回任何接入工程。 */
+  kbProjectRoot?: string;
   fps: number;
   width: number;
   height: number;

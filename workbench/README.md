@@ -17,7 +17,7 @@ npm run dev        # http://localhost:5199
 - **属性面板（schema 驱动）**：108 张动效卡 100% 参数化——全部文案（多条内容用逐行 DSL）、颜色、字号（派生几何等比联动）、内容块位置 posX/posY、语境节奏；动效节奏命门保持 FIXED 不暴露，保动效品相
 - **通用 clip 属性**：起点/时长（裁剪/定格延长）、**变速 0.25×–4×**（`<Freeze>` 时间重映射）、**裁入点**、不透明度/缩放/位移。音频与视频素材卡走 `trimBefore`/`playbackRate` 原生通道，裁剪变速不哑音
 - **口播成片拆解**（需链接外部工程，见下）：一键把成片拆为多轨。**skill 标准工程**（SKILL.md ⑤ 产出）：逐句字幕（文本可改，用工程自己的字幕样式）/ 转场标记 / 逐镜参数化镜头（每镜 `PARAMS` 声明的文案 / 颜色 / 字号 / 位置 / 入场方向可调，改动写回工程 `remotion/overrides.json`，成片渲染读同一份）/ 幕底 / 配音 / 逐条音效；**宣传片 promo 工程**：逐句字幕（127 句）、23 个手抄逐镜卡、81 条音效、转场、数字人、环境层
-- **保存**：每次改动自动存 localStorage（800ms 防抖 + 关页即时落盘），导出/导入工程 JSON，撤销/重做（⌘Z/⇧⌘Z）
+- **保存**：每次改动自动存 localStorage（按接入工程真实路径分开存，800ms 防抖 + 关页即时落盘），导出/导入工程 JSON，撤销/重做（⌘Z/⇧⌘Z）
 - **导出成片**：顶栏「导出成片」→ dev server 内起 Remotion CLI 渲染当前工程为 MP4（内容精确时长、单并发保光栅一致），输出到 `exports/`，完成后一键在 Finder 显示
 - **导出透明通道**：时间轨上**右键片段** → 「导出透明通道 · MOV（ProRes 4444）/ WebM（VP9 alpha）」——只渲这一段、起点归零、根底透明并去掉卡根层幕底 / 人物剪影占位 / 口播镜头底色层，给剪映 / PR / AE 当叠加素材；右键菜单同时带分割 / 复制 / 删除（→ GUIDE ⑦）
 - **Remotion Studio 入口**：`npm run studio`（卡片 Zod schema 自动生成，官方 Inspector 调参 + 渲染 UI）
@@ -35,6 +35,8 @@ skill 在 ⑤-1 合成骨架搭完就把工程接进来、开着工作台（SKIL
 - **状态从哪来**：dev server 按盘上产物实时推导（`scripts/pipeline_state.mjs` 的 `derivePipeline`：shots.json → SCENES 表 / scenes/ 文件 → out/segments|preview → review/*.md），
   再合上工程根 `pipeline.json` 里 `manual` 一节（`--pass` / `--issue` / `--stage`，盘上推不出的才手写）。文件变化经 Vite 的 chokidar + 4s 兜底轮询，只在状态变了才推（`/api/pipeline/events`）。
 - **拆解导入可增量同步**：拆解单元 id 稳定（`kb-shot-s03`、`kb-sfx-12`…），再点一次变成「⟳ 同步拆解」——起点 / 时长跟新，你改过的文案 / 颜色 / 图层保留，你删掉的单元不复活（工程记着上次拆解的 id）。已知限制：分割过的拆解片段同步后左半会被重置成整段，分割请在同步之后做。
+- **切换工程**：只有来源路径相同的存档会增量同步；另一支视频或没有 `kbProjectRoot` 标记的旧存档会重新拆解当前工程，并读取它自己的 overrides。旧版本的未标记存档保留在原 localStorage key `talkcraft-workbench-project-v1`，不会猜测来源后自动写回。
+- **参数写盘**：保存失败会提示并自动重试，写入按顺序执行。请求带当前工程标记，切换了工程的 dev server 会拒绝旧标签页写入，并提示刷新。
 - 看板只看不驱动：没有"点按钮触发某一步"的接口，skill 是主控。设计、取舍与 L2（配音预剪波形视图 + 双向编辑契约）见 [docs/live-pipeline.md](docs/live-pipeline.md)。
 
 ## 接入口播成片工程（可选）
@@ -77,6 +79,15 @@ bash scripts/link-project.sh /path/to/<口播工程>     # kbsrc → remotion/sr
 - **HMR 保命**：接入工程任何源码一变（agent 改 tsx / 写回 overrides）都会经 kb 适配层 → 卡注册表 → `store.ts` 传播，Vite 重建 store；
   `store.ts` / `pipeline/store.ts` 用 `import.meta.hot.data` 接回状态（选中 / 撤销栈 / SSE 连接不丢），App 在模块级重挂 SSE 与写回订阅（幂等）；
   overrides.json 的变化在工程 `params.ts` 里就地接住（`import.meta.hot.accept`），不向上传播。
+
+## 回归检查
+
+开发时可在仓库根运行回归检查（依赖先由 `runtime/check-runtime.sh` 安装）：
+
+```bash
+node --test workbench/tests/regressions.test.cjs scripts/render_shots.test.mjs
+python3 -m unittest discover -s runtime -p 'test_*.py' -v
+```
 
 ## 快捷键
 
