@@ -24,7 +24,12 @@ if [ ! -d node_modules/.remotion/chrome-headless-shell ]; then log "下载无头
 if [ -d "$WB" ]; then
   if [ -L "$WB/node_modules" ] && [ "$(readlink "$WB/node_modules")" = "$RT/node_modules" ]; then :;
   else
-    [ -e "$WB/node_modules" ] && { log "workbench/node_modules 是独立安装，移除后改软链"; rm -rf "$WB/node_modules"; }
+    if [ -L "$WB/node_modules" ]; then
+      rm "$WB/node_modules" # -e 不识别目标已不存在的旧链接
+    elif [ -e "$WB/node_modules" ]; then
+      log "workbench/node_modules 是独立安装，移除后改软链"
+      rm -rf "$WB/node_modules"
+    fi
     ln -s "$RT/node_modules" "$WB/node_modules"; log "workbench/node_modules → runtime/node_modules"
   fi
 fi
