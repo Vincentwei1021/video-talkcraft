@@ -142,6 +142,9 @@ SSE（`/api/pipeline/events`）推到前端；tsx 改动仍走 Vite HMR，不重
 
 ## 9 实现与提案的差异（2026-09-11，L1 落地时）
 
+> 9.0–9.2 是当时的实现记录：其中"`?live` 装上实时成片 / `kb-main` 一条轨 / `buildLiveProject`"已被 §9.3 的单轨下线取代；
+> "dispose 时关 SSE / 存 hot.data 接回"的说法经 §9.4 评审证伪（dispose 对非边界模块从不执行），现行做法是 globalThis 单例（`src/hmr.ts`）。
+
 - **状态由工作台服务端实时推导，不靠 skill 每步写入**：提案是"skill 每步末尾更新 `pipeline.json`（写入点 ×8）"；实现改为 dev server 直接 import
   `scripts/pipeline_state.mjs` 的 `derivePipeline`，按盘上产物算（shots.json → SCENES 表 / scenes/ 文件 → out/segments|preview → review/*.md），
   `pipeline.json` 只保留盘上推不出的 `manual`（`--pass` / `--issue` / `--stage` / `--note`）。写入点从 8 个降到"过闸时 `--pass`、有缺陷时 `--issue`"两个。
@@ -187,3 +190,18 @@ SSE（`/api/pipeline/events`）推到前端；tsx 改动仍走 Vite HMR，不重
 - **镜头 clip 状态角标**（`ClipView` `useShotStatus`）：`kb-shot-sNN` 片段按 pipeline 状态显示 占位 / 已实现 / 已渲 / 已过闸、⟳ 过期、P0/P1；占位镜斜纹半透明。选择器只回一个字符串，状态没变不重渲染。
 - **阶段栏按钮**：只剩「⇣ 多轨（实时）」（当前不是本片拆解工程时显示）。
 - **未做**：配音预剪波形视图（§3 L2 前半）仍未做。
+
+### 9.4 · 2026-09-21 独立评审后的修正（PR #39）
+- **P0-1 契约不全时自动跟盘销毁用户工程**：`syncedIfChanged` 原来只判"是本片拆解工程"，`KB_FORM === "none"` 时 `buildKouboProject` 默默走 promo 分支吃 stub 数据，
+  首次 SSE 就把多轨工程改写成 6 clip 残骸且不可撤销。修：`syncedIfChanged` / `syncKouboProject` 在 `KB_LINKED && !KB_DECOMPOSABLE` 时不动工程；
+  `buildKouboProject` 已接入却不满足契约时抛错；新鲜拆解与现有工程一条 kb- 轨都对不上时放弃同步。回归测试覆盖。
+- **P0-2 `import.meta.hot.dispose` 对非边界模块从不执行**（Vite 6 client 只对 `acceptedPath` 调 dispose）：store / pipeline/store / overridesSync 里的
+  "dispose 存 hot.data 接回 / 关旧 SSE"从未跑过——每轮接入源码 HMR 服务端 SSE +1、选中与撤销栈清空、App 键盘快捷键绑到旧 store、旧 pipeline store 仍收 SSE。
+  修：`src/hmr.ts` 的 `singleton()` 把 zustand store（useStore / usePipeline / useLiveLoad / useExportStore / useOverridesSave）、EventSource、防抖定时器、
+  订阅挂 globalThis 按 key 复用；需要新鲜数据的回调（SSE apply、syncedIfChanged、overrides 的 flush / enqueue）每次执行覆盖到 latest 槽。
+  dev server 加 `GET /api/pipeline/clients` 供冒烟断言（一个标签页恒为 1）。
+- **P1-1 自动同步静默复位用户挪过的 kb- 片段**：工程记 `kbTime`（每个 kb- 单元上次同步的 起点:时长）；当前值 ≠ 上次同步值视为用户挪过 → 保留，
+  除非盘上真值自己也变了（agent 改了 cue / 镜头边界）→ 盘上优先。回归测试覆盖。
+- preflight 版式闸：人物互动移出呈现类（角标是默认路）；连用对非呈现类只 WARN；没有蒙皮行的镜不再按正文估算（WARN 且不计入）；
+  蒙皮行 / 版式行认表格行；节奏表按表头定位列；素材复用不分大小写；<6 镜也给 PASS 行。
+- 文档：host-footage §5 规则句改写为"默认角标 → 三种例外 → 不许连续两镜无人"的优先级；SKILL ④ 占比加"≥6 镜的片"限定；残留的单轨说法清理。

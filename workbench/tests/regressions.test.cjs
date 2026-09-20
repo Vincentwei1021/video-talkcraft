@@ -28,6 +28,15 @@ function load(file, deps, globals = {}) {
   return exports;
 }
 const plain = value => JSON.parse(JSON.stringify(value));
+// src/hmr.ts 的替身：一个 load() 一个 vm 上下文，共享同一个 bag 才能模拟"接入源码 HMR 让模块重执行、单例复用"
+const hmrBag = () => {
+  const bag = {};
+  return {
+    singleton: (k, make) => (k in bag ? bag[k] : (bag[k] = make())),
+    setLatest: (k, v) => { bag['latest:' + k] = v; },
+    getLatest: k => bag['latest:' + k],
+  };
+};
 const tick = async () => { for (let i = 0; i < 8; i++) await Promise.resolve(); };
 function clock() {
   let now = 0, id = 0;
@@ -59,7 +68,8 @@ function importer() {
     ]},
     './kb/params': {OVERRIDES: {s01: {title: 'B saved edit'}}}, './kb/timing': {timing: {scenes: []}},
     './cards/koubo-skill': {KSHOT_PREFIX: 'kshot-', shotFrames: () => ({shot, from: 0, total: 90})},
-    './kbMeta': {KB_PROJECT_ROOT: projectRoot, KB_FORM: 'skill', KB_COMP: {width: 1080, height: 1920, fps: 30}, KB_MODULES: {}, KB_TRANSITIONS: [], WIPE_TIMES: []},
+    './kbMeta': {KB_PROJECT_ROOT: projectRoot, KB_FORM: 'skill', KB_LINKED: true, KB_DECOMPOSABLE: true, KB_COMP: {width: 1080, height: 1920, fps: 30}, KB_MODULES: {}, KB_TRANSITIONS: [], WIPE_TIMES: []},
+    './hmr': hmrBag(),
   });
 }
 test('foreign and untagged projects rebuild from current source, including canvas and saved overrides', () => {
@@ -84,7 +94,7 @@ test('localStorage and HMR state are isolated by source; legacy data is retained
   function store(source, hot) {
     return load('workbench/src/store.ts', {
       zustand: {create}, './types': {}, './cards/registry': {CARDS: {}}, './kbMeta': {KB_PROJECT_ROOT: source},
-      './demoProject': {demoProject: () => ({name: 'demo', tracks: []})},
+      './demoProject': {demoProject: () => ({name: 'demo', tracks: []})}, './hmr': hmrBag(),
     }, {...timer, __hot: hot, localStorage: {getItem: k => values.get(k), setItem: (k, v) => values.set(k, v)},
       window: {addEventListener() {}}, document: {addEventListener() {}},
     }).useStore;
@@ -105,7 +115,7 @@ function saver(fetchImpl) {
   const api = load('workbench/src/overridesSync.ts', {
     zustand: {create}, './store': {useStore}, './cards/registry': {CARDS: cards},
     './cards/types': {defaultsOf: card => Object.fromEntries(card.schema.map(f => [f.key, f.default]))},
-    './cards/koubo-skill': {KSHOT_PREFIX: 'kshot-'}, './kouboImport': kb,
+    './cards/koubo-skill': {KSHOT_PREFIX: 'kshot-'}, './kouboImport': kb, './hmr': hmrBag(),
     './kbMeta': {KB_SKILL: true, KB_PROJECT_ROOT: projectRoot},
   }, {...timer, fetch(url, init) { requests.push({url, ...init}); return fetchImpl(requests.length, init); }});
   api.startOverridesSync();
@@ -200,14 +210,15 @@ test('overrides endpoint rejects stale clients and reports disk failures', t => 
 });
 
 // 2026-09-21 多轨自动跟盘：工程文件一变 → syncedIfChanged() 给出同步后的工程（没变就是 null）；cue 表已带 sfx/ 前缀不再叠成 sfx/sfx/，旧工程同步时修回
-function importerWithSfx(cues) {
+function importerWithSfx(cues, meta = {}) {
   return load('workbench/src/kouboImport.ts', {
+    './hmr': hmrBag(),
     './cards/registry': {CARDS: cards}, './cards/koubo-units': {},
     './kb/shots': {SHOTS: [shot], FPS: 30, TOTAL_FRAMES: 90}, './kb/sfx': {SFX_CUES: cues},
     './kb/Subtitles': {phrases: () => [{text: '字幕', start: .041, end: .081, dark: false}]},
     './kb/params': {OVERRIDES: {}}, './kb/timing': {timing: {scenes: []}},
     './cards/koubo-skill': {KSHOT_PREFIX: 'kshot-', shotFrames: () => ({shot, from: 0, total: 90})},
-    './kbMeta': {KB_PROJECT_ROOT: projectRoot, KB_FORM: 'skill', KB_COMP: {width: 1920, height: 1080, fps: 30}, KB_MODULES: {}, KB_TRANSITIONS: [], WIPE_TIMES: []},
+    './kbMeta': {KB_PROJECT_ROOT: projectRoot, KB_FORM: 'skill', KB_LINKED: true, KB_DECOMPOSABLE: true, KB_COMP: {width: 1920, height: 1080, fps: 30}, KB_MODULES: {}, KB_TRANSITIONS: [], WIPE_TIMES: [], ...meta},
   });
 }
 const sfxClips = p => p.tracks.filter(t => t.id.startsWith('kb-track-sfx')).flatMap(t => t.clips);
@@ -231,4 +242,45 @@ test('auto-sync reports only real changes, follows new cues, and repairs doubled
   assert.equal(fixed.props.file, 'sfx/pk-pop.mp3');
   assert.equal(fixed.props.volume, .9, 'user volume edit survives the path repair');
   assert.equal(fixed.label, 'pop');
+});
+
+// 2026-09-21 独立评审 P0-1：接入了却不满足拆解契约（KB_FORM none）时，同步绝不能把用户多轨工程改写成 stub 残骸
+test('contract-incomplete projects are never rebuilt or rewritten by sync', () => {
+  const ok = importerWithSfx([{t: 1, file: 'pk-a.mp3', vol: .3}]);
+  const p = ok.buildKouboProject();
+  const broken = importerWithSfx([], {KB_FORM: 'none', KB_LINKED: true, KB_DECOMPOSABLE: false});
+  assert.equal(broken.syncedIfChanged(p), null);
+  assert.equal(broken.syncKouboProject(p), p, 'existing project object returned untouched');
+  assert.throws(() => broken.buildKouboProject(), /拆解契约/);
+});
+
+// 评审 P1-1：用户在工作台挪过的 kb- 片段不被自动同步复位；盘上真值自己变了才以盘上为准
+test('user-moved kb clips keep their timing until the disk timing itself changes', () => {
+  const a = importerWithSfx([{t: 1, file: 'pk-a.mp3', vol: .3}]);
+  const p = plain(a.buildKouboProject());
+  assert.equal(p.kbTime['kb-sfx-0'], '30:90');
+  sfxClips(p)[0].start = 80;                       // 用户拖到 80
+  assert.equal(sfxClips(a.syncKouboProject(p))[0].start, 80, 'unchanged disk keeps the user position');
+  assert.equal(a.syncedIfChanged(p), null, 'and that is not reported as a change');
+  const b = importerWithSfx([{t: 2, file: 'pk-a.mp3', vol: .3}]);  // agent 把 cue 挪到 2s
+  assert.equal(sfxClips(b.syncKouboProject(p))[0].start, 60, 'disk change wins over the stale user position');
+  const legacy = plain(p); delete legacy.kbTime; sfxClips(legacy)[0].start = 80;
+  assert.equal(sfxClips(a.syncKouboProject(legacy))[0].start, 30, 'projects without kbTime keep the old follow-disk behaviour');
+});
+
+// 评审 P0-2：store 是 globalThis 单例——模块重执行（第二次 load 共享同一个 bag）拿到同一个对象，编辑与订阅不丢
+test('store survives module re-execution as a singleton', async () => {
+  const shared = hmrBag(), timer = clock(), values = new Map();
+  const loadStore = () => load('workbench/src/store.ts', {
+    zustand: {create}, './types': {}, './cards/registry': {CARDS: {}}, './kbMeta': {KB_PROJECT_ROOT: projectRoot},
+    './demoProject': {demoProject: () => ({name: 'demo', tracks: []})}, './hmr': shared,
+  }, {...timer, __hot: undefined, localStorage: {getItem: k => values.get(k), setItem: (k, v) => values.set(k, v)},
+    window: {addEventListener() {}}, document: {addEventListener() {}},
+  }).useStore;
+  const a = loadStore(); a.getState().setProject({name: 'edited', tracks: []});
+  const b = loadStore();
+  assert.equal(a, b, 'same store object across two module executions');
+  assert.equal(b.getState().project.name, 'edited');
+  await timer.advance(800);
+  assert.equal(JSON.parse(values.get(`talkcraft-workbench-project-v1:${encodeURIComponent(projectRoot)}`)).name, 'edited', 'autosave installed exactly once still works');
 });

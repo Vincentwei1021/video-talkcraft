@@ -38,7 +38,7 @@
 
 - ✂️ **配音预剪 `scripts/voice_trim.py`**——真人录音先以口播稿为真值剪掉口水词 / 结巴重说 / 过长停顿再做时间戳（只剪稿子里没有的插入段，ASR 听错的字永不剪），词表来源可选 FireRed ASR / 逐字 SRT / 词级 JSON，切点吸附帧网格、同一 EDL 可剪人物视频保音画同长（→ SKILL.md ②-0）。
 - 🫥 **工作台右键导出透明通道**——时间轨上右键任一动效片段可导出只含这一段的透明视频（MOV ProRes 4444 / WebM VP9 alpha），根底透明、自动去掉卡根层幕底与人物剪影占位，给剪映 / PR / AE 当叠加素材；右键菜单同时带分割 / 复制 / 删除（→ `workbench/GUIDE.md` ⑦）。
-- 📺 **工作台实时看板（L1）**——⑤-1 骨架搭完就接入并开着工作台：阶段栏 + 进度轨（每镜 占位 / 已实现 / 已渲 / 已过闸 / 过期 / 红点）+ 镜头视图（单镜预览 · issues · SHOTBOOK 段落）+ 实时成片卡，状态按盘上产物自动推、`scripts/pipeline_state.mjs --pass/--issue` 只补人工判定，代码半成品不再盖页（→ SKILL.md ⑤-2、`workbench/docs/live-pipeline.md`）。
+- 📺 **工作台实时看板（L1）**——⑤-1 骨架搭完就接入并开着工作台：阶段栏 + 进度轨（每镜 占位 / 已实现 / 已渲 / 已过闸 / 过期 / 红点）+ 镜头视图（单镜预览 · issues · SHOTBOOK 段落）+ 实时成片卡（2026-09-21 起单轨成片卡下线，看板即多轨），状态按盘上产物自动推、`scripts/pipeline_state.mjs --pass/--issue` 只补人工判定，代码半成品不再盖页（→ SKILL.md ⑤-2、`workbench/docs/live-pipeline.md`）。
 - 🔗 **工作台接入加固**——`kbsrc` 改按真实路径解析、契约模块缺哪个只回退哪个 stub、导出形态差异由 `src/kb/` 适配层归一：接入 skill 正式工程（`Main.tsx` + `scenes/`，无 promo 模块）不再整页 500，「拆解导入」按钮按契约自动禁用（→ `workbench/README.md`「接入口播成片工程」）。
 
 **2026-09-09**

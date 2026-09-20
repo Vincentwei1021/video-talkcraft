@@ -27,8 +27,10 @@ SHOTBOOK 机器可读约定（cinematography.md §4）：
   SHOTBOOK   缺「素材：」行 / 声明了 V·图·截图却无路径 / 路径不存在 → FAIL；全片零 V·图 → FAIL（只有动效 + 口播 = PPT 感，SKILL.md ③ 硬规）；
              V·图 镜头占比 < --min-footage-ratio → WARN；缺「未完成 / 未采集清单」节 → FAIL；sources.md 不存在 → FAIL
              纯文字镜（素材只有 文）层矩阵里没有 G5 线稿示意图行 → WARN（章节卡除外；references/schematic.md）
-  版式轮换   同一张卡连用 ≥3 镜 → FAIL（转场结构类除外）；呈现类卡（素材呈现 / 人物互动 / 数据信息图 / 运镜）全片占比 > 1/3 → FAIL（≥6 镜的片）；
-             字幕花字 / 强调标注类占比 > 1/2 → WARN；「版式行」逐字相同 ≥3 镜 → WARN；同一 B-roll 文件用在 ≥3 镜或相邻两镜 → WARN；
+  版式轮换   只按各镜「蒙皮行」（列表行或表格行）里的卡名核，没有蒙皮行的镜 WARN 且不计入（正文抄进来的"已知坑"卡名不算）：
+             呈现类卡（素材呈现 / 数据信息图 / 运镜）连用 ≥3 镜 → FAIL、全片占比 > 1/3 → FAIL（≥6 镜的片）；
+             其它类别（字幕花字 / 强调标注 / 人物互动）连用 ≥3 镜 → WARN、占比 > 1/2 → WARN；转场结构类不核；人物形态只由节奏表核（角标是默认路）；
+             「版式行」逐字相同 ≥3 镜 → WARN；同一 B-roll 文件（不分大小写）用在 ≥3 镜或相邻两镜 → WARN；
              G0「版式节奏表」缺失（≥6 镜）→ WARN、表内连续 ≥3 镜同人物形态 + 同素材容器 → FAIL、素材容器 <3 种（≥8 镜）→ WARN
              （2026-09-21 用户反馈：11 镜里 8 镜同一张 60/40 卡 + 左下圆章，"排版太固定"；规则正主 cinematography.md §4.5 第 9 条）
 """
@@ -225,11 +227,12 @@ def resolve_path(root: str, p: str) -> str | None:
 
 
 # ---- 版式轮换（cinematography.md §4.5 第 9 条；2026-09-21 用户反馈"排版太固定"：11 镜 8 镜同一张 60/40 卡 + 左下圆章）----
-SKIN_LINE = re.compile(r"^\s*[-*]?\s*\**蒙皮行\**\s*[:：]\s*(.+)$")
-LAYOUT_LINE = re.compile(r"^\s*[-*]?\s*\**版式行\**\s*[:：]\s*(.+)$")
+# 列表行 `- 蒙皮行：…` 与表格行 `| 蒙皮行 | … |` 都认（cinematography §4 层矩阵是表格，蒙皮行常与版式行并列写进表里）
+SKIN_LINE = re.compile(r"^\s*(?:[-*]\s*)?\|?\s*\**蒙皮行\**\s*(?:[:：]|\|)\s*(.+?)\s*\|?\s*$")
+LAYOUT_LINE = re.compile(r"^\s*(?:[-*]\s*)?\|?\s*\**版式行\**\s*(?:[:：]|\|)\s*(.+?)\s*\|?\s*$")
 SLUG = re.compile(r"\b[a-z][a-z0-9]*(?:-[a-z0-9]+)+\b")          # 库内卡名全带连字符
-PRESENT_CATS = {"素材呈现", "人物互动", "数据信息图", "运镜"}   # 呈现类：决定"这一镜长什么样"，占比上限 1/3
-STYLE_CATS = {"字幕花字", "强调标注"}                          # 字卡 / 标注类：可以复用得多一点，>1/2 才提醒
+PRESENT_CATS = {"素材呈现", "数据信息图", "运镜"}               # 呈现类：决定"这一镜长什么样"，连用 / 占比 FAIL
+# 人物互动不在内：角标（host-shrink-to-chip）是 host-footage §5 的默认路，满片都有是正常的——人物形态由 G0 节奏表核；字卡 / 标注类复用得多一点只 WARN
 _cat_cache: dict[str, str | None] = {}
 
 
@@ -250,39 +253,39 @@ def card_category(slug: str) -> str | None:
 
 
 def shot_cards(shot: dict) -> tuple[list[str], bool]:
-    """该镜用了哪些卡：优先「蒙皮行」里 → 之前的卡名；没有蒙皮行就退回正文里出现过的库内卡名（含抄进来的已知坑标题）"""
+    """该镜用了哪些卡：只认「蒙皮行」里 → 之前的卡名（列表行或表格行）。没有蒙皮行 → ([], False)，不按正文估算——
+    正文里抄进来的"已知坑 / 不用 X 换 Y"会把没用的卡算成用了（2026-09-21 评审 P1-5）"""
     for line in shot["body"]:
         m = SKIN_LINE.match(line)
         if m:
-            head = re.split(r"→|->", m.group(1), maxsplit=1)[0]
+            head = re.split(r"→|->|\|", m.group(1), maxsplit=1)[0]
             slugs = [x for x in SLUG.findall(head) if card_category(x)]
-            if slugs:
-                return list(dict.fromkeys(slugs)), True
-    seen: list[str] = []
-    for x in SLUG.findall("\n".join(shot["body"])):
-        if card_category(x) and x not in seen:
-            seen.append(x)
-    return seen, False
+            return list(dict.fromkeys(slugs)), True
+    return [], False
 
 
 def parse_rhythm_table(text: str) -> list[tuple[str, str, str, str]]:
-    """G0「版式节奏表」：表头含「形态」与「容器」，行 `| sNN | 人物形态·方位 | 素材容器 | 主卡 |`（cinematography.md §4）"""
+    """G0「版式节奏表」：表头含「形态」与「容器」两列（列序任意，按表头定位），行 `| sNN | 人物形态·方位 | 素材容器 | 主卡 |`（cinematography.md §4）"""
     rows: list[tuple[str, str, str, str]] = []
-    in_table = False
+    cols: tuple[int, int, int | None] | None = None   # (形态列, 容器列, 主卡列)
     for line in text.splitlines():
         st = line.strip()
         if not st.startswith("|"):
-            in_table = False
+            cols = None
             continue
         cells = [c.strip() for c in st.strip("|").split("|")]
-        if not in_table:
-            if len(cells) >= 3 and any("形态" in c for c in cells) and any("容器" in c for c in cells):
-                in_table = True
+        if cols is None:
+            fi = next((i for i, c in enumerate(cells) if "形态" in c), None)
+            ci = next((i for i, c in enumerate(cells) if "容器" in c), None)
+            if len(cells) >= 3 and fi is not None and ci is not None:
+                ki = next((i for i, c in enumerate(cells) if "卡" in c and i not in (fi, ci)), None)
+                cols = (fi, ci, ki)
             continue
         if all(set(c) <= set("-: ") for c in cells):
             continue                                   # 表头分隔行
-        if len(cells) >= 3 and re.match(r"^[sSvV]\d+", cells[0]):
-            rows.append((cells[0].lower(), cells[1], cells[2], cells[3] if len(cells) > 3 else ""))
+        fi, ci, ki = cols
+        if len(cells) > max(fi, ci) and re.match(r"^[sSvV]\d+", cells[0]):
+            rows.append((cells[0].lower(), cells[fi], cells[ci], cells[ki] if ki is not None and ki < len(cells) else ""))
     return rows
 
 
@@ -299,12 +302,13 @@ def check_variety(shots: list[dict], text: str) -> None:
         if not from_skin:
             no_skin.append(s["id"])
     if no_skin:
-        rec("WARN", sec, f"{len(no_skin)} 镜没有「蒙皮行」，按正文里出现的卡名估算：{' '.join(no_skin)}（SKILL.md ④：每镜蒙皮行 `卡名, 卡名 → 改了什么皮`）")
+        rec("WARN", sec, f"{len(no_skin)} 镜没有「蒙皮行」，未计入版式轮换核对：{' '.join(no_skin)}（SKILL.md ④：每镜蒙皮行 `卡名, 卡名 → 改了什么皮`，列表行或表格行均可）")
     all_slugs = sorted({x for v in cards_of.values() for x in v})
 
-    # 1) 连用：同一张卡（转场结构类除外）出现在 ≥3 个相邻镜头
+    # 1) 连用：同一张卡出现在 ≥3 个相邻镜头——呈现类 FAIL，其它类别 WARN（字卡 / 标注 / 人物互动可以复用得多一点），转场结构不核
     for slug in all_slugs:
-        if card_category(slug) == "转场结构":
+        cat = card_category(slug)
+        if cat == "转场结构":
             continue
         run_start = None
         for i, sid in enumerate(ids + [None]):
@@ -314,21 +318,26 @@ def check_variety(shots: list[dict], text: str) -> None:
             elif not hit and run_start is not None:
                 run = i - run_start
                 if run >= 3:
-                    rec("FAIL", sec, f"「{slug}」连用 {run} 镜（{ids[run_start]}–{ids[i - 1]}）——同一张卡连用 ≥3 镜观众读作\"又是这个\"；"
-                                     f"第 3 镜起换式（shot-design.md §2⑦ 单条 B-roll 七式 / §2④′ 关系表；规则 cinematography.md §4.5 第 9 条）")
+                    if cat in PRESENT_CATS:
+                        rec("FAIL", sec, f"「{slug}」（{cat}）连用 {run} 镜（{ids[run_start]}–{ids[i - 1]}）——同一张呈现卡连用 ≥3 镜观众读作\"又是这个\"；"
+                                         f"第 3 镜起换式（shot-design.md §2⑦ 单条 B-roll 七式 / §2④′ 关系表；规则 cinematography.md §4.5 第 9 条）")
+                    else:
+                        rec("WARN", sec, f"「{slug}」（{cat}）连用 {run} 镜（{ids[run_start]}–{ids[i - 1]}）——非呈现类可复用，但连着三镜同一种字卡 / 标注也会腻，看看能否换一式")
                 run_start = None
 
-    # 2) 占比：呈现类卡全片 ≤1/3；字幕花字 / 强调标注 ≤1/2（advisory）
+    # 2) 占比：呈现类卡全片 ≤1/3（FAIL）；其它类别 ≤1/2（WARN）
     if n >= 6:
         for slug in all_slugs:
             cnt = sum(1 for v in cards_of.values() if slug in v)
             share = cnt / n
             cat = card_category(slug)
+            if cat == "转场结构":
+                continue
             if cat in PRESENT_CATS and share > 1 / 3:
                 rec("FAIL", sec, f"「{slug}」（{cat}）出现在 {cnt}/{n} 镜 = {share:.0%} > 1/3——一张呈现卡撑不起半部片；"
                                  f"按口播关系换容器（出血全屏 / 装框 / 分屏 / 多图编排 / 3D 运镜 / 底床），见 shot-design.md §2⑦")
-            elif cat in STYLE_CATS and share > 1 / 2:
-                rec("WARN", sec, f"「{slug}」（{cat}）出现在 {cnt}/{n} 镜 = {share:.0%} > 1/2——同一种字卡满片飞也是单调，换一两式")
+            elif cat not in PRESENT_CATS and share > 1 / 2:
+                rec("WARN", sec, f"「{slug}」（{cat}）出现在 {cnt}/{n} 镜 = {share:.0%} > 1/2——同一种字卡 / 标注满片飞也是单调，换一两式")
 
     # 3) 版式行逐字复制
     layouts: dict[str, list[str]] = {}
@@ -351,7 +360,7 @@ def check_variety(shots: list[dict], text: str) -> None:
             if mode in FOOTAGE_MODES:
                 for pp in re.split(r"[,，、\s]+", paths or ""):
                     if pp:
-                        files.setdefault(os.path.basename(pp.strip("`'\"")), []).append(s["id"].lower())
+                        files.setdefault(os.path.basename(pp.strip("`'\"")).lower(), []).append(s["id"].lower())  # macOS 不分大小写
     for f, sids in files.items():
         uniq = list(dict.fromkeys(sids))
         adjacent = [f"{a}→{b}" for a, b in zip(uniq, uniq[1:]) if ids.index(b) - ids.index(a) == 1]
@@ -361,9 +370,12 @@ def check_variety(shots: list[dict], text: str) -> None:
 
     # 5) G0 版式节奏表：人物形态 × 素材容器 的全片节奏
     rows = parse_rhythm_table(text)
+    containers: set[str] = set()
     if not rows:
         if n >= 6:
             rec("WARN", sec, "G0 缺「版式节奏表」（| 镜 | 人物形态·方位 | 素材容器 | 主卡 |，cinematography.md §4）——全片节奏摊在一张表里才看得出\"八镜一个样\"；写完再展开逐镜矩阵")
+        if not any(lv == "FAIL" and sc == sec for lv, sc, _ in results):
+            rec("PASS", sec, f"版式轮换：{len(all_slugs)} 张卡 · 无呈现卡 ≥3 镜连用 / >1/3 占比（未给节奏表，人物形态 × 容器未核）")
         return
     norm = lambda x: re.sub(r"[\s·・,，/]+", "", x)  # noqa: E731
     run_start = 0

@@ -13,7 +13,7 @@ import { useLiveLoad } from "../kb/liveLoad";
  *  - 两个候选入口都是契约模块（kbsrc-stub 有 Main / MainVideo 占位），webpack 导出打包不会因缺文件失败；
  *  - **离线渲染（Remotion CLI 导出）里不容错**：载入失败 / 渲染抛错原样抛出，渲染任务失败——错误画面绝不能被当成片交付
  *    （2026-09-13 审计 R3）。容错只在 Player / Studio 里。
- *  - 画幅：实时看板工程的画布 = 工程原尺寸（kb/liveProject 按 KB_COMP 建），此时不缩放，工程内 useVideoConfig 读到的就是真值；
+ *  - 画幅：旧的单轨看板工程（2026-09-21 已下线，旧存档仍可能有）画布 = 工程原尺寸（KB_COMP），此时不缩放，工程内 useVideoConfig 读到的就是真值；
  *    只有把这张卡拖进别的尺寸的工程时才等比缩进画布（那时工程内 useVideoConfig 读到的是工作台画布尺寸，按尺寸算布局的层会偏，审计 R4）。 */
 type Comp = React.ComponentType<Record<string, unknown>>;
 

@@ -4,6 +4,7 @@ import { uid } from "./types";
 import { CARDS } from "./cards/registry";
 import { demoProject } from "./demoProject";
 import { KB_PROJECT_ROOT } from "./kbMeta";
+import { singleton } from "./hmr";
 
 export { projectDuration } from "./types";
 
@@ -95,22 +96,19 @@ const mutateProject = (
   return draft;
 };
 
-/** HMR 保命：接入工程的任何源码变化（agent 改 tsx、overrides.json 写回）都会经 kb 适配层 → 卡注册表 → 本模块传播，
- *  Vite 会重新执行本文件、重建 store——不接住就丢选中 / 撤销栈（2026-09-15 实测：改一个镜头参数，属性面板当场清空）。
- *  dispose 时把状态存进 import.meta.hot.data，重建时原样接回；Remotion 渲染（webpack）没有 import.meta.hot，走正常初始化。 */
-type Carried = Pick<WorkbenchState, "project" | "selectedClipId" | "playhead" | "pxPerFrame" | "previewItem" | "past" | "future">;
-const hotData = import.meta.hot?.data as { store?: Carried; projectRoot?: string } | undefined;
-const carried = hotData?.projectRoot === KB_PROJECT_ROOT ? hotData.store : undefined;
-
-export const useStore = create<WorkbenchState>((set, get) => ({
-  project: carried?.project ?? loadInitial(),
-  selectedClipId: carried?.selectedClipId ?? null,
-  playhead: carried?.playhead ?? 0,
+/** HMR 保命（2026-09-21 评审 P0-2 修正，见 hmr.ts）：接入工程的任何源码变化都会经 kb 适配层 → 卡注册表 → 本模块传播，Vite 重新执行本文件；
+ *  本模块不是 HMR 边界，import.meta.hot.dispose 从不被调用——原先"dispose 存进 hot.data、重建接回"一次都没跑过
+ *  （选中 / 撤销栈每轮 HMR 都丢，App 的键盘快捷键绑到旧 store 实例）。现在 store 是 globalThis 上按工程根键的单例：
+ *  重执行只是重新绑定同一个对象；自动保存订阅与窗口监听只在创建时挂一次。 */
+const makeStore = () => create<WorkbenchState>((set, get) => ({
+  project: loadInitial(),
+  selectedClipId: null,
+  playhead: 0,
   playing: false,
-  pxPerFrame: carried?.pxPerFrame ?? 2,
-  previewItem: carried?.previewItem ?? null,
-  past: carried?.past ?? [],
-  future: carried?.future ?? [],
+  pxPerFrame: 2,
+  previewItem: null,
+  past: [],
+  future: [],
 
   commit: () =>
     set((s) => ({ past: [...s.past.slice(-49), clone(s.project)], future: [] })),
@@ -311,32 +309,32 @@ export const useStore = create<WorkbenchState>((set, get) => ({
     })),
 }));
 
-if (import.meta.hot) {
-  import.meta.hot.dispose((data) => {
-    const s = useStore.getState();
-    data.store = { project: s.project, selectedClipId: s.selectedClipId, playhead: s.playhead, pxPerFrame: s.pxPerFrame, previewItem: s.previewItem, past: s.past, future: s.future } satisfies Carried;
-    data.projectRoot = KB_PROJECT_ROOT;
+// —— 自动保存：每次改动 800ms 防抖落 localStorage；关页/切后台时立即落盘（随 store 单例只装一次）——
+const installAutosave = (store: ReturnType<typeof makeStore>) => {
+  let saveTimer: ReturnType<typeof setTimeout> | undefined;
+  const flushSave = () => {
+    clearTimeout(saveTimer);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(store.getState().project));
+    } catch {
+      /* 存储满/隐私模式：忽略 */
+    }
+  };
+  store.subscribe((st, prev) => {
+    if (st.project === prev.project) return;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(flushSave, 800);
   });
-}
-
-// —— 自动保存：每次改动 800ms 防抖落 localStorage；关页/切后台时立即落盘 ——
-let saveTimer: ReturnType<typeof setTimeout> | undefined;
-const flushSave = () => {
-  clearTimeout(saveTimer);
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(useStore.getState().project));
-  } catch {
-    /* 存储满/隐私模式：忽略 */
-  }
+  window.addEventListener("beforeunload", flushSave);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") flushSave();
+  });
 };
-useStore.subscribe((s, prev) => {
-  if (s.project === prev.project) return;
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(flushSave, 800);
-});
-window.addEventListener("beforeunload", flushSave);
-document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "hidden") flushSave();
+
+export const useStore = singleton(`store:${KB_PROJECT_ROOT ?? ""}`, () => {
+  const store = makeStore();
+  installAutosave(store);
+  return store;
 });
 
 export const resetProject = () => {
