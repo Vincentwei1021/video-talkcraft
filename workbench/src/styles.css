@@ -479,6 +479,16 @@ body {
 .pt-block.passed { background: #1f7a3a; color: #e0f7e6; }
 .pt-block.stale { box-shadow: inset 0 0 0 1.5px #ffd60a; }
 .pt-block.selected { box-shadow: 0 0 0 2px var(--accent); }
+/* 逐镜 clip 的制作状态角标（与进度轨同色系）；占位镜的 clip 画成斜纹半透明——"这一格还没做" */
+.shot-badge.planned, .shot-badge.placeholder { color: #a9a9b2; background: #3a3a41; }
+.shot-badge.implemented { color: #dbeeff; background: #1f4f8c; }
+.shot-badge.rendered { color: #dff7fb; background: #157a8c; }
+.shot-badge.passed { color: #e0f7e6; background: #1f7a3a; }
+.shot-badge.issue { color: #ffd9d9; background: #8a2323; }
+.clip.clip-shot-planned, .clip.clip-shot-placeholder {
+  opacity: 0.6;
+  background-image: repeating-linear-gradient(135deg, transparent 0 7px, rgba(255, 255, 255, 0.06) 7px 14px);
+}
 .pt-id { font-variant-numeric: tabular-nums; font-weight: 600; }
 .pt-dot {
   position: absolute; right: 4px; top: 4px; width: 8px; height: 8px; border-radius: 50%;

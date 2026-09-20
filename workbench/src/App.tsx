@@ -155,18 +155,25 @@ export const App: React.FC = () => {
   const [inspW, setInspW] = usePanelSize("wb-insp-w", 300);
   const [tlH, setTlH] = usePanelSize("wb-tl-h", 264);
 
-  // URL 开关（SKILL ⑤-2 / ⑧ 打开工作台用）：?live → 装上接入工程的实时成片（一条轨，看进度）；
-  // ?tracks → 直接拆成多轨（字幕 / 转场 / 镜头 / 幕底 / 配音 / 音效；已是拆解工程则同步保留改动）。
+  // URL 开关（SKILL ⑤-2 / ⑧ 打开工作台用）——进来就是多轨（2026-09-21 用户：制作中的看板与交付面都要是多轨，不是单轨进度台）：
+  // ?tracks / ?live → 本片拆成多轨（字幕 / 转场 / 镜头 / 幕底 / 配音 / 音效；已是拆解工程则同步、保留改动），进度轨在最上面，
+  //   之后工程文件一变自动同步（pipeline/store.ts autoSyncTracks）；工程不满足拆解契约时 ?live 退回单轨"成片（实时）"；
+  // ?mono → 强制单轨成片（一条轨一个 clip，整条 Main 按实时代码渲；对照最终渲染 / 契约不全时排障用）。
   // 工程存在浏览器 localStorage，换一个浏览器打开看到的是那个浏览器上次的工程——所以要有 URL 能一步到位。
   useEffect(() => {
     connectPipeline();
     startOverridesSync();
     const q = new URLSearchParams(window.location.search);
-    const cur = useStore.getState().project;
-    if (q.has("tracks") && KB_DECOMPOSABLE) {
-      useStore.getState().setProject(isKouboProject(cur) ? syncKouboProject(cur) : buildKouboProject());
-    } else if (canBuildLive && q.has("live") && !isLiveProject(cur)) {
-      useStore.getState().setProject(buildLiveProject());
+    const st = useStore.getState();
+    const cur = st.project;
+    const enter = q.has("tracks") || q.has("live");
+    if (q.has("mono") && canBuildLive) {
+      if (!isLiveProject(cur)) st.setProject(buildLiveProject());
+    } else if (enter && KB_DECOMPOSABLE) {
+      if (isKouboProject(cur)) st.replaceProject(syncKouboProject(cur));
+      else st.setProject(buildKouboProject());
+    } else if (enter && canBuildLive && !isLiveProject(cur)) {
+      st.setProject(buildLiveProject());
     }
   }, []);
 

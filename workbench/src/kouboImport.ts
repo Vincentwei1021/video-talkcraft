@@ -53,8 +53,9 @@ const sfxTracks = (): { id: string; name: string; clips: ClipData[] }[] => {
       start,
       duration,
       speed: c.rate ?? 1,
-      props: { file: `sfx/${c.file}`, volume: c.vol },
-      label: c.file.replace(/^pk-/, "").replace(/\.mp3$/, ""),
+      // skill 正式工程的 cue 表可能已带 `sfx/` 前缀（2026-09-20 定投片实测），别再叠一层成 sfx/sfx/…（音频 404、轨上有块没声）
+      props: { file: c.file.startsWith("sfx/") ? c.file : `sfx/${c.file}`, volume: c.vol },
+      label: c.file.replace(/^sfx\//, "").replace(/^pk-/, "").replace(/\.mp3$/, ""),
     });
     lane.end = start + duration;
   });
@@ -254,7 +255,13 @@ export const syncKouboProject = (existing: ProjectData): ProjectData => {
         const f = freshClips.get(c.id);
         if (!f) return c;
         freshClips.delete(c.id);
-        return { ...c, start: f.clip.start, duration: f.clip.duration, cardId: f.clip.cardId };
+        const next = { ...c, start: f.clip.start, duration: f.clip.duration, cardId: f.clip.cardId };
+        // 旧拆解把带 `sfx/` 前缀的 cue 叠成了 sfx/sfx/…（音频 404）：同步时顺手修回新鲜拆解的路径，其余 props 仍留用户的
+        if (typeof next.props.file === "string" && next.props.file.startsWith("sfx/sfx/")) {
+          next.props = { ...next.props, file: f.clip.props.file };
+          if (next.label?.startsWith("sfx/")) next.label = f.clip.label;
+        }
+        return next;
       }),
   }));
   // 新增单元 → 其在新鲜拆解里所属的轨；轨不存在就按新鲜顺序补建
@@ -270,4 +277,13 @@ export const syncKouboProject = (existing: ProjectData): ProjectData => {
     t.clips.push(clip);
   }
   return { ...existing, tracks, kbSeen: fresh.kbSeen };
+};
+
+/** 拆解自动跟盘（实时看板）：工程是本片的拆解工程、且按盘上真值重拆后有变化 → 返回同步后的工程；否则 null。
+ *  比较的是同步结果（用户改过的 props / 图层 / 删除已被 syncKouboProject 保住），所以"没变"就是真没变，调用方不用再判。 */
+export const syncedIfChanged = (existing: ProjectData): ProjectData | null => {
+  if (!isKouboProject(existing)) return null;
+  const next = syncKouboProject(existing);
+  const key = (p: ProjectData) => JSON.stringify([p.tracks, p.kbSeen ?? []]);
+  return key(next) === key(existing) ? null : next;
 };

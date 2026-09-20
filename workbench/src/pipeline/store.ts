@@ -3,6 +3,7 @@ import type { PipelineState } from "./types";
 import { useStore } from "../store";
 import { LIVE_CLIP_ID } from "../kb/liveProject";
 import { useLiveLoad } from "../kb/liveLoad";
+import { syncedIfChanged } from "../kouboImport";
 
 /** 实时看板状态：与工程 store 分离（不进撤销栈、不进 localStorage）。
  *  进度轨 / 阶段栏 / 镜头面板只订阅这里的一小片，播放中不重渲染（PlayheadLine 同款纪律）。 */
@@ -62,12 +63,28 @@ const syncLiveClip = (state: PipelineState) => {
   }
 };
 
+/** 多轨自动跟盘（2026-09-21 用户：制作中"一开始就是多轨，实时看到音效放到哪、镜头做到哪、字幕什么样"，不是单轨进度台）：
+ *  工程文件一变（SSE 推来 shots / scenes / out 的变化，或接入源码 HMR 完成）→ 按稳定 id 把新鲜拆解合进当前多轨工程；
+ *  用户改过的 props / 图层 / 删除保留（syncKouboProject 语义），不进撤销栈。400ms 防抖：一次保存常同时触发两路事件。
+ *  单轨"成片（实时）"工程与用户自己的工程不受影响（syncedIfChanged 只认本片拆解工程）。 */
+let syncTimer: ReturnType<typeof setTimeout> | null = null;
+const autoSyncTracks = () => {
+  if (syncTimer) clearTimeout(syncTimer);
+  syncTimer = setTimeout(() => {
+    syncTimer = null;
+    const s = useStore.getState();
+    const next = syncedIfChanged(s.project);
+    if (next) s.replaceProject(next);
+  }, 400);
+};
+
 let started = false;
 let es: EventSource | null = null;
 if (import.meta.hot) {
   // 本模块被 HMR 重新执行时，旧的 SSE 连接必须关掉（否则每次接入工程源码一变就多一条长连接，服务端 clients 只增不减）
   import.meta.hot.dispose((data) => {
     es?.close();
+    if (syncTimer) clearTimeout(syncTimer);
     const s = usePipeline.getState();
     data.pipeline = { linked: s.linked, state: s.state, connected: s.connected, selectedShotId: s.selectedShotId, codeError: s.codeError };
   });
@@ -80,6 +97,7 @@ export const connectPipeline = () => {
     const j = raw as { linked?: boolean; state?: PipelineState | null };
     usePipeline.getState().setState(j.state ?? null, Boolean(j.linked));
     if (j.state) syncLiveClip(j.state);
+    autoSyncTracks();
     // 工程文件变了（SSE 推来）：首次转换失败的模块 Vite 不向导入方传播 HMR，只能靠这里触发重试
     retryLiveIfFailed();
   };
@@ -105,6 +123,7 @@ export const connectPipeline = () => {
     hot.on("vite:afterUpdate", () => {
       usePipeline.getState().setCodeError(null);
       retryLiveIfFailed();
+      autoSyncTracks(); // 接入源码（scenes / sfx.ts / Subtitles）改完 → 本模块已随链重建、拿到的是新鲜数据
     });
   }
 };

@@ -28,6 +28,17 @@
 - 能量：中；不做的事：不用手绘圈注（换角框 / 取景框），不用 pastel chip（换发丝线 chip）
 - 蒙皮行写在各镜层矩阵旁（例：S3 `chart-grow → 网格 #ececf0、柱色 accent 单色、数字 SF Mono`）
 - 样板镜：s1_hook（首镜即有人物 + 等式数字动效 + 字幕，能代表全片；⑤-1 先做它、渲有声单镜预览给用户确认，其余镜头占位等确认）
+- **版式节奏表**（2026-09-21 起 G0 必附，格式正主 cinematography.md §4；下表按本例 7 镜补写，只示范"人物形态 × 素材容器逐镜在换"）：
+
+  | 镜 | 人物形态·方位 | 素材容器 | 主卡 |
+  |---|---|---|---|
+  | s1 | 半身·右 | 无（等式大字左栏） | count-badge-title |
+  | s2 | 角标·左下 | 装框·中（论文页） | evidence-scroll-tour |
+  | s3 | 离场 → 角标·右下 | 3D 数据台 | chart-grow |
+  | s4 | 分屏格内（左格本人） | 分屏格（终端录屏） | split-60-40-story |
+  | s5 | 半身·左 | 无（红色时钟 hero） | quote-card |
+  | s6 | 角标·右下 | 出血全屏（人物照片） | bed + crash-zoom-punch |
+  | s7 | 离场 | 长镜头星野 | long-take-world |
 
 ### G1 CameraRig（L1，每场景一条连续曲线 + 冲击脉冲）
 - 每场景一个 `<CameraRig path={...} impulses={[...]}>` 包裹全部内容。

@@ -58,6 +58,8 @@ interface WorkbenchState {
   redo: () => void;
 
   setProject: (p: ProjectData) => void;
+  /** 机器同步用（拆解自动跟盘）：换工程但不进撤销栈、选中保留（选中的片段若已不在就清掉） */
+  replaceProject: (p: ProjectData) => void;
   select: (id: string | null) => void;
   setPlayhead: (f: number) => void;
   setPlaying: (b: boolean) => void;
@@ -141,6 +143,8 @@ export const useStore = create<WorkbenchState>((set, get) => ({
     get().commit();
     set({ project: p, selectedClipId: null });
   },
+  replaceProject: (p) =>
+    set((s) => ({ project: p, selectedClipId: s.selectedClipId && findClip(p, s.selectedClipId) ? s.selectedClipId : null })),
   select: (id) => set({ selectedClipId: id }),
   setPlayhead: (f) => set({ playhead: Math.max(0, Math.round(f)) }),
   setPlaying: (b) => set({ playing: b }),

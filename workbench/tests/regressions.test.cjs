@@ -198,3 +198,37 @@ test('overrides endpoint rejects stale clients and reports disk failures', t => 
   fs.unlinkSync(file); fs.mkdirSync(file);
   assert.equal(post(encodeURIComponent(temp)).statusCode, 500);
 });
+
+// 2026-09-21 多轨自动跟盘：工程文件一变 → syncedIfChanged() 给出同步后的工程（没变就是 null）；cue 表已带 sfx/ 前缀不再叠成 sfx/sfx/，旧工程同步时修回
+function importerWithSfx(cues) {
+  return load('workbench/src/kouboImport.ts', {
+    './cards/registry': {CARDS: cards}, './cards/koubo-units': {},
+    './kb/shots': {SHOTS: [shot], FPS: 30, TOTAL_FRAMES: 90}, './kb/sfx': {SFX_CUES: cues},
+    './kb/Subtitles': {phrases: () => [{text: '字幕', start: .041, end: .081, dark: false}]},
+    './kb/params': {OVERRIDES: {}}, './kb/timing': {timing: {scenes: []}},
+    './cards/koubo-skill': {KSHOT_PREFIX: 'kshot-', shotFrames: () => ({shot, from: 0, total: 90})},
+    './kbMeta': {KB_PROJECT_ROOT: projectRoot, KB_FORM: 'skill', KB_COMP: {width: 1920, height: 1080, fps: 30}, KB_MODULES: {}, KB_TRANSITIONS: [], WIPE_TIMES: []},
+  });
+}
+const sfxClips = p => p.tracks.filter(t => t.id.startsWith('kb-track-sfx')).flatMap(t => t.clips);
+test('auto-sync reports only real changes, follows new cues, and repairs doubled sfx/ paths without touching other edits', () => {
+  const a = importerWithSfx([{t: 1, file: 'sfx/pk-pop.mp3', vol: .3}]);
+  const p = a.buildKouboProject();
+  assert.deepEqual(plain(sfxClips(p).map(c => [c.props.file, c.label])), [['sfx/pk-pop.mp3', 'pop']]);
+  assert.equal(a.syncedIfChanged(p), null, 'unchanged source must not produce a new project');
+  assert.equal(a.syncedIfChanged({...plain(p), kbProjectRoot: '/videos/other'}), null, 'foreign projects are left alone');
+
+  const b = importerWithSfx([{t: 1, file: 'sfx/pk-pop.mp3', vol: .3}, {t: 2, file: 'pk-tick.mp3', vol: .2}]);
+  const next = b.syncedIfChanged(p);
+  assert.ok(next, 'a new cue on disk must surface');
+  assert.deepEqual(plain(sfxClips(next).map(c => c.props.file).sort()), ['sfx/pk-pop.mp3', 'sfx/pk-tick.mp3']);
+  assert.equal(b.syncedIfChanged(next), null);
+
+  const legacy = plain(p);
+  const c0 = sfxClips(legacy)[0];
+  c0.props = {file: 'sfx/sfx/pk-pop.mp3', volume: .9}; c0.label = 'sfx/pk-pop';
+  const fixed = sfxClips(a.syncKouboProject(legacy))[0];
+  assert.equal(fixed.props.file, 'sfx/pk-pop.mp3');
+  assert.equal(fixed.props.volume, .9, 'user volume edit survives the path repair');
+  assert.equal(fixed.label, 'pop');
+});
