@@ -142,6 +142,9 @@ SSE（`/api/pipeline/events`）推到前端；tsx 改动仍走 Vite HMR，不重
 
 ## 9 实现与提案的差异（2026-09-11，L1 落地时）
 
+> 9.0–9.2 是当时的实现记录：其中"`?live` 装上实时成片 / `kb-main` 一条轨 / `buildLiveProject`"已被 §9.3 的单轨下线取代；
+> "dispose 时关 SSE / 存 hot.data 接回"的说法经 §9.4 评审证伪（dispose 对非边界模块从不执行），现行做法是 globalThis 单例（`src/hmr.ts`）。
+
 - **状态由工作台服务端实时推导，不靠 skill 每步写入**：提案是"skill 每步末尾更新 `pipeline.json`（写入点 ×8）"；实现改为 dev server 直接 import
   `scripts/pipeline_state.mjs` 的 `derivePipeline`，按盘上产物算（shots.json → SCENES 表 / scenes/ 文件 → out/segments|preview → review/*.md），
   `pipeline.json` 只保留盘上推不出的 `manual`（`--pass` / `--issue` / `--stage` / `--note`）。写入点从 8 个降到"过闸时 `--pass`、有缺陷时 `--issue`"两个。
@@ -174,3 +177,31 @@ SSE（`/api/pipeline/events`）推到前端；tsx 改动仍走 Vite HMR，不重
 - **验证**：koubo-musk-chess 14 镜重构成 PARAMS 后 29 张静帧逐像素与重构前一致（最大差 1）；工作台拆出 字幕 93 / 幕级覆盖 / 转场标记 13 / 镜头 14 / 幕底 / 配音 / 音效 7 轨 96 条；
   改 s01「菜就多练」→ overrides.json 落盘 → `render_stills` 8.3s 出的画面即新文案；改回默认 → 文件回 `{}` → 与参考帧逐像素一致。
 - **仍未做**：配音预剪波形视图（§3 L2 前半）；参数面板改镜头**时长 / 词锚**（属节奏命门，按设计不开放）。
+
+### 9.3 · 2026-09-21 打开即多轨、自动跟盘（用户反馈三条之二）
+- **背景**：第二支正式产出（定投口播，11 镜）交付时用户看到的是 `?live` 单轨"成片（实时）"+ 进度轨，
+  "不是那种分成多个轨道、可以分别细节调整背景 / 动效 / 字幕 / 声效的工作台"；并且希望制作过程中也是多轨——
+  "实时看到音效被添加到哪个位置、动效做到哪一步、做到第几个镜头、字幕是什么样"。根因：SKILL ⑤-2 / ⑧ 两处都写的是 `?live`，
+  多轨 `?tracks` 存在但从没被指向；而且拆解是一次性快照，要手点「⟳ 同步拆解」。
+- **URL**：`?tracks` 与 `?live` 都进多轨（已是拆解工程则同步保留改动）；契约不全时不装任何工程，右下角点名缺哪个契约模块。
+  **单轨「成片（实时）」整体下线**（用户同日定版"单轨的 deprecate 就好"）：`buildLiveProject` / `?mono` / 两处单轨按钮删除，`kb-main` 卡从素材库隐藏但保留渲染能力（旧存档里的 `kb-live-main` clip 仍可开可渲）。
+- **自动跟盘**（`pipeline/store.ts` `autoSyncTracks`）：SSE 推来状态变化、或接入源码 HMR `vite:afterUpdate` → 400ms 防抖 → `syncedIfChanged()`
+  （只认本片拆解工程；同步结果与现状逐字节相同就不动）→ `replaceProject()`（不进撤销栈、选中保留）。HMR 后本模块随链重建，拿到的 SHOTS / SFX_CUES / phrases 是新鲜的。
+- **镜头 clip 状态角标**（`ClipView` `useShotStatus`）：`kb-shot-sNN` 片段按 pipeline 状态显示 占位 / 已实现 / 已渲 / 已过闸、⟳ 过期、P0/P1；占位镜斜纹半透明。选择器只回一个字符串，状态没变不重渲染。
+- **阶段栏按钮**：只剩「⇣ 多轨（实时）」（当前不是本片拆解工程时显示）。
+- **未做**：配音预剪波形视图（§3 L2 前半）仍未做。
+
+### 9.4 · 2026-09-21 独立评审后的修正（PR #39）
+- **P0-1 契约不全时自动跟盘销毁用户工程**：`syncedIfChanged` 原来只判"是本片拆解工程"，`KB_FORM === "none"` 时 `buildKouboProject` 默默走 promo 分支吃 stub 数据，
+  首次 SSE 就把多轨工程改写成 6 clip 残骸且不可撤销。修：`syncedIfChanged` / `syncKouboProject` 在 `KB_LINKED && !KB_DECOMPOSABLE` 时不动工程；
+  `buildKouboProject` 已接入却不满足契约时抛错；新鲜拆解与现有工程一条 kb- 轨都对不上时放弃同步。回归测试覆盖。
+- **P0-2 `import.meta.hot.dispose` 对非边界模块从不执行**（Vite 6 client 只对 `acceptedPath` 调 dispose）：store / pipeline/store / overridesSync 里的
+  "dispose 存 hot.data 接回 / 关旧 SSE"从未跑过——每轮接入源码 HMR 服务端 SSE +1、选中与撤销栈清空、App 键盘快捷键绑到旧 store、旧 pipeline store 仍收 SSE。
+  修：`src/hmr.ts` 的 `singleton()` 把 zustand store（useStore / usePipeline / useLiveLoad / useExportStore / useOverridesSave）、EventSource、防抖定时器、
+  订阅挂 globalThis 按 key 复用；需要新鲜数据的回调（SSE apply、syncedIfChanged、overrides 的 flush / enqueue）每次执行覆盖到 latest 槽。
+  dev server 加 `GET /api/pipeline/clients` 供冒烟断言（一个标签页恒为 1）。
+- **P1-1 自动同步静默复位用户挪过的 kb- 片段**：工程记 `kbTime`（每个 kb- 单元上次同步的 起点:时长）；当前值 ≠ 上次同步值视为用户挪过 → 保留，
+  除非盘上真值自己也变了（agent 改了 cue / 镜头边界）→ 盘上优先。回归测试覆盖。
+- preflight 版式闸：人物互动移出呈现类（角标是默认路）；连用对非呈现类只 WARN；没有蒙皮行的镜不再按正文估算（WARN 且不计入）；
+  蒙皮行 / 版式行认表格行；节奏表按表头定位列；素材复用不分大小写；<6 镜也给 PASS 行。
+- 文档：host-footage §5 规则句改写为"默认角标 → 三种例外 → 不许连续两镜无人"的优先级；SKILL ④ 占比加"≥6 镜的片"限定；残留的单轨说法清理。

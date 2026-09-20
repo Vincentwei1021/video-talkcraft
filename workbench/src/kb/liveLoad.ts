@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { singleton } from "../hmr";
 
 /** kb-main（实时成片卡）的载入状态。
  *  - 载入失败**不缓存**：`retry()` 让 kb-main 重建 lazy 组件再试（页面打开时工程就是坏的、修好后也能恢复）；
@@ -12,9 +13,9 @@ interface LiveLoad {
   setError: (e: LiveLoad["error"]) => void;
 }
 
-export const useLiveLoad = create<LiveLoad>((set) => ({
+export const useLiveLoad = singleton("liveLoad", () => create<LiveLoad>((set) => ({
   gen: 0,
   error: null,
   retry: () => set((s) => ({ gen: s.gen + 1 })),
   setError: (error) => set({ error }),
-}));
+})));

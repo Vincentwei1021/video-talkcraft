@@ -7,12 +7,16 @@ import { phrases as skillPhrases } from "./kb/Subtitles";
 import { OVERRIDES } from "./kb/params";
 import { timing } from "./kb/timing";
 import { KSHOT_PREFIX, shotFrames } from "./cards/koubo-skill";
-import { KB_COMP, KB_FORM, KB_MODULES, KB_PROMO, KB_PROJECT_ROOT, KB_TRANSITIONS, WIPE_TIMES, WIPE_SOURCE } from "./kbMeta";
+import { KB_COMP, KB_DECOMPOSABLE, KB_FORM, KB_LINKED, KB_MODULES, KB_PROMO, KB_PROJECT_ROOT, KB_TRANSITIONS, WIPE_TIMES, WIPE_SOURCE } from "./kbMeta";
+import { setLatest } from "./hmr";
 
 /** 音效素材清单（去重 + 使用次数），素材库「音效」tab 用 */
 export const SFX_FILES: { file: string; count: number }[] = (() => {
   const m = new Map<string, number>();
-  for (const c of SFX_CUES as { file: string }[]) m.set(c.file, (m.get(c.file) ?? 0) + 1);
+  for (const c of SFX_CUES as { file: string }[]) {
+    const f = c.file.replace(/^sfx\//, ""); // 与素材清单 SFX_ALL 的裸文件名对齐（skill 工程 cue 表可能带 sfx/ 前缀）
+    m.set(f, (m.get(f) ?? 0) + 1);
+  }
   return [...m].map(([file, count]) => ({ file, count })).sort((a, b) => b.count - a.count);
 })();
 
@@ -53,8 +57,9 @@ const sfxTracks = (): { id: string; name: string; clips: ClipData[] }[] => {
       start,
       duration,
       speed: c.rate ?? 1,
-      props: { file: `sfx/${c.file}`, volume: c.vol },
-      label: c.file.replace(/^pk-/, "").replace(/\.mp3$/, ""),
+      // skill 正式工程的 cue 表可能已带 `sfx/` 前缀（2026-09-20 定投片实测），别再叠一层成 sfx/sfx/…（音频 404、轨上有块没声）
+      props: { file: c.file.startsWith("sfx/") ? c.file : `sfx/${c.file}`, volume: c.vol },
+      label: c.file.replace(/^sfx\//, "").replace(/^pk-/, "").replace(/\.mp3$/, ""),
     });
     lane.end = start + duration;
   });
@@ -146,14 +151,22 @@ const buildSkillProject = (): ProjectData => {
       ...sfxTracks(),
     ],
   };
-  return { ...project, kbSeen: project.tracks.flatMap((t) => t.clips.map((c) => c.id)) };
+  return { ...project, kbSeen: project.tracks.flatMap((t) => t.clips.map((c) => c.id)), kbTime: timeMap(project) };
 };
 
-/** 把口播成片拆解为独立单元。promo 形态：字幕/转场/环境/数字人/23 镜头/配音/82 音效；skill 标准形态：见 buildSkillProject */
-export const buildKouboProject = (): ProjectData => ({
-  ...(KB_FORM === "skill" ? buildSkillProject() : buildPromoProject()),
-  kbProjectRoot: KB_PROJECT_ROOT,
-});
+/** 每个 kb- 单元上次同步时的 起点:时长——同步时据此分辨"用户挪过"与"盘上真值变了"（syncKouboProject） */
+const timeMap = (p: ProjectData): Record<string, string> =>
+  Object.fromEntries(p.tracks.flatMap((t) => t.clips.filter((c) => c.id.startsWith(KB_ID_PREFIX)).map((c) => [c.id, `${c.start}:${c.duration}`])));
+
+/** 把口播成片拆解为独立单元。promo 形态：字幕/转场/环境/数字人/23 镜头/配音/82 音效；skill 标准形态：见 buildSkillProject。
+ *  已接入却不满足任一契约时抛错——不能默默用 stub 数据拼一份 promo 残骸（2026-09-21 评审 P0-1）；未接入时仍可用 stub 演示 promo 拆解。 */
+export const buildKouboProject = (): ProjectData => {
+  if (KB_LINKED && !KB_DECOMPOSABLE) throw new Error("接入工程不满足拆解契约（skill / promo 任一形态），不能拆解");
+  return {
+    ...(KB_FORM === "skill" ? buildSkillProject() : buildPromoProject()),
+    kbProjectRoot: KB_PROJECT_ROOT,
+  };
+};
 
 const buildPromoProject = (): ProjectData => {
   type ShotT = { id: string; label: string; start: number; end: number };
@@ -228,18 +241,24 @@ const buildPromoProject = (): ProjectData => {
       ...sfxTracks(),
     ],
   };
-  return { ...project, kbSeen: project.tracks.flatMap((t) => t.clips.map((c) => c.id)) };
+  return { ...project, kbSeen: project.tracks.flatMap((t) => t.clips.map((c) => c.id)), kbTime: timeMap(project) };
 };
 
 /** 增量同步（实时看板 L1）：按稳定 id 把新鲜拆解合进现有工程——
  *  - 同 id 的 clip：起点 / 时长跟新拆解（时间真值在 shots.json / 时间戳），props / 图层 / 变速 / 标签留用户改过的；
+ *    例外：用户在工作台挪过 / 裁过的单元（当前 起点:时长 ≠ 上次同步值 kbTime）保留用户的，除非盘上真值自己也变了（agent 改了 cue / 镜头边界）——
+ *    2026-09-21 起同步由文件变化自动触发，不能再把用户刚挪好的音效静默复位（评审 P1-1）；
  *  - 新增的单元补进对应轨（轨不在就新建）；拆解里已没有的 kb- clip 删掉；
  *  - 用户删掉的拆解单元不复活：工程 kbSeen 记着上次见过的 id，"新鲜有、工程没、见过"= 用户删的（2026-09-13 审计）；
  *  - 用户自己加的 clip（uid 前缀）与轨道顺序、隐藏状态一律不动。
  *  已知限制：分割过的 kb- clip 左半仍是 kb- id，同步会把它的时长重置成整段而右半（uid）留着 → 叠放；分割请在同步之后做。 */
 export const syncKouboProject = (existing: ProjectData): ProjectData => {
+  if (KB_LINKED && !KB_DECOMPOSABLE) return existing; // 契约不全：没有可信的新鲜拆解，绝不动用户工程（评审 P0-1：原先会改写成 stub 残骸且不可撤销）
   const fresh = buildKouboProject();
   if (!isKouboProject(existing)) return fresh;
+  // 形态突变保险：新鲜拆解与现有工程一条 kb- 轨都对不上（如 skill ↔ promo 形态切换）——同步等于清空，放弃
+  if (!fresh.tracks.some((t) => existing.tracks.some((x) => x.id === t.id))) return existing;
+  const lastTime = existing.kbTime ?? {};
   const seen = new Set(existing.kbSeen ?? []);
   const freshClips = new Map<string, { clip: ClipData; trackId: string }>();
   for (const t of fresh.tracks) for (const c of t.clips) freshClips.set(c.id, { clip: c, trackId: t.id });
@@ -254,7 +273,17 @@ export const syncKouboProject = (existing: ProjectData): ProjectData => {
         const f = freshClips.get(c.id);
         if (!f) return c;
         freshClips.delete(c.id);
-        return { ...c, start: f.clip.start, duration: f.clip.duration, cardId: f.clip.cardId };
+        const last = lastTime[c.id];
+        const userMoved = last !== undefined && `${c.start}:${c.duration}` !== last;
+        const diskChanged = last !== undefined && `${f.clip.start}:${f.clip.duration}` !== last;
+        const timing = userMoved && !diskChanged ? { start: c.start, duration: c.duration } : { start: f.clip.start, duration: f.clip.duration };
+        const next = { ...c, ...timing, cardId: f.clip.cardId };
+        // 旧拆解把带 `sfx/` 前缀的 cue 叠成了 sfx/sfx/…（音频 404）：同步时顺手修回新鲜拆解的路径，其余 props 仍留用户的
+        if (typeof next.props.file === "string" && next.props.file.startsWith("sfx/sfx/")) {
+          next.props = { ...next.props, file: f.clip.props.file };
+          if (next.label?.startsWith("sfx/")) next.label = f.clip.label;
+        }
+        return next;
       }),
   }));
   // 新增单元 → 其在新鲜拆解里所属的轨；轨不存在就按新鲜顺序补建
@@ -269,5 +298,16 @@ export const syncKouboProject = (existing: ProjectData): ProjectData => {
     }
     t.clips.push(clip);
   }
-  return { ...existing, tracks, kbSeen: fresh.kbSeen };
+  return { ...existing, tracks, kbSeen: fresh.kbSeen, kbTime: fresh.kbTime };
 };
+
+/** 拆解自动跟盘（实时看板）：工程是本片的拆解工程、且按盘上真值重拆后有变化 → 返回同步后的工程；否则 null。
+ *  比较的是同步结果（用户改过的 props / 图层 / 删除已被 syncKouboProject 保住），所以"没变"就是真没变，调用方不用再判。 */
+export const syncedIfChanged = (existing: ProjectData): ProjectData | null => {
+  if (!KB_DECOMPOSABLE || !isKouboProject(existing)) return null; // 契约不全 / 不是本片拆解工程：不动（评审 P0-1）
+  const next = syncKouboProject(existing);
+  const key = (p: ProjectData) => JSON.stringify([p.tracks, p.kbSeen ?? [], p.kbTime ?? {}]);
+  return key(next) === key(existing) ? null : next;
+};
+// 最新实现槽（hmr.ts）：本模块随接入源码 HMR 重执行，单例的 SSE 回调从这里取到带新鲜 SHOTS / SFX_CUES / phrases 的这一份
+setLatest("syncedIfChanged", syncedIfChanged);

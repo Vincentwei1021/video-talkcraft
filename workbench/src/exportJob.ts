@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { ClipData, ProjectData } from "./types";
 import { CARDS } from "./cards/registry";
+import { singleton } from "./hmr";
 
 /** 导出任务（顶栏「导出成片」与右键「导出透明通道」共用）：
  *  POST /api/export 提交，GET /api/export/:id 轮询；dev server 同时只跑一个渲染（409）。 */
@@ -29,10 +30,11 @@ interface ExportStore {
   setJob: (job: ExportJobState | null) => void;
 }
 
-export const useExportStore = create<ExportStore>((set) => ({
+// 单例（hmr.ts）：本模块随卡注册表被接入源码 HMR 重执行，进行中的导出任务状态不能跟着模块实例丢
+export const useExportStore = singleton("exportStore", () => create<ExportStore>((set) => ({
   job: null,
   setJob: (job) => set({ job }),
-}));
+})));
 
 let timer: number | undefined;
 

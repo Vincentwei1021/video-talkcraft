@@ -44,6 +44,8 @@ export interface ProjectData {
   tracks: TrackData[];
   /** 拆解导入 / 同步时见过的全部 kb- 单元 id：同步时"新鲜拆解里有、工程里没有、这里也有"= 用户删的，不复活 */
   kbSeen?: string[];
+  /** 拆解工程：每个 kb- 单元上次同步时的 `起点:时长`，同步时分辨用户挪过 vs 盘上变了（kouboImport.syncKouboProject） */
+  kbTime?: Record<string, string>;
 }
 
 let seq = 0;

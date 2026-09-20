@@ -11,9 +11,12 @@ import { StageBar } from "./pipeline/StageBar";
 import { CodeErrorToast } from "./pipeline/CodeErrorToast";
 import { connectPipeline } from "./pipeline/store";
 import { startOverridesSync, useOverridesSave } from "./overridesSync";
-import { buildLiveProject, canBuildLive, isLiveProject } from "./kb/liveProject";
 import { buildKouboProject, isKouboProject, syncKouboProject } from "./kouboImport";
-import { KB_DECOMPOSABLE } from "./kbMeta";
+import { usePipeline } from "./pipeline/store";
+import { KB_DECOMPOSABLE, KB_LINKED, KB_MODULES } from "./kbMeta";
+
+/** skill 标准形态的拆解契约六件（与 scripts/gen-index.mjs 的判定同一份清单）；缺哪个就在右下角点名 */
+const SKILL_CONTRACT = ["shots", "scenes/index", "Subtitles", "sfx", "timing", "camera"];
 
 // 模块级也挂一次：接入工程源码 / overrides.json 变化会让 store 与本模块被 HMR 重新执行（见 store.ts 注释），
 // useEffect([]) 不会重跑，这里保证 SSE 与参数写回始终挂在**当前**store 上（两个函数都幂等）
@@ -155,19 +158,28 @@ export const App: React.FC = () => {
   const [inspW, setInspW] = usePanelSize("wb-insp-w", 300);
   const [tlH, setTlH] = usePanelSize("wb-tl-h", 264);
 
-  // URL 开关（SKILL ⑤-2 / ⑧ 打开工作台用）：?live → 装上接入工程的实时成片（一条轨，看进度）；
-  // ?tracks → 直接拆成多轨（字幕 / 转场 / 镜头 / 幕底 / 配音 / 音效；已是拆解工程则同步保留改动）。
+  // URL 开关（SKILL ⑤-2 / ⑧ 打开工作台用）——进来就是多轨（2026-09-21 用户定版：制作中的看板与交付面都是多轨；单轨"成片（实时）"已下线）：
+  // ?tracks / ?live → 本片拆成多轨（字幕 / 转场 / 镜头 / 幕底 / 配音 / 音效；已是拆解工程则同步、保留改动），进度轨在最上面，
+  //   之后工程文件一变自动同步（pipeline/store.ts autoSyncTracks）；拆解契约不全时不装任何工程，右下角点名缺哪个契约模块。
   // 工程存在浏览器 localStorage，换一个浏览器打开看到的是那个浏览器上次的工程——所以要有 URL 能一步到位。
   useEffect(() => {
     connectPipeline();
     startOverridesSync();
     const q = new URLSearchParams(window.location.search);
-    const cur = useStore.getState().project;
-    if (q.has("tracks") && KB_DECOMPOSABLE) {
-      useStore.getState().setProject(isKouboProject(cur) ? syncKouboProject(cur) : buildKouboProject());
-    } else if (canBuildLive && q.has("live") && !isLiveProject(cur)) {
-      useStore.getState().setProject(buildLiveProject());
+    if (!q.has("tracks") && !q.has("live")) return;
+    const st = useStore.getState();
+    if (KB_DECOMPOSABLE) {
+      if (isKouboProject(st.project)) st.replaceProject(syncKouboProject(st.project));
+      else st.setProject(buildKouboProject());
+      return;
     }
+    const missing = SKILL_CONTRACT.filter((m) => !KB_MODULES[m]);
+    usePipeline.getState().setCodeError({
+      title: "进不了多轨：拆解契约不全",
+      message: KB_LINKED
+        ? `接入工程缺契约模块：${missing.join(" / ") || "（gen-index 判定不满足 skill / promo 任一形态）"}。SKILL ⑤-1 骨架期六个文件（shots / scenes/index / Subtitles / sfx / timing / camera）先建齐（sfx.ts 可先是空表）；补完重跑 scripts/link-project.sh 并重启 dev server（@kbsrc 别名在启动时定）。`
+        : "还没接入工程：cd <skill根>/workbench && bash scripts/link-project.sh <本片工程>，再 npm run dev。",
+    });
   }, []);
 
   useEffect(() => {

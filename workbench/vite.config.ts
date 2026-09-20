@@ -285,6 +285,11 @@ const pipelinePlugin = (projectRoot: string | null, remotionDir: string | null):
         send(res, 200, { ok: true });
         return;
       }
+      if (sub === "/clients" && req.method === "GET") {
+        // 调试 / 冒烟：一个标签页应恒为 1 条 SSE。接入源码 HMR 后若递增 = 客户端又把连接建在了重执行的模块实例上（2026-09-21 评审 P0-2）
+        send(res, 200, { clients: clients.size });
+        return;
+      }
       if (sub === "/shotbook") {
         const shot = url.searchParams.get("shot") ?? "";
         res.statusCode = 200;

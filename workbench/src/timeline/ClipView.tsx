@@ -4,6 +4,24 @@ import { CARDS } from "../cards/registry";
 import { useStore } from "../store";
 import { ContextMenu, type MenuItem } from "./ContextMenu";
 import { alphaProjectFor, startExport, useExportStore } from "../exportJob";
+import { usePipeline } from "../pipeline/store";
+import { STATUS_LABEL, type ShotStatus } from "../pipeline/types";
+
+/** 拆解出的逐镜 clip（kb-shot-sNN）在轨上直接显示制作状态：占位 / 已实现 / 已渲 / 已过闸 · 过期 · 未清 P0/P1
+ *  （2026-09-21 用户：多轨看板要一眼看出"动效做到哪一步、做到第几个镜头"，不能只靠最上面那条进度轨）。
+ *  选择器只回一个字符串，状态没变不重渲染。 */
+const SHOT_CLIP_PREFIX = "kb-shot-";
+const useShotStatus = (clipId: string): { status: ShotStatus; stale: boolean; issue: boolean } | null => {
+  const shotId = clipId.startsWith(SHOT_CLIP_PREFIX) ? clipId.slice(SHOT_CLIP_PREFIX.length) : null;
+  const key = usePipeline((s) => {
+    if (!shotId || !s.state) return null;
+    const sh = s.state.shots.find((x) => x.id === shotId);
+    return sh ? `${sh.status}|${sh.stale ? 1 : 0}|${sh.issues.some((i) => i.level !== "P2") ? 1 : 0}` : null;
+  });
+  if (!key) return null;
+  const [status, stale, issue] = key.split("|");
+  return { status: status as ShotStatus, stale: stale === "1", issue: issue === "1" };
+};
 
 const SNAP_PX = 6;
 
@@ -32,6 +50,7 @@ export const ClipView: React.FC<{
   const moveClipToTrack = useStore((s) => s.moveClipToTrack);
 
   const card = CARDS[clip.cardId];
+  const shot = useShotStatus(clip.id);
 
   const applySnap = (frame: number, dur: number): number => {
     const tol = SNAP_PX / ppf;
@@ -148,7 +167,7 @@ export const ClipView: React.FC<{
 
   return (
     <div
-      className={`clip${selected ? " selected" : ""}`}
+      className={`clip${selected ? " selected" : ""}${shot ? ` clip-shot-${shot.status}` : ""}`}
       style={{
         left: clip.start * ppf,
         width: Math.max(8, clip.duration * ppf),
@@ -167,6 +186,13 @@ export const ClipView: React.FC<{
         <span className="clip-name">{label}</span>
         <span className="clip-meta">
           {durSec}s
+          {shot && (
+            <em className={`badge shot-badge ${shot.status}`} title={`制作状态：${STATUS_LABEL[shot.status]}${shot.stale ? "（场景比渲出的段新，该重渲）" : ""}`}>
+              {STATUS_LABEL[shot.status]}
+              {shot.stale && " ⟳"}
+            </em>
+          )}
+          {shot?.issue && <em className="badge shot-badge issue" title="有未清 P0/P1（进度轨点该镜看详情）">P0/P1</em>}
           {clip.speed !== 1 && <em className="badge">{clip.speed}×</em>}
           {clip.inOffset > 0 && <em className="badge">✂{(clip.inOffset / 30).toFixed(1)}s</em>}
           {clip.opacity < 1 && <em className="badge">{Math.round(clip.opacity * 100)}%</em>}

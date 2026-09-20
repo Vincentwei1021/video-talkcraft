@@ -1,16 +1,16 @@
 import React from "react";
 import { usePipeline } from "./store";
 import { useStore } from "../store";
-import { buildLiveProject, canBuildLive, isLiveProject } from "../kb/liveProject";
-import { KB_PROJECT } from "../kbMeta";
+import { buildKouboProject, isKouboProject } from "../kouboImport";
+import { KB_DECOMPOSABLE, KB_PROJECT } from "../kbMeta";
 
-/** 顶栏下的阶段条：①…⑧ 当前步高亮、hover 看产物；右侧镜头计数 + 直播点 + 「接入实时看板」。
+/** 顶栏下的阶段条：①…⑧ 当前步高亮、hover 看产物；右侧镜头计数 + 直播点 + 「⇣ 多轨（实时）」（当前不是本片拆解工程时）。
  *  只订阅 pipeline store（播放中不重渲染）。未链接工程时不渲染。 */
 export const StageBar: React.FC = () => {
   const linked = usePipeline((s) => s.linked);
   const state = usePipeline((s) => s.state);
   const connected = usePipeline((s) => s.connected);
-  const isLive = useStore((s) => isLiveProject(s.project));
+  const hasKoubo = useStore((s) => isKouboProject(s.project));
   const setProject = useStore((s) => s.setProject);
   if (!linked) return null;
 
@@ -18,7 +18,10 @@ export const StageBar: React.FC = () => {
   const time = state ? new Date(state.updatedAt).toLocaleTimeString("zh-CN", { hour12: false }) : "";
   return (
     <div className="stagebar" title={state ? `${state.root}\n最近更新 ${time}` : "接入工程状态未拿到"}>
-      <span className={`live-dot${connected ? " on" : ""}`} title={connected ? "实时连接中（SSE）" : "未连接，重连中…"} />
+      <span
+        className={`live-dot${connected ? " on" : ""}`}
+        title={connected ? `实时连接中（SSE）${hasKoubo ? " · 多轨随工程文件自动同步" : ""}` : "未连接，重连中…"}
+      />
       <span className="stage-project">{state?.project ?? KB_PROJECT}</span>
       <span className="stage-steps">
         {(state?.stages ?? []).map((st) => (
@@ -47,13 +50,13 @@ export const StageBar: React.FC = () => {
       <button className="mini" title="按盘上产物重算一次" onClick={() => fetch("/api/pipeline/refresh", { method: "POST" })}>
         ⟳
       </button>
-      {canBuildLive && !isLive && (
+      {KB_DECOMPOSABLE && !hasKoubo && (
         <button
           className="btn"
-          title="把接入工程的主合成按实时代码放进时间线（一条轨一个 clip；agent 存盘即刷新），进度轨随之出现"
-          onClick={() => setProject(buildLiveProject())}
+          title="把本片拆成多轨（字幕 / 转场标记 / 逐镜 / 幕底 / 配音 / 逐条音效）；此后工程文件一变自动同步，进度轨显示每镜状态（可撤销）"
+          onClick={() => setProject(buildKouboProject())}
         >
-          ▶ 接入实时看板
+          ⇣ 多轨（实时）
         </button>
       )}
     </div>

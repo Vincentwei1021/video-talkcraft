@@ -7,7 +7,6 @@ import { cardPreviewUrl, cardThumbUrl } from "../cards/templateCards";
 import { TPL_CATEGORIES, TPL_META } from "../cards/tplMeta";
 import { useStore } from "../store";
 import { buildKouboProject, isKouboProject, SFX_FILES, syncKouboProject } from "../kouboImport";
-import { buildLiveProject, canBuildLive, isLiveProject } from "../kb/liveProject";
 import { MEDIA_ITEMS, SFX_ALL } from "../mediaManifest";
 import { KB_DECOMPOSABLE, KB_FORM, KB_LINKED, KB_PROJECT } from "../kbMeta";
 import { setDragPayload } from "../dnd";
@@ -151,7 +150,6 @@ const sfxShort = (f: string) => f.replace(/^pk-/, "").replace(/\.mp3$/, "");
 export const LibraryPanel: React.FC = () => {
   const setProject = useStore((s) => s.setProject);
   const hasKoubo = useStore((s) => isKouboProject(s.project));
-  const isLive = useStore((s) => isLiveProject(s.project));
   const setPreview = useStore((s) => s.setPreview);
   const [tab, setTab] = useState<TabId>("media");
   // 动效库分类默认折叠，点击标题展开
@@ -260,20 +258,6 @@ export const LibraryPanel: React.FC = () => {
       <div className="library-list">
         {tab === "media" && (
           <>
-            {canBuildLive && (
-              <button
-                className="btn wide"
-                disabled={isLive}
-                title={
-                  isLive
-                    ? "当前已是实时看板工程"
-                    : `把接入工程「${KB_PROJECT}」的主合成按实时代码放进时间线：agent 存盘即刷新，上方进度轨显示每镜状态（可撤销）`
-                }
-                onClick={() => setProject(buildLiveProject())}
-              >
-                ▶ 实时看板：{KB_PROJECT}
-              </button>
-            )}
             <button
               className="btn wide"
               disabled={!kouboImportable}
@@ -283,7 +267,7 @@ export const LibraryPanel: React.FC = () => {
                   : hasKoubo
                     ? "按稳定 id 把最新拆解合进当前工程：起点 / 时长跟新，你改过的文案 / 颜色 / 图层 / 位置保留（可撤销）"
                     : KB_FORM === "skill"
-                      ? "把成片拆成多轨：逐句字幕（可改文本）/ 幕级覆盖 / 转场标记 / 逐镜参数化镜头（文案 / 颜色 / 位置 / 方向可调，写回工程 overrides.json）/ 幕底 / 配音 / 逐条音效（可撤销）"
+                      ? "把成片拆成多轨：逐句字幕（可改文本）/ 幕级覆盖 / 转场标记 / 逐镜参数化镜头（文案 / 颜色 / 位置 / 方向可调，写回工程 overrides.json）/ 幕底 / 配音 / 逐条音效；此后工程文件一变（shots / 场景 / 音效 / 字幕）自动同步，不用再点（可撤销）"
                       : "把口播成片拆解为逐句字幕/转场/环境/数字人/23 镜头/配音/逐条音效的多轨工程（可撤销）"
               }
               onClick={() => setProject(hasKoubo ? syncKouboProject(useStore.getState().project) : buildKouboProject())}
