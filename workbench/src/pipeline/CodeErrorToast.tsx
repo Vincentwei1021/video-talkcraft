@@ -1,7 +1,7 @@
 import React from "react";
 import { usePipeline } from "./store";
 
-/** 工程代码报错（Vite 转换失败：语法错 / 引用缺失）时右下角提示，不盖整页；HMR 成功后自动消失 */
+/** 右下角提示，不盖整页：工程代码报错（Vite 转换失败：语法错 / 引用缺失，HMR 成功后自动消失），或带 title 的接入说明（拆解契约不全） */
 export const CodeErrorToast: React.FC = () => {
   const err = usePipeline((s) => s.codeError);
   const clear = usePipeline((s) => s.setCodeError);
@@ -9,7 +9,7 @@ export const CodeErrorToast: React.FC = () => {
   return (
     <div className="code-toast" role="status">
       <div className="code-toast-title">
-        工程代码有错（agent 可能正在改，画面停在上一版）
+        {err.title ?? "工程代码有错（agent 可能正在改，画面停在上一版）"}
         <button className="mini" onClick={() => clear(null)} title="关闭">
           ✕
         </button>

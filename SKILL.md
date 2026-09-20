@@ -229,7 +229,7 @@ anime.js v4 / three.js 走 `anime-remotion.ts` / `three-anime.ts` 桥（seek-saf
 1. **先搭全合成骨架**：`remotion/` 目录建好后先 `bash <skill根>/runtime/link-runtime.sh <本片工程>`（`node_modules` 软链到统一依赖、`package.json` 依赖版本抄 runtime——不自建、不 `npm install`），
    然后 entry / 全片时长 / `shots.ts` + `shots.json` 全表（时间来自 SHOTBOOK 与 timestamps，此时就写全）/ 全局系统（G1 相机、G3 让位、幕底、字幕、theme）
    / `src/sfx.ts` **先建成空表**（`export const CUES: SfxCue[] = []`）——⑤-2 拆解契约的六个文件（shots / scenes/index / Subtitles / sfx / timing / camera）骨架期就要齐，
-   工作台一接入就是多轨、之后每落一条 cue 轨上就多一块；缺 sfx.ts 接入只能退到单轨（`@kbsrc/*` 真实 / stub 的别名在 dev server 启动时定，后补文件要重启）；
+   工作台一接入就是多轨、之后每落一条 cue 轨上就多一块；缺 sfx.ts 进不了多轨、工作台右下角会点名缺哪个契约模块（`@kbsrc/*` 真实 / stub 的别名在 dev server 启动时定，后补文件要重跑 link-project.sh 并重启）；
    **其余镜头一律占位**——`MainVideo-example.tsx` 里 `SCENES[shot.id]` 查不到就落到 `PlaceholderScene`（只露幕底 + 字幕，不写任何动效）。
    骨架搭全是为了 render_shots 的段表 / 时长断言原样生效，不为首镜开豁免。
 2. **只实现样板镜**（SHOTBOOK G0「样板镜」行，默认 s01）：按 SHOTBOOK 全量落地——蒙皮行、卡 tsx 复制、音效 cue、转场处置——不做"先糙后精"。
@@ -263,8 +263,8 @@ cd <skill根>/workbench
 bash scripts/link-project.sh <本片工程>       # kbsrc → remotion/src；public/ 先清掉指向别的工程的旧链接再逐项软链；末行必须打印「拆解契约 OK」——否则多轨进不去，它会说缺哪个文件
 npm run dev &                                                          # 已在跑就跳过；链接变了要重跑一次 npm run gen；契约文件是后补的要重启 dev server（别名启动时定）
 sleep 4 && curl -s http://localhost:5199 | grep -q '动效工作台' && echo "工作台 OK" || echo "FAIL: 工作台未起"
-open 'http://localhost:5199/?tracks'                                   # 进来就是多轨（字幕 / 转场 / 逐镜 / 幕底 / 配音 / 音效 + 进度轨），之后自动跟盘；?live 同义；
-                                                                       # ?mono 才是单轨整条 Main（对照渲染 / 拆解契约不全时排障用，契约不全时 ?live 自动退到它）
+open 'http://localhost:5199/?tracks'                                   # 进来就是多轨（字幕 / 转场 / 逐镜 / 幕底 / 配音 / 音效 + 进度轨），之后自动跟盘；?live 同义
+                                                                       # 契约不全不会装任何工程，右下角点名缺哪个模块——回 ⑤-1 补齐；单轨"成片（实时）"2026-09-21 已下线
 ```
 - **状态清单 `pipeline.json`**（工程根）：工作台 dev server 按盘上产物**实时推导**每镜状态（占位 / 已实现 / 已渲 / 已过闸、场景比段新 = 过期），
   不依赖 agent 记得写；agent 只在盘上推不出的事上落一笔，都走 `node <skill根>/scripts/pipeline_state.mjs`（在工程根或 remotion/ 下执行）：
@@ -423,7 +423,7 @@ bash <skill根>/runtime/check-runtime.sh          # 统一依赖体检 + 链好 
 cd <skill根>/workbench
 bash scripts/link-project.sh <本片工程>          # 链接本片工程（机器本地符号链接，不进库；手写 ln -sfn 循环不会替换指向旧工程目录的链接——2026-09-15 实测 logos 仍指上一支片）
 mkdir -p public && for f in <本片工程>/remotion/public/*; do ln -sfn "$f" "public/$(basename "$f")"; done
-npm run dev &                                     # 浏览器打开 http://localhost:5199/?tracks 并告知用户（多轨面；?live 同义，别开 ?mono 单轨）
+npm run dev &                                     # 浏览器打开 http://localhost:5199/?tracks 并告知用户（多轨面；?live 同义）
 sleep 4 && curl -s http://localhost:5199 | grep -q '动效工作台' && echo "工作台 OK" || echo "FAIL: 工作台未起——禁止用 remotion studio 代替"
 ```
 **防误操作**：交付给用户的界面**只能是这个工作台**（页面标题「TalkCraft Workbench · 动效工作台」，上面那行断言就是核验）。

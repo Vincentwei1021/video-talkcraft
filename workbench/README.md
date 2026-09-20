@@ -33,8 +33,8 @@ skill 在 ⑤-1 合成骨架搭完就把工程接进来、开着工作台（SKIL
   SSE 或 Vite HMR 一到就按稳定 id 增量同步进时间线，不用再点「同步拆解」（你改过的文案 / 图层 / 删除保留；机器同步不进撤销栈）。
   逐镜 clip 自带状态角标（占位 / 已实现 / 已渲 / 已过闸 · ⟳ 过期 · P0/P1），占位镜画斜纹半透明——制作中一眼看出做到第几镜、音效落在哪。
   工程存在浏览器 localStorage，换一个浏览器打开看到的是它上次的工程，带参数才能保证进来就是多轨。
-- **单轨成片（实时）**：`?mono` 打开或点「▶ 单轨成片（实时）」，时间线装上接入工程的整条主合成（一条轨一个 clip，画幅随工程横竖屏）——
-  对照最终渲染、或拆解契约不全时的退路（契约不全时 `?live` 自动退到这里），agent 存盘即经 Vite HMR 刷新。工程代码有语法错时**不再盖整页**（右下角提示 + 画面停在上一版）；单 clip 渲染出错只把那一格画红。
+- **单轨「成片（实时）」已下线（2026-09-21）**：不再有 `?live` 单轨、`?mono`、「▶ 实时看板」按钮和素材库里的整条成片卡；
+  拆解契约不全时 `?tracks` 不装任何工程，右下角点名缺哪个契约模块（旧存档里的单轨工程仍能打开与渲染）。agent 存盘即经 Vite HMR 刷新。工程代码有语法错时**不再盖整页**（右下角提示 + 画面停在上一版）；单 clip 渲染出错只把那一格画红。
 - **状态从哪来**：dev server 按盘上产物实时推导（`scripts/pipeline_state.mjs` 的 `derivePipeline`：shots.json → SCENES 表 / scenes/ 文件 → out/segments|preview → review/*.md），
   再合上工程根 `pipeline.json` 里 `manual` 一节（`--pass` / `--issue` / `--stage`，盘上推不出的才手写）。文件变化经 Vite 的 chokidar + 4s 兜底轮询，只在状态变了才推（`/api/pipeline/events`）。
 - **拆解导入可增量同步**：拆解单元 id 稳定（`kb-shot-s03`、`kb-sfx-12`…），再点一次变成「⟳ 同步拆解」——起点 / 时长跟新，你改过的文案 / 颜色 / 图层保留，你删掉的单元不复活（工程记着上次拆解的 id）。已知限制：分割过的拆解片段同步后左半会被重置成整段，分割请在同步之后做。
@@ -117,7 +117,7 @@ src/
   panels/               素材库四 tab / schema 属性面板
   remotion/             Remotion CLI 入口（Studio + 渲染导出共用 Main 合成）
   kb/                   接入工程适配层：按契约归一导出形态（缺导出 / 改名 → stub 兜底），工作台源码只从这里取接入工程的东西
-    liveProject.ts      实时看板工程：一条轨一个 kb-main clip（接入工程主合成）
+    liveProject.ts      （已下线）单轨实时看板工程的 id 判定，只为旧存档兼容
   pipeline/             实时看板：store（SSE 客户端 + vite:error 接住）/ StageBar / ProgressTrack / ShotPanel / CodeErrorToast
   cards/
     registry.ts         注册表：手写核心卡 + gen 参数化卡 + 模板卡兜底

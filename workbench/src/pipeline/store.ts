@@ -12,12 +12,12 @@ interface PipelineStore {
   state: PipelineState | null;
   connected: boolean;
   selectedShotId: string | null;
-  /** Vite 报的工程代码错误（语法错 / 引用缺失），HMR 成功后清空 */
-  codeError: { message: string; file?: string } | null;
+  /** 右下角提示：Vite 报的工程代码错误（语法错 / 引用缺失，HMR 成功后清空），或接入层的说明（如拆解契约不全，带自定义 title） */
+  codeError: { message: string; file?: string; title?: string } | null;
   selectShot: (id: string | null) => void;
   setState: (s: PipelineState | null, linked: boolean) => void;
   setConnected: (b: boolean) => void;
-  setCodeError: (e: { message: string; file?: string } | null) => void;
+  setCodeError: (e: { message: string; file?: string; title?: string } | null) => void;
 }
 
 /** HMR 重建时接回上一份状态（同 ../store 的 Carried 做法），阶段栏 / 进度轨不闪空 */
@@ -35,10 +35,13 @@ export const usePipeline = create<PipelineStore>((set) => ({
   setCodeError: (codeError) => set({ codeError }),
 }));
 
-// kb-main 实时成片卡载入失败（语法错 / 缺导出）→ 同一条右下角提示；载入成功 → 清掉
+// （旧存档兼容）kb-main 成片卡载入失败（语法错 / 缺导出）→ 同一条右下角提示；载入成功 → 清掉。
+// 带 title 的接入说明（拆解契约不全）优先级更高，不被它盖掉——缺契约文件时 Main 往往也 import 不到那个文件，两条错其实是同一件事。
 useLiveLoad.subscribe((s, prev) => {
-  if (s.error && s.error !== prev.error) usePipeline.getState().setCodeError(s.error);
-  else if (!s.error && prev.error) usePipeline.getState().setCodeError(null);
+  const cur = usePipeline.getState().codeError;
+  if (s.error && s.error !== prev.error) {
+    if (!cur?.title) usePipeline.getState().setCodeError(s.error);
+  } else if (!s.error && prev.error && !cur?.title) usePipeline.getState().setCodeError(null);
 });
 /** 上次载入失败的实时成片卡：重建 lazy 再试（还坏就再次报错、提示回来） */
 const retryLiveIfFailed = () => {
@@ -51,7 +54,7 @@ useStore.subscribe((s, prev) => {
   if (s.selectedClipId && s.selectedClipId !== prev.selectedClipId) usePipeline.getState().selectShot(null);
 });
 
-/** 增量同步：shots.json 变了（总时长变）→ 实时成片 clip 的时长跟着变，其余 clip 不动 */
+/** （旧存档兼容）单轨"成片（实时）"工程 2026-09-21 已下线，但浏览器里可能还存着一份：shots.json 变了（总时长变）→ 那个 clip 的时长跟着变 */
 const syncLiveClip = (state: PipelineState) => {
   if (!state.totalFrames) return;
   const s = useStore.getState();
@@ -66,7 +69,7 @@ const syncLiveClip = (state: PipelineState) => {
 /** 多轨自动跟盘（2026-09-21 用户：制作中"一开始就是多轨，实时看到音效放到哪、镜头做到哪、字幕什么样"，不是单轨进度台）：
  *  工程文件一变（SSE 推来 shots / scenes / out 的变化，或接入源码 HMR 完成）→ 按稳定 id 把新鲜拆解合进当前多轨工程；
  *  用户改过的 props / 图层 / 删除保留（syncKouboProject 语义），不进撤销栈。400ms 防抖：一次保存常同时触发两路事件。
- *  单轨"成片（实时）"工程与用户自己的工程不受影响（syncedIfChanged 只认本片拆解工程）。 */
+ *  旧存档里的单轨工程（已下线）与用户自己的工程不受影响（syncedIfChanged 只认本片拆解工程）。 */
 let syncTimer: ReturnType<typeof setTimeout> | null = null;
 const autoSyncTracks = () => {
   if (syncTimer) clearTimeout(syncTimer);
@@ -116,12 +119,13 @@ export const connectPipeline = () => {
   const hot = import.meta.hot;
   if (hot) {
     hot.on("vite:error", (e: { err?: { message?: string; id?: string; loc?: { file?: string; line?: number } } }) => {
+      if (usePipeline.getState().codeError?.title) return; // 带 title 的接入说明（拆解契约不全）不被转换错误盖掉——缺契约文件时 Main import 不到它，是同一件事
       const err = e?.err ?? {};
       const file = err.loc?.file ? `${err.loc.file}${err.loc.line ? `:${err.loc.line}` : ""}` : err.id;
       usePipeline.getState().setCodeError({ message: String(err.message ?? "工程代码错误").split("\n")[0].slice(0, 300), file });
     });
     hot.on("vite:afterUpdate", () => {
-      usePipeline.getState().setCodeError(null);
+      if (!usePipeline.getState().codeError?.title) usePipeline.getState().setCodeError(null); // 契约说明要到重启 dev server 才会变，HMR 不清它
       retryLiveIfFailed();
       autoSyncTracks(); // 接入源码（scenes / sfx.ts / Subtitles）改完 → 本模块已随链重建、拿到的是新鲜数据
     });

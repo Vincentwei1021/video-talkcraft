@@ -7,7 +7,6 @@ import { cardPreviewUrl, cardThumbUrl } from "../cards/templateCards";
 import { TPL_CATEGORIES, TPL_META } from "../cards/tplMeta";
 import { useStore } from "../store";
 import { buildKouboProject, isKouboProject, SFX_FILES, syncKouboProject } from "../kouboImport";
-import { buildLiveProject, canBuildLive, isLiveProject } from "../kb/liveProject";
 import { MEDIA_ITEMS, SFX_ALL } from "../mediaManifest";
 import { KB_DECOMPOSABLE, KB_FORM, KB_LINKED, KB_PROJECT } from "../kbMeta";
 import { setDragPayload } from "../dnd";
@@ -151,7 +150,6 @@ const sfxShort = (f: string) => f.replace(/^pk-/, "").replace(/\.mp3$/, "");
 export const LibraryPanel: React.FC = () => {
   const setProject = useStore((s) => s.setProject);
   const hasKoubo = useStore((s) => isKouboProject(s.project));
-  const isLive = useStore((s) => isLiveProject(s.project));
   const setPreview = useStore((s) => s.setPreview);
   const [tab, setTab] = useState<TabId>("media");
   // 动效库分类默认折叠，点击标题展开
@@ -260,20 +258,6 @@ export const LibraryPanel: React.FC = () => {
       <div className="library-list">
         {tab === "media" && (
           <>
-            {canBuildLive && (
-              <button
-                className="btn wide"
-                disabled={isLive}
-                title={
-                  isLive
-                    ? "当前已是单轨成片工程"
-                    : `把接入工程「${KB_PROJECT}」的整条主合成按实时代码放进时间线（一条轨一个 clip，agent 存盘即刷新）——对照最终渲染结果用；制作中看多轨请点下面的「拆解导入」，它会随工程文件自动同步（可撤销）`
-                }
-                onClick={() => setProject(buildLiveProject())}
-              >
-                ▶ 单轨成片（实时）：{KB_PROJECT}
-              </button>
-            )}
             <button
               className="btn wide"
               disabled={!kouboImportable}

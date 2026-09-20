@@ -112,7 +112,7 @@ export const kbMainCard: CardDef = {
   id: "kb-main",
   name: KB_LINKED ? `${KB_PROJECT} · 成片（实时）` : "接入工程 · 成片（实时）",
   category: "成片",
-  hidden: !KB_LINKED || !KB_MAIN,
+  hidden: true, // 2026-09-21 单轨"成片（实时）"已下线：素材库不再列出；旧存档里的 kb-live-main clip 仍按这张卡渲
   durationInFrames: Math.max(2, TOTAL_FRAMES),
   accent: "#30d158",
   component: KbMain as React.ComponentType<Record<string, unknown>>,

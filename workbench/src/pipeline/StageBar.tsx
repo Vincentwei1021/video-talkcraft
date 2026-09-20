@@ -1,17 +1,15 @@
 import React from "react";
 import { usePipeline } from "./store";
 import { useStore } from "../store";
-import { buildLiveProject, canBuildLive, isLiveProject } from "../kb/liveProject";
 import { buildKouboProject, isKouboProject } from "../kouboImport";
 import { KB_DECOMPOSABLE, KB_PROJECT } from "../kbMeta";
 
-/** 顶栏下的阶段条：①…⑧ 当前步高亮、hover 看产物；右侧镜头计数 + 直播点 + 「接入实时看板」。
+/** 顶栏下的阶段条：①…⑧ 当前步高亮、hover 看产物；右侧镜头计数 + 直播点 + 「⇣ 多轨（实时）」（当前不是本片拆解工程时）。
  *  只订阅 pipeline store（播放中不重渲染）。未链接工程时不渲染。 */
 export const StageBar: React.FC = () => {
   const linked = usePipeline((s) => s.linked);
   const state = usePipeline((s) => s.state);
   const connected = usePipeline((s) => s.connected);
-  const isLive = useStore((s) => isLiveProject(s.project));
   const hasKoubo = useStore((s) => isKouboProject(s.project));
   const setProject = useStore((s) => s.setProject);
   if (!linked) return null;
@@ -59,15 +57,6 @@ export const StageBar: React.FC = () => {
           onClick={() => setProject(buildKouboProject())}
         >
           ⇣ 多轨（实时）
-        </button>
-      )}
-      {!KB_DECOMPOSABLE && canBuildLive && !isLive && (
-        <button
-          className="btn"
-          title="工程不满足拆解契约（npm run gen 末行说缺哪个文件）：先把整条主合成按实时代码放进时间线（一条轨一个 clip；agent 存盘即刷新），进度轨随之出现"
-          onClick={() => setProject(buildLiveProject())}
-        >
-          ▶ 单轨成片（实时）
         </button>
       )}
     </div>
