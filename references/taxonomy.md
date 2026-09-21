@@ -68,7 +68,7 @@ lead/tail 交叠 12~16 帧 + 两侧同向的动量交接纪律，代码同为 `t
 以下七类**每卡一行**：`slug` 批次记号 中文名 · P 级 · 能量档 —— 一句话（含与兄弟卡的区分）。
 参数 / 命门 / 已知坑 / 落位自检一律看 `references/cards/<slug>.md`（**唯一正主**，本文不再复写），实现看 `template/cards/<slug>.tsx`。
 两条全库口径（2026-09-22 审计后定）：**能量档只有 低 / 中 / 高 三档**（判据：低 = 只有淡入 / 解糊 / ≤1.02 缩放 / 小位移；中 = 明确位移、back.out 回弹或 ≥1.05 缩放；高 = 拍击 / 急推 / 整屏变化 / 震动）；
-tsx 的 `meta.durationInFrames` = 卡内动画长度 + 0.4s 收尾垫（个别卡例外见其 md），md「时长」按动画长度写，两者差 0.4s 不是错。
+tsx 的 `meta.durationInFrames` = 卡内动画长度 + 0.4s 收尾垫，md「时长」按动画长度写，两者差 0.4s 不是错。例外六张（meta 与动画长度差得更多）：behind-text-title（hold 是循环 idle，meta 3.17s 只是截断）、focus-dim-spotlight（meta 9.17s 比时间表多 1.2s）、media-pop-in（落位后 idle 到 meta 结束，无退场段）、magnifier-detail（无限扫视，meta 3.37s 为截断）、typewriter-reveal（尾垫约 2s）、info-term-card（3.96s 出画后 meta 拖到 6.57s 空台）。
 
 ## 字幕花字
 
