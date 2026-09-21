@@ -37,6 +37,7 @@ skill 在 ⑤-1 合成骨架搭完就把工程接进来、开着工作台（SKIL
   拆解契约不全时 `?tracks` 不装任何工程，右下角点名缺哪个契约模块（旧存档里的单轨工程仍能打开与渲染）。agent 存盘即经 Vite HMR 刷新。工程代码有语法错时**不再盖整页**（右下角提示 + 画面停在上一版）；单 clip 渲染出错只把那一格画红。
 - **状态从哪来**：dev server 按盘上产物实时推导（`scripts/pipeline_state.mjs` 的 `derivePipeline`：shots.json → SCENES 表 / scenes/ 文件 → out/segments|preview → review/*.md），
   再合上工程根 `pipeline.json` 里 `manual` 一节（`--pass` / `--issue` / `--stage`，盘上推不出的才手写）。文件变化经 Vite 的 chokidar + 4s 兜底轮询，只在状态变了才推（`/api/pipeline/events`）。
+- **配音块按工程实际文件解析**（public/ 根的 narration.wav / full.wav / voice.*），旧存档里写死 full.wav 的配音块同步时自动换到实际文件；工程里没有这类文件时 `workbench_contract_lint.py` 报 FAIL。
 - **拆解导入可增量同步**：拆解单元 id 稳定（`kb-shot-s03`、`kb-sfx-12`…），再点一次变成「⟳ 同步拆解」——起点 / 时长跟新，你改过的文案 / 颜色 / 图层保留，你删掉的单元不复活（工程记着上次拆解的 id）。已知限制：分割过的拆解片段同步后左半会被重置成整段，分割请在同步之后做。
 - **切换工程**：只有来源路径相同的存档会增量同步；另一支视频或没有 `kbProjectRoot` 标记的旧存档会重新拆解当前工程，并读取它自己的 overrides。旧版本的未标记存档保留在原 localStorage key `talkcraft-workbench-project-v1`，不会猜测来源后自动写回。
 - **参数写盘**：保存失败会提示并自动重试，写入按顺序执行。请求带当前工程标记，切换了工程的 dev server 会拒绝旧标签页写入，并提示刷新。

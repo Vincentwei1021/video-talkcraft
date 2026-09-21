@@ -69,7 +69,7 @@ function importer() {
     './kb/params': {OVERRIDES: {s01: {title: 'B saved edit'}}}, './kb/timing': {timing: {scenes: []}},
     './cards/koubo-skill': {KSHOT_PREFIX: 'kshot-', shotFrames: () => ({shot, from: 0, total: 90})},
     './kbMeta': {KB_PROJECT_ROOT: projectRoot, KB_FORM: 'skill', KB_LINKED: true, KB_DECOMPOSABLE: true, KB_COMP: {width: 1080, height: 1920, fps: 30}, KB_MODULES: {}, KB_TRANSITIONS: [], WIPE_TIMES: []},
-    './hmr': hmrBag(),
+    './hmr': hmrBag(), './mediaManifest': {MEDIA_ITEMS: [{file: 'narration.wav', kind: 'audio', label: '配音'}]},
   });
 }
 test('foreign and untagged projects rebuild from current source, including canvas and saved overrides', () => {
@@ -210,9 +210,9 @@ test('overrides endpoint rejects stale clients and reports disk failures', t => 
 });
 
 // 2026-09-21 多轨自动跟盘：工程文件一变 → syncedIfChanged() 给出同步后的工程（没变就是 null）；cue 表已带 sfx/ 前缀不再叠成 sfx/sfx/，旧工程同步时修回
-function importerWithSfx(cues, meta = {}) {
+function importerWithSfx(cues, meta = {}, media = [{file: 'narration.wav', kind: 'audio', label: '配音'}]) {
   return load('workbench/src/kouboImport.ts', {
-    './hmr': hmrBag(),
+    './hmr': hmrBag(), './mediaManifest': {MEDIA_ITEMS: media},
     './cards/registry': {CARDS: cards}, './cards/koubo-units': {},
     './kb/shots': {SHOTS: [shot], FPS: 30, TOTAL_FRAMES: 90}, './kb/sfx': {SFX_CUES: cues},
     './kb/Subtitles': {phrases: () => [{text: '字幕', start: .041, end: .081, dark: false}]},
@@ -283,4 +283,20 @@ test('store survives module re-execution as a singleton', async () => {
   assert.equal(b.getState().project.name, 'edited');
   await timer.advance(800);
   assert.equal(JSON.parse(values.get(`talkcraft-workbench-project-v1:${encodeURIComponent(projectRoot)}`)).name, 'edited', 'autosave installed exactly once still works');
+});
+
+// 2026-09-21 用户："原来口播的声音怎么没了"——配音块写死 full.wav，工程用 narration.wav 时多轨静音。按工程实际音频解析；旧存档同步时迁移
+test('voice track resolves the project narration file and migrates legacy full.wav clips', () => {
+  const a = importerWithSfx([]);
+  const voice = p => p.tracks.find(t => t.id === 'kb-track-voice').clips[0];
+  assert.equal(a.VOICE_FILE, 'narration.wav');
+  const p = a.buildKouboProject();
+  assert.equal(voice(p).props.file, 'narration.wav');
+  const legacy = plain(p); voice(legacy).props = {file: 'full.wav', volume: .7}; voice(legacy).label = '配音 full.wav';
+  const synced = voice(a.syncKouboProject(legacy));
+  assert.equal(synced.props.file, 'narration.wav', 'missing full.wav is swapped for the real narration file');
+  assert.equal(synced.props.volume, .7, 'user volume survives');
+  const b = importerWithSfx([], {}, [{file: 'full.wav', kind: 'audio', label: '配音'}]);
+  assert.equal(b.VOICE_FILE, 'full.wav', 'projects that really ship full.wav keep it');
+  assert.equal(voice(b.syncKouboProject(legacy)).props.file, 'full.wav');
 });

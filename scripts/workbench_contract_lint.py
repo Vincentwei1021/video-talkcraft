@@ -105,6 +105,16 @@ def parse_map(text: str, name: str) -> dict[str, str] | None:
     return out
 
 
+def check_voice(rem: str) -> None:
+    """配音文件：工程 public/ 根级须有 narration.wav（模板约定）或 full.wav——Main 的 <Audio> 与工作台多轨的配音块都按它找，缺了成片或多轨就没有人声（2026-09-21 实测）"""
+    pub = os.path.join(rem, "public")
+    names = [n for n in (os.listdir(pub) if os.path.isdir(pub) else []) if re.match(r"^(narration|full|voice|vo)\.(wav|mp3|m4a|aac|flac)$", n, re.I)]
+    if names:
+        ok(f"配音文件在 public/ 根：{' '.join(names)}")
+    else:
+        fail("public/ 根没有 narration.wav / full.wav——Main 的 <Audio> 与工作台多轨的配音块都按这个名字找，缺了成片或多轨就没有人声")
+
+
 def main() -> int:
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     allow_placeholder = "--allow-placeholder" in sys.argv
@@ -125,6 +135,7 @@ def main() -> int:
         fail(f"契约文件缺：{', '.join(missing)}（工作台 gen-index 会判「非拆解契约形态」，拆解按钮灰）")
     else:
         ok("六个契约文件在（shots / scenes/index / Subtitles / sfx / timing / camera）")
+    check_voice(rem)
 
     # shots.json ids
     shot_ids: list[str] = []
