@@ -30,14 +30,14 @@ name: chat-gpt
 ## 动效核心
 - **三段错峰淡入（本卡的入场骨架）**：问候标题 `[0.13, 0.67]` → 药丸 `[0.33, 0.87]` → chips `[0.53, 1.07]`
   （源码 `fadeUpAt[4,20] / [10,26] / [16,32]`），各带 9px 上移。**错峰顺序 = 阅读顺序**（先看标题、再看输入框、最后看建议）
-- **位移视差（最易漏掉的一处）**：同一个 `spring(damping 14 / stiffness 110 / mass 0.7)` 的 21px 位移，
-  标题乘 **0.4**、药丸与 chips 乘 **0.6**——远的元素动得少。源码这两个乘数的差就是全部视差来源，
+- **位移视差（最易漏掉的一处）**：同一个弹入位移（`introY` 21px，0.62s `back.out(1.05)` 近似源码 spring），
+  标题乘 **0.4**（`greetPar`）、药丸与 chips 乘 **0.6**（`pillPar`）——远的元素动得少。这两个乘数的差就是全部视差来源，
   拉平成同一个值立刻退化成"整块一起飘上来"
 - **1.40s 起打**（源码 `TYPING_START_FRAME 42`）：静置留给口播开口
 - **逐字揭示，不分块**：中文 8.5 字/s（源码 `TYPING_CPS 22` 是英文字符速率）。
   药丸是**单行 `nowrap`**——提示词长度有硬上限（这也是这个产品的语法：一次一句话）
 - **输入光标两态**：有字时跟在文本尾（插入点），空态时在占位文案前；打字中实心不闪，
-  未开打 / 打完待发才 1Hz 闪（源码 `Caret blink={!tw.typing}`）
+  未开打 / 打完待发才 1Hz 闪（`caretHz`）
 - **morph（圆 → 圆）**：同一个 33px 方框里两个**都是圆**的图层交叉，与打字**同帧**开始、0.40s 完成——
   语音圆（点睛色底 + 白波形）`opacity 1 → 0` + `scale 1 → 0.9`，发送圆（墨底 + 白箭头）
   `opacity 0 → 1` + `scale 0.8 → 1` 带 `back.out(1.7)`。
@@ -96,6 +96,7 @@ name: chat-gpt
 - 一段演两问两答——观众切换到"读对话"模式；一问一答是自演的容量上限。
 
 ## 复用指引
+- props：仅 `hostSrc`（角标）；prompt / reply / placeholder 在 `CONFIG`，问候语与三枚 chips 文案在 JSX 常量里，换内容需改源码。
 - Remotion/tsx（skill 首选）：template/cards/chat-gpt.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/chat-gpt/index.html。**换内容只改 `CONFIG.prompt` / `CONFIG.reply` / `CONFIG.placeholder`**——
   时刻表 `buildSchedule()` 按字数自动重算。节奏参数全在 `CONFIG`
@@ -103,19 +104,12 @@ name: chat-gpt
   问候语改 `.greet` 的文案，三枚 chips 改 `.chips` 里的 `<span>`（图标是内联 SVG，换意图就换 path）；
   **配色不要改**——它是 ChatGPT 的皮，属于内容（要改就是在做另一个产品的卡）；
   真要换成**别的**产品皮时改两个 morph 图层的 `border-radius` 与底色 + 药丸圆角 + 助手位标识，**时刻表与所有时长一律不动**。
-- Remotion 移植（这就是源头）：`registry/remocn/chat-gpt/index.tsx`（520 行）。可直接抄的纯函数——
-  `morphProgressAt(frame, {fps, speed})`（`spring({damping:14, stiffness:200, mass:0.6})` 后 clamp，
-  这个函数在 remocn 的几个 AI 产品组件里是共用的）、`introBounceIn`、`fadeUpAt`；
-  打字用 `useTypewriter(prompt, {cps, speed, startFrame})`（`registry/remocn-ui/core/timeline.ts`），
-  光标用 `registry/remocn-ui/caret` 的 `<Caret blink={!tw.typing} blinkPerSecond={1} />`。
-  视差在源码里是 `intro.translateY * 0.4`（标题）与 `* 0.6`（药丸/chips）两处乘法——**照抄这两个乘数**；
-  chips 退场是 `chipsFade.opacity * (1 - morph)` 与 `chipsFade.translateY + 8 * morph`。
-  秒 ↔ 帧换算（30fps）：`fadeUpAt[4,20]/[10,26]/[16,32]` = [0.13,0.67]/[0.33,0.87]/[0.53,1.07]s、
-  `TYPING_START_FRAME 42` = 1.40s、morph 0.40s ≈ 12 帧、chips 下移 8px ≈ 6px（本卡等比 0.75）。
-  源码**止于发送键就位**（`durationInFrames 150` = 5s 定格）；发送 / 问候退场 / 用户消息 / 思考 / 流式五拍是本卡补的。
-  流式用 `Math.ceil(Math.floor((frame - streamStart)/fps × rate)/2)*2` 取子串（**不要用 `Math.random`**，多趟渲染会闪）。
-  **remocn 源码里另有 `claude-chat` / `opencode` / `v0` 三个组件共享同一套 morph 机制**（同机制的不同产品皮）——
-  要做别的 AI 产品自演卡时先去读那几个，皮照抄、时序沿用本卡这套即可。
+- Remotion 移植：template/cards/chat-gpt.tsx 即实现（`CONFIG` + `buildSchedule()` + 逐帧求值，`meta.durationInFrames` 由 `S.total` 算出）。
+  视差是 `introY × greetPar(0.4)`（标题）与 `× pillPar(0.6)`（药丸 / chips）两处乘法——**照抄这两个乘数**；
+  chips 退场是 `chipsO = cF.o × (1 − mFwd)` 与 `translateY += chipsOutY × mFwd`（`mFwd` 是不回退的 morph 正向进度）；
+  morph 用 `out3(mRaw)` 交叉、发送圆按 `back.out(morphPop 1.7)` 涨出，发出后按 `revertDur` 回退。
+  秒 ↔ 帧换算（30fps）：三段 fade 窗 [0.13,0.67]/[0.33,0.87]/[0.53,1.07]s、`typeStart` 1.40s = 42 帧、morph 0.40s ≈ 12 帧。
+  流式用 `Math.ceil(linCnt / streamChunk) × streamChunk` 取子串（**不要用 `Math.random`**，多趟渲染会闪）。
 - 剪辑软件对应物：剪映/CapCut——三段错峰就是三个图层各自的入场预设（"向上滑入 + 淡入"）**错开 0.2s 起始**，
   视差靠给标题层的位移量调小（比如药丸走 14px、标题只走 9px）；
   morph 是两个圆形按钮图层的交叉（Opacity 100→0 + Scale 100→90 / Opacity 0→100 + Scale 80→100 带弹性），
@@ -140,5 +134,5 @@ name: chat-gpt
   需要深色 ChatGPT 时整套换过去，**唯一要跟着翻的是发送圆**（浅皮墨底白箭头 → 深皮白底墨箭头，源码 `sendBg/sendArrow` 就是这么翻的）。
 - 与相邻卡的分工：**vs [chat-message-flow](chat-message-flow.md)（通用聊天自演）**——那张演*人和人*（两侧气泡、三点跳、反应表情，一段 2~4 条往复），本卡演*人和 AI 产品*（首屏三件套、morph、无气泡回答、流式吐字，一问一答）。**vs [claude-code](claude-code.md)（同批姊妹卡）**——那张是终端里的编码智能体（深底窗、工具调用循环、diff）；讲"AI 帮我写代码"用那张。**vs [terminal-typing-log](terminal-typing-log.md)（通用终端）**——那张是 stdout 流水且载体是终端；本卡的流式虽同样分块突进，但结构是「一问一答」，载体是产品界面。
   **要演别的聊天型 AI 产品**（宽卡 composer 形态、morph 走圆 → 方角、accent 在发送端、无 chips、无首屏问候）时：
-  本卡的时序骨架照搬即可，皮去 remocn 源码的 `claude-chat` / `opencode` / `v0` 里抄。
+  本卡的时序骨架照搬即可，皮按那个产品的界面重画（morph 圆角 / 底色、药丸圆角、助手位标识）。
   本库目前只保留 ChatGPT 这一张聊天型产品卡（同批的 claude-chat 卡已于 2026-08-25 撤掉）。

@@ -20,7 +20,7 @@ name: slow-push-in
 
 ## 动效核心
 - 结构：静态素材（截图/图片/DOM 页面）满画幅铺在一个**相机层**里，相机层是全卡唯一被 transform 的元素；素材本身零动画
-- `transform-origin` 咬在**兴趣点中心**（引文块/关键数字/按钮），运行时读该元素的包围盒反推坐标——换兴趣点只需把 id 挂到别的元素上
+- `transform-origin` 咬在**兴趣点中心**（引文块/关键数字/按钮）；HTML demo 运行时读该元素的包围盒反推坐标，tsx 写死为常量 `ORIGIN` = (316, 424.87)，换兴趣点重算
   兴趣点在原地不动、其余内容绕着它长大，读作"镜头正在往它走"；origin 放画面中心则读作"整体放大"（更弱但更安全）
 - 主推：`scale zoomFrom → zoomTo`（1.0 → 1.10），时长 = 本段口播时长（实拍 8~15s）
 - 缓动：**匀速**（`ease: none`）或**极缓前载减速**——本库通用运镜 ease：`p + (1−r)·p²·(1−p)`，
@@ -38,7 +38,7 @@ name: slow-push-in
 | `endRate` | 0.6 | 末速占平均速的比。1 = 全程匀速（最安全）；0.6 = 极缓"到位"感；<0.35 像撒手不管，>0 但太小则接不上 hold |
 | `driftX` / `driftY` | -13 / -7 px | 焦点微移量。0 = 纯放大（可用但更呆）；>25px 观众会看出"画面在平移"，那是 sway-parallax 的活 |
 | `holdDur` | 实拍 3~8s / demo 1.6s | hold 时长随讲述走；关键不是长短而是这段**必须还在动** |
-| `transform-origin` | 兴趣点中心 | 咬兴趣点＝"镜头往它走"；放画面中心＝"整体放大"（弱一档但永远安全，不知道兴趣点在哪时用它） |
+| `transform-origin` / `ORIGIN` | 兴趣点中心（tsx 常量 (316, 424.87)，demo 运行时反推） | 咬兴趣点＝"镜头往它走"；放画面中心＝"整体放大"（弱一档但永远安全，不知道兴趣点在哪时用它）；tsx 换兴趣点要重算 `ORIGIN` |
 
 ## 已知坑
 - 用 `power2.out` / `power3.out` 之类的标准缓出——末速为零，镜头在到位那一刻**停死**，画面立刻读作卡帧；且前段过快会被读成"冲一下"，缓推的"察觉不到"气质全丢。缓推只能匀速或极缓前载减速。
@@ -50,6 +50,7 @@ name: slow-push-in
 - 同一段里既缓推又缓拉（推一半又拉回来）——观众读作"手抖了"或"没想好"。一段一个方向；要反向就换镜头。
 
 ## 复用指引
+- props：无（`hostSrc` 声明未用）；素材是写死在 JSX 的 DOM 假文章页，`transform-origin` 是按该版式实测的常量 `ORIGIN`，换素材 / 换兴趣点需改源码并重算 `ORIGIN`。要放真截图把 `.page` 内的 DOM 换成一张铺满相机层的 `<Img>`（视频用 `<OffthreadVideo muted>`），`ORIGIN` 按图内兴趣点像素坐标重算。
 - Remotion/tsx（skill 首选）：template/cards/slow-push-in.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：`demos/slow-push-in/index.html`。换素材改 `.page` 内的整块 DOM（或换成一张 `<img>` 铺满 `.camera`）；换兴趣点把 `id="poi"` 挂到任意元素上（origin 坐标运行时反推）；节奏全在顶部 `CONFIG`（`zoomFrom` / `zoomTo` / `pushDur` / `holdDur` / `endRate` / `driftX` / `driftY`）。核心可摘走：`CONFIG` + `camEase` + `DemoShell.register` 回调体三段。
 - Remotion 移植：整段就是一个 `interpolate`——`const z = interpolate(frame, [0, pushEnd, holdEnd], [1, 1.10, holdZoom], {easing: Easing.bezier(0.33, 0.33, 0.5, 0.85), extrapolateRight: 'clamp'})`，`x` / `y` 同法各一条；套在 `transform: scale(z) translate(x, y)` 上，`transformOrigin` 用兴趣点的百分比坐标。**要匀速就直接 `easing: Easing.linear`**（默认 `Easing.bezier(0.42,0,1,1)` 是 ease-in，会读成加速）；要极缓减速就用上面那条 bezier（末段仍有速度）。`holdZoom = zoomTo + (zoomTo−1)/pushDur × endRate × holdDur`，这样两段速度连续、无需拆 Sequence。图片素材记得 `<Img src={staticFile(...)}/>` 并保证原图 ≥ 画幅 × zoomTo。
@@ -58,5 +59,5 @@ name: slow-push-in
 ## 动效范围
 - 属于本卡的：静态素材上的一条**缓推曲线**——`scale zoomFrom→zoomTo`（1.0→1.08~1.15）在 8~15s（demo 压缩到 4.2s）里走完，缓动为匀速或**末速非零的极缓前载减速**（`camEase(endRate)`，这是"不能用 power2.out"的技术答案）；`transform-origin` 咬在兴趣点中心并**全程恒定**；同时叠 5~15px 的焦点微移把兴趣点让向构图位；hold 期**沿用主推末速匀速续推**（速度连续、镜头永不静止）；"相机层是唯一被 transform 的元素、素材本身零动画"这一结构。
 - 不属于本卡的：demo 里的灰阶线框文章页（导航条/标题/柱图/引文块/相关阅读栏及其全部文案与排版）、兴趣点选在引文块这一具体决定、`driftX/driftY` 的正负方向（随构图定）、素材的入场动画（属 media-pop-in / motion-blur-slam-in）、页面上的任何标注（属 highlighter-sweep / scribble-annotation / focus-dim-spotlight）。
-- 迁移接口：`zoomTo` 定推进量（按素材分辨率上限取值，1.08~1.15）；`pushDur` 对齐本段口播时长（换时长时 `zoomTo` **不变**——推进量是观感常量，时长是节奏变量）；`endRate` 定"匀速 or 极缓到位"；`driftX/driftY` 按画幅宽等比缩放（本卡按 960 宽设计）；兴趣点＝任意页内元素（挂 id 即可，坐标运行时反推）；`holdZoom` 由末速自动推出，不要手填。
+- 迁移接口：`zoomTo` 定推进量（按素材分辨率上限取值，1.08~1.15）；`pushDur` 对齐本段口播时长（换时长时 `zoomTo` **不变**——推进量是观感常量，时长是节奏变量）；`endRate` 定"匀速 or 极缓到位"；`driftX/driftY` 按画幅宽等比缩放（本卡按 960 宽设计）；兴趣点＝任意页内元素（HTML demo 挂 id、坐标运行时反推；tsx 重算常量 `ORIGIN`）；`holdZoom` 由末速自动推出，不要手填。
 - 底色要求：白底即可——本卡零颜色、零装饰，只是一条 transform 曲线，任何底色/任何素材（浅色文档、深色 IDE 截图、照片）上都成立。

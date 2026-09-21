@@ -47,12 +47,12 @@ SHOTBOOK 每镜先写清输入是哪几种，再在这里挑吃得下的卡。�
 | 类别 | 卡 → 输入 |
 |---|---|
 | 字幕花字 | 全部 **文**（作用于标题 / 金句 / 要点层）；quote-card 与 quote-bracket-pull 另有 **人**（让位 / 人在框内）；**◎ word-slot-cycle · lead-word-zoom-assemble · title-demote-to-label · error-retype · countdown-arc-scatter · split-text-stagger → 文**（句法级：列举槽 / 首词先占满 / 标题降格成路标 / 打字改口 / 数字弧落标题 / 逐字裂升）；**◎ flying-words → 文（词表）**，深底背景层 |
-| 强调标注 | highlighter-sweep · scribble-annotation · magnifier-detail · callout-line-label · focus-dim-spotlight → **图**（含长截图 / 表格，视频截帧亦可）；strike-and-replace · ink-underline · hand-drawn-ellipse · converging-arrows · corner-bracket-frame · quote-hold-arrow → **文**；**◎ scanline-annotate → 图**（一次扫描点出 N 处）；**◎ crash-zoom-punch → 图 / V（截帧）**；**◎ reticle-lock-on → 图 / V（截帧）**（四角画外飞入咬合） |
-| 数据信息图 | 全部 **文 / 数据**（卡自带图表与矢量）；info-term-card 可配 **人**（从人物对侧滑入）；**◎ unit-grid-proportion → 数据**（比例摊成 100 个可数格子）；**◎ source-converge → 文**（多对一机制图）；**◎ chip-grid-single-select → 文**（N 选一反黑 + 因果算式） |
-| 素材呈现 | media-pop-in · news-card-desk · motion-blur-slam-in · gooey-morph · logo-enter · evidence-scroll-tour · cursor-actor-demo → **图**；pencil-sketch-draw → 矢量图；ui-flow-theater · terminal-typing-log · chat-message-flow · chat-gpt · claude-code · glass-code-walk → **界**；**◉ bed-echo-blur → 人 / V / 图 均可**（竖屏素材、只有一条素材）；**◉ rack-focus-pair → 图 / V**；**◉ still-layout-relay → 图 / V**；**◉ split-compare-slider → 图 / V（同构图两张）**；**◉ filmstrip-conveyor → 图 / V**；**◉ grid-to-hero → 图 / V 混排**；**◉ stack-fan-out → 图**；**◉ split-60-40-story → 左格 V / 图 / 人 均可 + 右格文**；**◉ gallery-wall-dolly → 图 / V（三张平级）**；**◉ timeline-photo-strip → 图 / V（3~5 站有先后）**；**◎ doc-park-left-pill-deal → 图（文档 / 长截图）+ 文**；**◎ info-card-assemble → 图（封面）+ 文 / 数据**；**◎ word-relay-filmstrip → 图（每词一张）+ 文** |
+| 强调标注 | magnifier-detail · focus-dim-spotlight · scribble-annotation · callout-line-label → **图**（含长截图 / 表格，视频截帧亦可；**这四张 tsx 的目标区是写死占位 DOM、无 src prop**，换真图与坐标需改源码，见各卡复用指引）；highlighter-sweep · strike-and-replace · ink-underline · hand-drawn-ellipse · converging-arrows · corner-bracket-frame · quote-hold-arrow → **文**（highlighter-sweep 划的是 DOM 文字，截图须先重排成文字）；**◎ scanline-annotate → 图**（一次扫描点出 N 处）；**◎ crash-zoom-punch → 图 / V（截帧）**；**◎ reticle-lock-on → 图 / V（截帧）**（四角画外飞入咬合） |
+| 数据信息图 | 全部 **文 / 数据**（卡自带图表与矢量；ui-prop-theater 例外 → **界**，进度条 + 清单自演）；info-term-card 可配 **人**（从人物对侧滑入）；**◎ unit-grid-proportion → 数据**（比例摊成 100 个可数格子）；**◎ source-converge → 文**（多对一机制图）；**◎ chip-grid-single-select → 文**（N 选一反黑 + 因果算式） |
+| 素材呈现 | media-pop-in · news-card-desk · motion-blur-slam-in · gooey-morph · evidence-scroll-tour（长截图）→ **图**（**这五张 tsx 都没有图片 prop**，素材是写死 CSS 假图 / 假长页，换真图需改源码，见各卡复用指引）；logo-enter → **文**（品牌名与内联 SVG 写死，无 logo prop）；pencil-sketch-draw → 矢量图（SVG path）；cursor-actor-demo · ui-flow-theater · terminal-typing-log · chat-message-flow · chat-gpt · claude-code · glass-code-walk → **界**；**◉ bed-echo-blur → 人 / V**（竖屏素材、只有一条素材；tsx 仅视频分支，放图需加 `<Img>`）；**◉ rack-focus-pair → 图**（tsx 仅 `<Img>`，放视频把它换成 `<OffthreadVideo>`）；**◉ still-layout-relay → 图**（同上换法，其 md 已写明）；**◉ split-compare-slider → 图**（同构图两张；tsx 仅 `<Img>`）；**◉ filmstrip-conveyor → 图**（tsx 仅 `<Img>`）；**◉ grid-to-hero → 图 / V 混排**；**◉ stack-fan-out → 图**；**◉ split-60-40-story → 左格 V / 人 + 右格文**（tsx 仅视频分支，放图需加 `<Img>`）；**◉ gallery-wall-dolly → 图**（三张平级；tsx 仅 `<Img>`）；**◉ timeline-photo-strip → 图**（3~5 站有先后；tsx 仅 `<Img>`）；**◎ doc-park-left-pill-deal → 图（文档 / 长截图）+ 文**；**◎ info-card-assemble → 图（封面）+ 文 / 数据**；**◎ word-relay-filmstrip → 图（每词一张）+ 文** |
 | 转场结构 | shape-wipe · caret-wipe · 运动承接六式 · long-take-world · color-slam-beat-card → **场**（作用于前后镜头，素材类型不限）；chapter-title-card · chapter-progress-list → **文**；**◎ line-carry-transition → 场 + 图**（A 镜标题下划线跑出画外围成 B 镜画框，B 内容为图 / 文） |
-| 人物互动 | lower-third-nameplate · chevron-lower-third · behind-text-title → **人 + 文**；host-shrink-to-chip → **人 + 图 / V**；**◉ parallel-items-with-host → 人（必需）+ 图（全屏切分四式可 V）**；subscribe-cta · x-follow-card · douyin-follow-card → **界**；danmu-bubble-praise → **文**；**◎ host-card-glass-board → 人（必需，竖卡）+ 图 / 界（板上道具）** |
-| 运镜 | slow-push-in · slow-pull-reveal · tilt-3d-page · sway-parallax · orbit-drift · stage-keyframe-tour → **图**（长截图 / 页面 / 照片；slow-push-in 也可 V）；cursor-locked-zoom → **界**；pip-zoom-box → **人 / V / 图**（保留全景放大局部） |
+| 人物互动 | lower-third-nameplate · chevron-lower-third · behind-text-title → **人 + 文**；host-shrink-to-chip → **人**（让位后的图形层由镜头自己提供，卡内 gfx 块只是占位）；**◉ parallel-items-with-host → 人（必需）+ 图**（tsx 仅 `<Img>`，放视频把它换成 `<OffthreadVideo>`）；subscribe-cta · x-follow-card · douyin-follow-card → **界**；danmu-bubble-praise → **文**；**◎ host-card-glass-board → 人（必需，竖卡）+ 文**（板上步骤图标是字符，无图片通道） |
+| 运镜 | slow-push-in · slow-pull-reveal · tilt-3d-page · sway-parallax · orbit-drift · stage-keyframe-tour → **图**（长截图 / 页面 / 照片；**这六张 tsx 都没有 src prop**，页面是写死 DOM，换真图需改源码，见各卡复用指引）；cursor-locked-zoom → **界**；pip-zoom-box → **人 / V / 图**（保留全景放大局部；全景区同样是写死 DOM） |
 
 转场选型口诀：镜头边界优先**运动承接六式**（各自一卡，共享
 lead/tail 交叠 12~16 帧 + 两侧同向的动量交接纪律，代码同为 `template/motion-systems/transitions.tsx`）——
@@ -67,19 +67,21 @@ lead/tail 交叠 12~16 帧 + 两侧同向的动量交接纪律，代码同为 `t
 
 以下七类**每卡一行**：`slug` 批次记号 中文名 · P 级 · 能量档 —— 一句话（含与兄弟卡的区分）。
 参数 / 命门 / 已知坑 / 落位自检一律看 `references/cards/<slug>.md`（**唯一正主**，本文不再复写），实现看 `template/cards/<slug>.tsx`。
+两条全库口径（2026-09-22 审计后定）：**能量档只有 低 / 中 / 高 三档**（判据：低 = 只有淡入 / 解糊 / ≤1.02 缩放 / 小位移；中 = 明确位移、back.out 回弹或 ≥1.05 缩放；高 = 拍击 / 急推 / 整屏变化 / 震动）；
+tsx 的 `meta.durationInFrames` = 卡内动画长度 + 0.4s 收尾垫（个别卡例外见其 md），md「时长」按动画长度写，两者差 0.4s 不是错。
 
 ## 字幕花字
 
 > 底部字幕素排铁律（正主 design-language.md §5）：跟读字幕**不加任何动效**、整句硬现；唯一例外 keyword-pop-highlight 且全片 ≤3 次。
 > 本类其余各卡的作用对象都是**标题/金句/要点等独立文字层**，不是底部字幕。
 
-- **keyword-pop-highlight** 关键词弹出强调 · P0 · 中 —— 字幕念到关键词时该词带色块弹出回落、画面微震；本类唯一允许作用于底部字幕的动效，每片最多三次。
+- **keyword-pop-highlight** 关键词弹出强调 · P0 · 高 —— 字幕念到关键词时该词带色块弹出回落、画面微震；本类唯一允许作用于底部字幕的动效，每片最多三次。
 - **typewriter-reveal** 打字机档案戳 · P1 · 低 —— 等宽字体逐字符敲出时间地点戳，末尾方块光标闪烁，档案调取感；它是标注不是标题，占角落不占中央。
 - **quote-card** 金句大字卡 · P1 · 中 —— 金句时刻人物让位，实底板盖屏、多行大字逐行弹出、停留后整卡退场；要仪式感的金句用它，不想遮人物用 quote-bracket-pull。
-- **soft-blur-in** ◇ 柔焦淡入 · P1 · 低 —— 整句像被镜头对焦出来，边解糊边淡入、位移先停；本类最低能量的一张，唯一可以连着上五句都不闹，不能承担强调。
+- **soft-blur-in** ◇ 柔焦淡入 · P1 · 低 —— 整句像被镜头对焦出来，边解糊边淡入、位移先停；本类最低一档能量（与 typewriter-reveal 同档），可以连着上五句都不闹，不能承担强调。
 - **per-character-rise** ◇ 逐字升起 · P1 · 中 —— 每个汉字从下方升到位，位移与淡入分走两条缓动、零模糊零缩放；有方向有力道零回弹的整句立起，同类唯一"有劲但不跳"的一档。
 - **line-by-line-slide** ◇ 逐行滑入 · P1 · 中 —— 多行要点一行一行从左滑入、读完再向右穿出去；本类唯一的多行要点卡（不带底板），要让位用 quote-card、边讲边挂用本卡。
-- **tracking-in** ◇ 字距收拢 · P1 · 中 —— 一行大标题字距从极松收拢、同一条 spring 同时解糊，零回弹长缓收；本类唯一的标题动作（不是字幕），一片限一两次。
+- **tracking-in** ◇ 字距收拢 · P1 · 中 —— 一行大标题字距从极松收拢、同一条 spring 同时解糊，零回弹长缓收；标题动作（不是字幕），一片限一两次。
 - **slab-punch-title** ◈ 重点放大 · P0 · 高 —— 两行标题的重点词坐在斜切色块上，块先从中心撑开、字后硬切砸落；本批标题色块类的基准式，"铺垫 + 结论"对照句专用。
 - **speed-slab-title** ◈ 速度块标题 · P1 · 高 —— 副题斜切色块从画外冲入到位、块左缘张开速度线残影随即淡尽，字比块慢半拍在追；同类里唯一带速度语义的一张。
 - **impact-open-title** ◈ 冲击开场 · P0 · 高 —— 整句一次砸出、末词延后换强调色再 punch，四角取景框与点阵网格更慢更淡地做衬；开头三秒钩子，全片限一两次。
@@ -98,14 +100,14 @@ lead/tail 交叠 12~16 帧 + 两侧同向的动量交接纪律，代码同为 `t
 - **ink-underline** ◇ 墨迹下划线 · P1 · 低 —— 起笔压满、收笔提细的墨色缎带沿关键词下方生长，画完静置；本类唯一有笔压的下划线，比荧光笔轻、比圈注准，作用在句子里的一个词上。
 - **hand-drawn-ellipse** ◈ 手绘圈重点 · P0 · 中 —— 一笔逆时针画出的歪椭圆圈住句子里的关键短语，圈画完短语才 punch 一拍；指认单个短语，比双线强、比爆点字克制。
 - **converging-arrows** ◈ 双箭头聚焦 · P1 · 中 —— 两支手绘箭头从对角几乎同时画向关键词、箭尖留白不戳字，都到位后词才换色；本类指向性最强的一张（箭头有方向，圈没有）。
-- **corner-bracket-frame** ◈ 对角角框 · P1 · 低 —— 左上与右下两个 L 形角框同帧从外侧对角收进来、框先立住再放标题两行；定题用的取景动作（"本集只讲这一件事"），本类唯一给整块划边界的。
-- **quote-hold-arrow** ◈ 金句停留 · P1 · 中 —— 三行金句先全部平淡落地、末行停一拍后才升级高亮并 punch，然后停住；本类唯一强调整句而不是词的一张（有铺垫、有转折）。
+- **corner-bracket-frame** ◈ 对角角框 · P1 · 低 —— 左上与右下两个 L 形角框同帧从外侧对角收进来、框先立住再放标题两行；定题用的取景动作（"本集只讲这一件事"），给整块划边界（reticle-lock-on◎ 是四角飞入咬合的锁定版）。
+- **quote-hold-arrow** ◈ 金句停留 · P1 · 中 —— 三行金句先全部平淡落地、末行停一拍后才升级高亮并 punch，然后停住；强调整句而不是词，句子自己升级（highlighter-sweep 是笔划过句子）。
 
 ## 数据信息图
 
 - **number-counter** 数字滚动计数 · P0 · 中 —— 大号数字从 0 滚到目标值，先快后慢、落定轻弹一拍后单位淡入，变体是逐位滚轮高位先停；展示量级"滚出来"的过程。
 - **chart-grow** 图表生长 · P0 · 中 —— 坐标轴先淡入，柱子依次错峰长出、柱顶数字跟着弹出，最高柱高亮并轻 punch；用于逐项列举/对比（整体形状用 bar-chart-growth）。
-- **info-term-card** 名词解释悬浮卡 · P1 · 低 —— 说到专业名词时，图标+词条+两行释义的圆角卡从人物对侧滑入，停留期间缓慢上下浮动像悬浮着，念完原路滑出。
+- **info-term-card** 名词解释悬浮卡 · P1 · 中 —— 说到专业名词时，图标+词条+两行释义的圆角卡从人物对侧滑入，停留期间缓慢上下浮动像悬浮着，念完原路滑出。
 - **map-route-pin** 地图路线图钉 · P1 · 中 —— 地图上虚线按叙事顺序从 A 城生长到 B 城，到达瞬间图钉从上方砸下压扁回弹，地名标签从钉侧滑出。
 - **step-timeline-vertical** ◈ 竖向步骤线 · P1 · 中 —— 竖线从上往下画，线推到哪节点就在哪弹出、文字跟着淡入，到位后首节点升级成空心环标当前步；用于有先后依赖的流程（并列清单用 numbered-step-stack）。
 - **numbered-step-stack** ◈ 编号步骤堆入 · P1 · 中 —— 带编号方块的横条从右侧均匀错峰依次堆入，每枚落定时编号块 punch 一下确认，整组到位后轻微上浮收成一件事；用于并列清单（有先后依赖用 step-timeline-vertical）。
@@ -121,12 +123,12 @@ lead/tail 交叠 12~16 帧 + 两侧同向的动量交接纪律，代码同为 `t
 - **news-card-desk** 新闻卡片划重点 · P0 · 中 —— 新闻截图包成白色圆角卡片歪着滑上桌，红色下划线等朗读到关键句才扫过，第二张卡压叠上来，卡片全程极缓 Ken Burns。
 - **terminal-typing-log** ◇ 终端逐行推进 · P1 · 中 —— 通用终端当证据的 stdout 流水（对照 claude-code◇ 的因果链）：命令逐字符敲、日志成簇蹦出、缓冲区整跳零插值、`...` 行冻结制造悬念。
 - **chat-message-flow** ◇ 聊天记录自演 · P0 · 中 —— 把聊天截图从过去式改成现在进行时：我方经输入框逐字打出再上屏、对方先出三点气泡再回，时刻表由文本长度自动生成。
-- **logo-enter** ◇ Logo 登场 · P1 · 低 —— 本类唯一的身份标识入场（其余都是证据素材）：圆牌 spring 弹到位、字标推出、描环合拢三拍收尾，落定即终帧不加微动。
+- **logo-enter** ◇ Logo 登场 · P1 · 中 —— 本类唯一的身份标识入场（其余都是证据素材）：圆牌 spring 弹到位、字标推出、描环合拢三拍收尾，落定即终帧不加微动。
 - **chat-gpt** ◇ ChatGPT 对话框 · P1 · 中 —— AI 聊天产品自演（单行药丸 + 首屏三件套那一路）：三件套错峰淡入、提示词打进药丸、语音键原地变形成发送键、回答流式吐出，产品皮即内容。
-- **claude-code** ◇ 编码智能体终端 · P1 · 中 —— 演因果链而不是 stdout 流水：Claude Code 终端里命令敲入后「工具调用 → 结果 → diff → 结论」逐行蹦出，讲"AI 帮我写代码"用本卡（界面自己生成内容、没有光标）。
-- **glass-code-walk** ◇ 玻璃代码走读 · P1 · 低 —— 带观众读一小段真实代码，整块都在但同时只有一行是亮的：相机与高亮带同源逐行走读、读完拉回全景，是 cursor-locked-zoom◇ 的逐行浅档。
+- **claude-code** ◇ 编码智能体终端 · P1 · 中 —— 演因果链而不是 stdout 流水：Claude Code 终端里命令敲入后「工具调用 → 结果 → diff → 结论」逐行蹦出，讲"AI 帮我写代码"用本卡（界面自己生成内容、没有鼠标光标，只有文本光标）。
+- **glass-code-walk** ◇ 玻璃代码走读 · P1 · 中 —— 带观众读一小段真实代码，整块都在但同时只有一行是亮的：相机与高亮带同源逐行走读、读完拉回全景，是 cursor-locked-zoom◇ 的逐行浅档。
 - **gooey-morph** ◇ 图块拼入 · P1 · 中 —— 素材呈现里的"并列拼"（另两张是歪着叠与同向怼）：几张图各走 L 形路径、起飞不按左右顺序，严丝合缝拼成一条横排，拼完即落点。
-- **ui-flow-theater** ◇ 界面流程剧场 · P0 · 中 —— 界面剧场子类的架构母卡，讲完整流程：整套灰阶假面板按一张时刻表自演，光标走位与控件换态共享同一时间源，成功 toast 收尾（只演一两个动作用 cursor-actor-demo◆）。
+- **ui-flow-theater** ◇ 界面流程剧场 · P0 · 中 —— 界面剧场子类的架构母卡，讲完整流程：整套灰阶假面板按一张时刻表自演，光标走位与控件换态共享同一时间源，成功 toast 收尾（只演三四个动作用 cursor-actor-demo◆）。
 
 ### 界面剧场子类（整套界面按脚本自演）
 
@@ -151,7 +153,7 @@ lead/tail 交叠 12~16 帧 + 两侧同向的动量交接纪律，代码同为 `t
 
 ## 转场结构
 
-- **chapter-title-card** 章节标题卡 · P0 · 中 —— 段落切换时全屏色块压入，超大章节编号先落位、章节名随后遮罩揭示，短停后同向扫出切回口播；只宣告新一幕开始、不给全片进度。
+- **chapter-title-card** 章节标题卡 · P0 · 高 —— 段落切换时全屏色块压入，超大章节编号先落位、章节名随后遮罩揭示，短停后同向扫出切回口播；只宣告新一幕开始、不给全片进度；每章一套主题色 + 一个本章相关的线稿 motif。
 - **shape-wipe-transition** 色块扫屏转场 · P0 · 高 —— 两三层同色系色块错峰从同一方向扫过全屏，换场藏在遮挡帧里观众看不见切换瞬间；色块是不透明遮挡物，无相机系统时的轻量转场。
 - **caret-wipe-transition** ◇ 光标擦除转场 · P1 · 中 —— 一条文本光标从左到右扫过完成换场，走过处新场景沉降解糊、未到处旧场景上浮失焦；本库第一个边界本身有语义（编辑器隐喻）的转场。
 - **chapter-progress-list** ◈ 章节进度 · P1 · 中 —— 暗场里章节目录错峰滑入、站定后只高亮当前一条并收合电影角框；本类唯一带进度信息的转场，要给全局位置时用它而非 chapter-title-card。
@@ -159,7 +161,7 @@ lead/tail 交叠 12~16 帧 + 两侧同向的动量交接纪律，代码同为 `t
 ## 人物互动
 
 - **lower-third-nameplate** 人名条展示牌 · P0 · 低 —— 画面左下色条横向展开、姓名遮罩揭示、头衔跟进的三段接力人名条，停留后反向收回；克制的新闻/访谈感，是"这个人是谁"的最小信息。
-- **behind-text-title** 人后大字视差 · P1 · 低 —— 超大标题从人物身后升起、下缘被人物遮挡穿出，hold 期两层反向极缓漂移读出伪 3D 层次；人物层需抠像。
+- **behind-text-title** 人后大字视差 · P1 · 中 —— 超大标题从人物身后升起、下缘被人物遮挡穿出，hold 期两层反向极缓漂移读出伪 3D 层次；人物层需抠像。
 - **subscribe-cta** 多平台关注 CTA · P1 · 中 —— 控件弹入→光标弧线移入→状态翻转+确认动效的关注示范，YouTube 订阅/B站三连/通用关注三式共用一套机制、落地只留一段；用在收尾号召观众去点。
 - **x-follow-card** ◇ 关注卡弹出 · P1 · 中 —— X 资料卡弹入后十层内容错峰 blur-in 落位，光标走过去点"关注"、按钮翻转且粉丝数 +1；介绍别人的社会证明道具，对照 subscribe-cta 是"卡而非控件、证明而非号召、中段而非收尾"。
 - **douyin-follow-card** 抖音主页关注卡 · P1 · 中 —— 抖音用户主页卡弹入、内容错峰 blur-in、光标点"＋关注"翻转并联动"发私信"，粉丝数静态；x-follow-card 的抖音版，介绍"某人在抖音上"时用。
@@ -207,7 +209,7 @@ shot-design.md §2④「网页拍摄」，采集规格（全页 2× 长图 + DOM
 
 ## 实战卡（项目沉淀，详情见各卡文件）
 
-- **pencil-sketch-draw** ★ 铅笔手绘揭示 · P1——铅笔骑在 SVG 路径笔尖当场画图，画完干净静置。来自 ann_nnng 手绘卡片技法复刻。代码 template/components/pencil.tsx。
+- **pencil-sketch-draw** ★ 铅笔手绘揭示 · P1——铅笔骑在 SVG 路径笔尖当场画图，画完干净静置。来自 ann_nnng 手绘卡片技法复刻。代码 template/cards/pencil-sketch-draw.tsx（自带路径采样，母本 template/components/pencil.tsx）。
 
 **运动承接转场六式 ★**（六张卡，共享同一套纪律与同一份代码）：六式同属"动量交接"家族：相邻 Sequence 交叠 12~16 帧，`ShotFade` 只管像素淡化，方向与加速度全在两侧相机曲线里；
 **两侧必须同向**（方向断裂比硬切更糟），**一个边界只用一式**。来自 ai-math-video 全片实战，
@@ -230,12 +232,12 @@ shot-design.md §2④「网页拍摄」，采集规格（全页 2× 长图 + DOM
 - **type-contrast-emphasis** ◆ 字体对比重音 · P0 · 字幕花字——重音词换衬线斜体放大 1.5~2 倍（或换唯一强调色），强调靠字形气质落差而非弹跳；与 keyword-pop-highlight 同句互斥。
 - **focus-dim-spotlight** ◆ 聚焦压暗切换 · P0 · 强调标注——讲到哪里哪里亮：目标保持原亮并点亮发光描边，其余压暗 40% 或整页高斯模糊，焦点随口播 0.2s 跳转。
 - **line-chart-story-draw** ◆ 折线分段推演 · P0 · 数据信息图——折线不一次画完：新线段从拐点向右生长、标签段完成即弹出，对比虚线从同一拐点岔出第二种未来。
-- **ui-prop-theater** ◆ 界面道具剧场 · P1 · 数据信息图——拟物 UI 道具（进度条/清单/滑杆）的状态按语音节拍分段跳进，界面自己演戏而不是跑 loading。
-- **cursor-actor-demo** ◆ 光标演员演示 · P0 · 素材呈现——超大系统光标在 UI 截图上移动-悬停-点击，元素即时响应，一个动作对齐一个口播词。
+- **ui-prop-theater** ◆ 界面道具剧场 · P1 · 数据信息图——拟物 UI 道具（进度条 + 清单，tsx 无滑杆）的状态按语音节拍分段跳进，界面自己演戏而不是跑 loading；输入是卡内自演的界面（界）。
+- **cursor-actor-demo** ◆ 光标演员演示 · P0 · 素材呈现——超大系统光标在卡内自演的 UI 线框上移动-悬停-点击，元素即时响应（控件要活，截图贴不上），一个动作对齐一个口播词。
 - **evidence-scroll-tour** ◆ 证据长页慢滚 · P0 · 素材呈现——长截图页作为唯一动元素匀速上滚，预标注随页滚动，讲到关键处减速停留，滚速就是讲述节奏。
 - **motion-blur-slam-in** ◆ 模糊甩入急停 · P1 · 素材呈现——素材卡带方向运动模糊从屏外高速飞入、0.2s 内急停落位，模糊由重到清收敛；与 media-pop-in 的 scale 弹跳二选一。
 - **color-slam-beat-card** ◆ 纯色硬切节拍卡 · P0 · 转场结构——一帧硬切到高饱和纯色底（零过渡零擦除），色块上大字与素材卡错峰入场，停 1.5~5s 再硬切回，用底色跳变当节拍器。
-- **host-shrink-to-chip** ◆ 人物缩位让台 · P1 · 人物互动——图形上台时讲者从全屏 0.4s 缩进角落圆形头像章继续口播，图形讲完再放大回全屏，主角让位但人不消失。
+- **host-shrink-to-chip** ◆ 人物缩位让台 · P1 · 人物互动——图形上台时讲者从全屏 0.4s 缩进角落圆形头像章继续口播，单程不回归（回归由镜头层处理），主角让位但人不消失。
 
 ## 素材呈现拓展卡（第七批◉，2026-09-05，详情见各卡文件）
 
@@ -273,7 +275,7 @@ shot-design.md §2④「网页拍摄」，采集规格（全页 2× 长图 + DOM
 - **error-retype** ◎ 打字改口 · P1 · 字幕花字——句干先在，后半句以打字机节奏打出、停一拍光标闪两下、更快退掉、零犹豫重打新词；三档速度差是戏的全部，光标打删常亮停顿才闪。与 strike-and-replace 的区分：那是空间上划掉，这是时间上的改口。否定式文案、纠正误解、金句反转。
 - **countdown-arc-scatter** ◎ 数字弧落标题 · P2 · 字幕花字——相邻递减的数字切向挂在弧上，整盘 96° 扫回 outCubic 急停，停在弧顶的那个数平移到标题首字位同步回正，其余原地失焦散去，标题逐词解糊、末词染强调色。与 count-badge-title 的区分：多出"从一串候选里扫停在这个数"的仪表一拍。时长承诺、数字揭晓标题。
 - **flying-words** ◎ 关键词隧道 · P2 · 字幕花字——22 个关键词按黄金角铺在扁椭圆截面上沿 z 轴从远处飞向相机擦身而过（前 1/4 猛亮、中段半透让位、末段拖尾），越近越往画外散、近端糊化，整圈数循环首尾无缝。**背景层**：深底专用（白底失效），前景照常静置。名词科普开场底、能力清单垫底。
-- **split-text-stagger** ◎ 逐字裂升 · P2 · 字幕花字——每字在裁切盒内从下方 115% 升起带 10% 过冲、字间错峰 2 帧，一条基线同步从左长到整行宽——字像从线里长出来。是 per-character-rise 的裁切 + 基线变体，要"版式感"时选它。章节题 / 金句 / 片名。
+- **split-text-stagger** ◎ 逐字裂升 · P2 · 字幕花字——每字在裁切盒内从下方 115% 升起带 约 5% 过冲（back.out(1.2) 极值 ≈1.053）、字间错峰 2 帧，一条基线同步从左长到整行宽——字像从线里长出来。是 per-character-rise 的裁切 + 基线变体，要"版式感"时选它。章节题 / 金句 / 片名。
 - **word-relay-filmstrip** ◎ 动词接力胶片 · P1 · 素材呈现——左列等高截图卡深浅相间纵向排列，切词那 12 帧才滚恰好一卡高、其余零位移；右侧衬线两行：名词恒定、动词原位接力（旧词灰化淡出先、新词落位后，不叠影），词块中心 = 当前卡中点，末词换强调色。= word-slot-cycle 的带图版 + 步进胶片。"一个主体 × 多种能力"、作品集 / 案例流。
 - **doc-park-left-pill-deal** ◎ 文档驻留发牌 · P1 · 素材呈现——文档满幅先读，然后不淡出而是以左缘为锚 translateX −55% + scale .92 驻留只露约 35%（"来源还在"），右侧按旁白节奏慢发牌三张白底描边药丸（先实后稳带过冲），每张落定后其下说明行逐词加深并常驻，文档全程极慢自动滚动。与 split-60-40-story 的区分：戏在"从读文档到提炼结论"的驻留动作。读报告记三条、文档 / 论文要点、评审意见逐条。
 - **info-card-assemble** ◎ 信息卡逐字段自建 · P1 · 素材呈现——一张信息卡像被结构化抽取一样自己长出来：图 → 标题 → 三枚标签 pop → 价格行 → 三行要点逐行揭示（两行被马克底块从左 5 帧刷过）→ 色卡点亮；小件 pop 大件 rise，整卡 3.75s 内缓推 6%。字段间隔的疏密就是信息分组；口播实战按词锚分 3~4 组落。推荐书 / 工具 / 人物的信息卡、结构化抽取类话题。

@@ -4,7 +4,7 @@ name: crash-zoom-punch
 一句话: 全景静置 1s 让观众看清整页，然后 6 帧 ease-in 急推到截图里的目标文字块（zoom 1→2.3，相机中心同步收敛到目标中心），过冲后 5 帧回收 4.5% 到 2.2 落定；急推那 6 帧叠一记短促 blur 当运动模糊，之后画面钉死——一次性的重音"就是这一行"
 适用: 口播说"就是这一行 / 看这里"时把观众视线一拍按到截图的某一行、某个单元格、某句话上（账单 / 设置 / 条款 / 聊天记录 / 表格）；一支片 ≤2 次。输入是图片（含 B-roll 截帧），人物不参与
 时长: 4.4s（0～1.0 全景静置 → 1.0 急推 6 帧 → 1.2 回收 5 帧落定 → 钉死 → 4.0 退场 0.4s）；成片 hold 与落定后的静置按口播句长伸缩，急推那 11 帧不变
-能量: 高（瞬时冲击，非持续高能）
+能量: 高
 类别: 强调标注
 优先级: P1
 代码: template/cards/crash-zoom-punch.tsx
@@ -60,7 +60,7 @@ name: crash-zoom-punch
 - 撞停震屏当默认——震屏是持续几帧的抖动，与运动减法冲突；只在用户点名要"重量感"时开。
 
 ## 复用指引
-- Remotion/tsx（skill 首选）：template/cards/crash-zoom-punch.tsx——`src` 真截图、`target={x,y,w,h}` 目标 bbox（舞台坐标）；durationInFrames 144；全景时长改 `CONFIG.hold`，句长改 `exitAt / end`；`zoom / settle` 按目标大小配。`camTo` 已内联。
+- Remotion/tsx（skill 首选）：template/cards/crash-zoom-punch.tsx——props `src` 真截图、`target={x,y,w,h}` 目标 bbox（舞台坐标）、`label / sub`（仅无 src 时假设置页的目标行文案）；durationInFrames 144；全景时长改 `CONFIG.hold`，句长改 `exitAt / end`；`zoom / settle` 按目标大小配。`camTo` 已内联。
 - HTML/GSAP：demos/crash-zoom-punch/index.html——`.shot` 里换 `<img>` 即真截图，目标块给 `.tg .k` 两个类（几何照旧由 offset 反推）；`CONFIG` 改节奏。
 - 母本：video-shotcraft `crash-zoom-punch` 回弹款（产品片里推功能卡；本卡对象换成口播的截图证据局部，CameraMotionBlur 用短促 blur 近似，撞停款留作可选）。
 - 剪辑软件对应物：剪映"缩放"关键帧 6 帧 ease-in + 5 帧回弹（或直接用"急推"转场特效）；PR 位置 / 缩放贝塞尔关键帧 + 方向模糊 6 帧；AE 摄像机 Zoom 关键帧 + CC Force Motion Blur。

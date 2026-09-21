@@ -60,7 +60,7 @@ name: tilt-3d-page
 - 倾斜后页面顶到画幅边（甚至被裁）——立起时忘了配 `scale` 后退。倾斜后包围盒会变大，验收要看四角。
 
 ## 复用指引
-- Remotion/tsx（skill 首选）：template/cards/tilt-3d-page.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
+- Remotion/tsx（skill 首选）：template/cards/tilt-3d-page.tsx——props：仅 `hostSrc`（声明未使用）；页面内容与 792×452 尺寸在 JSX / CSS 常量里，换素材需改源码。自包含单文件，复制进工程即可用；姿态与节奏参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：`demos/tilt-3d-page/index.html`。换素材改 `.page` 内整块 DOM（或换成铺满的 `<img>`）；姿态与节奏全在顶部 `CONFIG`（`rotYFrom` / `rotYTo` / `rotXTo` / `scaleTo` / `tiltDur` / `holdDur` / `holdRotY` / `holdRotX` / `startHold` / `shadowFrom` / `shadowTo`）；透视值改 `.world` 的 `perspective`，投影质感改 `.shadow` 的 `blur` 与 `translateZ`。核心可摘走：`CONFIG` + `DemoShell.register` 回调体 + 三层结构的那几行 CSS（`perspective` / `preserve-3d` / `.shadow`）。
 - Remotion 移植：外层 `<div style={{perspective: 1000, perspectiveOrigin: '50% 46%'}}>`，内层相机 `<div style={{transformStyle: 'preserve-3d', transform: \`rotateY(${ry}deg) rotateX(${rx}deg) scale(${s})\`}}>`；`ry` 用 `interpolate(frame, [t0, t1, t2], [0, -19, -22.5], {easing: Easing.out(Easing.quad), extrapolateRight: 'clamp'})`（立起段 `Easing.out(Easing.quad)`，hold 段换 `Easing.inOut(Easing.sin)` 需拆两个 interpolate 或用 `Easing.bezier`），`rx` / `s` 同法；投影是同尺寸的 `<div style={{filter: 'blur(26px)', transform: 'translateZ(-34px)', opacity: op, ...}}/>` 放在页面前面（DOM 顺序在下层）。注意 Remotion 的 `<AbsoluteFill>` 默认不带 `preserve-3d`，必须显式写。
 - 剪辑软件对应物：AE——把截图放进 3D 图层（打开图层的 3D 开关），`Y Rotation` 打 0→-19° 关键帧，配一个摄像机（Camera）并设 Zoom 对应 perspective，投影用复制图层 + 压暗 + 快速模糊 + 稍微错位；或直接用 `CC Cylinder`/`Corner Pin` 的伪 3D 做法（不推荐，透视不真）。剪映——素材"3D 旋转"/"倾斜"关键帧（Y 轴），投影靠"阴影"参数（跟随变化有限，弱一档）。Premiere——`Basic 3D` 效果的 `Swivel` 参数 + `Distance to Image`。**这就是各家素材站说的 "3D mockup / device tilt" 品类**（Envato 上有大量现成 AE 模板）。

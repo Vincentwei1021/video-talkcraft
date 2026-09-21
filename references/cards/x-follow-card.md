@@ -5,7 +5,7 @@ name: x-follow-card
 代码: template/cards/x-follow-card.tsx
 一句话: X 资料卡整体 spring 弹入（0.62s 微过冲），十层内容随后按阅读顺序 0.07s 错峰 blur-in 逐层落位，光标弧线移入点击"关注"，同帧三件事一起发生——按钮两态交叉翻转 + 胶囊涟漪 + 粉丝数纸带上推 +1
 适用: 口播里介绍某个人或账号——嘉宾出场、"这个人你该关注"、引用某人观点时给出处、推荐同行/作者；一条视频里同一张卡只出现一次
-时长: 卡弹入 0.62s → 十层错峰 0.87s（0.34→1.21s）→ 静置到 1.55s → 光标移入 0.95s → 2.58s 点击（翻转 0.34s + 涟漪 0.5s + 计数 0.42s）→ hold 0.85s；demo 全程 4.08s
+时长: 卡弹入 0.62s → 十层错峰 0.87s（0.34→1.21s）→ 静置到 1.55s → 光标移入 0.95s → 2.58s 点击（翻转 0.34s + 涟漪 0.5s + 计数 0.42s）→ hold 0.85s；全程 4.03s
 能量: 中
 类别: 人物互动
 ---
@@ -103,21 +103,13 @@ name: x-follow-card
 - bio 写 lorem 或英文占位——"这是个真人"的说服力归零；写真实感中文。
 
 ## 复用指引
-- Remotion/tsx（skill 首选）：template/cards/x-follow-card.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
+- Remotion/tsx（skill 首选）：template/cards/x-follow-card.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。props：仅 `hostSrc`（未使用）；名字 / handle / bio / 计数 / 帖文在 JSX 常量里、坐标在 CONFIG，换内容需改源码。
 - HTML/GSAP：`demos/x-follow-card/index.html`。**换人只改 HTML 里那几处文本**（`.name` / `.badge`（要不要认证）/ `.handle` / `.bio` / `.meta` 三条 / `.stats` 的两个数字 / `.post` 那条示例帖）——
   时序全在 `CONFIG`，与内容解耦，改文案不用碰任何时刻。粉丝数改 `.roll .strip` 里上下两个 `<i>`（上=旧值、下=新值，**窗口高 20px 与 `rollDur` 那条 tween 的 `−20px` 要同步**）。
   节奏在 `CONFIG.cardIn` / `layerStagger` / `layerDur` / `cursorStart` / `cursorMove` / `flipDur` / `rollDur`；层序改 `layers` 数组（按阅读顺序，按钮行留在最后）；光标起点 `CONFIG.START`（换尺寸时按舞台宽重算，落点由 `P(el, fx, fy)` 从元素实际位置反算，换布局不用改坐标数字）。
   核心可摘走：`CONFIG` + `DemoShell.register` 回调里的四段（①卡弹入 ②十层错峰 ③光标弧线 ④点击帧同帧五件事）。
 - **不要关注交互、只要卡入场**（常见裁剪）：删掉 ③④⑤ 三段与 `.cursor` / `.rip` / `.f-on` 三个元素，①② 两段独立成立——这就是一张"资料卡弹入"的纯道具卡，时长压到 1.4s。
-- Remotion 移植（这就是源头）：`registry/remocn/x-follow-card/index.tsx`（868 行）+ `registry/remocn/SOCIAL_FOLLOW_STYLEGUIDE.md`（`*-follow-card` 家族的作者契约：九层固定顺序、时间预算表、控件命名契约、主题 token）。
-  源码导出四个可直接抄的纯函数——`cardBounceIn(frame, fps)` 出 `{translateY, scale}`（`spring damping 12 / stiffness 120 / mass 0.8`）、
-  `blurInSchedule()` 出九组 `{group, start, end}` 帧窗、`blurInAt(step, frame)` 出 `{blur, opacity, translateY}`、`followStateAt(frame, speed)` 出布尔关注态；
-  光标路径用 `buildFollowWaypoints({buttonCenter, orientation})` + `useCursorPath`（`registry/remocn/use-cursor-path`），按压缩放取 `cursorStyle.pressScale`。
-  秒 ↔ 帧换算（30fps）：`CLICK_FRAME 110` = **3.67s**（本卡收到 2.58s——源码留了 75 帧光标待机，口播里那 2.5s 太贵）、
-  九层窗 `[20,26]…[36,42]` = 0.67→1.40s（本卡拆成十层、0.34→1.21s）、bounce-in 0→25 帧 = 0.83s（本卡 0.62s）、`durationInFrames 165` = 5.5s（本卡 4.08s）。
-  源码**没有粉丝数变化**（`SamplePost` 的互动数是硬编码静态值）——计数 +1 是本卡补的一拍，也是本卡认为社会证明的真正落点；移植时按 `sendFrame` 那套写法接在 `CLICK_FRAME` 之后即可（用 `interpolate` 驱动纸带 `translateY`，**不要用 `Math.random`**，多趟渲染会闪）。
-  源码还有 `orientation: "horizontal" | "vertical"` 两套布局（竖屏走 720×1280、卡宽 660、按钮在 542,336），竖屏落地可直接抄那组数字。
-  **`speed` 必须 `min: 1`**（styleguide 第 2 节的硬约束）：`speed < 1` 时 `frame × speed` 可能永远到不了 `CLICK_FRAME`，按钮卡在"关注"态永不翻转。
+- Remotion：template/cards/x-follow-card.tsx 即实现真值——`CONFIG` + 四段编排（① `backOut(1.35)` 弹入 + 独立淡入窗 0.05→0.35s ② `layer(i)` 十层 blur-in ③ 光标 x `power2.inOut` / y `sine.inOut` 异速弧线，点击帧 `TC = cursorStart + cursorMove + 0.08` = 2.58s ④ 两态交叉 / 涟漪 / 纸带 `translateY 0→−20`），全部由 `t = frame / fps` 求值；粉丝数纸带用插值驱动，**不要用 `Math.random`**（多趟渲染会闪）。竖屏落地需按 720×1280 重排 `.scaler` 缩放与 `TARGET` / `START`。
 - 剪辑软件对应物：剪映/CapCut——卡做成一张静态图，整体套"放大弹入"入场（时长 0.6s、带回弹）；十层错峰只能把卡**切成十张图层**分别给 0.07s 递进的入场（工作量大但效果对得上），偷懒版是切三段（封面/资料/按钮）；两态翻转是两个按钮图层交叉（"关注"层 Opacity 100→0 + Scale 100→92，"已关注"层 Opacity 0→100 + Scale 86→100 带弹性，关键帧**必须与点击帧对齐**）；粉丝数滚动用一个蒙版矩形 + 两行数字的文本层往上移。
   AE——`cardBounceIn` 用 `spring` 表达式或 Overshoot 预设；十层用 Sequence Layers + Gaussian Blur 的 Blurriness 关键帧（8→0）；光标弧线用一条 Path 绑 Position（比手打两条关键帧准）；纸带滚动用 Source Text 不变、Position 打两个关键帧（Easy Ease Out）。
   任何软件的"社交卡模板"要先检查两件事：各层是不是同时全亮、粉丝数有没有跟着变——市面模板九成两条都不合格。

@@ -13,9 +13,9 @@ name: split-60-40-story
 ## 输入类型
 | 口播视频 | B-roll 视频 | 图片 |
 |---|---|---|
-| ✓ 左格放口播本人（`hostSrc` alpha 视频，站格底、随格缓推） | ✓ 左格主料：录屏 / 实拍（`src`，cover 铺满） | ✓ 左格一张大图缓推 |
+| ✓ 左格放口播本人（`hostSrc` alpha 视频，站格底、随格缓推） | ✓ 左格主料：录屏 / 实拍（`src`，cover 铺满） | 需改源码：tsx 的 `src` 只走 `<OffthreadVideo>`，放图片要把它换成 `<Img>`（见复用指引） |
 
-左 60% 什么都能放，右 40% **永远是文字**。
+左 60% 视频 / 人物直接注入、图片换一个组件即可，右 40% **永远是文字**。
 
 > **占比纪律（2026-09-21）**：它只属于"主从"关系，不是"B-roll + 文字"的默认容器——一支 11 镜的片 8 镜用它 + 左下圆章，用户评"排版过于固定"。
 > 全片 ≤1/3、不连用 3 镜（preflight FAIL）；相邻镜换 shot-design.md §2⑦ 的其他式（出血全屏 / 装框单侧 / 底床 / 截帧指认 / 多图编排 / 素材短暂独占）。
@@ -49,7 +49,7 @@ name: split-60-40-story
 | `gap` chip 间隔 | 0.6s | 口播逐条的节奏 0.5~0.7；>1.0 散成三张卡 |
 | `pop` 单枚弹出 | 0.45s | back.out 过冲即"拍上去"；<0.3 弹不起来 |
 | chip 字号 | 24@960 | ≈48@1080p 条目档；<20@960 等于没有 |
-| chip 数 | 3（≤4） | 4 条 top 改 200 / 268 / 336 / 404；≥5 条换 `chapter-progress-list` |
+| chip 数 | 3（≤4） | tsx `CHIP_TOP` 出厂 3 项，4 条改成 200 / 268 / 336 / 404；≥5 条换 `chapter-progress-list` |
 | `chipBg` 底板 | 三 pastel | 同组不重复；强调色全片只有一个，chip 底不算强调色 |
 | `stagger` 退场错峰 | 0.04 | 尾对齐到 end；0 = 一起收也成立 |
 
@@ -63,7 +63,7 @@ name: split-60-40-story
 - 左格放人物却让人物顶到格顶 / 被格边切——人物容器高 88% 居中，576 宽足够；不够就收窄右栏文案，不缩人。
 
 ## 复用指引
-- Remotion/tsx（skill 首选）：template/cards/split-60-40-story.tsx——`src`（B-roll）/ `hostSrc`（口播本人，优先于 src）/ `title` 行数组 / `chips` / `chipBg`；durationInFrames 216；句长改 `CONFIG.end`（缓推与退场自动跟随）。
+- Remotion/tsx（skill 首选）：template/cards/split-60-40-story.tsx——`src`（B-roll）/ `hostSrc`（口播本人，优先于 src）/ `title` 行数组 / `chips` / `chipBg`；durationInFrames 216；句长改 `CONFIG.end`（缓推与退场自动跟随）。tsx 的 `src` 仅走 `<OffthreadVideo>`（视频）；要放图片把它换成 `<Img>`（Remotion 自带），其余不动。chip 的 top 写死在 `CHIP_TOP`（3 项），第 4 枚按参数表加一项。
 - HTML/GSAP：demos/split-60-40-story/index.html——`CONFIG` 是全部节奏；`.cam .ph` 整块换成 `<video class="fill">` 即真素材；chip 的 `top` 与 `background` 内联可直接改。
 - 剪辑软件对应物：剪映画中画裁切到 60% + 关键帧缩放 100→106 拉满镜头 + 文字模板"标签"逐条入场；CapCut "Split Screen" 无 6:4 预设，同样手动裁；AE 左层 Scale 线性关键帧 + 右侧 shape+text 预合成套 Overshoot。
 - 与 layout.md 的接口：右栏 x 620@960 = 1240@1080p，与 8 栏线 1269 相差 <32 属可接受（60/40 的天然栏线落在 1152 + gutter）；chip ≥ 条目档（§5）；同组底板 pastel（§7）；左格素材内文字不与右栏相撞（§6）。

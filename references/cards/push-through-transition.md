@@ -65,11 +65,12 @@ Remotion 对应写法（`template/motion-systems/transitions.tsx`，生成器直
 - lead 补偿漏算：入场侧相机片段的 `t` 忘了取负，沉降从叙事第 0 帧才开始，交叠期入场镜头是静止的。
 
 ## 复用指引
+- props：仅 `hostSrc`（声明未使用）；两个镜头为 JSX 写死的 tile，换内容需改源码。
 - Remotion/tsx（skill 首选）：template/cards/push-through-transition.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：`demos/push-through-transition/index.html`。核心是 `pushThrough(出场镜头, 入场镜头, 起始秒) → 转场结束秒`
   一个函数 + `CONFIG.push` 一组参数，整段可直接摘走；`hold()` 是镜头停留期的慢推，也一起摘（没有它转场两端会撞墙）。
-- Remotion：`transitions.tsx` 的 `pushThroughOut` / `settleIn` spread 进 `shots.ts`：
-  `path: [...settleIn(0.47), {t:9, scale:1.0}, ...pushThroughOut(18.4)]`；组装范例见 `MainVideo-example.tsx`。
+- Remotion：`template/motion-systems/transitions.tsx` 的 `pushThroughOut` / `settleIn` spread 进 `shots.ts` 的 shot `path`：
+  `path: [...settleIn(0.47), {t:9, scale:1.0}, ...pushThroughOut(18.4)]`；shot 间 lead / tail 交叠机制见 `shots.ts` 文件头注释。
 - 与家族其他式的关系：推穿是基准式，**加重音层**就是 [[overexpose-flip-transition]]（推到 1.5x + 闪光），
   **换成横轴**就是 [[whip-pan-transition]]，**反向**就是 [[pullback-cool-transition]]。同一个边界只用一式。
 - 帧级压缩版（实测，真实竖屏口播）：**crash-zoom 甩镜**（Apm_oCzPEQs）= 出场 2~3 帧内相机猛推到 1.4x 以上并叠拖影，

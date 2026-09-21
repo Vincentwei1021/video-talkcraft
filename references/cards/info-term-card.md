@@ -4,7 +4,7 @@ name: info-term-card
 一句话: 说到专业名词的瞬间，圆角信息卡（图标+词条+两行释义）从人物对侧屏外 0.35s 滑入带 3% 过冲，停留期间 ±6px 正弦浮动像悬浮着，念完原路滑出
 适用: 口播里第一次抛出专业名词/黑话时（QE、市盈率、Transformer）；财经、科普、知识区讲解调性，节奏平稳不抢戏
 时长: 入场 0.35s + 过冲回稳 0.16s + 悬浮停留 3.2s（浮动周期 2.8s）+ 出场 0.25s，全程约 4s
-能量: 低
+能量: 中
 类别: 数据信息图
 优先级: P1
 代码: template/cards/info-term-card.tsx
@@ -23,7 +23,7 @@ name: info-term-card
 - 悬浮：y 0 → +6px，半周期 1.4s，`sine.inOut` + yoyo 往返（demo repeat 3 即 2 个完整周期）
 - 图标微转：rotate 0 → 8°，与浮动同节奏同缓动（`"<"` 对齐），让卡"活着"
 - 出场：x → 480px 原路滑出，0.25s `power2.in`，起始时刻 = 入场 0.35 + 回稳 0.16 + 停留 3.2
-- 层级：卡在人物层之上、字幕层之下；主持人靠左时卡定位在 right:56px / top:34%
+- 层级：卡在人物层之上、字幕层之下；主持人靠左时卡定位在 right:56px / top:36%
 
 ## 参数表
 | 参数 | 典型值 | 调节手感 |
@@ -44,6 +44,7 @@ name: info-term-card
 - 落位后完全静止——与截图素材无区分，"悬浮卡"变"贴纸"。
 
 ## 复用指引
+- props：仅 `hostSrc`；词条 / 缩写 / 释义 / 图标符号在 JSX 常量里，换内容需改源码。
 - Remotion/tsx（skill 首选）：template/cards/info-term-card.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/info-term-card/index.html。换文案改 `.term-card` 内三处：`.icon` 里的符号（¥/％/AI 单字都行）、`.term` 词条名与 `<small>` 缩写、`.desc` 释义（两行内）；换色改 `.term-card` 的 `background` 渐变与 `.icon` 的渐变；时长手感全在顶部 `CONFIG`（slideIn / overshootPx / floatPx / floatPeriod / holdBeforeOut / slideOut / iconTilt）。若主持人在右侧：去掉 `.host-left`、卡改 `left` 定位、把 `gsap.set` 与出场的 x=480 改成 -480。
 - Remotion 移植：入场用 `spring({frame, fps, config:{damping:14, stiffness:120}})` 插值 x: 480→0（spring 自带过冲，替代两段 tween）；悬浮用 `Math.sin((frame/fps) * 2*Math.PI / floatPeriod) * floatPx` 直接写进 translateY，帧驱动天然可 seek；出场 `interpolate(frame, [outStart, outStart+0.25*fps], [0, 480], {easing: Easing.in(Easing.quad)})`。

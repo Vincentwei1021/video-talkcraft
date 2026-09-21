@@ -79,6 +79,7 @@ name: outline-box-title
 - hold 期给框加呼吸/漂移——机器画的框动起来就成了"没对准"。
 
 ## 复用指引
+- props：仅 `hostSrc`；文案「核心观点 / 在这里」在 JSX 常量里，换内容需改源码。
 - Remotion/tsx（skill 首选）：template/cards/outline-box-title.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/outline-box-title/index.html。换文案改 `.ob-row1 .txt` 与 `.ob-chip-txt`，
   **同时**要改 `.ob-row1` / `#obBox` 的 `width` 与 `#obBoxPath` 的 `d`（框是写死尺寸的

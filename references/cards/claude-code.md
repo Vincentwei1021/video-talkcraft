@@ -5,7 +5,7 @@ name: claude-code
 代码: template/cards/claude-code.tsx
 一句话: 深底终端窗弹入后三段错峰按阅读顺序铺开（欢迎框 → What's new 栏 → 提示行），命令逐字符敲进提示行、回车后整行退成灰，接着「工具调用 → 结果 → diff → 结论」的因果链逐行分块蹦出，工具调用行的状态点在出结果前一直呼吸，diff 的 `+` 行是全窗唯一语义色
 适用: 口播讲 AI 编程——「我让它改了一行，它是这么改的」；AI 编码工具测评/对比、Agent 工作流讲解、开发者向教程与踩坑复盘；不适合非技术受众的软性内容（终端本身会筛掉观众）
-时长: 窗体弹入 0.62s → 三段错峰 0.20→1.20s → 1.60s 起打 → 命令 2.18s（24 字 @11 字/s）+ 0.36s 回车 → 七行工作日志 5.2s（不等距）；整卡约 10.2s
+时长: 窗体弹入 0.62s → 三段错峰 0.20→1.20s → 1.60s 起打 → 命令 2.18s（24 字 @11 字/s）+ 0.36s 回车 → 七行工作日志 4.9s（不等距，4.14→9.04s）→ 尾巴留白 0.9s；整卡约 9.9s
 能量: 中
 类别: 素材呈现
 ---
@@ -95,7 +95,8 @@ name: claude-code
 - 日志写十几行完整 agent trace——终端是**证据**不是内容；6~8 行的一条链足够，再多观众开始读日志。
 
 ## 复用指引
-- Remotion/tsx（skill 首选）：template/cards/claude-code.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
+- props：仅 `hostSrc`（角标主持人）；命令 / 日志在 `CONFIG.prompt` / `CONFIG.lines`，身份栏与 What's new 文案在 JSX 常量里，换内容需改源码。
+- Remotion/tsx（skill 首选）：template/cards/claude-code.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长由 `buildSchedule()` 按字数算出（meta 随之）。
 - HTML/GSAP：demos/claude-code/index.html。**换内容只改 `CONFIG.prompt` 与 `CONFIG.lines`**——
   每行 `{ k, t, d }`：`k` 取 `tool`（工具调用，带状态点）/ `res`（结果，带 `⎿` 折角缩进）/
   `del`（diff 删除，灰）/ `add`（diff 新增，唯一语义色）/ `ok`（结论，带 `✓`），`d` 是行间延迟。
@@ -105,21 +106,16 @@ name: claude-code
   语义色改 `.lg.add` 与 `.lg.ok b` 两处的 `color`（报错场景把这抹绿换成警示红，同样只给一行）；
   **陶土橙与那组深底不要改**——它们是 Claude Code 的皮，属于内容（要改就是在做另一个工具的卡）；
   改字号要同步改 `.lg` 的 `height`（行高）与窗高——本卡日志不滚动，但行高不齐会让停顿段看着"漏了一行"。
-- Remotion 移植（这就是源头）：`registry/remocn/claude-code/index.tsx`（445 行）。可直接抄的纯函数——
-  `introBounceIn(frame, fps)` 出 `{translateY, scale}`、`fadeUpAt(frame, [a,b])` 出 `{opacity, translateY}`；
-  打字用 `useTypewriter(prompt, {cps: 18, speed, startFrame: 48})`（`registry/remocn-ui/core/timeline.ts`），
-  光标用 `registry/remocn-ui/caret` 的 `<Caret width={11} height={22} blink={!tw.typing} />`。
-  源码导出 `WHATS_NEW: string[]`（右栏列表）、`TYPING_START_FRAME 48`、`TYPING_CPS 18`、`THEMES.dark/light`。
-  秒 ↔ 帧换算（30fps）：`fadeUpAt[6,22]/[12,30]/[18,36]` = [0.20,0.73]/[0.40,1.00]/[0.60,1.20]s、
-  `TYPING_START_FRAME 48` = 1.60s、`submitGap` 0.36s ≈ 11 帧。
-  源码**止于命令打完**（`durationInFrames 160` = 5.33s 定格，它只演到人按回车之前）——
+- Remotion 移植：本卡 tsx 就是移植终点，可直接抄的部分——`CONFIG`（`boxFade/colRFade/promptFade` 三段窗、`typeStart 1.60`、`cps 11`、`submitGap 0.36`、`logRate 54 / logChunk 3`、`dotHz 1.1`、`cursorHz 2`）、`buildSchedule()`（按字数一遍算完所有时刻）、`fadeUp(t, [a,b])`（独立 opacity 窗 + 9px 上移）、`backOut(p, 1.05)`（窗体弹入）。
+  秒 ↔ 帧换算（30fps）：三段窗 = 原版 `fadeUpAt[6,22]/[12,30]/[18,36]` = [0.20,0.73]/[0.40,1.00]/[0.60,1.20]s、
+  起打第 48 帧 = 1.60s、`submitGap` 0.36s ≈ 11 帧。
+  原版 remocn 组件**止于命令打完**（160 帧 = 5.33s 定格，只演到人按回车之前）——
   回车 / 工具调用 / 结果 / diff / 结论这条因果链是本卡补的。日志部分的帧驱动写法与
   [terminal-typing-log](terminal-typing-log.md) 完全一致：
   `const linear = Math.floor(interpolate(frame, [start, start+dur], [0, len], {extrapolateLeft:'clamp', extrapolateRight:'clamp'})); const revealed = Math.min(len, Math.ceil(linear/3)*3)`；
   状态点 `0.35 + 0.65*(Math.sin(2*Math.PI*((frame-start)/fps)*1.1)+1)/2`；
   行光标 `Math.floor((frame/fps)*2) % 2 === 0 && revealed < len`。
   **不要用 `Math.random` 给速率加抖动**——多趟渲染会闪；分块本身已提供不匀感。
-  姊妹组件 `opencode`（同架构的另一个 TUI 皮）可对照读。
 - 剪辑软件对应物：剪映/CapCut——终端窗是一张静态深底图，三段错峰是三个图层各自"向上滑入 + 淡入"**错开 0.2s 起始**；
   命令行用一个文本层套"打字机"入场（速度调到 3 帧/字），提交后**换成一个灰色文本层硬切**（这就是"退灰"）；
   日志每行一个文本层，打字机预设的速度要调到能看出成簇（多数预设做不到，可退而把每行切成 2~3 段硬切）；
@@ -140,6 +136,6 @@ name: claude-code
   更暗 `#6B6660` / 框线与标题 = accent `#D97757`），**不受"白舞台中性化"约束**。
   这一条与 [terminal-typing-log](terminal-typing-log.md) 的深底例外叠加成立："命令行"这层语义本来就靠深底，
   且 diff `+` 行的绿只有在深底上才有足够对比。舞台本身仍是白底，深色只占那个窗口。
-  源码另有 `THEMES.light`（页 `#E8E5DD` / 窗饰条 `#D8D3CA` / 窗体 `#FBFAF7` / 主文 `#1F1E1D` / 次文 `#73726C`，
+  Claude Code 另有浅色主题（tsx 未做；页 `#E8E5DD` / 窗饰条 `#D8D3CA` / 窗体 `#FBFAF7` / 主文 `#1F1E1D` / 次文 `#73726C`，
   **accent 不变**——陶土橙是身份色，跨主题不动），需要浅色 Claude Code 时整套换过去，此时 `+` 行的绿要换成 `#1a7f3c` 一级，否则在浅底上糊掉。
-- 与相邻卡的分工：**vs [terminal-typing-log](terminal-typing-log.md)（通用终端，最需要对照读）**——那张是 **stdout 流水**（命令 → 日志 → 结论，`...` 结尾行悬停 0.6s、写满 8 行后缓冲区整跳一个行高），演的是"我跑了一遍、它装上了/构建成功了"；本卡是**因果链**（工具调用 → 结果 → diff → 结论，状态点呼吸、结果行缩进挂靠），演的是"AI 到底干了什么、改了哪一行"。讲构建/部署/安装用那张；讲 AI 编程用本张。两张共享分块突进与行占位这两条手感纪律，但本卡不做滚动（一条链放得下）、那张不做状态点。**vs [chat-gpt](chat-gpt.md)（同批姊妹卡）**——那张是**聊天型** AI 产品（药丸输入条 + morph + 无气泡流式回答），本卡是**终端型**编码智能体（深底窗 + 工具调用循环 + diff）；讲"我和 AI 聊天/提示词技巧"用那张，讲"AI 帮我写代码"用本张。两张一起上就是"聊天型 + 终端型"的完整 AI 产品证据链。**vs [ui-flow-theater](ui-flow-theater.md)（界面剧场子类的母卡）**——那张演的是**人操作界面**（光标走位 + 控件状态机），本卡演的是**界面自己在生成内容**（没有光标、没有点击，全部动作来自智能体）。
+- 与相邻卡的分工：**vs [terminal-typing-log](terminal-typing-log.md)（通用终端，最需要对照读）**——那张是 **stdout 流水**（命令 → 日志 → 结论，`...` 结尾行悬停 0.6s、写满 8 行后缓冲区整跳一个行高），演的是"我跑了一遍、它装上了/构建成功了"；本卡是**因果链**（工具调用 → 结果 → diff → 结论，状态点呼吸、结果行缩进挂靠），演的是"AI 到底干了什么、改了哪一行"。讲构建/部署/安装用那张；讲 AI 编程用本张。两张共享分块突进与行占位这两条手感纪律，但本卡不做滚动（一条链放得下）、那张不做状态点。**vs [chat-gpt](chat-gpt.md)（同批姊妹卡）**——那张是**聊天型** AI 产品（药丸输入条 + morph + 无气泡流式回答），本卡是**终端型**编码智能体（深底窗 + 工具调用循环 + diff）；讲"我和 AI 聊天/提示词技巧"用那张，讲"AI 帮我写代码"用本张。两张一起上就是"聊天型 + 终端型"的完整 AI 产品证据链。**vs [ui-flow-theater](ui-flow-theater.md)（界面剧场子类的母卡）**——那张演的是**人操作界面**（光标走位 + 控件状态机），本卡演的是**界面自己在生成内容**（没有鼠标光标、没有点击，全部动作来自智能体；终端里的文本光标另算）。

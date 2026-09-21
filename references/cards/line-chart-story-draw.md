@@ -3,7 +3,7 @@ name: line-chart-story-draw
 标题: 折线分段推演
 一句话: 历史段一开始就在场，讲到假设时新线段从拐点向右 0.4~0.8s stroke 生长、段完成瞬间 ▲5% 标签+弧线箭头弹出，对比虚线再从同一拐点岔出第二种未来，最后竖向色带逐个罩住相关区间
 适用: 口播做"如果当时…那么现在…"的假设推演、给同一起点算两种未来、讲某段区间的相关性；财经拆解、政策复盘、投资算账类冷静推理的调性
-时长: 历史线静置 0.6s → 拐点亮起 + "这里买入"标注 0.25s + 停 0.35s → 每段生长 0.6s（段间停 0.35s）+ 段末标签 0.25s → 停 0.4s 后对比虚线 0.7s + ×2 标签 → 色带错峰 0.3s 逐个淡入；全程约 5.5s
+时长: 历史线静置 0.6s → 拐点亮起 + "这里买入"标注 0.25s + 停 0.35s → 每段生长 0.6s（段间停 0.35s）+ 段末标签 0.25s → 停 0.4s 后对比虚线 0.7s + ×2 标签 → 色带错峰 0.3s 逐个淡入；全程约 4.8s
 能量: 中
 类别: 数据信息图
 优先级: P0
@@ -39,7 +39,6 @@ name: line-chart-story-draw
 | `altGap` | 0.4s | 实线讲完 → 虚线岔出的停顿；两条线不留缝就变成"同时两条"，不是"另一种可能" |
 | `alt.dur` | 0.7s | 对比线略慢于主线，读作"再算一遍"；比主线快会抢走结论 |
 | `bandStagger` | 0.3s | 色带错峰；同时淡入 = 一块大色底，"逐个罩住哪几段"的语义消失 |
-| `growEase` | power2.out | 生长缓动；`none` 匀速立刻变成程序绘图，`back` 会让线头过冲出格 |
 | `chipDx/chipDy` | 12 / −30 | 端点数值 chip 相对线端的偏移；贴太近压线，离太远读不出"这是线端的值" |
 | `scale` | yBase/vBase/yStep/vStep | y 像素→数值的线性映射，换数据只改这四个数（满量程必须固定） |
 
@@ -53,6 +52,7 @@ name: line-chart-story-draw
 - 标签先于线段出现——结论比推演先到，逐段推理的悬念全废。
 
 ## 复用指引
+- props：仅 `hostSrc`（主播 PiP 小窗）；数据点位 / 标签 / 色带 / 节奏全在 CONFIG，换内容需改源码。
 - Remotion/tsx（skill 首选）：template/cards/line-chart-story-draw.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/line-chart-story-draw/index.html。换数据只改 `CONFIG`：`history` 换历史点位、`pivot` 换拐点、`segments[].pts/dur/label` 换推演段与段末标签、`alt` 换对比线与端点标签、`annot` 换拐点标注（`arc` 三点定弧线箭头）、`bands` 换罩显区间、`scale` 定 y→数值映射；节奏全在 `hold0/segGap/annotHold/altGap/bandStagger`。核心动画即 `DemoShell.register` 回调整段（`growSeg` / `popLabel` 两个小函数），复制 CONFIG + 回调可直接摘走。
 - Remotion 移植：每段一个 `<Sequence from={段起始帧}>`，`strokeDashoffset={interpolate(frame, [0, dur*fps], [L, 0], {easing: Easing.out(Easing.quad), extrapolateRight:'clamp'})}`（`L` 用 `useLayoutEffect` 里 `getTotalLength()` 量或预先算好写死）；段末标签用 `spring({frame: frame - (段起 + dur*fps), config:{damping:10}})` 驱动 scale；端点 chip 位置用同一 `interpolate` 的进度调 `getPointAtLength`（把点位预采样成数组避免每帧测量）；对比虚线保留 mask 结构，动 mask path 的 dashoffset；色带用 opacity interpolate + `i*bandStagger*fps` 延迟。**帧驱动下段间停顿要写成显式空帧**，别指望时间线自然拉开。

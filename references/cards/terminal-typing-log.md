@@ -20,7 +20,7 @@ name: terminal-typing-log
 **语义色只给一个**（成功行绿色；日志、命令、报错都上色就变成彩虹终端，"成功"这一拍的重量没了）。
 
 ## 动效核心
-- **窗体**：深底终端窗 830×356（= 40 窗栏 + 22×2 留白 + 8 行 × 34 行高，可见 8 行是硬约束）+ 三交通灯（灰阶）+ 中间路径标题。等宽字体 21px，行高 `round(fontSize × 1.6) = 34px`
+- **窗体**：深底终端窗 836×356（= 40 窗栏 + 22×2 留白 + 8 行 × 34 行高，可见 8 行是硬约束）+ 三交通灯（灰阶）+ 中间路径标题。等宽字体 21px，行高 `round(fontSize × 1.6) = 34px`
 - **① 分块突进（本卡的第一手感）**：先算线性揭示数 `linear = floor((t − start) × rate)`，
   再上取整到分块粒度 —— `revealed = min(len, ceil(linear / chunk) * chunk)`。
   日志 `chunk 4` @ 68 char/s（成簇蹦出）、命令 `chunk 1` @ 23 char/s（手在敲键盘，逐字符）。
@@ -68,7 +68,7 @@ name: terminal-typing-log
 - 用真实的长构建日志（几十行滚很久）——终端是**证据**不是内容，8~12 行足够；再多观众开始读日志、离开你的讲述。
 
 ## 复用指引
-- Remotion/tsx（skill 首选）：template/cards/terminal-typing-log.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
+- Remotion/tsx（skill 首选）：template/cards/terminal-typing-log.tsx——props：仅 `hostSrc`（84px 圆角标）；日志内容在 `CONFIG.lines`（常量，非 prop），换内容需改源码。自包含单文件，复制进工程即可用；节奏参数在顶部 CONFIG，时长由 `buildSchedule()` 推出、尺寸在 meta。
 - HTML/GSAP：demos/terminal-typing-log/index.html。**换内容只改 `CONFIG.lines`**——每行 `{ k, t, d?, p? }`：
   `k` 取 `cmd`（命令，逐字符）/ `log`（日志，分块）/ `ok`（成功，唯一语义色），
   `d` 覆写行间延迟、`p` 覆写打完后的冻结（缺省时 `...` 结尾行自动 `hover`）。
@@ -88,6 +88,6 @@ name: terminal-typing-log
 
 ## 动效范围
 - 属于本卡的：分块突进的揭示算法（`revealed = ceil(linear/chunk)*chunk`，日志 chunk 2~4 / 命令 chunk 1，两条速率差一个量级）；滚动零插值（溢出行开打那一帧整跳一个 `lineHeight`，无 tween 无缓动，步长严格等于行高）；`...` 结尾行打完自动冻结 0.6s 且冻结期画面完全静止；方块光标 2Hz 方波闪且只在当前行未打完时存在（打完即撤）；行间延迟可逐行覆写以造成不等距节奏；命令/日志/成功三级颜色分级里"一段只给一个语义色且放在末行"这条纪律；未到时刻的行 `visibility: hidden` 占位（布局零重排，只有缓冲区一个 transform 在动）；裁切层独立一层以内边距为界。
-- 不属于本卡的：demo 那段 `pnpm install / pnpm build` 假日志的具体文案与数字（214.6 kB、6.42s 全是演示语境）、`~/projects/koubo-site` 这个路径标题、三交通灯与 12px 圆角这套 macOS 窗饰、`#17171a` / `#212126` 这组深底取值与 `#33d16b` 这个具体绿、21px 字号与 830×356 这个窗尺寸、角标主持人（数字人）、终端这个载体本身（同一套时序可以套在日志面板、CI 输出、聊天机器人的流式回答上）。
+- 不属于本卡的：demo 那段 `pnpm install / pnpm build` 假日志的具体文案与数字（214.6 kB、6.42s 全是演示语境）、`~/projects/koubo-site` 这个路径标题、三交通灯与 12px 圆角这套 macOS 窗饰、`#17171a` / `#212126` 这组深底取值与 `#33d16b` 这个具体绿、21px 字号与 836×356 这个窗尺寸、角标主持人（数字人）、终端这个载体本身（同一套时序可以套在日志面板、CI 输出、聊天机器人的流式回答上）。
 - 迁移接口：`CONFIG.lines` 是唯一的迁移入口——把日志换成目标项目的真实输出（保留"命令 → 日志 → 结论"的三段结构与不等距的 `d`），成功行永远放末位；语速变化时只改 `lineDelay` 与各行 `d`（**`logChunk` / `logRate` / `hover` / `cursorHz` 保持不变**——这四个是手感常量，跟着语速缩放会让快语速下的分块糊成匀速）；尺寸按画幅等比缩放，但 `lineHeight = round(fontSize × 1.6)`、`窗高 = 窗栏 + 留白×2 + visibleLines × lineHeight` 两条等式必须同时成立；竖屏把 `visibleLines` 提到 10~12、窗宽收窄并把日志文案缩短（等宽字体不折行是硬约束，折行会让滚动步长失效）。
 - 底色要求：**终端窗内必须深底**（这是本卡唯一允许的非白例外）——"命令行"这层语义靠深底成立，且成功行的绿只有在深底上才有足够对比；舞台本身仍是白底，深色只占那个窗口。浅底终端（Solarized Light 一类）也能跑同一套时序，但要把日志灰压到 `#6b6b73` 一级、成功绿换成 `#1a7f3c` 一级，否则灰日志在白底上糊成一片。

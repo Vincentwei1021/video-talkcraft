@@ -67,6 +67,7 @@ name: chapter-progress-list
   第二遍播放时它一开场就是红的，"站定—点名"两拍全丢。
 
 ## 复用指引
+- props：仅 `hostSrc`；章节名与当前项（`current: true`）在 `ROWS` 常量里，换内容需改源码。
 - Remotion/tsx（skill 首选）：template/cards/chapter-progress-list.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/chapter-progress-list/index.html。**换内容改 `.ch-row` 的文案**，
   当前章节把 `current` 类挪到对应行（圆点 `<span class="ch-dot">` 跟着挪）。节奏全在 `CONFIG`：

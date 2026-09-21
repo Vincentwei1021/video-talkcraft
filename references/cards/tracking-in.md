@@ -82,7 +82,7 @@ opacity 走独立的 0.5s 线性——所以字在还只有一半透明度的时
 - 起手那一帧整行的视觉中心比终态偏左约 `startTracking / 2`（CSS 的字距会在最后一个字后面也加一份，居中时把可见字形整体推向左）——**源码同样存在**，属于忠实搬运的一部分；真要消掉就给整行加 `margin-right: −<当前字距>`（跟着 `onUpdate` 一起改），但会与源码的观感有细微差别。
 
 ## 复用指引
-- Remotion/tsx（skill 首选）：template/cards/tracking-in.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
+- Remotion/tsx（skill 首选）：template/cards/tracking-in.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。props：无；文案「认知决定上限」在 JSX 常量里，换内容需改源码。
 - HTML/GSAP：demos/tracking-in/index.html。**换内容只改 `#tiTitle` 的文案**（4~8 字，写在 HTML 里，
   本卡不切字所以没有内容数组）。能量只调 `startTracking`；换字号改 `.ti-title` 的 `font-size`，
   同时把 `CONFIG.startBlur` 改成新字号的 1/8（`startTracking` 是 em、自动等比，不用改）。
@@ -90,13 +90,12 @@ opacity 走独立的 0.5s 线性——所以字在还只有一半透明度的时
   **可以直接抄到任何要复刻 Remotion spring 手感的 demo 里**（它同时带临界/过阻尼分支，改参数不会算错）；
   改了 spring 配置就要重算 `springDur`（跑 `SPRING(t)` 找 x(t) 稳定到 1 的时刻）。
   整行的落位改 `.ti-frame` 的 flex 对齐（demo 是整屏居中，因为本卡就是"整屏让位"的语义）。
-- Remotion 移植：源码 `registry/remocn/tracking-in/index.tsx` 就是最简形态，原样抄即可：
+- Remotion 移植：template/cards/tracking-in.tsx 已是最简形态（`remotionSpring(18, 90, 1)` 解析解同时喂 `letterSpacing` 与 `blur`，opacity 另走 0.5s 线性）；用 Remotion 原生 API 的等价写法：
   一个 `spring({frame, fps, config: {damping: 18, stiffness: 90}})` 喂两个 `interpolate`
   （字距 `[0,1] → [0.5, -0.03]` 输出 em 字符串、模糊 `[0,1] → [12, 0]`），
   opacity 另走 `interpolate(frame, [0, 15], [0, 1], {extrapolate: "clamp"})`。
   **帧↔秒换算（源码 30fps）**：opacity 的 `[0, 15]` ⇒ 0.5s；spring 没有显式帧数，
   由 damping/stiffness 决定实际时长（本配置 ≈ 30 帧 = 1.0s），`durationInFrames 90` ⇒ 3.0s（含定格）。
-  `speed` 那个 prop 是源码给的时间缩放（`frame × speed`），本库用 `lead` + `hold` 表达节奏，不搬。
   尺寸换算：源码 `fontSize 96` @1280 画幅，本库 960 舞台 ×0.75 ⇒ 72，`startBlur 12 ⇒ 9`；
   `startTracking` 是 em，跨尺寸不用换算。
 - 剪辑软件对应物：剪映/CapCut——**字距不是可打关键帧的属性**（剪映的"字间距"是静态滑杆），

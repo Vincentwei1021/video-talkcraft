@@ -4,7 +4,7 @@ name: overexpose-flip-transition
 一句话: 出场相机推向证据物直到 1.5x 占满画面，同帧一层重音（深底=白色径向过曝／白底=全场压暗）以切点为锚冲顶再回落，入场镜头从那个亮心里被拉出来
 适用: 章节翻页、"讲完这一段进入下一段"的语义断点；也用在推进到一张关键截图/图表之后跳走的时刻。调性偏郑重，一片 2~4 次
 时长: 出场推 0.55s → 交叠 0.40s（≈12 帧 @30fps）→ 入场沉降 0.55s；重音包络切前 0.26s 升、切后 0.42s 落
-能量: 中～高
+能量: 高
 类别: 转场结构
 优先级: P0
 代码: template/cards/overexpose-flip-transition.tsx
@@ -45,7 +45,7 @@ Remotion 对应写法（`template/motion-systems/transitions.tsx`）：
 - 入场 shot：`{ lead: 12, path: [...settleIn(leadSec, {from:1.3}), {t:9, scale:1.0}] }`
 - 叠加层（出场侧放，`at` = 叙事末尾秒；或入场侧放、`at` 取负落在 lead 里）：`<Overexpose at={tEnd} peak={0.55} riseF={10} fallF={10} color="255, 250, 240" />`
 - `Overexpose` 的 `riseF/fallF` 是帧数，内部就是上面那条不对称包络（`df<=0` 走 `Easing.in`、`df>0` 走 `Easing.out`）。
-- 工程若已装 `env.tsx`，优先把闪光写进 `TRANSITION_FLASHES` 表统一管理，别在场景里散落。
+- 闪光统一走 `template/motion-systems/transitions.tsx` 的 `<Overexpose>`，别在场景里散落；`env.tsx` 的 `TRANSITION_FLASHES` 表按 cinematography.md §2 留空不用（默认关）。
 
 ## 参数表
 | 参数 | 典型值 | 调节手感 |
@@ -67,11 +67,12 @@ Remotion 对应写法（`template/motion-systems/transitions.tsx`）：
 - 一片里过曝翻页用了七八次：曝光重音会通胀，最后每次都不重要。2~4 次为上限。
 
 ## 复用指引
+- props：仅 `hostSrc`（声明未使用）；两个镜头为 JSX 写死的 tile，换内容需改源码。
 - Remotion/tsx（skill 首选）：template/cards/overexpose-flip-transition.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：`demos/overexpose-flip-transition/index.html`。摘 `blowout(出场镜头, 入场镜头, 起始秒) → 结束秒`
   一个函数 + `CONFIG.blow` 一组参数 + `.flash` 那段 CSS；`hold()` 一起摘（转场两端要有慢推）。
   **白底工程直接用**；深底工程把 `.flash` 的 `radial-gradient` 底色换成白色、`peak` 提到 0.42~0.55，包络和时序都不动。
-- Remotion：`blowoutOut` + `settleIn(…, {from:1.3})` + `<Overexpose>`；有 `env.tsx` 时闪光进 `TRANSITION_FLASHES` 表。
+- Remotion：`blowoutOut` + `settleIn(…, {from:1.3})` + `<Overexpose>`（三者都在 `template/motion-systems/transitions.tsx`）。
 - 家族关系：去掉重音层 = [[push-through-transition]]；把重音换成"零内容的纯白帧" = 白闪转场（另一语法）；
   重音 + 硬切 + 零交叠 = [[black-slam-transition]]。同一边界只用一式。
 - 帧级压缩版（实测，小Lin说·韩股崩盘）：**白闪 + 运动模糊斜扫**——一层白色叠加冲到高位，同帧画面沿斜向拖模糊，

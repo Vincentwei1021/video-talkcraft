@@ -3,7 +3,7 @@ name: black-slam-transition
 标题: 黑震切转场
 一句话: 出场镜头相机定格一拍（全片唯一不动的时刻）+ 重音冲顶，最后 1 帧 opacity 直接归零（零交叠硬切），入场镜头满亮直切且开场自带运动——切点一拍三段递减震位 + 从 1.10 后拉刹住
 适用: 全片最大的那一次反转/揭示，**一部片只许用一次**；前一句是悬念或结论前的停顿，后一句是答案
-时长: 定格 0.34s → 重音冲顶 0.12s → 硬切（零交叠）→ 震位 0.20s + 后拉刹住 0.50s；单次转场约 0.62s
+时长: 定格 0.34s → 重音冲顶 0.12s → 硬切（零交叠）→ 震位 0.20s + 后拉刹住 0.50s；从定格起到刹住共 0.96s（切点后 0.5s）
 能量: 高
 类别: 转场结构
 优先级: P0
@@ -29,7 +29,7 @@ name: black-slam-transition
 | 定格 | `at−0.34` → `at` | 相机**完全静止**（hold 只做前段慢推，末段留空） | — | 停在 `scale 1.10`、`opacity 0` |
 | 重音冲顶 | `at` → `cut` | 仍定格 | `opacity 0→0.34`，`power3.in` | — |
 | 切点 | `cut` | `tl.set(opacity: 0)` —— hardOut，不淡出 | 峰值 | `tl.set(opacity: 1)` —— 满亮直切 |
-| 震一拍 | `cut` → `cut+0.20` | — | 0.20s `power2.out` 回落 | `x: +9 → −4.95 → +2.52 → 0`（三段递减，每段 0.06/0.06/0.08s，`ease:none`） |
+| 震一拍 | `cut` → `cut+0.20` | — | 0.20s `power2.out` 回落 | `x: +9 → −4.95 → +2.52 → 0`（三段递减，每段 0.06/0.06/0.08s，前两段 `ease:none`、末段 `power2.out`） |
 | 后拉刹住 | `cut` → `cut+0.50` | — | — | `scale 1.10→1.0`，`power4.out` |
 | 交班 | — | — | — | hold 期慢漂（`drift 10px` + `push 0.03`） |
 
@@ -39,7 +39,7 @@ name: black-slam-transition
 - **三段递减震位，不是抖动**：`+9 → −4.95 → +2.52 → 0`，幅度按 0.55 衰减，只在切点这一拍发生一次。
   这与项目定版的"不做定格抖动/line boil"不冲突：抖动是持续的微振（读作廉价），
   震位是**边界上的单次冲击**（读作物理）。用 `repeat` 做成持续抖动就踩了红线。
-- **`ease:none` 的三段位移**：每段线性、段间硬转向，才有"撞"的棱角；用 `elastic`/`back` 会读作果冻。
+- **前两段 `ease:none`、末段 `power2.out` 的三段位移**：前两段线性、段间硬转向，才有"撞"的棱角，末段 0.08s 用 `power2.out` 刹回 0；用 `elastic`/`back` 会读作果冻。
 - **后拉用 `power4.out`**：极陡的减速——切进来那一帧速度最大，0.15s 内吃掉九成，剩下 0.35s 缓慢落定。
   这条曲线让"满亮直切"不显得突然，因为观众看到的是"冲进来然后被刹住"。
 - **重音峰值 0.34（白底压暗）**：比过曝翻页高（0.10），因为它要承担整次冲击；
@@ -50,7 +50,7 @@ Remotion 对应写法（`template/motion-systems/transitions.tsx`）：
 - 出场 shot（末段**不加相机键** = 定格，配 hardOut）：`{ tail: 1, hardOut: true, path: [{t:0, scale:1.02}, {t:tFreeze, scale:1.06}] }`，外壳 `<ShotFade lead={lead} tail={1} narrationFrames={n} hardOut>`
 - 入场 shot（`lead: 0` 零交叠，`path` 自带起手运动）：`{ lead: 0, path: [{t:0, scale:1.10, x:9}, {t:0.2, x:0}, {t:0.5, scale:1.0}] }`
 - 它是六式里**唯一没有 CamKey 生成器**的一式——出场侧的动作是"不加键"，入场侧的起手运动按当场内容定（震位方向、后拉量都可调）。
-- 闪光由场景自己画；有 `env.tsx` 时写进 `TRANSITION_FLASHES` 表统一管理。
+- 闪光由场景自己画（或 `transitions.tsx` 的 `<Overexpose>`）；`env.tsx` 的 `TRANSITION_FLASHES` 表按 cinematography.md §2 留空不用。
 
 ## 参数表
 | 参数 | 典型值 | 调节手感 |
@@ -77,12 +77,13 @@ Remotion 对应写法（`template/motion-systems/transitions.tsx`）：
 - 入场侧前 0.4s 只有匀质深底在"动"：运动存在但不产生像素变化，`motion_check` 的 freezedetect 照样报静止——**主体必须与硬切同帧登场**才有着力点，不能等底色稳住再进。
 
 ## 复用指引
+- props：仅 `hostSrc`（本卡未使用）；两个镜头（白 / 浅灰 tile + 式名大字）在 JSX 常量里，换内容需改源码。
 - Remotion/tsx（skill 首选）：template/cards/black-slam-transition.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：`demos/black-slam-transition/index.html`。摘 `blackSlam(出场镜头, 入场镜头, 起始秒) → 结束秒`
   一个函数 + `CONFIG.slam` 一组参数 + `.flash` 那段 CSS。**注意排片**：出场镜头的 `hold()` 时长要写成
   `hold - freeze`（末段留空 = 定格），这一句不能省，否则定格不存在。
 - Remotion：出场 shot 末段不加 CamKey + `<ShotFade hardOut>` + `tail: 1`；入场 shot `lead: 0`，
-  `path` 首键自带 `scale 1.10` 与震位；闪光走 `TRANSITION_FLASHES` 表。
+  `path` 首键自带 `scale 1.10` 与震位；闪光由场景自己画，不走 `TRANSITION_FLASHES`。
 - 家族关系：它是六式里唯一的硬切，其余五式都有交叠。想要冲击但不想断裂 → 用 [[overexpose-flip-transition]]；
   想要"零补间硬切当节拍器"的连续版本 → 那是另一张卡 color-slam-beat-card（底色跳变节拍），不要与本式混用。
 - 剪辑软件对应物：剪映/PR 里就是不加转场的硬切 + 前一镜定格帧 + 后一镜"缩放+位置"两个关键帧；
@@ -91,7 +92,7 @@ Remotion 对应写法（`template/motion-systems/transitions.tsx`）：
 ## 动效范围
 - 属于本卡的：出场侧**相机定格一拍**（全片唯一静止的时刻，作为硬切的预备拍）+ 重音 0.12s `power3.in` 冲顶；
   **零交叠 hardOut**（最后 1 帧 `opacity` 直接归零，用 `set` 不用 `to`）；入场侧满亮直切（同帧 `set opacity:1`）
-  且开场自带运动——切点一拍的三段递减震位（`+9 → −4.95 → +2.52 → 0`，每段 `ease:none`，只发生一次）
+  且开场自带运动——切点一拍的三段递减震位（`+9 → −4.95 → +2.52 → 0`，前两段 `ease:none`、末段 `power2.out`，只发生一次）
   + `scale 1.10→1.0` 的 `power4.out` 后拉刹住；重音 0.20s `power2.out` 回落；hold 期相机永不静止的慢漂。
 - 不属于本卡的：两个镜头里的文字与配色（白/浅灰 tile + 灰字式名是"认式子的标签"，不是台词字幕）、
   左上说明角标、**重音是亮还是暗**（随底色定）、震位往左还是往右、`.shot` 的 `inset:-14%` 具体数值。

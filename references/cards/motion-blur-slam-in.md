@@ -3,7 +3,7 @@ name: motion-blur-slam-in
 标题: 模糊甩入急停
 一句话: 配合数字人的一卡——素材卡带横向运动模糊从人物旁的画外高速飞入，0.2s 内急停落位，模糊量跟着速度由重到清、停住那一帧归零，落位再 2~3px 过冲回正
 适用: 口播"直接甩给你看"的压上时刻（数据卡、产品截图、对比图）；凌厉、有攻击性的高能段落；AI 工具盘点、爆点拆解、观点硬怼
-时长: 单卡飞入 0.15~0.25s + 过冲回正 0.08~0.12s；多卡连发同方向间隔 0.3~0.5s；退场 0.12s 反向甩出（可选）
+时长: 起手 0.4s；单卡飞入 0.2s（0.15~0.25）+ 过冲回正 0.1s；两卡同方向连发间隔 0.4s（0.3~0.5），1.1s 全部落定
 能量: 高
 类别: 素材呈现
 优先级: P1
@@ -56,6 +56,7 @@ name: motion-blur-slam-in
 - 飞入距离只有一两百 px——没有速度累积，模糊没地方发生，最后只是个位移淡入。
 
 ## 复用指引
+- props：仅 `hostSrc`；两张素材卡是写死在 JSX 的 CSS 假截图（无 images[]），换真素材需改源码替换为 `<Img>`。
 - Remotion/tsx（skill 首选）：template/cards/motion-blur-slam-in.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/motion-blur-slam-in/index.html。方向模糊 = `<defs>` 里每张卡一个 `feGaussianBlur stdDeviation="σ 0"` 滤镜（卡上 `data-mb="mbA"` 指过去），`setSigma()` 负责写 σ 并在 σ→0 时把 `filter` 摘成 `none`；节奏与手感全在顶部 `CONFIG`（`fromX`/`slam`/`slamEase`/`blurMax`/`blurFalloff`/`overshoot`/`settle`/`burst`）。换素材把 `.shot` 内部整块换成 `<img>` 即可；换方向把 `fromX` 换成 y 通道并把 σ 写成 `"0 σ"`（竖向甩入）。
 - Remotion 移植：`const p = interpolate(frame, [f0, f0 + slamF], [0, 1], {easing: Easing.out(Easing.poly(4)), extrapolateRight: 'clamp'})`，位移 `translateX(${fromX * (1 - p) - overshoot * p}px)`，模糊 `σ = blurMax * Math.pow(1 - p, 0.75)` 写进同一 composition 里的 `<svg><filter>` 的 `stdDeviation={`${σ} 0`}`（或用 `filter: url(#mb)` 的 style）；过冲回正另起一段 `interpolate(frame, [f0+slamF, f0+slamF+settleF], [-overshoot, 0], {easing: Easing.out(Easing.quad)})`。多卡就是 `f0 = start + i * burstF`。σ 到 0 时把 style.filter 置空，避免整帧走一遍无用滤镜。

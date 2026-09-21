@@ -3,8 +3,8 @@ name: cursor-actor-demo
 标题: 光标演员演示
 优先级: P0
 代码: template/cards/cursor-actor-demo.tsx
-一句话: 一枚超常规尺寸的系统光标在 UI 截图上"移动-悬停-点击"，每落到一个目标元素就即时响应（hover 底色加深 / 开关滑块滑过去 / 缩略图从光标处 pop-in），一个动作对齐一个口播词——光标是替观众操作的演员，不是鼠标轨迹录屏
-适用: 口播演示工具/软件怎么用的段落——"你就点这里""把图拖进来""这两个开关先打开"；工具测评、AI 产品讲解、教程类口播的标配呈现方式
+一句话: 一枚超常规尺寸的系统光标在界面（tsx 为 CSS/SVG 线框假 UI，控件要能响应）上"移动-悬停-点击"，每落到一个目标元素就即时响应（hover 底色加深 / 开关滑块滑过去 / 缩略图从光标处 pop-in），一个动作对齐一个口播词——光标是替观众操作的演员，不是鼠标轨迹录屏
+适用: 口播演示工具/软件怎么用的段落——"你就点这里""把图拖进来""这两个开关先打开"；工具测评、AI 产品讲解、教程类口播的标配呈现方式。输入是**可重建的界面**（活控件），不是静态截图——截图只能当底，要响应的元素得在其上重画
 时长: 起手静置约 0.45s 等口播开口 → 每个动作 = 移动 0.3~0.6s + 悬停 0.2s + 按压 0.09s + 元素响应 0.3s ≈ 1s/动作；3~4 个动作一段共 4~6s
 能量: 中
 类别: 素材呈现
@@ -86,6 +86,7 @@ name: cursor-actor-demo
 - 拖拽时被拖元素与光标不同步（各自一条曲线）——两个东西各走各的，"抓住了"的因果感断掉。
 
 ## 复用指引
+- props：仅 `hostSrc`（角标主持人）；UI 是 CSS/SVG 线框、四个落点在 `POS` 常量（实测值）、动作时刻由 `CONFIG` 累加，换内容需改源码。要用真截图：在 `.ui-window` 里垫一张 `<Img>`（Remotion 自带）当底、把要响应的控件（开关 / 插槽）按截图位置重画在其上，并重量 `POS`；纯静态截图做不出滑块 / pop-in 响应。
 - Remotion/tsx（skill 首选）：template/cards/cursor-actor-demo.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/cursor-actor-demo/index.html。换 UI 只改 `#stage` 内的灰阶线框结构（本卡的动作序列按选择器取目标：`.pref-row` 行 / `.tg` 开关 / `.thumb.pick` 缩略图 / `.slot` 落点）；目标点用运行时 `P(el, fx, fy)` 反算舞台坐标（换布局不用改任何数字，`fx/fy` 是元素内相对落点）；节奏全在顶部 `CONFIG`（`moveLong` / `moveShort` / `moveDrag` / `hoverHold` / `press` / `pressScale` / `ripple` / `rippleFrom` / `rippleTo` / `hlIn` / `toggleSlide` / `popIn` / `popFrom` / `startDelay`）；`moveTo()` / `press()` 两个函数 + `CONFIG` 就是可摘走的动效本体（`press(at, p)` 的第二参是本次按压的落点，涟漪靠它把圆心贴到箭头尖）。光标形状换成手型/文本光标只改 `.ui-cursor` 里那两条同形 path（描边层与实心层要同步改，保持 `transform-origin` 锚在热点）。
 - Remotion 移植：光标位置 `x: interpolate(frame, [t0, t1]*fps, [x0, x1], {easing: Easing.inOut(Easing.quad), extrapolate*: 'clamp'})`、`y` 同区间换 `Easing.inOut(Easing.sin)`——两轴不同 easing 就是弧线；按压 `scale` 用 `[tp, tp+3, tp+6] → [1, 0.9, 1]`，涟漪同起点另开一组 `scale: [tp, tp+11] → [0.3, 1.6]` + `opacity: [tp, tp+11] → [1, 0]`（`Easing.out(Easing.quad)` / `Easing.in(Easing.quad)`），圆环用 `borderRadius: '50%'` 的 div 并把 `left/top` 设为 -半径；开关滑块 `translateX: interpolate(frame, [tOn, tOn+8], [0, 20], {easing: Easing.out(Easing.quad)})`，轨道色用 `interpolateColors`；pop-in `scale: interpolate(frame, [tUp, tUp+10], [0.4, 1], {easing: Easing.out(Easing.cubic)})` + `transformOrigin` 写成落点内光标的百分比坐标；拖拽阶段让被拖元素与光标读同一组 interpolate（只差一个常量偏移）。整段动作序列建议做成 `ACTIONS` 数组（`{target, at, kind}`）在组件里 map，帧号由词级时间戳换算。
@@ -94,5 +95,5 @@ name: cursor-actor-demo
 ## 动效范围
 - 属于本卡的：光标的移动语言（x/y 分缓动合成弧线、两端加减速、跨区域 0.5~0.6s / 相邻 0.3~0.4s、拖拽段更慢）；到位后 0.2s 悬停微停顿；按压（光标 scale 1→0.9→1、锚点在箭头尖 + 目标 scale 1→0.94→1 + 从箭头尖扩散的涟漪 scale 0.3→1.6 / opacity 1→0 共 0.35s）；"状态切换发生在按下那一刻、不等抬手"这条时序纪律；三种响应语言（开关滑块滑动 + 轨道转深 / 按钮变色 / 缩略图以光标为原点 scale 0.4→1 弹入）及"一个目标只用一种"的纪律；hover 高亮的淡入淡出与"离开即熄"；拖拽时被拖元素与光标共用同一条曲线；三层层级（底 UI < 响应高亮 < 光标，光标永远最顶）；"一动作一口播词、约 1s/动作"的节奏契约。
 - 不属于本卡的：demo 里那个"生成设置"假 UI 的结构与排版（开关行/对话框/素材库全是演示语境）、灰阶线框这套配色（`#f0f0f0` hover 底、`#1d1d1f` 开关轨、`#c8c8cd` 线稿色都是占位取值）、示例台词与字幕切换、角标主持人（数字人）、缩略图里的 SVG 线稿内容、深墨箭头这个具体光标形状与配色（手型/文本光标同样成立，只要热点锚点跟着换；填充色是占位取值，深底翻白即可）。
-- 迁移接口：光标尺寸按画幅等比缩放（以"缩略图尺寸下仍认得出箭头"为准，约画幅短边 6~8%）；动作序列 = `(目标元素, 落点 fx/fy, 响应类型)` 的列表，目标点运行时反算，换任何 UI 截图都不用改坐标；时长全量对齐语音——把每个动作的 `at` 换成该口播词的词级时间戳（`hoverHold` 之后就是词的重音点）；响应色换成目标 UI 自己的 hover/active token（深色 IDE 截图把 hover 底色改为提亮、开关轨改为高亮色，光标描边由黑改白保持与底的对比）；pop-in 的 `transform-origin` 必须跟着落点内光标的实际位置改，不能写死。
+- 迁移接口：光标尺寸按画幅等比缩放（以"缩略图尺寸下仍认得出箭头"为准，约画幅短边 6~8%）；动作序列 = `(目标元素, 落点 fx/fy, 响应类型)` 的列表，目标点 = 落点坐标表（tsx `POS`；HTML demo 用 `P(el, fx, fy)` 运行时反算），换 UI 要重量 `POS`；时长全量对齐语音——把每个动作的 `at` 换成该口播词的词级时间戳（`hoverHold` 之后就是词的重音点）；响应色换成目标 UI 自己的 hover/active token（深色 IDE 截图把 hover 底色改为提亮、开关轨改为高亮色，光标描边由黑改白保持与底的对比）；pop-in 的 `transform-origin` 必须跟着落点内光标的实际位置改，不能写死。
 - 底色要求：白底即可（demo 的浅色 UI 是最常见情形）。深色 UI 截图同样成立，唯一硬要求是**光标与底的对比必须保住**——本卡的"深墨实心 + 白描边"在浅底与深底上都成立（白描边就是深底上的保命层），深底只需把 `drop-shadow` 调淡、必要时把实心层翻成白色并改用深色描边层；涟漪同理（深芯白边两色互换）。hover 高亮由"加深"改为"提亮"。

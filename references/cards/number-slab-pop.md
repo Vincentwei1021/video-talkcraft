@@ -33,7 +33,7 @@ name: number-slab-pop
 - **层级**（自下而上）：白舞台 → 实色块（`display: inline-block`，圆角 28px = design-language
   §3 的卡片档，padding 26/40/30）→ 数字行（`display:flex; align-items:baseline`，
   `white-space: nowrap` + `font-variant-numeric: tabular-nums`，白字 600）→
-  说明行（块外、下方 22px，灰 20px）。主持人占位在右侧 34%，色块块左对齐在 108px。
+  说明行（块外、下方 22px，灰 20px）。主持人占位在右侧 47%，色块左对齐在 108px。
   **块宽由数字撑出来**（`inline-block` + padding），不写死宽度——换数字位数自动跟着变。
 - **① 块先落**：`t = 0.30` 起，`opacity 0→1` + `y −20→0` + `scale 0.94→1`，
   0.24s `power3.out`，`transform-origin: 50% 50%`。
@@ -88,6 +88,7 @@ name: number-slab-pop
   说明行是 dim 实色（`#8a8a8a`，且**不许再叠 opacity**，§1 浅底红线）。
 
 ## 复用指引
+- props：仅 `hostSrc`；数字 `.int` / `.dec` / `.pct` 与说明行 `.slab-cap` 文案写死在 JSX，换内容需改源码。
 - Remotion/tsx（skill 首选）：template/cards/number-slab-pop.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：`demos/number-slab-pop/index.html`。**换数字改 HTML 里三个 span**：
   `.int`（整数）/ `.dec`（小数，含小数点）/ `.pct`（单位）；没有小数就删掉 `.dec` span

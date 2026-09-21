@@ -13,7 +13,7 @@ name: timeline-photo-strip
 ## 输入类型
 | 口播视频 | B-roll 视频 | 图片 |
 |---|---|---|
-| 不适用（人在场用 D 组并列句卡 `parallel-items-with-host`） | 可（每站一段短视频，停靠那 1s 是它的戏；混放时统一到同一外框比例，裁切不缩放） | **默认输入**（3~5 站每站一张；timeline 是"有先后的几站"） |
+| 不适用（人在场用 D 组并列句卡 `parallel-items-with-host`） | ✗（tsx 的 `srcs` 仅走 `<Img>`，不播视频；换法见复用指引） | **默认输入**（3~5 站每站一张；timeline 是"有先后的几站"） |
 
 ## 常用场景
 1. 成长史 / 版本演进："从一台笔记本到一间工作室"四站横移（demo）
@@ -32,7 +32,7 @@ name: timeline-photo-strip
 ## 动效核心
 - 结构：白底；`.cam`（相机层，宽 1600，`transform-origin: 0 0`）→ 一条时间线（`left 60, top 300, 1500×3, #1d1d1f`）+ 四张 240×160 白边卡上下交替（`(120, 90) / (480, 330) / (840, 90) / (1200, 330)`，中心 x 240 / 600 / 960 / 1320，站距 360）；日期 caption 22px 700 靠时间线一侧（上排在线下 318、下排在线上 266）、`nowrap`。
 - `camTo(z, px, py) = { scale: z, x: 480 − z·px, y: 270 − z·py }`；停靠 `camTo(1.05, cx, 270)`（上排照片离顶 49.5）；拉开 `camTo(.62, 780, 300)` 看全条（四张两侧各留 71）。
-- 时间表：`0` 第一站居中、全部 `.7` → `0.4` 第一站点亮（`brightness 1 + scale 1.03`，0.4s）→ `1.4 / 3.3 / 5.2` 横移到二三四站（`move 0.9 power2.inOut`，点亮从移动 0.5s 起）→ `7.1–8.2` 拉开（7.4 起 0.5s 全部复原）→ `8.2–9.4` 有意停留 → `9.4` caption + 时间线退、`9.44` 照片退（0.4，`power2.in`）→ `9.9` 结束。
+- 时间表：`0` 第一站居中、全部 `.7` → `0.4` 第一站点亮（`brightness 1 + scale 1.03`，0.4s）→ `1.4 / 3.3 / 5.2` 横移到二三四站（`move 0.9 power2.inOut`，点亮从移动中段 `move×0.5` = 0.45s 起）→ `7.1–8.2` 拉开（7.4 起 0.5s 全部复原）→ `8.2–9.4` 有意停留 → `9.4` caption + 时间线退、`9.44` 照片退（0.4，`power2.in`）→ `9.9` 结束。
 
 ## 参数表
 | 参数 | 典型值 | 调节手感 |
@@ -55,7 +55,7 @@ name: timeline-photo-strip
 - 三个平级的东西硬套时间线——观众会去找"先后"，没有先后的用 `gallery-wall-dolly`。
 
 ## 复用指引
-- Remotion/tsx（skill 首选）：template/cards/timeline-photo-strip.tsx——`srcs` 四张真图、`labels` 日期 caption；时长 309 帧（9.9s + 0.4s），导出的 `END` 是动画结束秒；站数不同时改 `CONFIG.centers`（同时改 `POS` 与时间线长度），hold 要长改 `CONFIG.hold` / `tailHold`。
+- Remotion/tsx（skill 首选）：template/cards/timeline-photo-strip.tsx——`srcs` 四张真图、`labels` 日期 caption；时长 309 帧（9.9s + 0.4s），导出的 `END` 是动画结束秒；站数不同时改 `CONFIG.centers`（同时改 `POS` 与时间线长度），hold 要长改 `CONFIG.hold` / `tailHold`。tsx 的 `srcs` 仅走 `<Img>`；要放视频把 `<Img>` 换成 `<OffthreadVideo muted>`（Remotion 自带；grid-to-hero.tsx 里有按后缀自动切换的现成写法），其余不动。
 - HTML/GSAP：demos/timeline-photo-strip/index.html——`CONFIG` 是全部节奏；`.ph` 整块换 `<img>`，`.cap` 换文案；核心可摘走：`CONFIG` + `camTo()` + 时间轴。
 - 与 `gallery-wall-dolly` 的边界：那张是三个平级案例挂 3D 墙、全景起手；本卡是有先后的几站沿时间线横移、拉开收尾——先定关系再选卡。
 - 与 `step-timeline-vertical◈` 的边界：那张是纯文字的竖向步骤时间轴；本卡每站是一张图。

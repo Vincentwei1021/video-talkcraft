@@ -71,6 +71,7 @@ name: per-character-rise
 - 重播不重建 DOM 只重置 transform——换文案后字数变了，旧的 span 还在，错峰序列与实际字数对不上。
 
 ## 复用指引
+- props：无；文案在 `CONFIG.text`，换内容需改源码。
 - Remotion/tsx（skill 首选）：template/cards/per-character-rise.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/per-character-rise/index.html。**换内容只改 `CONFIG.text`** 这一个字符串（6~10 字），
   切字与错峰序列都是运行时算的。手感只调 `dur`（`travel` 要跟着保持约 48% 的比例）；
@@ -79,8 +80,8 @@ name: per-character-rise
   要让人物留在画面里就把 `.pcr-line` 收成一列白区，同时按新宽度把 `font-size` 收回去）。
   **两条缓动 `FADE_EASE` / `TRAVEL_EASE` 是手感常量，不要动、更不要合成一条。**
   `cubicBezier()` 那个解算器是通用的，别的 demo 要 `cubic-bezier` 缓动可以直接抄走。
-- Remotion 移植：源码 `registry/remocn/per-character-rise/index.tsx` 是逐帧查表写法（不建时间线，每帧算每个字该在哪），
-  在 Remotion 里比搬 GSAP 时间线更直接，可以原样抄。**帧↔秒换算（源码 30fps）**：
+- Remotion 移植：`template/cards/per-character-rise.tsx` 就是逐帧查表写法（不建时间线，每帧算每个字该在哪），
+  比搬 GSAP 时间线更直接，可以原样抄。**帧↔秒换算（上游源码 30fps）**：
   `charDurationFrames 21` ⇒ `dur 0.70s`、`charTravelFrames 10` ⇒ `travel 0.333s`、`staggerFrames 1` ⇒ `stagger 0.033s`。
   每字两个 `interpolate`，**两条的 `easing` 必须分开传**：
   淡入 `Easing.bezier(0.2, 0.8, 0.2, 1)`、位移 `Easing.bezier(0.2, 0.8, 0.6, 0.85)`；

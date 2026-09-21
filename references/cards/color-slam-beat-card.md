@@ -53,7 +53,8 @@ name: color-slam-beat-card
 - 连着三张卡用同一个底色——跳变了但色没变，等于只切了内容；每张换色（且各自一片一色）才是节拍器。
 
 ## 复用指引
-- Remotion/tsx（skill 首选）：template/cards/color-slam-beat-card.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
+- props：仅 `hostSrc`；底色在 `CONFIG.cards`，大字 / 小字文案与素材卡内容在 JSX 常量里（`cards[]` 的 title / sub / shot），换内容需改源码；素材卡是 CSS 假截图（`Shot1` / `Shot2`），放真图把 `<Shot1 />` 换成 `<Img>`（Remotion 自带），其余不动。
+- Remotion/tsx（skill 首选）：template/cards/color-slam-beat-card.tsx——自包含单文件，复制进工程即可用；节奏参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/color-slam-beat-card/index.html。核心函数 `slamBeat(tl, el, spec, at, exit)` 可整段摘走，`exit` 传 `"cut"`（硬切回）或 `"lift"`（色块上移让位）。换色改 `CONFIG.cards`（每项 `{bg, tint}`，tint = bg 的同色系淡色）；换文案改 `.slam-title` / `.slam-sub` 内文本；加卡 = 复制一段 `.slam-card` DOM + `CONFIG.cards` 多一项 + 多调一次 `slamBeat`；节奏全在顶部 `CONFIG`。
 - Remotion 移植：切入用**帧判断而非 interpolate**——`frame >= cutFrame && frame < outFrame` 决定纯色层是否渲染（任何 interpolate 都会引入补间，破坏零帧硬切）；显影用 `interpolateColors(frame, [d, d+devF], [tint, '#fff'])`；素材卡 `interpolate(frame, [s, s+riseF], [56, 0], {easing: Easing.out(Easing.cubic), extrapolateRight:'clamp'})` 驱动 `translateY`，同区间另一条 interpolate 驱动 `filter: blur(Npx)`；停留期静置（`driftPx=0` 定版；开启时是一条贯穿的线性 interpolate）；lift 出场 `interpolate(frame, [o, o+liftF], [0, -100])` 驱动 `translateY%`。每张卡一个 `<Sequence>`，硬切 = 两个 Sequence 首尾相接、无 transition。
 - 剪辑软件对应物：剪映/CapCut——纯色素材直接铺在主轨上，**转场处不放任何转场**（这就是全部），大字用关键帧只改文字颜色、素材卡用"位置 + 模糊"两条关键帧；AE——纯色层（Solid）按时间切入切出、层间不加效果，文字层用 Fill 颜色关键帧做显影，素材层 Position + Fast Box Blur 关键帧配 Easy Ease；上移让位 = 把纯色层与其子层预合成后打 Position 关键帧。

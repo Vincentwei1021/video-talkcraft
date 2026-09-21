@@ -2,7 +2,7 @@
 name: host-card-glass-board
 标题: 人物竖卡玻璃台
 一句话: 左 1/3 口播人物装 250×444 的 9:16 竖卡常驻（圆角 22、2px 半透白描边、演播室底），右 2/3 一块 570×408 的玻璃道具台以左缘为轴 rotateY −18° → −10° 显影、sheen 扫一次；板头期数小字 → 大标题逐字解糊 → 英文字距行，板内道具按口播接力：三步 tile 逐个 back.out pop、连接线从左长出带箭头、结果胶囊最后落定；6.1s 板、人、装饰同收
-适用: 讲工作流 / 系统 / 步骤（"文稿 → 配音 → 成片"）；讲工具链（tile 换 logo）；多步教程（板上道具逐步替换、人不动）；竖屏口播原片放横屏成片（竖卡刚好 9:16）。"人一直在、板上换道具"——同一块板能连讲几个道具而不换镜
+适用: 讲工作流 / 系统 / 步骤（"文稿 → 配音 → 成片"）；讲工具链（tile 换 logo）；多步教程（板上 tile 按词锚逐个 pop、人不动）；竖屏口播原片放横屏成片（竖卡刚好 9:16）。"人一直在、板上换道具"——同一块板能连讲几个道具而不换镜
 时长: 6.6s（0.2 板显影 0.7 → 0.3 人物滑入 0.5 → 0.6 sheen 0.9 → 0.9 期数 / 1.0 标题逐字 / 1.45 英文行 → 1.6 / 2.5 / 3.4 三步 tile → 2.05 / 2.95 连接线 → 4.1 结果胶囊 → 6.1 同收 0.5）；成片 tile 时刻对到口播讲到每一步的词锚，板可跨句常驻
 能量: 中
 类别: 人物互动
@@ -13,14 +13,14 @@ name: host-card-glass-board
 ## 输入类型
 | 口播视频 | B-roll 视频 | 图片 |
 |---|---|---|
-| ✓ **必需**——人物装进左侧 9:16 竖卡（`hostSrc` alpha 视频；竖屏原片直接用，横屏抠像素材按卡取半身特写） | ✗ 板上不放实拍（玻璃台是道具台不是播放器；要放视频用 split-60-40-story） | ✓ 可选——板内道具 tile 的图标位可换 logo / 缩略图；tile 本身是界面自演 |
+| ✓ **必需**——人物装进左侧 9:16 竖卡（`hostSrc` alpha 视频；竖屏原片直接用，横屏抠像素材按卡取半身特写） | ✗ 板上不放实拍（玻璃台是道具台不是播放器；要放视频用 split-60-40-story） | ✗（tsx）tile 图标位是字符（`steps[].icon`），不收图；要放 logo 见复用指引 |
 
-人物只吃一种形态：竖卡半身特写。板上道具吃文字 + 小图标 / logo。
+人物只吃一种形态：竖卡半身特写。板上道具吃文字 + 图标字符（logo 需改源码，见复用指引）。
 
 ## 常用场景
 1. 讲工作流 / 系统："文稿 → 配音 → 成片"三步 tile + 结果胶囊（demo 演的）
 2. 讲工具链：tile 换成 logo + 工具名 + 一句副标，连接线不变
-3. 多步教程：同一块板上道具逐步替换（上一步的 tile 退暗、下一步 pop），人物全程不动
+3. 多步教程：同一块板上 tile 按词锚逐个 pop（2~4 步），人物全程不动；tsx 不做上一步退暗
 4. 竖屏口播原片放横屏成片：竖卡 250×444 正好 9:16，不留黑边也不裁人
 
 ## 意图
@@ -60,7 +60,7 @@ name: host-card-glass-board
 - 浅底片直接套这套玻璃材质——白底上玻璃失效；蒙皮见「动效范围」。
 
 ## 复用指引
-- Remotion/tsx（skill 首选）：template/cards/host-card-glass-board.tsx——`hostSrc`（alpha 视频，必需输入）、`tag / title / en`、`steps: {icon,label,sub}[]`（2~4 步，组内自动居中）、`result`；durationInFrames 210；tile 时刻改 `CONFIG.tileAt`，句长改 `exitAt / end`。
+- Remotion/tsx（skill 首选）：template/cards/host-card-glass-board.tsx——`hostSrc`（alpha 视频，必需输入）、`tag / title / en`、`steps: {icon,label,sub}[]`（2~4 步，组内自动居中）、`result`；durationInFrames 210；tile 时刻改 `CONFIG.tileAt`，句长改 `exitAt / end`。`steps[].icon` 是字符串字符渲染在 `.hcg-ic` 圆位里，要放 logo 把该 `<div className="hcg-ic">` 换成 `<Img src>`（Remotion 自带），其余不动。
 - HTML/GSAP：demos/host-card-glass-board/index.html——`.hostcard` 里的 `.host-placeholder` 由 demo-shell 注入数字人；tile 与连接线的 `left` 按 140 / 41 步进手排，改 `CONFIG`。
 - 母本：用户提供的抖音口播截图的版式结构（左人物竖卡 + 右 3D 玻璃板）；板上道具（三步 tile + 连接线 + 结果胶囊）为本库设计，不复刻截图内容。
 - 剪辑软件对应物：剪映 / CapCut 两条画中画（人物竖版蒙版圆角 + 板层 3D 旋转关键帧一次）+ 三张贴纸逐个弹出；AE 一个 3D 图层放板 + 卡片预合成 spring 入场。

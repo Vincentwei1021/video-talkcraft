@@ -86,6 +86,7 @@ name: impact-open-title
 - 全片用超过两次——开场钩子的力量来自稀缺，第三次出现观众就把它当栏目包装了（design-language §2：hero 字阶全片 1~2 次）。
 
 ## 复用指引
+- props：仅 `hostSrc`；标题 / 末词 / 副题文案在 JSX 常量里，换内容需改源码。
 - Remotion/tsx（skill 首选）：template/cards/impact-open-title.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/impact-open-title/index.html。**换文案改两处 HTML**：
   `#ioLine` 的前半句（3~5 字）+ `#ioLast` 里的末词（**必须是 2~3 字的独立 span**，它是唯一换色的元素），

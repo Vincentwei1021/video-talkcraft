@@ -55,9 +55,9 @@ name: step-timeline-vertical
 | 参数 | 典型值 | 调节手感 |
 |------|--------|----------|
 | `lineDur` | 0.6s | 线画出总时长，本卡的节奏总旋钮（节点触发时刻全部由它派生）；>1.0s 观众等着线走完，口播已经讲到第二步了；<0.4s 三个节点被挤到 0.12s 内依次亮（读作同时，"推进"看不见） |
-| `lineEase` | `power1.inOut` | **线的性格，同时是节点间隔的控制器**（见上）；`power2.inOut` 以上必须把 `lineDur` 加到 0.8s+ 才够撑开三个点；`none` 匀速读作进度条（机械感，但节点间隔最均匀，也能用）；`power3.out` 起手极快 = 线被甩下来（推进感丢掉，且三点全挤在开头）；`back` 系列一律不能用（线不会回弹） |
+| 线的缓动（tsx 写死 `power1.inOut`） | `power1.inOut` | **线的性格，同时是节点间隔的控制器**（见上）；`power2.inOut` 以上必须把 `lineDur` 加到 0.8s+ 才够撑开三个点；`none` 匀速读作进度条（机械感，但节点间隔最均匀，也能用）；`power3.out` 起手极快 = 线被甩下来（推进感丢掉，且三点全挤在开头）；`back` 系列一律不能用（线不会回弹） |
 | `nodePop` | 0.18s | 节点弹出耗时；>0.3s 点还在长、线已经走过去了（因果倒置），<0.1s 读作硬现（少了"打点"的确认感） |
-| `nodeEase` | `back.out(1.6)` | 节点唯一允许回弹的地方；回弹强度 >2.5 在 14px 的点上读作抖动，改 `power3.out` 也成立（更冷静） |
+| 节点缓动（tsx 写死 `back.out(1.6)`） | `back.out(1.6)` | 节点唯一允许回弹的地方；回弹强度 >2.5 在 14px 的点上读作抖动，改 `power3.out` 也成立（更冷静） |
 | `textLag` | 0.067s（2 帧） | **命门**：文字滞后节点的量；0 点与字同时出（读作"一组东西一起淡入"，视线没有落点），>0.2s 两者断开、读作四个动效 |
 | `textShift` | 8px | 文字左移进入的位移；0 只剩淡入（可用但更平），>20px 读作文字横向飞入（抢过节点的"打点"） |
 | `ringDelay` | 0.10s | 三组到位 → 空心环升级 的呼吸；0 读作"第一个节点比较特殊"而不是"当前在第一步"，>0.4s 两拍断开 |
@@ -87,7 +87,7 @@ name: step-timeline-vertical
   第二遍播放时它开场就是环，"升级"这一拍全丢。
 
 ## 复用指引
-- Remotion/tsx（skill 首选）：template/cards/step-timeline-vertical.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
+- Remotion/tsx（skill 首选）：template/cards/step-timeline-vertical.tsx——props：仅 `hostSrc`；三步文案与节点 y 在 `STEPS` 常量（`{at, kicker, title}`，线长 `WRAP_H` 264），换内容需改源码。自包含单文件，复制进工程即可用；节奏参数在顶部 CONFIG（线 / 节点缓动写死为 `power1.inOut` / `back.out(1.6)`，非 CONFIG 项），时长/尺寸在 meta。
 - HTML/GSAP：demos/step-timeline-vertical/index.html。**换内容改 `.tl-kicker` / `.tl-title` 的文案**；
   改节点位置只改 HTML 里的 `data-at="22|132|242"`（像素，相对 `.tl-wrap` 顶部）——
   节点触发时刻与文字落位都是运行时按它算的，**不用改任何 delay**。
@@ -96,11 +96,7 @@ name: step-timeline-vertical
   **加节点时要按比例加长 `lineDur`**（经验值：每个节点至少占 0.18s，四节点 ⇒ 0.75s）。
   那段 `timeAtProgress()`（二分解缓动反函数）是通用的——任何"跟随某条动画进度触发子事件"的
   demo 都可以直接抄走。
-- Remotion 移植：线用 `interpolate(frame, [0, lineFrames], [0, 1], {easing: Easing.inOut(Easing.ease)})`
-  驱动 `scaleY`（`Easing.inOut(Easing.quad)` 对应 GSAP 的 `power2.inOut`，用它要把 `lineFrames` 加到 24+）。节点触发帧**在渲染前算好一张表**：对每个 `frac` 做同样的二分反解得到 `t`，
-  `nodeFrame = Math.round(lineFrames * t)`，然后 `<Sequence from={nodeFrame}>`。
-  节点弹出用 `spring({damping: 12, stiffness: 180})`；空心环那一拍三个 `interpolate`
-  （`borderWidth` / `scale` / 用 `interpolateColors` 换背景），全部 `extrapolateRight: "clamp"`。
+- Remotion：已落地为 template/cards/step-timeline-vertical.tsx——节点时刻不是预排的帧表，而是每帧用 `invPower1InOut(at / WRAP_H)` 反解出的秒（L55、L113-114）；线 / 节点 / 文字 / 空心环全部由 `tw()` 按秒驱动，没有 Sequence / spring；空心环三属性（`borderWidth` / `scale` / 背景 `lerpColor`）同用一个 `ringP`（L137-141）。
 - 剪辑软件对应物：剪映/CapCut——线用一个细长矩形贴纸 + "缩放（纵向）"关键帧，
   锚点要先拖到顶端（剪映默认中心锚点会让线**从中间往两头长**，那是完全不同的读法）；
   三个圆点各一层缩放关键帧，时间点按线的进度手对（剪映没有缓动反解，
@@ -119,5 +115,5 @@ name: step-timeline-vertical
 ## 动效范围
 - 属于本卡的：竖线 `scaleY 0→1 origin top` 走 `0.6s power1.inOut` 这条"时间在走"的曲线（**缓动强度与 `lineDur` 是一对**——inOut 越强中段越快、节点越挤，实测每个节点间隔不能低于 0.15s）；**节点触发时刻由线的缓动反解得出**（"线到哪、亮哪"）这条实现纪律；节点 `scale 0→1 back.out(1.6)` 的"打点"手感；文字**滞后节点 2 帧**（`0.067s`）+ `x −8 → 0` 的跟随关系；三组全部到位 + `0.10s` 呼吸后才做的第三拍升级（`border-width 0→3px` + 背景换底色 + `scale 1→1.25` 三属性同帧）；空心环的**唯一性**；kicker 用 dim 实色、静置态零透明度。
 - 不属于本卡的：demo 那三句具体步骤文案与「第一步/第二步/第三步」这个 kicker 写法、`#e0452c` 这个强调色、25px/14px 字号与 600 字重、线的 `#d2d2d7` 色与 2px 宽、节点 14px 直径、`left: 132px` 这个落位与 460px 的组宽、右列的数字人占位、白底舞台。
-- 迁移接口：几何入口只有 `.tl-wrap` 的 `height` 与每个节点的 `data-at`（像素，相对组顶）——两者按舞台高等比缩放（960×540 ⇒ 1920×1080 时全部翻倍，含 `ringWidth`/节点直径/`textShift`）；节奏入口只有 `CONFIG.lineDur`，节点与文字的时刻全部派生（`textLag` 与 `nodePop` 是**手感常量，换尺寸不要动**）；颜色两个 token —— `accent`（空心环）与 hairline（线）；`hold` 按文字总量给（每组约 0.6s）；竖屏直接沿用（本卡是纵向布局，天生适合竖屏，只需把组宽收到屏宽 80% 并把节点数收到 3）。
+- 迁移接口：几何入口只有 `.tl-wrap` 的 `height` 与每个节点的 `data-at`（像素，相对组顶；tsx 对应 `WRAP_H` 与 `STEPS[].at`）——两者按舞台高等比缩放（960×540 ⇒ 1920×1080 时全部翻倍，含 `ringWidth`/节点直径/`textShift`）；节奏入口只有 `CONFIG.lineDur`，节点与文字的时刻全部派生（`textLag` 与 `nodePop` 是**手感常量，换尺寸不要动**）；颜色两个 token —— `accent`（空心环）与 hairline（线）；`hold` 按文字总量给（每组约 0.6s）；竖屏直接沿用（本卡是纵向布局，天生适合竖屏，只需把组宽收到屏宽 80% 并把节点数收到 3）。
 - 底色要求：**白底即可**。深底也成立，换值：线用 `rgba(255,255,255,0.14)`、节点实心用 `#f5f5f7`、kicker 用 `#a1a1a6`、空心环的"空"要换成深底色（`#1d1d1f`）而不是白——否则环心是一块白斑，比实心点还重。唯一约束是底不能有横向纹理或网格线：竖线只有 2px 宽，底上任何横线穿过它都会让"线走到哪"读不清。

@@ -77,6 +77,7 @@ name: quote-hold-arrow
 - 在 punch 之后再补任何动作（箭头、下划线、图标）——那 2.2s 停留就是本卡的落点，加东西等于把余味填满。
 
 ## 复用指引
+- props：仅 `hostSrc`；三行文案在 JSX 常量里，换内容需改源码。
 - Remotion/tsx（skill 首选）：template/cards/quote-hold-arrow.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/quote-hold-arrow/index.html。**换内容改 `.qh-line` 三行文案**
   （末行的字放在 `.qh-last-txt` 里，框会自动跟着宽度走）。

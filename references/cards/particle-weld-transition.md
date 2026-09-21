@@ -82,6 +82,7 @@ Remotion 对应写法（`template/motion-systems/transitions.tsx`）：
 - 用在语义不成立的边界（两镜内容毫无关系）：观众读到"这两个东西是同一个"，然后发现不是，比硬切更困惑。
 
 ## 复用指引
+- props：仅 `hostSrc`（声明未使用）；两个镜头为 JSX 写死的 tile、粒子包围盒 `HOME` 为常量，换内容需改源码。
 - Remotion/tsx（skill 首选）：template/cards/particle-weld-transition.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：`demos/particle-weld-transition/index.html`。摘 `particleWeld(出场镜头, 入场镜头, 起始秒) → 结束秒`
   + `CONFIG.weld` + `rnd()` + `makeParticles()` + `#weld` 那段 CSS。

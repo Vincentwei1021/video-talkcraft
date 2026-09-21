@@ -3,7 +3,7 @@ name: number-counter
 标题: 数字滚动计数
 一句话: 大号数字从 0 滚到目标值，1~1.5s 先快后慢，落定瞬间轻放大一拍、涨跌箭头随后淡入；变体是逐位滚轮高位先停
 适用: 财经/科普口播抛出关键数字的时刻（营收、销量、涨幅）；让数字"长"出来而不是贴出来；数据密集调性
-时长: 计数 1~1.5s + 落定弹一拍 0.27s + 单位淡入 0.25s；odometer 变体高位 1s 起、每低一位多滚 0.2s
+时长: 计数 1~1.5s + 落定弹一拍 0.27s + 单位淡入 0.25s；odometer 变体延后 0.5s 起、高位滚 1s、每低一位多滚 0.22s
 能量: 中
 类别: 数据信息图
 优先级: P0
@@ -42,6 +42,7 @@ name: number-counter
 - 目标值太小还硬滚（如 0→7）——两位数以内直接弹出即可，滚动反而做作。
 
 ## 复用指引
+- props：仅 `hostSrc`；`target` / `odoTarget` 在 CONFIG，标签与单位文案写死在 JSX，换内容需改源码。
 - Remotion/tsx（skill 首选）：template/cards/number-counter.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/number-counter/index.html。模式 a 改 `CONFIG.target/countDur`，模式 b 改 `CONFIG.odoTarget`（字符串保位数）；`buildOdometer()` 自动按位生成滚轮，含千分位逗号。
 - Remotion 移植：模式 a `Math.floor(interpolate(frame, [0, dur], [0, target], {easing: Easing.out(Easing.cubic)}))` 再 toLocaleString；模式 b 每位一个 `<div>` 用 spring 驱动 translateY，delay 按位序递增。

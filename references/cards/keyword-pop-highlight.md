@@ -5,8 +5,8 @@ name: keyword-pop-highlight
 代码: template/cards/keyword-pop-highlight.tsx
 一句话: 字幕念到关键词的瞬间，该词带色块底从 0 弹到 1.65 倍再回落定格 1.15 倍，画面跟着微震一下
 适用: 每段口播的信息峰值（数字、结论、反转词）；真人出镜与无出镜都通用，是口播强调的第一默认动作
-时长: 弹出 0.18s + 回落 0.22s，总 0.4s；关键词比整句晚 0.4~0.6s 出现
-能量: 中
+时长: 弹出 0.18s → 停在 1.65 倍至震动结束（弹出起 0.24s）→ 回落 0.22s，总 0.46s；关键词比整句晚 0.4~0.6s 出现（demo 0.55s）
+能量: 高
 类别: 字幕花字
 ---
 
@@ -47,6 +47,7 @@ name: keyword-pop-highlight
 - 一句里弹两个以上关键词——重音互相打架，等于没有重音。
 
 ## 复用指引
+- props：仅 `hostSrc`；字幕与关键词文案在 JSX 常量里，换内容需改源码。
 - Remotion/tsx（skill 首选）：template/cards/keyword-pop-highlight.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/keyword-pop-highlight/index.html，改 `.caption` 内文案和 `CONFIG` 常量即可；色块颜色在 `.kw::before`。
 - Remotion 移植：用 `spring({frame, config:{damping:12, stiffness:200}})` 驱动 scale，震动用 `Math.sin(frame*3)*7*exp(-frame/4)` 衰减；关键词 delay 换算成帧数对齐音频波形峰值。

@@ -5,7 +5,7 @@ name: gooey-morph
 代码: template/cards/gooey-morph.tsx
 一句话: n 张图各自走 L 形路径从画外飞来——先横向滑到自己的列、再纵向落进行位，起飞时刻故意不按左右顺序，几张图几乎相接地拼成一条横排，拼完即落点
 适用: 一次性把 3~6 张并列证据摆上来的时刻——"这几个案例/这四个平台/这几张对比图"；需要"它们是一组"而不是"一张一张讲"的语义；组图、九宫格式素材、多平台横排
-时长: 各张错峰起飞 0/0.13/0.27/0.43s，单张行程 1.0s ⇒ 全部到位约 1.43s → 收尾定格 1.4s；全程约 2.9s
+时长: 各张错峰起飞 0/0.13/0.27/0.43s，单张行程 1.0s ⇒ 全部到位约 1.43s → 收尾定格 1.4s；全程 2.83s
 能量: 中
 类别: 素材呈现
 ---
@@ -75,7 +75,7 @@ name: gooey-morph
 - 一片里反复用——并列拼是"摆证据"的动作，同一段口播里出现两次，观众会以为前面那组还在。
 
 ## 复用指引
-- Remotion/tsx（skill 首选）：template/cards/gooey-morph.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
+- Remotion/tsx（skill 首选）：template/cards/gooey-morph.tsx——props：仅 `hostSrc`；张数在 `CONFIG.count`，每格内容是 JSX 里的 CSS 假图（`.gm-pic` 内部三个 div），换图需改源码（整块换成 `<Img>`，白边与投影留着）。自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/gooey-morph/index.html。**换张数只改 `CONFIG.count`**（宽度自动适配）；
   换内容把 `.gm-pic` 内部那三个灰阶 div 整块换成 `<img>`（白边与投影留着——那是"实体素材"的语义）。
   节奏只动 `travel` 与 `entryAt`。`cubicBezier()` 是通用缓动解算器，可直接抄走。
@@ -84,8 +84,7 @@ name: gooey-morph
   `const k = Easing.bezier(0.88,0.14,0.12,0.86)(clamp((frame - startF)/travelF))`，
   再 `kx = min(1, k*2)`、`ky = max(0, k*2-1)`，`x = lerp(fromX, restX, kx)`、`y = lerp(fromY, restY, ky)`。
   秒↔帧（30fps）：错峰 0/0.13/0.27/0.43s = 0/4/8/13 帧、行程 1.0s = 30 帧。
-  源码 `registry/remocn/gooey-morph/index.tsx` 的 `barRestPositions` / `barStartPositions` /
-  `barEntryFrames` 三个 props 与本卡一一对应，**但它后半段的 goo 滤镜链本卡已不用**（连同 `morphStartFrame` 等参数一起去掉）。
+  母本（remocn gooey-morph）的 `barRestPositions` / `barStartPositions` / `barEntryFrames` 对应本卡 tsx 的 `REST` / `CONFIG.entryFrom` / `CONFIG.entryAt`，**但它后半段的 goo 滤镜链本卡已不用**（连同 `morphStartFrame` 等参数一起去掉）。
 - 剪辑软件对应物：剪映/CapCut——每张图两段位置关键帧（先横后竖），缓动手动拉成陡中段；
   AE——位置属性打三个键（起手 / 拐点 / 落位），把拐点键的 x 设成落位 x、y 还是起手 y，就是 L 形；
   几张图错开起始帧即可。这张卡在剪辑软件里最好做，因为它没有滤镜、只有位移。

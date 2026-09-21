@@ -13,7 +13,7 @@ name: filmstrip-conveyor
 ## 输入类型
 | 口播视频 | B-roll 视频 | 图片 |
 |---|---|---|
-| 不适用（格子 240 宽，人说话看不清；人用 D 组并列句卡） | 可（每格一段几秒的短视频，格子经过中线那 2~3s 是它的戏） | **默认输入**（≥5 张同尺寸的图；截图 / 封面 / 海报） |
+| 不适用（格子 240 宽，人说话看不清；人用 D 组并列句卡） | tsx 的 `srcs` 仅走 `<Img>`；要每格放短视频（格子经过中线那 2~3s 是它的戏）按复用指引换成 `<OffthreadVideo>` | **默认输入**（≥5 张同尺寸的图；截图 / 封面 / 海报） |
 
 格子同尺寸是硬要求（横竖混合统一裁到 3:2 外框，裁切不缩放）。少于 5 项别用传送带——三四项直接摆开（`hero-duo-layout` / 并列句卡），传送带的成本只在"多到摆不开"时划算。
 
@@ -70,7 +70,7 @@ name: filmstrip-conveyor
 - 格子不同尺寸 / 横竖混排——传送带靠等距节律，一格高一格矮节律就散了；统一裁到 3:2。
 
 ## 复用指引
-- Remotion/tsx（skill 首选）：template/cards/filmstrip-conveyor.tsx——`srcs`（六张真图，`<Img>` cover）、`labels`（六格标签）、`title` / `note`；节奏全在 `CONFIG`（改 `slowIdx` / `slowDur` / `loopDur` 时间表自动重算），`meta.durationInFrames = 250`；格数不是 6 时改 `CONFIG.n` 并把 `exitAt` 按"最后一格过中线时刻 + 0.6"重算。
+- Remotion/tsx（skill 首选）：template/cards/filmstrip-conveyor.tsx——`srcs`（六张真图，`<Img>` cover）、`labels`（六格标签）、`title` / `note`；节奏全在 `CONFIG`（改 `slowIdx` / `slowDur` / `loopDur` 时间表自动重算），`meta.durationInFrames = 250`；格数不是 6 时改 `CONFIG.n` 并把 `exitAt` 按"最后一格过中线时刻 + 0.6"重算。tsx 的 `srcs` 仅走 `<Img>`；要放视频把 `<Img>` 换成 `<OffthreadVideo muted>`（Remotion 自带；grid-to-hero.tsx 里有按后缀自动切换的现成写法），其余不动。
 - HTML/GSAP：demos/filmstrip-conveyor/index.html——`.strip` 由脚本按 `CONFIG.n × 2` 生成，`.ph` 换 `<img>`，`NAMES` 换标签；核心可摘走：`CONFIG` + `stripX(t)` + `weight(i, x)` + `apply()`，四段代码进任何时钟驱动的环境都能用。
 - 与 layout.md 的接口：标题距左 60 / 距顶 70（≥48）；传送带 y 190–350 居中线 270；格内标签 14px（=28@1080 最小可读档）；传送带两端出画是语义（"还有更多"），不算贴边。
 - 剪辑软件对应物：剪映 / CapCut 把六张图排成一行合成后打"位置"关键帧（匀速段两个线性关键帧、减速段中间加两个关键帧再调曲线），中线放大靠每张单独的缩放关键帧（很费）；AE 是一个 Null 控制 Position + 每张的 scale/brightness 用表达式按 `Math.abs(thisLayer.position[0] − 960)` 算——就是本卡的 `weight()`。素材站叫 "filmstrip / carousel / conveyor belt showcase"。

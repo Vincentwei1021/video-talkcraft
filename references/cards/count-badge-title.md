@@ -5,7 +5,7 @@ name: count-badge-title
 代码: template/cards/count-badge-title.tsx
 一句话: 数字「3」先单独从 1.6 倍缩到位并在落定那刻换成强调色，紧接着「个方法」被它从右缘 clip 推出来，第二行错峰 0.1s 淡入上浮，收尾数字再补一记 5 帧 punch
 适用: 口播开场承诺条数——"三个方法""五个坑""两件事"；章节内的分点预告；需要观众记住"有几条"的每一次（列表卡之前的那一屏）
-时长: 起手静置 0.4s → 数字入场 0.3s（落定换色）→「个方法」0.22s 被带出 → 第二行错峰 0.1s 后 0.28s 淡入 → 间隔 0.35s 后数字 punch 5 帧 → 定格 1.7s；共约 3.1s
+时长: 起手静置 0.4s → 数字入场 0.3s（落定换色）→「个方法」0.22s 被带出 → 第二行错峰 0.1s 后 0.28s 淡入 → 间隔 0.35s 后数字 punch 5 帧 → 定格 1.7s；共约 3.3s
 能量: 中
 类别: 字幕花字
 ---
@@ -81,13 +81,14 @@ name: count-badge-title
 - 换成"三"这个汉字数字——汉字数字宽高与其余汉字一样，`numScale` 撑再大也读作"一个大字"，丢掉"数量"这个语义；本卡要阿拉伯数字。
 
 ## 复用指引
+- props：仅 `hostSrc`；数字 / 量词 / 第二行文案在 JSX 常量里（`.cb-num / .cb-rest / .cb-l2`），强调色在 `CONFIG.accent`，换内容需改源码。
 - Remotion/tsx（skill 首选）：template/cards/count-badge-title.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/count-badge-title/index.html。换文案改三处文本：`.cb-num`（1~2 位阿拉伯数字）、
   `.cb-rest`（量词，2~4 字）、`.cb-l2`（第二行，3~6 字）。
   换强调色只改 `CONFIG.accent` 一个值。能量只调 `numScale`；
   节奏只调 `l2Lag` 与 `punchGap`（前者是结构、后者跟音频）。
   换字号时数字与其余字的**比例要保持约 2.2:1**（138:62），单独放大数字会压掉行距。
-  落位改 `.cb-text` 的 `left/top`（demo 让开右侧 42% 的主持人列）。
+  落位改 `.cb-text` 的 `left/top`（demo 让开右侧 47% 的主持人列）。
 - Remotion 移植要点：五段各一组 `interpolate`，共用绝对帧号（30fps：起手 12 帧、
   数字入场 9 帧、量词 7 帧、第二行 8 帧、punch 5 帧）：
   数字 `scale = interpolate(frame, [12, 21], [1.6, 1], {easing: Easing.out(Easing.cubic)})`；

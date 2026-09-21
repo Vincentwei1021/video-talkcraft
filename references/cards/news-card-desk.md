@@ -25,8 +25,7 @@ name: news-card-desk
 - Ken Burns：卡内包一层 `.kb-inner`（transform-origin 50% 40%），落位后 scale 1→1.04，8s，`ease:none`——卡片"活着"但不晃
 - 红线：标题关键词包 span，内嵌绝对定位红条（#d8383a，高 5px，贴字底），1.0s 时 scaleX 0→1，0.3s，`power2.out`，`transform-origin: left center`——从左往右"划"出来
 - 卡 B 堆叠：1.9s 时从右侧 x 320px→0 + 淡入，0.4s，`power3.out`，rotate +2°（与卡 A 反向歪），DOM 顺序在后自然压在卡 A 之上，落位后同样开始自己的 Ken Burns
-- 层级：卡片层之上留 `.caption-zone` 字幕区，口播台词与红线时刻呼应（"重点是这一万亿"）
-- 可选：红线之外可再叠一个红框 draw-on 圈数字（同属"划重点"通道，同样等朗读到该处才画）
+- 层级：红线时刻要与口播台词呼应（"重点是这一万亿"）；字幕件不在 tsx 内，落地时留在卡片层之上
 
 ## 参数表
 | 参数 | 典型值 | 调节手感 |
@@ -48,6 +47,7 @@ name: news-card-desk
 - 红线用 width 动画而不是 scaleX——width 回流抖动且不吃 GPU，扫动不顺滑。
 
 ## 复用指引
+- props：仅 `hostSrc`（未使用）；两张新闻卡的报头 / 日期 / 标题写死在 JSX，换内容需改源码。
 - Remotion/tsx（skill 首选）：template/cards/news-card-desk.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/news-card-desk/index.html。换文案改两张卡里的 `.paper`（报头）、`.date`、`h2` 标题即可；要划的关键句包在 `<span class="kw">…<span class="redline"></span></span>` 里；红线颜色改 `.redline` 的 `background: #d8383a`，卡底色改 `.news-card` 的 `background`。节奏全部在顶部 `CONFIG`：`redlineAt` 对齐你的语音重音，`cardBAt` 对齐第二条素材的口播时刻，`tiltA/tiltB` 控制歪度。核心动画即 `DemoShell.register` 内那一段 timeline，连同 CONFIG 复制可直接摘走。
 - （实测变体）译文条覆盖：外文截图不用红线划重点，而是在关键句上直接叠一条白底黑字的译文横条（宽度对齐该句，压在原文之上）——观众省掉"读外文再理解"的一步；适合引用英文报道/推文的段落，与红线通道二选一。见小Lin说·韩股崩盘。

@@ -92,6 +92,7 @@ name: pip-zoom-box
 - 两层人物视频不对时——框内框外嘴形不一致，一眼看出是两层（demo 用 900ms 一次的 `currentTime` 对齐兜住；这是演示语境的工程细节，实拍里两层来自同一条素材没有这个问题）。
 
 ## 复用指引
+- props：仅 `hostSrc`；被放大的全景是 `.pz-scene` 内 JSX（两份同构），换素材需改源码并重校 `faceX/faceY`。
 - Remotion/tsx（skill 首选）：template/cards/pip-zoom-box.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/pip-zoom-box/index.html。**换素材只做两件事**：把 `.pz-scene` 的内容换掉
   （两份必须完全同结构——`.pz-win` 里那份是副本），然后重校 `CONFIG.faceX/faceY`

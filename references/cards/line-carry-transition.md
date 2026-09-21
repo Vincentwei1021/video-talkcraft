@@ -13,7 +13,7 @@ name: line-carry-transition
 ## 输入类型
 | 口播视频 | B-roll 视频 | 图片 |
 |---|---|---|
-| ✗ 人物不进这一镜（人在 A 或 B 里各自的镜头里出现，转场帧不留人） | ✓ B 内容可以是一段 B-roll（框内 cover） | ✓（默认输入）B 内容是截图 / 照片；A 侧只有标题 + 副标 |
+| ✗ 人物不进这一镜（人在 A 或 B 里各自的镜头里出现，转场帧不留人） | ✗（tsx）`srcB` 仅走 `<Img>`；要放 B-roll 见复用指引 | ✓（默认输入）B 内容是截图 / 照片；A 侧只有标题 + 副标 |
 
 作用于前后两镜（**场**）：A 侧吃标题文字，B 侧吃一张图 + 标题。
 
@@ -64,7 +64,7 @@ name: line-carry-transition
 - B 画框在镜头到位后偏一边——`run` 与画框 x 要一起算：框左 = 640 + run，框中心 = 960 + 480。
 
 ## 复用指引
-- Remotion/tsx（skill 首选）：template/cards/line-carry-transition.tsx——`titleA / subA / titleB / subB / srcB`；durationInFrames 204；横移起点改 `CONFIG.camAt`（对到口播换章的那一拍），句长改 `exitAt / end`；画框尺寸改 `CONFIG.frame`（周长与 `camL` 自动跟）。折线全是直线段，沿线取点是解析计算（不依赖 DOM）。
+- Remotion/tsx（skill 首选）：template/cards/line-carry-transition.tsx——`titleA / subA / titleB / subB / srcB`；durationInFrames 204；横移起点改 `CONFIG.camAt`（对到口播换章的那一拍），句长改 `exitAt / end`；画框尺寸改 `CONFIG.frame`（周长与 `camL` 自动跟）。折线全是直线段，沿线取点是解析计算（不依赖 DOM）。tsx 的 `srcB` 仅走 `<Img>`；要放视频把 `<Img>` 换成 `<OffthreadVideo muted>`（Remotion 自带），其余不动。
 - HTML/GSAP：demos/line-carry-transition/index.html——`CONFIG` 同名；`.tb .ph` 换 `<img>` / `<video>` 即真素材；demo 用 SVG `getPointAtLength`。
 - 母本：video-shotcraft `line-carry-transition`（3840 宽世界、进度条 560 + 冲出段 + 直角 + 560×330 矩形框，横移段 drawn = 1100 + cam，笔头钉在 x≈1500/1920）；移植按 960 舞台等比缩放，语义从"进度条 → 卡框"改成"章节标题下划线 → 章节画框"。
 - 剪辑软件对应物：剪映做不了（无路径描画 + 跟踪）；AE 用 Trim Paths 驱动 path 生长 + 摄像机 / 父级 null 的 Position 与 Trim End 用同一表达式变量（`cam = ease(time,…)`；`trimEnd = (560 + cam) / total`）；Motion 用 Write On + 摄像机联动。

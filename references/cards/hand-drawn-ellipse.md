@@ -27,10 +27,11 @@ name: hand-drawn-ellipse
 ## 动效核心
 - **圈层 = 盖在文字上的全屏 SVG**（`viewBox="0 0 960 540"`、`pointer-events:none`），
   `fill:none` + `stroke-linecap/linejoin: round`
-- **坐标绑定被圈元素，不写死**：目标 DOM 打 `data-ink="key"`，运行时用 canvas `measureText`
+- **圈的几何绑定被圈短语的墨迹盒**：demo 给目标 DOM 打 `data-ink="key"`，运行时用 canvas `measureText`
   量它的**墨迹盒**（`actualBoundingBoxAscent/Descent` + baseline，不是行盒——行盒上下带
-  line-height 留白，照行盒画圈会整体偏高一截）。圈心 = 墨迹中心，半径 = 半宽/半高 + pad
-- **歪椭圆的四个不完美**（手作感全在这里，一个都不能少）：
+  line-height 留白，照行盒画圈会整体偏高一截）。圈心 = 墨迹中心，半径 = 半宽/半高 + pad。
+  **tsx 是纯函数渲染，把 demo 算出的 path 原样烘焙成 `ELLIPSE` 常量（`d` + 实测长度 `len` 471.44）**——换短语要在源码外重新生成
+- **歪椭圆的四个不完美**（手作感全在这里，一个都不能少；这四项是 demo `ellipsePath()` 的形状参数，在 tsx 里已烘焙进 `ELLIPSE.d`，不是 CONFIG 项）：
   - `turns: 1.08` —— 画 1.08 圈，尾巴过头 8%（命门①）
   - `grow: 0.055` —— 每绕一圈半径外扩 5.5%，让尾巴落在起笔**外侧**而不是压住它
   - `tilt: -3.5°` —— 整体静态倾斜（不是动效，是形状属性）
@@ -52,28 +53,25 @@ name: hand-drawn-ellipse
 ## 参数表
 | 参数 | 典型值 | 调节手感 |
 |------|--------|----------|
-| `turns` | 1.08 | **本卡第一命门**；=1.0 圈精确闭合，一眼是矢量椭圆工具画的；>1.3 绕两圈读作"划掉/否定"（语义相反）；1.05~1.15 是"手画的一圈"的甜点 |
-| `grow` | 0.055 | 每圈半径外扩比；=0 尾巴压在起笔上（看不出过头，反而像画粗了）；>0.12 尾巴甩得太远读作两个不同心的圈 |
+| `startDelay` | 0.42s | 起手静置，等口播念到这个短语 |
 | `punchGap` | 0.06s | **本卡第二命门**；=0 圈与 punch 同时发生，读作"字被圈撞了一下"；>0.25s 两件事脱钩，punch 读作独立的第二次强调 |
 | `punchScale` | 1.06 | punch 幅度；<1.03 看不出来（那不如不做）；>1.12 读作弹跳，本卡是"重音确认"不是"弹出" |
-| `padX` / `padY` | 26 / 15 | 圈的松紧；**padX <16 圈的左右腰会切进首末字**（椭圆在字高处已收窄）；padX >40 圈太松读作"框住一片区域"不是"圈这几个字" |
-| `tilt` | −3.5° | 静态倾角（形状属性，全程不变）；=0 太正读作图形；>8° 读作贴歪了 |
-| `wobble` | 3.4（半径 ±3.4%） | 起伏量；=0 是完美椭圆；>7 圈的轮廓开始起波浪，读作抖手不是画圈 |
-| `startAngle` / `dir` | −145° / −1 | 起笔角度与方向；起笔放在正右（0°）或正下（90°）读作机器起点；左上角逆时针是右手最自然的画圈起手 |
+| `punchDur` | 0.22s | punch 回落时长（`power3.out`）；与 `punchScale` 一起决定"重音"的干脆度 |
 | `draw` | 0.5s | 画圈耗时；<0.3s 看不出笔顺方向（圈"闪"出来）；>0.8s 观众在等一个圈画完 |
-| `ease` | power2.out | 起笔快收笔缓；`none`（匀速）一眼读作 loading 圈；`power2.inOut` 也可（更"慢慢收笔"） |
 | `width` | 3.2px（3~3.5） | 圈的恒定线宽（全程一个值，**不做粗细变化**）；<2.5px 读作 UI 描边（没有笔的墨量），>4.5px 粗圈会咬到字 |
 | `hold` | 1.8s | 收尾定格，被圈的短语是本卡的落点，按字数给（每字约 0.3s） |
 
+形状常量（**不是 tsx 可调参数**——烘焙在 `ELLIPSE.d` 里；demo 的 `ellipsePath()` 才收它们，重新生成 path 时按这些值给）：`turns` 1.08（**第一命门**；=1.0 精确闭合一眼是矢量椭圆，>1.3 读作"划掉"，1.05~1.15 是甜点）、`grow` 0.055（=0 尾巴压在起笔上像画粗了，>0.12 读作两个不同心的圈）、`padX / padY` 26 / 15（**padX <16 圈的左右腰切进首末字**，>40 读作框住一片区域）、`tilt` −3.5°（=0 太正读作图形，>8° 读作贴歪）、`wobble` ±3.4%（=0 完美椭圆，>7 读作抖手）、`startAngle / dir` −145° / −1（左上角逆时针起笔，正右/正下起笔读作机器起点）；描画缓动 tsx 固定 `power2.out`（起笔快收笔缓，匀速读作 loading 圈）。
+
 ## 已知坑
 - 圈精确闭合——最致命的一条。闭合的椭圆一眼是矢量图形，"有人画了这个圈"这件事直接消失。
-  必须过头 5%~15% 且尾巴落在起笔外侧（靠 `grow`）。
+  必须过头 5%~15% 且尾巴落在起笔外侧（靠 `grow`；tsx 的 `ELLIPSE.d` 已是过头 8% 的路径，重新生成 path 时保住这两项）。
 - 圈和 punch 同时发生——先后关系是本卡的第二个信息。同时给读作"字被圈撞了一下"，动因反了。
 - 用 `<ellipse>` 元素 + `stroke-dasharray` 描画——那是完美椭圆，`turns`/`wobble`/`grow`
   三件事一件都做不出来。必须用采样点算出来的 path。
-- `padX` 照 `padY` 抄同一个值——椭圆在字高处腰已收窄，等 pad 时圈的左右腰一定切进首末字。
+- 重新生成 path 时 `padX` 照 `padY` 抄同一个值——椭圆在字高处腰已收窄，等 pad 时圈的左右腰一定切进首末字。
   横向 pad 要比纵向大 60%~80%。
-- 照行盒（`getBoundingClientRect()`）算圈心——27px 字的行盒比字形高十几 px，圈会整体偏上，
+- 重新生成 path 时照行盒（`getBoundingClientRect()`）算圈心——27px 字的行盒比字形高十几 px，圈会整体偏上，
   下沿从字中间穿过去。必须用 canvas `measureText` 的墨迹盒。
 - 被圈短语没有单独包 `inline-block` 就 punch——scale 会带动整行（甚至触发重排），
   圈和字瞬间错位。
@@ -89,15 +87,14 @@ name: hand-drawn-ellipse
   那是 `outline-box-title`（机器画的框）的语言，两种别混。
 
 ## 复用指引
-- Remotion/tsx（skill 首选）：template/cards/hand-drawn-ellipse.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
+- Remotion/tsx（skill 首选）：template/cards/hand-drawn-ellipse.tsx——props：仅 `hostSrc`；两行文案与被圈短语在 JSX 常量里，圈的 path 是 `ELLIPSE` 常量（demo 运行时算出后照抄），换短语需改源码并在源码外重新生成 path。自包含单文件，复制进工程即可用；节奏 / 线宽 / 颜色参数在顶部 CONFIG（`startDelay / color / draw / width / punchGap / punchScale / punchDur / hold`），时长/尺寸在 meta。
 - HTML/GSAP：demos/hand-drawn-ellipse/index.html。**换圈的对象不用改坐标**：给目标元素加
   `data-ink="key"`（几何全部从 DOM 量出来，改文案/改字号圈自动跟着走）。
   松紧调 `padX/padY`，形状调 `turns/grow/tilt/wobble/seed`，节奏调 `draw/punchGap/punchDur`，
   线宽改 `width`（恒定值），换色改 `color`。核心逻辑 = `CONFIG` + `inkBoxOf()` +
   `ellipsePath()` + `smooth()` + `inkStroke()`，可整段摘走；`inkStroke()` 与
   `scribble-annotation` 的 `drawStroke()` 等价（都是单条 path 恒定线宽的 dasharray 描画）。
-- Remotion 移植：`d` 用同一套 `ellipsePath()` 在组件外预生成（纯函数、无随机 → 帧间完全一致）。
-  描画用 `@remotion/paths` 的 `getLength()` 拿 `L`，单条 path：
+- Remotion 移植（tsx 现状）：`d` 与长度 `len` 由 demo 的 `ellipsePath()` + `getTotalLength()` 预生成后写成 `ELLIPSE` 常量（纯函数、无随机 → 帧间完全一致；换短语重跑 demo 取新值）。单条 path：
   `strokeWidth = 3.2`（常量）、`strokeDasharray = L`、`strokeDashoffset = L·(1 − p)`，
   `p = interpolate(frame, [s, s+drawF], [0,1], {easing: Easing.out(Easing.quad), extrapolateLeft:"clamp", extrapolateRight:"clamp"})`。
   punch 用第二段 `interpolate(frame, [s+drawF+gapF, s+drawF+gapF+punchF], [1.06, 1], {easing: Easing.out(Easing.cubic)})` 驱动 `scale`。
@@ -118,7 +115,7 @@ name: hand-drawn-ellipse
 ## 动效范围
 - 属于本卡的：**过头交叉**这件事（`turns 1.08` + `grow 0.055` 让尾巴落在起笔外侧）——它是本卡真实性的全部来源；**圈画完才 punch** 的两拍时序（`punchGap 0.06s` 这个呼吸不能为 0）；`dashoffset` 全长→0、0.5s `power2.out` 的描画（起笔快收笔缓，匀速即失效）；**单条 path + 恒定线宽 3.2px**（`linecap round`）这条实现纪律——手作感只做在形状上，**不许模拟笔压**（粗细变化实测忽粗忽细，用户 2026-08-25 定版删除）；圈心绑定目标**墨迹盒**中心、半径 = 半宽/半高 + pad 且 **padX 必须比 padY 大一档**这条落位纪律；歪椭圆的四个不完美（1.08 圈 / 逐圈外扩 / 静态倾斜 −3.5° / 半径正弦起伏）与**不用 `Math.random`** 的确定性要求；punch 幅度 1.06 与 `transform-origin: 50% 55%`（重心略偏下，落定时字不往上飘）；被圈短语独立 `inline-block` 这条实现纪律；画完保持干净静置——不做 line boil / 定格抖动；圈 SVG 层盖在文字之上、`pointer-events:none` 的层级关系。
 - 不属于本卡的：demo 那两句「要求可以再高一点，但对自己 / 更松弛一点」的具体文案、28px 字号与 400/600 两档字重、上行用 dim 实色这个排版选择、橙 `#e8720c` 这个取值（参考图③同色系，换任何一个 accent 都成立）、白底舞台、右侧 30% 的主持人（数字人）占位、"两行字落在左侧白区"这个落位、2.4 的行距（那是为了给圈让地方的**排版前提**，不是动效）。
-- 迁移接口：`color` 是唯一的颜色入口（同屏只能有它一个"看这里"色）；`padX/padY` 与 `width` 按画幅**同比缩放**（960 宽的值 ×2 用于 1080p），`wobble/grow/turns/tilt` 是**比例/角度常量，换尺寸不要动**；节奏 `draw/punchGap/punchDur/startDelay/hold` 与画幅无关，只跟语速走；换圈的对象只改 `data-ink`；目标不是 DOM（视频/图片素材上的字）时把 `inkBoxOf()` 换成手填 `{x, y, w, h, cx, cy}`，`ellipsePath()` 不用动。短语长度超过 8 字时把 `padX` 收到 18~20（长盒子的长短轴比已经够扁，不需要再加横向余量）。
+- 迁移接口：`color` 是唯一的颜色入口（同屏只能有它一个"看这里"色）；`padX/padY` 与 `width` 按画幅**同比缩放**（960 宽的值 ×2 用于 1080p），`wobble/grow/turns/tilt` 是**比例/角度常量，换尺寸不要动**；节奏 `draw/punchGap/punchDur/startDelay/hold` 与画幅无关，只跟语速走；换圈的对象：demo 只改 `data-ink`；tsx 要用 demo 的 `ellipsePath(inkBoxOf(...))` 重新生成 `d` / `len` 写进 `ELLIPSE`；目标不是 DOM（视频/图片素材上的字）时把 `inkBoxOf()` 换成手填 `{x, y, w, h, cx, cy}`，`ellipsePath()` 不用动。短语长度超过 8 字时把 `padX` 收到 18~20（长盒子的长短轴比已经够扁，不需要再加横向余量）。
 - 底色要求：白底即可（马克笔橙压在白底上是本卡的原生语境）。深底上把 `color` 换成高亮度色（`#ff9f45` 级），并把 `width` 从 3.2 加到 3.8——深底吃掉细线的视觉重量，3.2px 的圈在深底上偏轻。
 
 ## 落位自检（2026-09-05 用户定版，选卡时抄进 SHOTBOOK 该镜自检列）

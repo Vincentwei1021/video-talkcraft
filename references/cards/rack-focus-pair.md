@@ -2,7 +2,7 @@
 name: rack-focus-pair
 标题: 焦点接力
 一句话: 两张白边卡前后叠放、永远一清一糊：讲到哪张，焦点 0.7s power2.inOut 转移过去（前张 blur 0→8 / brightness 1→.6 / scale 1.02→.97，后张反向），4.6s 再转回，6.4s 两张同收——像镜头在两张素材之间对焦
-适用: "A 和 B"两件东西被来回提及（纸书 vs 电子书、两款产品）；两个人物 / 两个观点交替讨论、不切镜头只换焦点；新旧对照；引用 + 反驳。图片或 B-roll 都行，人物不参与
+适用: "A 和 B"两件东西被来回提及（纸书 vs 电子书、两款产品）；两个人物 / 两个观点交替讨论、不切镜头只换焦点；新旧对照；引用 + 反驳。默认输入是两张图片；B-roll 要先把 tsx 的 <Img> 换成 <OffthreadVideo>（见复用指引）；人物不参与
 时长: 6.8s（0.2 两张入场 → 2.0 焦点前→后 0.7s → 4.6 后→前 0.7s → 6.4 两张同收 0.4s）；成片按口播提到 A / B 的时刻摆转移点，两次转移之间 ≥1.8s
 能量: 低
 类别: 素材呈现
@@ -13,7 +13,7 @@ name: rack-focus-pair
 ## 输入类型
 | 口播视频 | B-roll 视频 | 图片 |
 |---|---|---|
-| ✗ 人物不参与（人 + 素材用 D 组 / host-shrink-to-chip） | ✓ 两段视频一清一糊同样成立 | ✓（默认输入）两张截图 / 照片 |
+| ✗ 人物不参与（人 + 素材用 D 组 / host-shrink-to-chip） | △ 一清一糊同样成立，但 tsx 的 srcs 仅走 <Img>，放视频先按复用指引换组件 | ✓（默认输入）两张截图 / 照片 |
 
 两张尺寸可不同、比例按素材真实比例，但**白边一致、投影同一个**。
 
@@ -58,7 +58,7 @@ name: rack-focus-pair
 - 后张标签压在被前张遮住的角——后张标签必须贴远离前张的一角（demo 右下）。
 
 ## 复用指引
-- Remotion/tsx（skill 首选）：template/cards/rack-focus-pair.tsx——`srcs=[前张, 后张]` 两张真图、`labels` 两张标签；durationInFrames 216；转移点改 `CONFIG.focusAt`，句长改 `exitAt / end`。
+- Remotion/tsx（skill 首选）：template/cards/rack-focus-pair.tsx——`srcs=[前张, 后张]` 两张真图、`labels` 两张标签；durationInFrames 216；转移点改 `CONFIG.focusAt`，句长改 `exitAt / end`。tsx 的 `srcs` 仅走 `<Img>`；要放视频把 `<Img>` 换成 `<OffthreadVideo>`（Remotion 自带），其余不动。
 - HTML/GSAP：demos/rack-focus-pair/index.html——`.pf / .pb` 的尺寸坐标与 `CONFIG`；`.ph` 换成 `<img>` / `<video>` 即真素材。
 - 剪辑软件对应物：剪映两条画中画轨 + 关键帧"模糊"+"亮度"各 0.7s；PR/AE 两层各 Gaussian Blur + 曝光关键帧 easy-ease；AE 真 3D 相机 + 焦距关键帧（LinkedIn Learning "faking rack focus"）。
 - 与 layout.md 的接口：双元素组宽度比 480:380 ≈ 1.26:1（§4 双元素组 1:1~2:1 之间）；两张顶边刻意不对齐属"标注压在素材上"类的叠层例外（§6）；整组包围盒 (100,60)–(880,430) 中心 x=490 ≈ 480 居中（§4）。

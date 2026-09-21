@@ -1,9 +1,9 @@
 ---
 name: whip-pan-transition
 标题: 横甩转场
-一句话: 出场镜头沿横轴甩出画外并带 8px 方向模糊 + 1.4° 微旋，入场镜头从**同一方向的对侧**滑回画心、0.35s 刹住，再用二段回稳收掉旋转
+一句话: 出场镜头沿横轴甩出画外并带 8px 模糊（CSS `blur()`，各向同性）+ 1.4° 微旋，入场镜头从**同一方向的对侧**滑回画心、0.35s 刹住，再用二段回稳收掉旋转
 适用: 平级并列的镜头边界——"这是 A，那是 B"、切到对比案例、切到另一个人物/另一个市场；快节奏与综艺化调性，也是竖屏切片最常用的一式
-时长: 甩出 0.42s → 交叠 0.30s（≈9 帧 @30fps）→ 刹住 0.35s + 二段回稳 0.50s；单次转场约 0.85s
+时长: 甩出 0.42s → 交叠 0.30s（≈9 帧 @30fps）→ 刹住 0.35s + 二段回稳 0.50s；从甩出起到回稳结束 1.21s（0.42 − 0.06 切点提前 + 0.35 + 0.50），其中刹住 + 回稳 0.85s
 能量: 高
 类别: 转场结构
 优先级: P0
@@ -53,7 +53,7 @@ Remotion 对应写法（`template/motion-systems/transitions.tsx`）：
 |---|---|---|
 | 甩出时长 `out` | 0.42s | <0.25s 只剩一帧糊、读不出方向；>0.6s 读作"平移"而不是"甩" |
 | 位移量 `dist` | 560px @960 宽（0.58 屏宽） | <0.35 屏宽读作抖了一下；>1 屏宽出场镜头早已出画，末段是空甩 |
-| 方向模糊 `blur` | 8px | 0 读作幻灯片推入；>14px 交叠期完全糊掉，空间连续性丢失 |
+| 模糊 `blur`（各向同性 CSS blur） | 8px | 0 读作幻灯片推入；>14px 交叠期完全糊掉，空间连续性丢失 |
 | 微旋 `rot` | 1.4° | 0 读作机械推轨；>3° 读作翻滚/故障特效 |
 | 刹车时长 `brake` | 0.35s | 不刹（直接 set x=0）= 撞墙；>0.6s 读作滑冰、失去挥摄的果断 |
 | 二段回稳 `recover` | 0.50s | 省掉它 = 画面歪着不回正；>1s 像晕车 |
@@ -70,12 +70,12 @@ Remotion 对应写法（`template/motion-systems/transitions.tsx`）：
 - 一片里左甩右甩随机混用：方向应服务叙事（时间轴向右、回溯向左），随机换向读作乱。
 
 ## 复用指引
-- Remotion/tsx（skill 首选）：template/cards/whip-pan-transition.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
+- Remotion/tsx（skill 首选）：template/cards/whip-pan-transition.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。props：仅 `hostSrc`（未使用）；两侧镜头是占位 tile，成片组装走 transitions.tsx 的 `whipOut` / `whipIn`。
 - HTML/GSAP：`demos/whip-pan-transition/index.html`。摘 `whipPan(出场镜头, 入场镜头, 起始秒) → 结束秒`
   一个函数 + `CONFIG.whip` 一组参数即可；换方向把 `dist` 与 `rot` 的正负**两侧一起**取反，
   以及初始 `gsap.set(S[1], {x: +dist})` 也要跟着翻。`hold()` 一起摘。
 - Remotion：`whipOut(tEnd,{dir})` + `whipIn(leadSec,{dir})`，两侧传同一个 `dir`；
-  `path: [...whipIn(0.30,{dir:'left'}), {t:9, scale:1.0}]`，组装范例见 `MainVideo-example.tsx`。
+  `path: [...whipIn(0.30,{dir:'left'}), {t:9, scale:1.0}]`，path 组装写法参考 `template/motion-systems/MainVideo-example.tsx`（示例用的是别的式子，未含 whip）。
 - 家族关系：把横轴换成 scale 轴 = [[push-through-transition]]；加曝光重音 = [[overexpose-flip-transition]]；
   想要"整体换台"而不是"空间旁移"时用下面的径向爆糊变体。同一边界只用一式。
 - 帧级压缩版（实测，真实竖屏口播）：
@@ -85,7 +85,7 @@ Remotion 对应写法（`template/motion-systems/transitions.tsx`）：
     相机只做轻微同向漂——最轻量，不吃相机预算。
   两者与本卡同一条纪律：**两侧同向**、一个边界只用一式；帧级式样太短，方向断裂比标准版更刺眼。
 - 剪辑软件对应物：剪映"运镜转场→左右甩动"；CapCut "whip pan"；
-  AE 是两侧 camera 的 X 位移 + Directional Blur + 轻微 Z Rotation——本卡把手 K 固化成了参数。
+  AE 是两侧 camera 的 X 位移 + Blur（tsx 为各向同性 blur；AE 想要甩痕方向感可换 Directional Blur）+ 轻微 Z Rotation——本卡把手 K 固化成了参数。
 
 ## 动效范围
 - 属于本卡的：出场 `x 0→±dist` + `rotate 0→∓1.4°` + `blur 0→8px` 的 `power3.in` 甩出；

@@ -13,7 +13,7 @@ name: gallery-wall-dolly
 ## 输入类型
 | 口播视频 | B-roll 视频 | 图片 |
 |---|---|---|
-| 不适用（人在场用 D 组并列句卡 `parallel-items-with-host`） | 可（每站一段短视频，停靠那 0.9s 是它的戏；混放时统一到同一外框比例，裁切不缩放） | **默认输入**（三张同尺寸；wall 是"三个平级案例"） |
+| 不适用（人在场用 D 组并列句卡 `parallel-items-with-host`） | tsx 的 `srcs` 仅走 `<Img>`；要每站放短视频（停靠那 0.9s 是它的戏；混放时统一到同一外框比例，裁切不缩放）按复用指引换成 `<OffthreadVideo>` | **默认输入**（三张同尺寸；wall 是"三个平级案例"） |
 
 ## 常用场景
 1. "接下来三个例子一个一个看"：三张代表作挂墙逐个停靠再拉回比较（demo）
@@ -57,7 +57,7 @@ name: gallery-wall-dolly
 - 有先后关系的几站硬套本卡——"三个平级"和"先后几站"语法不同，先后用 `timeline-photo-strip`。
 
 ## 复用指引
-- Remotion/tsx（skill 首选）：template/cards/gallery-wall-dolly.tsx——`srcs` 三张真图、`labels` 压图标签；时长 258 帧（8.2s + 0.4s），导出的 `END` 是动画结束秒；站数不同时改 `CONFIG.centers`（同时改照片 `left`）、hold 要长改 `CONFIG.hold`。
+- Remotion/tsx（skill 首选）：template/cards/gallery-wall-dolly.tsx——`srcs` 三张真图、`labels` 压图标签；时长 258 帧（8.2s + 0.4s），导出的 `END` 是动画结束秒；站数不同时改 `CONFIG.centers`（同时改照片 `left`）、hold 要长改 `CONFIG.hold`。tsx 的 `srcs` 仅走 `<Img>`；要放视频把 `<Img>` 换成 `<OffthreadVideo muted>`（Remotion 自带；grid-to-hero.tsx 里有按后缀自动切换的现成写法），其余不动。
 - HTML/GSAP：demos/gallery-wall-dolly/index.html——`CONFIG` 是全部节奏；`.ph` 整块换 `<img>`，`.tag` 换文案；核心可摘走：`CONFIG` + `camTo()` + `wallX()` + 时间轴。
 - 与 `timeline-photo-strip` 的边界：那张是有先后的几站沿时间线横移；本卡是平级的三张挂墙——先定关系再选卡，两张不在一镜里连用。
 - 与 `stage-keyframe-tour` 的边界：那张是一张超出画幅的长页 + 多关键帧兴趣点巡游；本卡是**多张独立素材**挂在世界里 + 相机层 `origin 0 0` 反解，相机纪律同源、素材形态不同。
