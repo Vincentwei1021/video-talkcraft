@@ -6,6 +6,11 @@ name: timeline-photo-strip
 时长: 9.9s（第一站 0.4 + 1.0 → 三次横移各 0.9 + 1.0 → 拉开 1.1 → 看全条 1.2 → 退场 0.4）；成片站数与停靠按口播改，拉开后的停留 = 口播结语那句
 能量: 中
 类别: 素材呈现
+输入: 图
+语义: 时间地点, 步骤
+素材形态: 横屏, 多图
+位置: 中段
+props: srcs, labels
 优先级: P1
 代码: template/cards/timeline-photo-strip.tsx
 ---

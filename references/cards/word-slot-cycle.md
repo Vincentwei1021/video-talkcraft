@@ -6,6 +6,11 @@ name: word-slot-cycle
 时长: 6.45s（0.2 句干 + 胶囊入场 → 1.1 / 1.8 / 2.5 三次换词 → 3.55 胶囊上飞 + 结论过冲落位 → 6.05 同收 0.4s）；成片按口播念到每个短语的时刻摆换词点，拍长 0.55~0.95s
 能量: 中
 类别: 字幕花字
+输入: 文
+语义: 论点, 转折, 列举
+素材形态: 无
+位置: 任意
+props: stem, words, final, accent
 优先级: P0
 代码: template/cards/word-slot-cycle.tsx
 ---

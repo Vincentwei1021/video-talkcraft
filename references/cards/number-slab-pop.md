@@ -6,6 +6,11 @@ name: number-slab-pop
 时长: 静置 0.3s → 块落 0.24s → 数字弹 0.28s（小数 +0.2s 延后）→ 说明行 0.24s → hold 1.8s；共约 3.0s
 能量: 中
 类别: 数据信息图
+输入: 文, 人(可选)
+语义: 数据, 钩子
+素材形态: 无
+位置: 任意
+props: hostSrc
 优先级: P0
 代码: template/cards/number-slab-pop.tsx
 ---

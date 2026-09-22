@@ -6,6 +6,11 @@ name: error-retype
 时长: 5.5s（0.7 起打 4 字 → 1.06 闪两下 → 1.61 起退 → 1.97 起重打 → 2.51 闪两下 → 3.06 光标摘除 → 5.11 同收 0.4s）；成片把"起退"对到口播说"不是"的时刻
 能量: 低
 类别: 字幕花字
+输入: 文
+语义: 转折
+素材形态: 无
+位置: 任意
+props: prefix, first, second, accent
 优先级: P1
 代码: template/cards/error-retype.tsx
 ---

@@ -6,6 +6,11 @@ name: corner-bracket-frame
 时长: 起手静置 0.4s → 角框进入 0.3s → 标题两行错峰 0.1s（各 0.3s）→ 收尾 hold 1.7s；共约 2.7s
 能量: 低
 类别: 强调标注
+输入: 文, 人(可选)
+语义: 论点, 标题
+素材形态: 无
+位置: 任意
+props: hostSrc
 优先级: P1
 代码: template/cards/corner-bracket-frame.tsx
 ---

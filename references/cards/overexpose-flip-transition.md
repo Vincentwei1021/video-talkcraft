@@ -6,6 +6,11 @@ name: overexpose-flip-transition
 时长: 出场推 0.55s → 交叠 0.40s（≈12 帧 @30fps）→ 入场沉降 0.55s；重音包络切前 0.26s 升、切后 0.42s 落
 能量: 高
 类别: 转场结构
+输入: 场
+语义: 转场, 章节
+素材形态: 无
+位置: 中段
+props: hostSrc(未使用)
 优先级: P0
 代码: template/cards/overexpose-flip-transition.tsx
 ---

@@ -6,6 +6,11 @@ name: motion-blur-slam-in
 时长: 起手 0.4s；单卡飞入 0.2s（0.15~0.25）+ 过冲回正 0.1s；两卡同方向连发间隔 0.4s（0.3~0.5），1.1s 全部落定
 能量: 高
 类别: 素材呈现
+输入: 图, 截图, 人(可选)
+语义: 例证
+素材形态: 无
+位置: 任意
+props: hostSrc
 优先级: P1
 代码: template/cards/motion-blur-slam-in.tsx
 ---

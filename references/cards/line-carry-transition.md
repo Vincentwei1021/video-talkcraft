@@ -6,6 +6,11 @@ name: line-carry-transition
 时长: 6.4s（0.1 A 标题入场 → 0.4 下划线 0.6s → 1.2 镜头横移 2.0s，线同速冲出并围框 → 3.2 框闭合笔头卸载 → 3.3 B 内容淡入 0.5s → 真静止 ≥36 帧 → 6.0 同收 0.4s）；成片 A 侧信息必须在 1.2 横移前讲完
 能量: 中
 类别: 转场结构
+输入: 场, 图, 文
+语义: 转场, 章节
+素材形态: 横屏
+位置: 中段
+props: titleA, subA, titleB, subB, srcB
 优先级: P1
 代码: template/cards/line-carry-transition.tsx
 ---

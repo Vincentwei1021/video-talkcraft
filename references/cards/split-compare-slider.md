@@ -6,6 +6,11 @@ name: split-compare-slider
 时长: 9.5s（起手 0.6 → 揭示 1.4 → 停 1.5 → nudge 0.45×2 → 近端 1.0 → 停 1.5 → 回中 1.0 → 停 1.0 → 退场 0.4）；成片两处停留按口播伸缩
 能量: 中
 类别: 素材呈现
+输入: 图
+语义: 对比
+素材形态: 横屏, 多图
+位置: 任意
+props: srcBefore, srcAfter, labelBefore, labelAfter
 优先级: P0
 代码: template/cards/split-compare-slider.tsx
 ---

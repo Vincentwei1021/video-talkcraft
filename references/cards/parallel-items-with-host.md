@@ -6,6 +6,11 @@ name: parallel-items-with-host
 时长: 一式 3.1s（起手 0.4 → 三项 0.4 / 1.0 / 1.6s 逐个入场、单项 0.45 → 第三项 2.05s 落定 → 2.70s 起三项退场 0.35，实际 hold ≈0.65s）；demo 七式巡演 21.7s；成片一镜只用一式，拉长 `per` 即拉长 hold
 能量: 中
 类别: 人物互动
+输入: 人(必需), 图
+语义: 步骤, 例证, 列举
+素材形态: 人脸, 透明通道, 多图
+位置: 任意
+props: layout, items, srcs, hostSrc
 优先级: P0
 代码: template/cards/parallel-items-with-host.tsx
 ---

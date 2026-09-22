@@ -6,6 +6,11 @@ name: countdown-arc-scatter
 时长: 5.0s（0.3 起扫 0.57s → 0.85 其余散去 / 0.87 选中数落位 → 0.95 / 1.10 / 1.25 三词解糊 → 1.75 末词染色 → 4.6 同收 0.4s）；成片把"扫停"对到口播念出数字的字锚
 能量: 高
 类别: 字幕花字
+输入: 文
+语义: 钩子, 数据
+素材形态: 无
+位置: 开场
+props: numbers, pick, words, accent
 优先级: P2
 代码: template/cards/countdown-arc-scatter.tsx
 ---

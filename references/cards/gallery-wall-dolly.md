@@ -6,6 +6,11 @@ name: gallery-wall-dolly
 时长: 8.2s（全景 0.8 → 三站各 1.0 + 0.9 → 拉回 1.2 → 退场 0.4）；成片站数与停靠按口播改，hold = "讲这一张要几秒"
 能量: 中
 类别: 素材呈现
+输入: 图
+语义: 例证, 对比, 列举
+素材形态: 横屏, 多图
+位置: 中段
+props: srcs, labels
 优先级: P1
 代码: template/cards/gallery-wall-dolly.tsx
 ---

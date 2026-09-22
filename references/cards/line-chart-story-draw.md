@@ -6,6 +6,11 @@ name: line-chart-story-draw
 时长: 历史线静置 0.6s → 拐点亮起 + "这里买入"标注 0.25s + 停 0.35s → 每段生长 0.6s（段间停 0.35s）+ 段末标签 0.25s → 停 0.4s 后对比虚线 0.7s + ×2 标签 → 色带错峰 0.3s 逐个淡入；全程约 4.8s
 能量: 中
 类别: 数据信息图
+输入: 文, 人(可选)
+语义: 数据, 对比
+素材形态: 无
+位置: 中段
+props: hostSrc
 优先级: P0
 代码: template/cards/line-chart-story-draw.tsx
 ---

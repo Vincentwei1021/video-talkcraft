@@ -6,6 +6,11 @@ name: scanline-annotate
 时长: 5.6s（0.5 扫描起 → 1.2 / 2.1 / 2.4 / 2.7 四处依次点名 → 2.9 扫描完 → 3.1 "分析完成" → 5.2 整体退场 0.4s）；成片扫描时长按口播念完 N 处的时间反推，标注常驻到讲完
 能量: 中
 类别: 强调标注
+输入: 截图, 图, V
+语义: 强调
+素材形态: 横屏
+位置: 中段
+props: src, targets, labels
 优先级: P1
 代码: template/cards/scanline-annotate.tsx
 ---

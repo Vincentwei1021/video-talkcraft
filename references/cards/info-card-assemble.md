@@ -6,6 +6,11 @@ name: info-card-assemble
 时长: 6.8s（0 封面 → 0.33 标题 → 0.67~1.0 三标签 → 1.33 价格 → 2.5~2.83 三行要点 → 2.83 / 3.0 马克刷过 → 3.33~3.67 色卡 → 0~3.75 整卡前推 → 6.4 整体退场 0.4s）；成片按词锚把字段分成 3~4 组落（图+标题 / 标签+价格 / 要点 / 色卡）
 能量: 中
 类别: 素材呈现
+输入: 图, 文
+语义: 例证
+素材形态: 无
+位置: 中段
+props: src, caption, title, pills, price, lines, highlightLines, swatches
 优先级: P1
 代码: template/cards/info-card-assemble.tsx
 ---

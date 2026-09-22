@@ -6,6 +6,11 @@ name: news-card-desk
 时长: 单卡上桌 0.4s；红线在 1.0s 处扫 0.3s；第二卡 1.9s 入场；Ken Burns 全程 8s 铺底
 能量: 中
 类别: 素材呈现
+输入: 图, 截图
+语义: 引用, 例证
+素材形态: 无
+位置: 任意
+props: hostSrc(未使用_props)
 优先级: P0
 代码: template/cards/news-card-desk.tsx
 ---

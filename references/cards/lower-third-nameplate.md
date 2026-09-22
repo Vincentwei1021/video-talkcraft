@@ -6,6 +6,11 @@ name: lower-third-nameplate
 时长: 入场三段接力重叠后共约 0.6s（色条 0.3s → 姓名在色条 70% 处起 0.25s → 头衔再延迟 0.15s）；hold 3~5s（demo 压到 2s）；出场反向收回 outDur 0.3s（文字段 ×0.7）、三段各错 0.08s 共约 0.45s
 能量: 低
 类别: 人物互动
+输入: 人(可选), 文
+语义: 自我介绍, 引用, 介绍他人
+素材形态: 无
+位置: 任意
+props: hostSrc
 优先级: P0
 代码: template/cards/lower-third-nameplate.tsx
 ---

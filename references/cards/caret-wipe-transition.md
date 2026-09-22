@@ -8,6 +8,11 @@ name: caret-wipe-transition
 时长: 扫完全屏 1.33s（≈40 帧 @30fps）；配 hold A 0.8s + hold B 0.9s 的完整一拍约 3.0s
 能量: 中
 类别: 转场结构
+输入: 场
+语义: 转场
+素材形态: 无
+位置: 中段
+props: hostSrc(未使用)
 ---
 
 ## 意图

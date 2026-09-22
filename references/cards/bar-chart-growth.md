@@ -6,6 +6,11 @@ name: bar-chart-growth
 时长: 静置 0.3s → 基线 0.24s → 七柱 0.06s×6 + 0.28s = 0.64s → chip 0.2s → hold 1.8s；共约 3.2s
 能量: 中
 类别: 数据信息图
+输入: 文, 人(可选)
+语义: 数据
+素材形态: 无
+位置: 任意
+props: hostSrc
 优先级: P0
 代码: template/cards/bar-chart-growth.tsx
 ---

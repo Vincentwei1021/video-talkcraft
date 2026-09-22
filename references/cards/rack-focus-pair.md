@@ -6,6 +6,11 @@ name: rack-focus-pair
 时长: 6.8s（0.2 两张入场 → 2.0 焦点前→后 0.7s → 4.6 后→前 0.7s → 6.4 两张同收 0.4s）；成片按口播提到 A / B 的时刻摆转移点，两次转移之间 ≥1.8s
 能量: 低
 类别: 素材呈现
+输入: 图
+语义: 对比
+素材形态: 横屏, 多图
+位置: 中段
+props: labels, srcs
 优先级: P1
 代码: template/cards/rack-focus-pair.tsx
 ---

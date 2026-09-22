@@ -6,6 +6,11 @@ name: callout-line-label
 时长: 单个标注约 0.95s（圆点 0.2s + 折线 0.4s + 标签 0.25s、文字再滞后 0.1s）；多标注错峰 0.8s；停留 1.6s 后 0.5s 反向收回
 能量: 中
 类别: 强调标注
+输入: 图, 文
+语义: 强调
+素材形态: 无
+位置: 任意
+props: 无
 优先级: P1
 代码: template/cards/callout-line-label.tsx
 ---

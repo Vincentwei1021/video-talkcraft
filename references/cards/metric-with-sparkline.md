@@ -6,6 +6,11 @@ name: metric-with-sparkline
 时长: 静置 0.3s → 标签 0.16s → 0.5s 起计数 0.9s ‖ 折线 0.6s（同刻起跑）→ 1.4s 单位+箭头 0.2s → hold 1.8s；共约 3.4s
 能量: 中
 类别: 数据信息图
+输入: 文, 人(可选)
+语义: 数据
+素材形态: 无
+位置: 任意
+props: hostSrc
 优先级: P0
 代码: template/cards/metric-with-sparkline.tsx
 ---

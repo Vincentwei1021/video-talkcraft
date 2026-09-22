@@ -6,6 +6,11 @@ name: filmstrip-conveyor
 时长: 7.9s（匀速 2.14 → 减速 0.5 → 慢速停靠 1.4 → 加速 0.6 → 匀速到第六格过中线 6.92 → 7.5 退场 0.4）；格数 / 关键格 / 停靠时长按口播改
 能量: 中
 类别: 素材呈现
+输入: 图
+语义: 例证, 列举
+素材形态: 横屏, 多图
+位置: 任意
+props: srcs, labels, title, note
 优先级: P1
 代码: template/cards/filmstrip-conveyor.tsx
 ---

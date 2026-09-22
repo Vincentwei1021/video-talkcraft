@@ -6,6 +6,11 @@ name: black-slam-transition
 时长: 定格 0.34s → 重音冲顶 0.12s → 硬切（零交叠）→ 震位 0.20s + 后拉刹住 0.50s；从定格起到刹住共 0.96s（切点后 0.5s）
 能量: 高
 类别: 转场结构
+输入: 场
+语义: 转场, 转折
+素材形态: 无
+位置: 中段
+props: hostSrc(未使用)
 优先级: P0
 代码: template/cards/black-slam-transition.tsx
 ---

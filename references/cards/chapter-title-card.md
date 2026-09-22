@@ -6,6 +6,11 @@ name: chapter-title-card
 时长: 单卡约 2.5s：扫入 0.3s + 编号 0.4s + 章节名 0.35s + hold 1.2s + 扫出 0.3s；两卡示范间隔 0.7s
 能量: 高
 类别: 转场结构
+输入: 文, 人(可选)
+语义: 章节, 转场
+素材形态: 无
+位置: 中段
+props: hostSrc, themes[]
 优先级: P0
 代码: template/cards/chapter-title-card.tsx
 ---

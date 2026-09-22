@@ -6,6 +6,11 @@ name: shape-wipe-transition
 时长: 单层 0.45s、层间错峰 60~80ms，整段扫屏约 0.6s；内容在第二层过屏中线那一帧切换
 能量: 高
 类别: 转场结构
+输入: 场, 人(可选)
+语义: 转场, 章节
+素材形态: 无
+位置: 任意
+props: hostSrc
 优先级: P0
 代码: template/cards/shape-wipe-transition.tsx
 ---

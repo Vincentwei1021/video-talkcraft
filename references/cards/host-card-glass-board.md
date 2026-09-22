@@ -6,6 +6,11 @@ name: host-card-glass-board
 时长: 6.6s（0.2 板显影 0.7 → 0.3 人物滑入 0.5 → 0.6 sheen 0.9 → 0.9 期数 / 1.0 标题逐字 / 1.45 英文行 → 1.6 / 2.5 / 3.4 三步 tile → 2.05 / 2.95 连接线 → 4.1 结果胶囊 → 6.1 同收 0.5）；成片 tile 时刻对到口播讲到每一步的词锚，板可跨句常驻
 能量: 中
 类别: 人物互动
+输入: 人(必需), 文, 界
+语义: 步骤
+素材形态: 竖屏, 人脸, 透明通道
+位置: 中段
+props: hostSrc, tag, title, en, steps, result
 优先级: P1
 代码: template/cards/host-card-glass-board.tsx
 ---

@@ -6,6 +6,11 @@ name: split-60-40-story
 时长: 6.8s（0.3 标题 → 1.0 / 1.6 / 2.2 三枚 chip → 6.28~6.40 文字组尾对齐退场、6.4 素材 + 中缝退 → 6.8 收齐）；成片 = 口播句长，缓推 duration 随镜头伸缩
 能量: 中
 类别: 素材呈现
+输入: 人(可选), V, 文
+语义: 论点, 步骤, 列举
+素材形态: 单条视频, 透明通道
+位置: 任意
+props: src, hostSrc, title, chips, chipBg
 优先级: P1
 代码: template/cards/split-60-40-story.tsx
 ---

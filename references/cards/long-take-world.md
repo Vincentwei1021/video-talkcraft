@@ -6,6 +6,11 @@ name: long-take-world
 时长: demo 三站共 6.7s（起点 hold 1.1s → 运镜 1.5s → 站 B hold 1.2s → 运镜 1.5s → 站 C hold 1.4s）；生产中一段 20s~全片，站间运镜 1~2.5s、到站讲述 5~15s
 能量: 中
 类别: 转场结构
+输入: 文
+语义: 转场, 步骤, 空间叙事
+素材形态: 无
+位置: 任意
+props: 无
 优先级: P1
 代码: template/cards/long-take-world.tsx
 ---

@@ -6,6 +6,11 @@ name: pullback-cool-transition
 时长: 出场沉暗 0.50s → 交叠 0.55s（≈16 帧 @30fps，全六式最长）→ 入场后拉 0.90s；单次转场约 1.35s
 能量: 低
 类别: 转场结构
+输入: 场
+语义: 转场
+素材形态: 无
+位置: 中段
+props: hostSrc(未使用)
 优先级: P0
 代码: template/cards/pullback-cool-transition.tsx
 ---

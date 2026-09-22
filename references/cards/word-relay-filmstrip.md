@@ -6,6 +6,11 @@ name: word-relay-filmstrip
 时长: 6.4s（0.4 首词 → 1.8 / 3.2 / 4.6 三次切词各带一次步进 → 5.95 同收 0.45s）；成片按口播念到每个动词的时刻摆切词点，词期 1.0~1.8s 不必均匀
 能量: 中
 类别: 素材呈现
+输入: 图, 截图, 文
+语义: 例证, 列举
+素材形态: 横屏, 多图
+位置: 中段
+props: noun, verbs, labels, srcs, accent
 优先级: P1
 代码: template/cards/word-relay-filmstrip.tsx
 ---

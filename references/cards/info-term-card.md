@@ -6,6 +6,11 @@ name: info-term-card
 时长: 入场 0.35s + 过冲回稳 0.16s + 悬浮停留 3.2s（浮动周期 2.8s）+ 出场 0.25s，全程约 4s
 能量: 中
 类别: 数据信息图
+输入: 文, 人(可选)
+语义: 定义
+素材形态: 无
+位置: 中段
+props: hostSrc
 优先级: P1
 代码: template/cards/info-term-card.tsx
 ---

@@ -44,15 +44,38 @@ kinetic-center-build 逐词推挤居中）。
 
 SHOTBOOK 每镜先写清输入是哪几种，再在这里挑吃得下的卡。代号：**人** = 口播人物在场（抠像 / 原片，必需或可选）· **V** = B-roll 视频（实拍 / 录屏 / 素材站）· **图** = 图片（截图 / 照片 / 海报）· **界** = 界面自演（无外部素材，卡自带界面）· **文** = 纯文字 / 数据（不吃素材）· **场** = 作用于前后两个场景（转场）。◉ 新卡的 md 开头另有三列表逐项说明。
 
-| 类别 | 卡 → 输入 |
+下表由 `scripts/cards_index.py` 从各卡 frontmatter 的「输入」字段生成（`--write` 重写、`--check` 校验），手改无效；每张卡的真实 props 与图↔视频换法看卡 md「复用指引」。
+
+<!-- gen:by-input start -->
+| 输入组合 | 卡（◦ = 内容 / 素材写死在源码里，换内容需改 tsx，见各卡复用指引的 props 行） |
 |---|---|
-| 字幕花字 | 全部 **文**（作用于标题 / 金句 / 要点层）；quote-card 与 quote-bracket-pull 另有 **人**（让位 / 人在框内）；**◎ word-slot-cycle · lead-word-zoom-assemble · title-demote-to-label · error-retype · countdown-arc-scatter · split-text-stagger → 文**（句法级：列举槽 / 首词先占满 / 标题降格成路标 / 打字改口 / 数字弧落标题 / 逐字裂升）；**◎ flying-words → 文（词表）**，深底背景层 |
-| 强调标注 | magnifier-detail · focus-dim-spotlight · scribble-annotation · callout-line-label → **图**（含长截图 / 表格，视频截帧亦可；**这四张 tsx 的目标区是写死占位 DOM、无 src prop**，换真图与坐标需改源码，见各卡复用指引）；highlighter-sweep · strike-and-replace · ink-underline · hand-drawn-ellipse · converging-arrows · corner-bracket-frame · quote-hold-arrow → **文**（highlighter-sweep 划的是 DOM 文字，截图须先重排成文字）；**◎ scanline-annotate → 图**（一次扫描点出 N 处）；**◎ crash-zoom-punch → 图 / V（截帧）**；**◎ reticle-lock-on → 图 / V（截帧）**（四角画外飞入咬合） |
-| 数据信息图 | 全部 **文 / 数据**（卡自带图表与矢量；ui-prop-theater 例外 → **界**，进度条 + 清单自演）；info-term-card 可配 **人**（从人物对侧滑入）；**◎ unit-grid-proportion → 数据**（比例摊成 100 个可数格子）；**◎ source-converge → 文**（多对一机制图）；**◎ chip-grid-single-select → 文**（N 选一反黑 + 因果算式） |
-| 素材呈现 | media-pop-in · news-card-desk · motion-blur-slam-in · gooey-morph · evidence-scroll-tour（长截图）→ **图**（**这五张 tsx 都没有图片 prop**，素材是写死 CSS 假图 / 假长页，换真图需改源码，见各卡复用指引）；logo-enter → **文**（品牌名与内联 SVG 写死，无 logo prop）；pencil-sketch-draw → 矢量图（SVG path）；cursor-actor-demo · ui-flow-theater · terminal-typing-log · chat-message-flow · chat-gpt · claude-code · glass-code-walk → **界**；**◉ bed-echo-blur → 人 / V**（竖屏素材、只有一条素材；tsx 仅视频分支，放图需加 `<Img>`）；**◉ rack-focus-pair → 图**（tsx 仅 `<Img>`，放视频把它换成 `<OffthreadVideo>`）；**◉ still-layout-relay → 图**（同上换法，其 md 已写明）；**◉ split-compare-slider → 图**（同构图两张；tsx 仅 `<Img>`）；**◉ filmstrip-conveyor → 图**（tsx 仅 `<Img>`）；**◉ grid-to-hero → 图 / V 混排**；**◉ stack-fan-out → 图**；**◉ split-60-40-story → 左格 V / 人 + 右格文**（tsx 仅视频分支，放图需加 `<Img>`）；**◉ gallery-wall-dolly → 图**（三张平级；tsx 仅 `<Img>`）；**◉ timeline-photo-strip → 图**（3~5 站有先后；tsx 仅 `<Img>`）；**◎ doc-park-left-pill-deal → 图（文档 / 长截图）+ 文**；**◎ info-card-assemble → 图（封面）+ 文 / 数据**；**◎ word-relay-filmstrip → 图（每词一张）+ 文** |
-| 转场结构 | shape-wipe · caret-wipe · 运动承接六式 · long-take-world · color-slam-beat-card → **场**（作用于前后镜头，素材类型不限）；chapter-title-card · chapter-progress-list → **文**；**◎ line-carry-transition → 场 + 图**（A 镜标题下划线跑出画外围成 B 镜画框，B 内容为图 / 文） |
-| 人物互动 | lower-third-nameplate · chevron-lower-third · behind-text-title → **人 + 文**；host-shrink-to-chip → **人**（让位后的图形层由镜头自己提供，卡内 gfx 块只是占位）；**◉ parallel-items-with-host → 人（必需）+ 图**（tsx 仅 `<Img>`，放视频把它换成 `<OffthreadVideo>`）；subscribe-cta · x-follow-card · douyin-follow-card → **界**；danmu-bubble-praise → **文**；**◎ host-card-glass-board → 人（必需，竖卡）+ 文**（板上步骤图标是字符，无图片通道） |
-| 运镜 | slow-push-in · slow-pull-reveal · tilt-3d-page · sway-parallax · orbit-drift · stage-keyframe-tour → **图**（长截图 / 页面 / 照片；**这六张 tsx 都没有 src prop**，页面是写死 DOM，换真图需改源码，见各卡复用指引）；cursor-locked-zoom → **界**；pip-zoom-box → **人 / V / 图**（保留全景放大局部；全景区同样是写死 DOM） |
+| **图** | filmstrip-conveyor · gallery-wall-dolly · pencil-sketch-draw · rack-focus-pair · split-compare-slider · stack-fan-out · still-layout-relay · timeline-photo-strip |
+| **文** | countdown-arc-scatter · error-retype · flying-words · lead-word-zoom-assemble · ◦line-by-line-slide · ◦per-character-rise · ◦soft-blur-in · split-text-stagger · title-demote-to-label · ◦tracking-in · word-slot-cycle · ◦highlighter-sweep · ◦chart-grow · chip-grid-single-select · source-converge · unit-grid-proportion · ◦long-take-world |
+| **界** | ◦x-follow-card · ◦glass-code-walk · ◦ui-flow-theater · ◦cursor-locked-zoom |
+| **场** | ◦black-slam-transition · ◦caret-wipe-transition · ◦overexpose-flip-transition · ◦particle-weld-transition · ◦pullback-cool-transition · ◦push-through-transition · ◦whip-pan-transition |
+| **人(可选) + V** | bed-echo-blur |
+| **人(可选) + 图** | ◦gooey-morph |
+| **人(必需) + 图** | parallel-items-with-host |
+| **人(可选) + 截图** | ◦focus-dim-spotlight · ◦evidence-scroll-tour |
+| **人(可选) + 文** | ◦chevron-lower-third · ◦danmu-bubble-praise · ◦lower-third-nameplate · ◦alt-block-lines · ◦count-badge-title · ◦impact-open-title · ◦keyword-pop-highlight · ◦outline-box-title · ◦quote-bracket-pull · ◦quote-card · ◦slab-punch-title · ◦speed-slab-title · ◦type-contrast-emphasis · ◦typewriter-reveal · ◦converging-arrows · ◦corner-bracket-frame · ◦hand-drawn-ellipse · ◦ink-underline · ◦quote-hold-arrow · ◦strike-and-replace · ◦bar-chart-growth · ◦info-term-card · ◦line-chart-story-draw · ◦map-route-pin · ◦metric-with-sparkline · ◦number-counter · ◦number-slab-pop · ◦numbered-step-stack · ◦step-timeline-vertical · ◦chapter-progress-list · chapter-title-card |
+| **人(必需) + 文** | ◦behind-text-title |
+| **人(可选) + 界** | ◦subscribe-cta · ◦ui-prop-theater · ◦chat-gpt · ◦chat-message-flow · ◦claude-code · ◦cursor-actor-demo · ◦terminal-typing-log |
+| **人(可选) + 场** | ◦shape-wipe-transition |
+| **V + 图** | grid-to-hero |
+| **图 + 截图** | ◦magnifier-detail · ◦scribble-annotation · ◦news-card-desk · ◦orbit-drift · ◦slow-pull-reveal · ◦slow-push-in · ◦stage-keyframe-tour · ◦sway-parallax · ◦tilt-3d-page |
+| **图 + 文** | ◦callout-line-label · info-card-assemble · ◦logo-enter |
+| **图 + 界** | douyin-follow-card |
+| **截图 + 文** | doc-park-left-pill-deal |
+| **人(可选) + V + 图** | ◦pip-zoom-box |
+| **人(可选) + V + 文** | split-60-40-story |
+| **人(可选) + 图 + 截图** | ◦media-pop-in · ◦motion-blur-slam-in |
+| **人(必需) + 图 + 文** | ◦host-shrink-to-chip |
+| **人(必需) + 文 + 界** | host-card-glass-board |
+| **人(可选) + 文 + 场** | ◦color-slam-beat-card |
+| **V + 图 + 截图** | crash-zoom-punch · reticle-lock-on · scanline-annotate |
+| **图 + 截图 + 文** | word-relay-filmstrip |
+| **图 + 文 + 场** | line-carry-transition |
+<!-- gen:by-input end -->
 
 转场选型口诀：镜头边界优先**运动承接六式**（各自一卡，共享
 lead/tail 交叠 12~16 帧 + 两侧同向的动量交接纪律，代码同为 `template/motion-systems/transitions.tsx`）——
@@ -61,6 +84,42 @@ lead/tail 交叠 12~16 帧 + 两侧同向的动量交接纪律，代码同为 `t
 重复用同式比集邮更有风格连贯性）。shape-wipe 是无相机系统时的轻量替代；color-slam-beat-card 是零补间的硬切节拍版；
 空间叙事段落用 long-take-world 整段一镜。**图形接力**是第三族（2026-09-05 起）：`line-carry-transition◎` 让 A 镜的一条线自己跑到 B 镜去当容器——
 相机六式交接的是动量，它交接的是**图形**；一支片只放一次当招牌转场位，且 A 侧信息要在横移前讲完。
+
+## 语义索引（2026-09-22 起，选卡第二道过滤：这句口播在做什么）
+
+SHOTBOOK 先逐句标语义（词表封闭，定义见下表），再在这里挑**专为这种语义而设**的卡；同一语义里按 G0 能量档挑档位。
+由 `scripts/cards_index.py` 从各卡 frontmatter 的「语义」字段生成，手改无效；一张卡只打它专门服务的语义，不打「什么都能配」。
+
+<!-- gen:by-semantic start -->
+| 语义 | 定义 | 卡（按能量 低→高；◦ = 内容写死需改源码） |
+|---|---|---|
+| **钩子** | 开场抓注意力的问题 / 反差 / 大数字 | ◦slow-pull-reveal(低) · ◦behind-text-title(中) · ◦count-badge-title(中) · flying-words(中) · ◦number-slab-pop(中) · countdown-arc-scatter(高) · ◦impact-open-title(高) · ◦speed-slab-title(高) |
+| **论点** | 一个主张或结论句（没有更具体的类型时归它） | ◦corner-bracket-frame(低) · ◦soft-blur-in(低) · ◦type-contrast-emphasis(低) · ◦alt-block-lines(中) · doc-park-left-pill-deal(中) · ◦line-by-line-slide(中) · ◦outline-box-title(中) · ◦per-character-rise(中) · ◦quote-card(中) · source-converge(中) · split-60-40-story(中) · word-slot-cycle(中) · ◦color-slam-beat-card(高) · lead-word-zoom-assemble(高) · ◦slab-punch-title(高) · ◦speed-slab-title(高) |
+| **例证** | 用实例 / 证据 / 素材支撑上一句 | bed-echo-blur(低) · ◦evidence-scroll-tour(低) · ◦slow-push-in(低) · still-layout-relay(低) · ◦sway-parallax(低) · ◦chat-gpt(中) · ◦chat-message-flow(中) · ◦claude-code(中) · ◦danmu-bubble-praise(中) · filmstrip-conveyor(中) · gallery-wall-dolly(中) · ◦glass-code-walk(中) · ◦gooey-morph(中) · ◦host-shrink-to-chip(中) · info-card-assemble(中) · ◦media-pop-in(中) · ◦news-card-desk(中) · parallel-items-with-host(中) · stack-fan-out(中) · ◦stage-keyframe-tour(中) · ◦terminal-typing-log(中) · ◦tilt-3d-page(中) · word-relay-filmstrip(中) · crash-zoom-punch(高) · ◦motion-blur-slam-in(高) |
+| **数据** | 数字、比例、增长、金额出现 | ◦focus-dim-spotlight(低) · unit-grid-proportion(低) · ◦bar-chart-growth(中) · ◦chart-grow(中) · chip-grid-single-select(中) · ◦line-chart-story-draw(中) · ◦metric-with-sparkline(中) · ◦number-counter(中) · ◦number-slab-pop(中) · countdown-arc-scatter(高) · ◦keyword-pop-highlight(高) |
+| **对比** | A vs B、前后、优劣并置 | ◦ink-underline(低) · rack-focus-pair(低) · ◦type-contrast-emphasis(低) · ◦alt-block-lines(中) · ◦chart-grow(中) · chip-grid-single-select(中) · gallery-wall-dolly(中) · grid-to-hero(中) · ◦line-chart-story-draw(中) · split-compare-slider(中) |
+| **列举** | 并列几项（清单 / 要点 / 盘点），无先后 | still-layout-relay(低) · ◦alt-block-lines(中) · ◦count-badge-title(中) · filmstrip-conveyor(中) · gallery-wall-dolly(中) · grid-to-hero(中) · ◦line-by-line-slide(中) · ◦media-pop-in(中) · ◦numbered-step-stack(中) · parallel-items-with-host(中) · split-60-40-story(中) · stack-fan-out(中) · title-demote-to-label(中) · word-relay-filmstrip(中) · word-slot-cycle(中) |
+| **定义** | 解释一个术语 / 概念是什么 | ◦info-term-card(中) · ◦outline-box-title(中) · pencil-sketch-draw(中) |
+| **步骤** | 有先后顺序的流程 / 做法 | ◦cursor-actor-demo(中) · ◦cursor-locked-zoom(中) · host-card-glass-board(中) · ◦line-by-line-slide(中) · ◦long-take-world(中) · ◦map-route-pin(中) · ◦numbered-step-stack(中) · parallel-items-with-host(中) · pencil-sketch-draw(中) · split-60-40-story(中) · ◦step-timeline-vertical(中) · timeline-photo-strip(中) · title-demote-to-label(中) · ◦ui-flow-theater(中) · ◦ui-prop-theater(中) |
+| **转折** | 但是 / 然而 / 其实——推翻或修正前文 | error-retype(低) · ◦type-contrast-emphasis(低) · ◦quote-hold-arrow(中) · ◦strike-and-replace(中) · word-slot-cycle(中) · ◦black-slam-transition(高) · lead-word-zoom-assemble(高) · ◦slab-punch-title(高) |
+| **设问** | 抛出问题不立即回答 | （暂无卡） |
+| **金句** | 可以单独摘出的总结句 / 名言 | ◦hand-drawn-ellipse(中) · ◦per-character-rise(中) · ◦quote-bracket-pull(中) · ◦quote-card(中) · ◦quote-hold-arrow(中) · split-text-stagger(中) · ◦tracking-in(中) · ◦color-slam-beat-card(高) · lead-word-zoom-assemble(高) |
+| **标题** | 片名 / 题眼 / 段落大标题（不是章节翻页） | ◦corner-bracket-frame(低) · ◦behind-text-title(中) · ◦outline-box-title(中) · split-text-stagger(中) · title-demote-to-label(中) · ◦tracking-in(中) · ◦impact-open-title(高) · lead-word-zoom-assemble(高) · ◦slab-punch-title(高) · ◦speed-slab-title(高) |
+| **引用** | 引别人的话或给出处 | bed-echo-blur(低) · ◦chevron-lower-third(低) · ◦evidence-scroll-tour(低) · ◦highlighter-sweep(低) · ◦lower-third-nameplate(低) · ◦chat-message-flow(中) · ◦danmu-bubble-praise(中) · doc-park-left-pill-deal(中) · douyin-follow-card(中) · ◦news-card-desk(中) · ◦quote-bracket-pull(中) · ◦x-follow-card(中) |
+| **自我介绍** | 讲者报自己的名字 / 身份 | ◦chevron-lower-third(低) · ◦lower-third-nameplate(低) · ◦logo-enter(中) |
+| **介绍他人** | 介绍某个人 / 账号 / 嘉宾 | ◦chevron-lower-third(低) · ◦lower-third-nameplate(低) · douyin-follow-card(中) · ◦x-follow-card(中) |
+| **号召** | 关注 / 点赞 / 订阅 / 去做某事 | ◦subscribe-cta(中) |
+| **时间地点** | 时间戳、地点、事件坐标 | ◦typewriter-reveal(低) · ◦map-route-pin(中) · timeline-photo-strip(中) |
+| **空间叙事** | 在一个连续空间 / 地图 / 长画布里移动讲述 | ◦long-take-world(中) · ◦map-route-pin(中) · ◦stage-keyframe-tour(中) |
+| **机制** | 多对一 / 因果 / 流程关系图（讲“怎么运作”） | ◦converging-arrows(中) · source-converge(中) |
+| **选择** | N 选一、决策、排除 | chip-grid-single-select(中) · grid-to-hero(中) |
+| **过程演示** | 界面 / 操作按脚本自演 | ◦chat-gpt(中) · ◦chat-message-flow(中) · ◦claude-code(中) · ◦cursor-actor-demo(中) · ◦cursor-locked-zoom(中) · ◦terminal-typing-log(中) · ◦ui-flow-theater(中) · ◦ui-prop-theater(中) |
+| **章节** | 分章 / 翻页 / 进度 | ◦chapter-progress-list(中) · line-carry-transition(中) · title-demote-to-label(中) · chapter-title-card(高) · ◦impact-open-title(高) · ◦overexpose-flip-transition(高) · ◦shape-wipe-transition(高) · ◦slab-punch-title(高) |
+| **转场** | 镜头边界处置（作用于前后两镜） | ◦pullback-cool-transition(低) · ◦caret-wipe-transition(中) · line-carry-transition(中) · ◦long-take-world(中) · ◦particle-weld-transition(中) · ◦push-through-transition(中) · ◦black-slam-transition(高) · chapter-title-card(高) · ◦color-slam-beat-card(高) · ◦overexpose-flip-transition(高) · ◦shape-wipe-transition(高) · ◦whip-pan-transition(高) |
+| **强调** | 在素材或文字上指哪看哪 / 划重点 | ◦evidence-scroll-tour(低) · ◦focus-dim-spotlight(低) · ◦highlighter-sweep(低) · ◦ink-underline(低) · still-layout-relay(低) · ◦type-contrast-emphasis(低) · ◦callout-line-label(中) · ◦converging-arrows(中) · ◦glass-code-walk(中) · ◦hand-drawn-ellipse(中) · ◦magnifier-detail(中) · ◦pip-zoom-box(中) · scanline-annotate(中) · ◦scribble-annotation(中) · ◦stage-keyframe-tour(中) · crash-zoom-punch(高) · ◦keyword-pop-highlight(高) · reticle-lock-on(高) |
+| **氛围** | 素材当底床不当主体 | ◦orbit-drift(低) · ◦sway-parallax(低) · flying-words(中) · ◦tilt-3d-page(中) |
+| **结尾** | 收束 / 谢幕 / 落幕 | ◦logo-enter(中) · ◦quote-card(中) |
+<!-- gen:by-semantic end -->
 
 ---
 

@@ -6,6 +6,11 @@ name: particle-weld-transition
 时长: 出场碎解 0.60s → 交叠 0.50s（≈15 帧 @30fps）→ 入场聚拢 0.70s；单次转场约 1.18s
 能量: 中
 类别: 转场结构
+输入: 场
+语义: 转场
+素材形态: 无
+位置: 中段
+props: hostSrc(未使用)
 优先级: P0
 代码: template/cards/particle-weld-transition.tsx
 ---

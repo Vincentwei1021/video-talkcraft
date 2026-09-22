@@ -8,6 +8,11 @@ name: evidence-scroll-tour
 时长: 起手静置 0.6s → 缓入起滚 0.69s → 匀速慢滚（demo 2.5s，随页高）→ 提前 1.38s 减速、关键条目停在视口中线 1.5s → 再启动 0.69s → 匀速 1.5s → 收尾减速 1.38s 停在页尾；demo 全程 10.28s（加减速段 = 2×距离/速度，随 accelDist / decelDist / scrollSpeed 变）
 能量: 低
 类别: 素材呈现
+输入: 截图, 人(可选)
+语义: 例证, 引用, 强调
+素材形态: 长图
+位置: 中段
+props: hostSrc
 ---
 
 ## 意图

@@ -6,6 +6,11 @@ name: reticle-lock-on
 时长: 6.0s（1.3 四角起跳 → 1.63 到位 2.2× → 1.83 咬合：回弹 + 目标微亮 + 标签弹出 → 钉死 → 5.6 整体退场 0.4s）；成片把咬合帧对到口播说出目标的那个字
 能量: 高
 类别: 强调标注
+输入: 截图, 图, V
+语义: 强调
+素材形态: 横屏
+位置: 中段
+props: src, target, label, buttonText
 优先级: P2
 代码: template/cards/reticle-lock-on.tsx
 ---

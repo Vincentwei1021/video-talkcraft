@@ -6,6 +6,11 @@ name: pencil-sketch-draw
 时长: demo 三笔 1.1 / 1.3 / 0.45s（首笔 0.3s 起，每笔画完铅笔 0.25s 抬走、下一笔接在抬笔之后）→ 末尾标签 0.35s 跟进；共约 4.05s。多笔按语音节拍串接
 能量: 中
 类别: 素材呈现
+输入: 图
+语义: 定义, 步骤
+素材形态: 矢量, 透明通道
+位置: 任意
+props: hostSrc(未使用), handSrc
 优先级: P1
 代码: template/cards/pencil-sketch-draw.tsx
 素材: demos/pencil-sketch-draw/hand-pencil.png（绿幕抠像透明 PNG，817×640）

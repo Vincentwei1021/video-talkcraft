@@ -6,6 +6,11 @@ name: bed-echo-blur
 时长: 7.7s（0.3 前景卡落位 → 0.8 起四行文字 0.11 错峰 → 7.2 字与卡退场 0.5s → 7.3~7.7 底床收）；成片 = 口播句长，底床缓推 duration 随镜头伸缩
 能量: 低
 类别: 素材呈现
+输入: V, 人(可选)
+语义: 例证, 引用
+素材形态: 竖屏, 单条视频
+位置: 任意
+props: src, title[], note[]
 优先级: P0
 代码: template/cards/bed-echo-blur.tsx
 ---

@@ -6,6 +6,11 @@ name: push-through-transition
 时长: 出场加速推 0.55s → 交叠 0.45s（≈14 帧 @30fps）→ 入场沉降 0.60s；单次转场约 1.05s
 能量: 中
 类别: 转场结构
+输入: 场
+语义: 转场
+素材形态: 无
+位置: 中段
+props: hostSrc(未使用)
 优先级: P0
 代码: template/cards/push-through-transition.tsx
 ---

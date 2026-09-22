@@ -6,6 +6,11 @@ name: map-route-pin
 时长: 单段路线生长 0.8~1.5s + 落钉 0.25s + 回弹 0.28s + 标签 0.2s；两段三城全程约 4.8s
 能量: 中
 类别: 数据信息图
+输入: 文, 人(可选)
+语义: 时间地点, 步骤, 空间叙事
+素材形态: 无
+位置: 任意
+props: hostSrc
 优先级: P1
 代码: template/cards/map-route-pin.tsx
 ---

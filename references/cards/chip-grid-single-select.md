@@ -6,6 +6,11 @@ name: chip-grid-single-select
 时长: 6.8s（0.1 问题 → 0.5 候选逐个淡入 → 2.0 选中：1 帧灰闪 + 5 帧反黑 + 回弹、余项降 18% → 3.5 余项归零、黑 chip 上移回中线 → 3.75 算式行逐词加深 → 6.4 整体退场 0.4s）；成片把选中帧对到口播说出选项的那个字
 能量: 中
 类别: 数据信息图
+输入: 文
+语义: 对比, 数据, 选择
+素材形态: 无
+位置: 中段
+props: question, options, selected, equation
 优先级: P1
 代码: template/cards/chip-grid-single-select.tsx
 ---

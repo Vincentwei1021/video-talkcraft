@@ -6,6 +6,11 @@ name: number-counter
 时长: 计数 1~1.5s + 落定弹一拍 0.27s + 单位淡入 0.25s；odometer 变体延后 0.5s 起、高位滚 1s、每低一位多滚 0.22s
 能量: 中
 类别: 数据信息图
+输入: 文, 人(可选)
+语义: 数据
+素材形态: 无
+位置: 任意
+props: hostSrc
 优先级: P0
 代码: template/cards/number-counter.tsx
 ---

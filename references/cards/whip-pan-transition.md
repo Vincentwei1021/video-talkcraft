@@ -6,6 +6,11 @@ name: whip-pan-transition
 时长: 甩出 0.42s → 交叠 0.30s（≈9 帧 @30fps）→ 刹住 0.35s + 二段回稳 0.50s；从甩出起到回稳结束 1.21s（0.42 − 0.06 切点提前 + 0.35 + 0.50），其中刹住 + 回稳 0.85s
 能量: 高
 类别: 转场结构
+输入: 场
+语义: 转场
+素材形态: 无
+位置: 中段
+props: hostSrc
 优先级: P0
 代码: template/cards/whip-pan-transition.tsx
 ---

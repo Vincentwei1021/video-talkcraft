@@ -6,6 +6,11 @@ name: unit-grid-proportion
 时长: 6.1s（0.2 网格分环生长 1.1s → 1.4 大数字 / 标签入场 → 1.7 逐格染色 + 同步计数 1.3s → 3.2 图例浮出 → 5.7 全部同收 0.4s）；成片把染色起点对到口播念出数字的时刻
 能量: 低
 类别: 数据信息图
+输入: 文
+语义: 数据
+素材形态: 无
+位置: 中段
+props: target, unit, label, legend, accent
 优先级: P0
 代码: template/cards/unit-grid-proportion.tsx
 ---

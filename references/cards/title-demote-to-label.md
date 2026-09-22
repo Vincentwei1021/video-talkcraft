@@ -6,6 +6,11 @@ name: title-demote-to-label
 时长: 5.9s（0.2 显影 → 0.6 站稳 → 1.3 降格 0.67s → 1.7 / 2.25 / 2.8 内容逐条生长 → 5.5 同收 0.4s）；成片按口播念到每条要点的时刻摆生长点，标题在念章节名时显影
 能量: 中
 类别: 字幕花字
+输入: 文
+语义: 章节, 步骤, 列举, 标题
+素材形态: 无
+位置: 中段
+props: title, items, itemBg, accent
 优先级: P0
 代码: template/cards/title-demote-to-label.tsx
 ---

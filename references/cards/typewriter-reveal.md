@@ -6,6 +6,11 @@ name: typewriter-reveal
 时长: 主行约 0.8~1.2s 敲完（14 字左右），句尾闪 3 次 1.5s，副行再 1s；全套约 4s
 能量: 低
 类别: 字幕花字
+输入: 人(可选), 文
+语义: 时间地点
+素材形态: 无
+位置: 任意
+props: hostSrc
 优先级: P1
 代码: template/cards/typewriter-reveal.tsx
 ---

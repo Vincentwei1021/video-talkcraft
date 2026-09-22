@@ -1,0 +1,3323 @@
+{
+ "generated_by": "scripts/cards_index.py",
+ "vocab": [
+  {
+   "word": "钩子",
+   "def": "开场抓注意力的问题 / 反差 / 大数字"
+  },
+  {
+   "word": "论点",
+   "def": "一个主张或结论句（没有更具体的类型时归它）"
+  },
+  {
+   "word": "例证",
+   "def": "用实例 / 证据 / 素材支撑上一句"
+  },
+  {
+   "word": "数据",
+   "def": "数字、比例、增长、金额出现"
+  },
+  {
+   "word": "对比",
+   "def": "A vs B、前后、优劣并置"
+  },
+  {
+   "word": "列举",
+   "def": "并列几项（清单 / 要点 / 盘点），无先后"
+  },
+  {
+   "word": "定义",
+   "def": "解释一个术语 / 概念是什么"
+  },
+  {
+   "word": "步骤",
+   "def": "有先后顺序的流程 / 做法"
+  },
+  {
+   "word": "转折",
+   "def": "但是 / 然而 / 其实——推翻或修正前文"
+  },
+  {
+   "word": "设问",
+   "def": "抛出问题不立即回答"
+  },
+  {
+   "word": "金句",
+   "def": "可以单独摘出的总结句 / 名言"
+  },
+  {
+   "word": "标题",
+   "def": "片名 / 题眼 / 段落大标题（不是章节翻页）"
+  },
+  {
+   "word": "引用",
+   "def": "引别人的话或给出处"
+  },
+  {
+   "word": "自我介绍",
+   "def": "讲者报自己的名字 / 身份"
+  },
+  {
+   "word": "介绍他人",
+   "def": "介绍某个人 / 账号 / 嘉宾"
+  },
+  {
+   "word": "号召",
+   "def": "关注 / 点赞 / 订阅 / 去做某事"
+  },
+  {
+   "word": "时间地点",
+   "def": "时间戳、地点、事件坐标"
+  },
+  {
+   "word": "空间叙事",
+   "def": "在一个连续空间 / 地图 / 长画布里移动讲述"
+  },
+  {
+   "word": "机制",
+   "def": "多对一 / 因果 / 流程关系图（讲“怎么运作”）"
+  },
+  {
+   "word": "选择",
+   "def": "N 选一、决策、排除"
+  },
+  {
+   "word": "过程演示",
+   "def": "界面 / 操作按脚本自演"
+  },
+  {
+   "word": "章节",
+   "def": "分章 / 翻页 / 进度"
+  },
+  {
+   "word": "转场",
+   "def": "镜头边界处置（作用于前后两镜）"
+  },
+  {
+   "word": "强调",
+   "def": "在素材或文字上指哪看哪 / 划重点"
+  },
+  {
+   "word": "氛围",
+   "def": "素材当底床不当主体"
+  },
+  {
+   "word": "结尾",
+   "def": "收束 / 谢幕 / 落幕"
+  }
+ ],
+ "inputs": {
+  "人": "口播人物在场（抠像 / 原片）",
+  "V": "B-roll 视频",
+  "图": "图片（照片 / 海报 / 插图）",
+  "截图": "网页 / 界面截图（含长图）",
+  "文": "纯文字 / 数据，不吃素材",
+  "界": "界面自演，无外部素材",
+  "场": "作用于前后两个镜头的转场"
+ },
+ "cards": [
+  {
+   "slug": "alt-block-lines",
+   "title": "双色块对句",
+   "oneliner": "两行对句各坐在自己的色块上、块宽贴合各自文字，两行错峰 0.12s——每行色块从左 scaleX 展开 0.26s，文字用 clip-path 从右侧收 100%→0 同曲线同时长**滞后 2 帧**跟着被块的右缘\"刷\"出来；对句关系靠同结构反色表达（块1 实色白字 / 块2 白底黑字 + 1px 灰描边）",
+   "category": "字幕花字",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/alt-block-lines.tsx",
+   "inputs": [
+    {
+     "type": "文",
+     "need": null
+    },
+    {
+     "type": "人",
+     "need": "可选"
+    }
+   ],
+   "semantics": [
+    "对比",
+    "论点",
+    "列举"
+   ],
+   "material_shape": [],
+   "position": "任意",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "bar-chart-growth",
+   "title": "柱状增长",
+   "oneliner": "标题淡入后基线从左画出 0.24s 立好地面，七根柱以 0.06s 的密错峰从基线一路升起（读作一次连续动作而不是七个动效），最后一根到顶那一帧结论 chip 在柱顶留白里弹出",
+   "category": "数据信息图",
+   "energy": "中",
+   "priority": "P0",
+   "code": "template/cards/bar-chart-growth.tsx",
+   "inputs": [
+    {
+     "type": "文",
+     "need": null
+    },
+    {
+     "type": "人",
+     "need": "可选"
+    }
+   ],
+   "semantics": [
+    "数据"
+   ],
+   "material_shape": [],
+   "position": "任意",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "bed-echo-blur",
+   "title": "同源模糊底床",
+   "oneliner": "竖屏素材（9:16）装白边卡放右侧，同一条素材放大 1.25 + blur 26 + brightness .45 + saturate .8 铺满当底床且慢放 0.5×；左侧标题两行 + 来源两行逐行升入，前景卡落位后极缓推 1→1.03，7.2s 字与卡退场、底床同帧收",
+   "category": "素材呈现",
+   "energy": "低",
+   "priority": "P0",
+   "code": "template/cards/bed-echo-blur.tsx",
+   "inputs": [
+    {
+     "type": "V",
+     "need": null
+    },
+    {
+     "type": "人",
+     "need": "可选"
+    }
+   ],
+   "semantics": [
+    "例证",
+    "引用"
+   ],
+   "material_shape": [
+    "竖屏",
+    "单条视频"
+   ],
+   "position": "任意",
+   "props": [
+    "src",
+    "title[]",
+    "note[]"
+   ],
+   "hardcoded": false
+  },
+  {
+   "slug": "behind-text-title",
+   "title": "人后大字视差",
+   "oneliner": "超大标题 0.6s 从人物身后升起、字距由松收紧，下缘被人物剪影遮住；hold 期间标题与人物各 ±4px 反向极缓漂移，平面画面读出伪 3D 层次",
+   "category": "人物互动",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/behind-text-title.tsx",
+   "inputs": [
+    {
+     "type": "人",
+     "need": "必需"
+    },
+    {
+     "type": "文",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "钩子",
+    "标题"
+   ],
+   "material_shape": [
+    "透明通道",
+    "人脸"
+   ],
+   "position": "任意",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "black-slam-transition",
+   "title": "黑震切转场",
+   "oneliner": "出场镜头相机定格一拍（全片唯一不动的时刻）+ 重音冲顶，最后 1 帧 opacity 直接归零（零交叠硬切），入场镜头满亮直切且开场自带运动——切点一拍三段递减震位 + 从 1.10 后拉刹住",
+   "category": "转场结构",
+   "energy": "高",
+   "priority": "P0",
+   "code": "template/cards/black-slam-transition.tsx",
+   "inputs": [
+    {
+     "type": "场",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "转场",
+    "转折"
+   ],
+   "material_shape": [],
+   "position": "中段",
+   "props": [
+    "hostSrc(未使用)"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "callout-line-label",
+   "title": "标注引出线",
+   "oneliner": "目标上圆点 pop 亮起并荡开一圈涟漪 → 折线沿 45°/水平拐点向外生长 → 线端文字标签遮罩揭示，三拍严格串行、一气呵成",
+   "category": "强调标注",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/callout-line-label.tsx",
+   "inputs": [
+    {
+     "type": "图",
+     "need": null
+    },
+    {
+     "type": "文",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "强调"
+   ],
+   "material_shape": [],
+   "position": "任意",
+   "props": [],
+   "hardcoded": true
+  },
+  {
+   "slug": "caret-wipe-transition",
+   "title": "光标擦除转场",
+   "oneliner": "一条 3px 文本光标从左到右扫过 1.33s 完成换场——走过之处露出新场景（沉降解糊，像刚被打出来），未到之处仍是旧场景（上浮失焦，像正被退格吃掉），互补裁切永不露缝",
+   "category": "转场结构",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/caret-wipe-transition.tsx",
+   "inputs": [
+    {
+     "type": "场",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "转场"
+   ],
+   "material_shape": [],
+   "position": "中段",
+   "props": [
+    "hostSrc(未使用)"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "chapter-progress-list",
+   "title": "章节进度",
+   "oneliner": "暗场里四条章节从右侧错峰 0.1s 滑进来，全部站定后**只有当前那一条**换成强调色、左边弹出一枚圆点、整行再往前一步，同帧四角电影角框向内收 10px 淡入把这一幕封住",
+   "category": "转场结构",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/chapter-progress-list.tsx",
+   "inputs": [
+    {
+     "type": "文",
+     "need": null
+    },
+    {
+     "type": "人",
+     "need": "可选"
+    }
+   ],
+   "semantics": [
+    "章节"
+   ],
+   "material_shape": [],
+   "position": "中段",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "chapter-title-card",
+   "title": "章节标题卡",
+   "oneliner": "段落切换时全屏色块 0.3s 压入盖屏，屏高 40% 的章节编号先落位，章节名随后从编号旁遮罩揭示，停 1.2s 后色块同向扫出切回口播；每章一套主题色 + 一个与本章内容相关的线稿 motif 在色块盖屏后于背景描出，章节名下一条 accent 短线接上",
+   "category": "转场结构",
+   "energy": "高",
+   "priority": "P0",
+   "code": "template/cards/chapter-title-card.tsx",
+   "inputs": [
+    {
+     "type": "文",
+     "need": null
+    },
+    {
+     "type": "人",
+     "need": "可选"
+    }
+   ],
+   "semantics": [
+    "章节",
+    "转场"
+   ],
+   "material_shape": [],
+   "position": "中段",
+   "props": [
+    "hostSrc",
+    "themes[]"
+   ],
+   "hardcoded": false
+  },
+  {
+   "slug": "chart-grow",
+   "title": "图表生长",
+   "oneliner": "坐标轴先 0.3s 淡入立好舞台，柱子从 0 依次错峰长出、柱顶数字跟着弹出，最高的关键柱高亮并触发一次轻 punch",
+   "category": "数据信息图",
+   "energy": "中",
+   "priority": "P0",
+   "code": "template/cards/chart-grow.tsx",
+   "inputs": [
+    {
+     "type": "文",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "数据",
+    "对比"
+   ],
+   "material_shape": [],
+   "position": "任意",
+   "props": [],
+   "hardcoded": true
+  },
+  {
+   "slug": "chat-gpt",
+   "title": "ChatGPT 对话框",
+   "oneliner": "ChatGPT 首屏三件套按阅读顺序错峰淡入（问候大标题 → 药丸输入条 → 建议 chips，位移带视差），提示词逐字打进单行药丸、圆形语音键**原地变形成圆形发送键**且建议 chips 同时淡出下移，发送后问候语退场让位给对话，回答分块流式吐出",
+   "category": "素材呈现",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/chat-gpt.tsx",
+   "inputs": [
+    {
+     "type": "界",
+     "need": null
+    },
+    {
+     "type": "人",
+     "need": "可选"
+    }
+   ],
+   "semantics": [
+    "过程演示",
+    "例证"
+   ],
+   "material_shape": [
+    "界面"
+   ],
+   "position": "任意",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "chat-message-flow",
+   "title": "聊天记录自演",
+   "oneliner": "聊天记录自己演一遍——我方消息先在底部输入框逐字打出、停 0.33s 后弹上屏，对方先出\"正在输入\"三点气泡（时长按回复长度算）再弹消息，反应表情在消息落定 0.27s 后贴上；整张时刻表由文本长度自动生成",
+   "category": "素材呈现",
+   "energy": "中",
+   "priority": "P0",
+   "code": "template/cards/chat-message-flow.tsx",
+   "inputs": [
+    {
+     "type": "界",
+     "need": null
+    },
+    {
+     "type": "人",
+     "need": "可选"
+    }
+   ],
+   "semantics": [
+    "例证",
+    "引用",
+    "过程演示"
+   ],
+   "material_shape": [
+    "界面"
+   ],
+   "position": "任意",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "chevron-lower-third",
+   "title": "动态人名条",
+   "oneliner": "姓名行从左推出（x -26→0，0.26s），职称 chip 错峰 0.1s 从左 scaleX 展开 0.22s、chip 内字滞后 2 帧淡入，三枚 chevron 再依次扫过点亮当\"条子还在延伸\"的收尾；hold 2.0s 后整条从左收回",
+   "category": "人物互动",
+   "energy": "低",
+   "priority": "P1",
+   "code": "template/cards/chevron-lower-third.tsx",
+   "inputs": [
+    {
+     "type": "人",
+     "need": "可选"
+    },
+    {
+     "type": "文",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "自我介绍",
+    "引用",
+    "介绍他人"
+   ],
+   "material_shape": [],
+   "position": "任意",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "chip-grid-single-select",
+   "title": "五选一反黑",
+   "oneliner": "N 个候选 chip 3+2 居中铺开让观众读题（前 2s）；选中帧先插 1 帧灰色按压，紧接 5 帧 linear 反黑（底→墨、字→白）+ 1→1.04→1 极轻正弦回弹，其余 chip 降到 18% 但位置锁死；停 1.5s 看清选中态后余项归零、黑 chip 上移 46px 收窄 0.82 并横向补偿回中线，下方算式行浮现逐词加深——\"选了它，然后……\"",
+   "category": "数据信息图",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/chip-grid-single-select.tsx",
+   "inputs": [
+    {
+     "type": "文",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "对比",
+    "数据",
+    "选择"
+   ],
+   "material_shape": [],
+   "position": "中段",
+   "props": [
+    "question",
+    "options",
+    "selected",
+    "equation"
+   ],
+   "hardcoded": false
+  },
+  {
+   "slug": "claude-code",
+   "title": "编码智能体终端",
+   "oneliner": "深底终端窗弹入后三段错峰按阅读顺序铺开（欢迎框 → What's new 栏 → 提示行），命令逐字符敲进提示行、回车后整行退成灰，接着「工具调用 → 结果 → diff → 结论」的因果链逐行分块蹦出，工具调用行的状态点在出结果前一直呼吸，diff 的 `+` 行是全窗唯一语义色",
+   "category": "素材呈现",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/claude-code.tsx",
+   "inputs": [
+    {
+     "type": "界",
+     "need": null
+    },
+    {
+     "type": "人",
+     "need": "可选"
+    }
+   ],
+   "semantics": [
+    "过程演示",
+    "例证"
+   ],
+   "material_shape": [
+    "界面"
+   ],
+   "position": "中段",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "color-slam-beat-card",
+   "title": "纯色硬切节拍卡",
+   "oneliner": "整屏一帧硬切到高饱和纯色底（零过渡零擦除），色块上大字先\"显影\"后变实、素材卡带投影升入错峰跟上，停 1.5~5s 再硬切回口播——用底色跳变本身当节拍器",
+   "category": "转场结构",
+   "energy": "高",
+   "priority": "P0",
+   "code": "template/cards/color-slam-beat-card.tsx",
+   "inputs": [
+    {
+     "type": "场",
+     "need": null
+    },
+    {
+     "type": "文",
+     "need": null
+    },
+    {
+     "type": "人",
+     "need": "可选"
+    }
+   ],
+   "semantics": [
+    "论点",
+    "金句",
+    "转场"
+   ],
+   "material_shape": [],
+   "position": "任意",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "converging-arrows",
+   "title": "双箭头聚焦",
+   "oneliner": "两支手绘箭头从对角空白处几乎同时画向关键词（错峰仅 0.06s，杆 0.26s + 头 0.11s，箭尖停在离词 16px 处不戳字），两支箭尖都到位那一帧关键词换成强调色（只换色、不缩放），箭头留在屏上 hold 1.6s",
+   "category": "强调标注",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/converging-arrows.tsx",
+   "inputs": [
+    {
+     "type": "文",
+     "need": null
+    },
+    {
+     "type": "人",
+     "need": "可选"
+    }
+   ],
+   "semantics": [
+    "强调",
+    "机制"
+   ],
+   "material_shape": [],
+   "position": "任意",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "corner-bracket-frame",
+   "title": "对角角框",
+   "oneliner": "左上与右下两个 L 形角框**同帧**从各自的外侧对角方向平移 20px 进入，框先立住 0.22s 后标题两行错峰 0.1s 淡入上浮，画完全部静置",
+   "category": "强调标注",
+   "energy": "低",
+   "priority": "P1",
+   "code": "template/cards/corner-bracket-frame.tsx",
+   "inputs": [
+    {
+     "type": "文",
+     "need": null
+    },
+    {
+     "type": "人",
+     "need": "可选"
+    }
+   ],
+   "semantics": [
+    "论点",
+    "标题"
+   ],
+   "material_shape": [],
+   "position": "任意",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "count-badge-title",
+   "title": "数字重音标题",
+   "oneliner": "数字「3」先单独从 1.6 倍缩到位并在落定那刻换成强调色，紧接着「个方法」被它从右缘 clip 推出来，第二行错峰 0.1s 淡入上浮，收尾数字再补一记 5 帧 punch",
+   "category": "字幕花字",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/count-badge-title.tsx",
+   "inputs": [
+    {
+     "type": "文",
+     "need": null
+    },
+    {
+     "type": "人",
+     "need": "可选"
+    }
+   ],
+   "semantics": [
+    "钩子",
+    "列举"
+   ],
+   "material_shape": [],
+   "position": "开场",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "countdown-arc-scatter",
+   "title": "数字弧落标题",
+   "oneliner": "一串相邻递减的数字 11 / 10 / 9 … 5 / 4 / 3 切向挂在半径 150 的弧上，整盘从 96° 扫回 0°（0.57s，power2.out 急停），位置角超 ±70° 的数字用角度算透明度\"转进视野\"；停稳那一刻被选中的\"5\"正在弧顶，随即 0.3s 平移到标题首字符位并同步回正，其余数字原地 blur 3 淡出不位移，\"分钟 / 搭好 / 创作系统\"逐词解糊，末词 1.75s 染强调色；落定后整幕静止到 4.6s 同收",
+   "category": "字幕花字",
+   "energy": "高",
+   "priority": "P2",
+   "code": "template/cards/countdown-arc-scatter.tsx",
+   "inputs": [
+    {
+     "type": "文",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "钩子",
+    "数据"
+   ],
+   "material_shape": [],
+   "position": "开场",
+   "props": [
+    "numbers",
+    "pick",
+    "words",
+    "accent"
+   ],
+   "hardcoded": false
+  },
+  {
+   "slug": "crash-zoom-punch",
+   "title": "急推特写",
+   "oneliner": "全景静置 1s 让观众看清整页，然后 6 帧 ease-in 急推到截图里的目标文字块（zoom 1→2.3，相机中心同步收敛到目标中心），过冲后 5 帧回收 4.5% 到 2.2 落定；急推那 6 帧叠一记短促 blur 当运动模糊，之后画面钉死——一次性的重音\"就是这一行\"",
+   "category": "强调标注",
+   "energy": "高",
+   "priority": "P1",
+   "code": "template/cards/crash-zoom-punch.tsx",
+   "inputs": [
+    {
+     "type": "图",
+     "need": null
+    },
+    {
+     "type": "截图",
+     "need": null
+    },
+    {
+     "type": "V",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "强调",
+    "例证"
+   ],
+   "material_shape": [
+    "横屏"
+   ],
+   "position": "中段",
+   "props": [
+    "src",
+    "target",
+    "label",
+    "sub"
+   ],
+   "hardcoded": false
+  },
+  {
+   "slug": "cursor-actor-demo",
+   "title": "光标演员演示",
+   "oneliner": "一枚超常规尺寸的系统光标在界面（tsx 为 CSS/SVG 线框假 UI，控件要能响应）上\"移动-悬停-点击\"，每落到一个目标元素就即时响应（hover 底色加深 / 开关滑块滑过去 / 缩略图从光标处 pop-in），一个动作对齐一个口播词——光标是替观众操作的演员，不是鼠标轨迹录屏",
+   "category": "素材呈现",
+   "energy": "中",
+   "priority": "P0",
+   "code": "template/cards/cursor-actor-demo.tsx",
+   "inputs": [
+    {
+     "type": "界",
+     "need": null
+    },
+    {
+     "type": "人",
+     "need": "可选"
+    }
+   ],
+   "semantics": [
+    "过程演示",
+    "步骤"
+   ],
+   "material_shape": [
+    "界面"
+   ],
+   "position": "中段",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "cursor-locked-zoom",
+   "title": "光标锁定跟拍",
+   "oneliner": "一条长命令在灰阶终端窗里逐字打出，相机 2.6~2.8x 锁死在光标上跟拍（tx = W/2 − zoom·cursorX 反解 + transform-origin 0 0），字符从画面右侧被\"喂\"进来、光标恒在正中；打完停 0.75s 让人读完，再用 0.8s inOut 把 zoom 拉回 1 收在全景居中",
+   "category": "运镜",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/cursor-locked-zoom.tsx",
+   "inputs": [
+    {
+     "type": "界",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "过程演示",
+    "步骤"
+   ],
+   "material_shape": [
+    "界面"
+   ],
+   "position": "中段",
+   "props": [],
+   "hardcoded": true
+  },
+  {
+   "slug": "danmu-bubble-praise",
+   "title": "弹幕气泡",
+   "oneliner": "四枚评论气泡按 0.55s 错峰从最近的边缘外侧飘入，每枚只停 0.75s 就上移 18px 淡出——进出交叠到第 3 枚进场时第 1 枚正在走，四枚里只有一枚是强调色",
+   "category": "人物互动",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/danmu-bubble-praise.tsx",
+   "inputs": [
+    {
+     "type": "文",
+     "need": null
+    },
+    {
+     "type": "人",
+     "need": "可选"
+    }
+   ],
+   "semantics": [
+    "引用",
+    "例证"
+   ],
+   "material_shape": [],
+   "position": "任意",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "doc-park-left-pill-deal",
+   "title": "文档驻留发牌",
+   "oneliner": "700×420 的文档先满幅在场 0.9s，然后不淡出而是以左边缘为锚驻留（0.8s power2.inOut：translateX −514 + scale .92，只露约 35%——\"来源还在\"），右侧按旁白节奏每 1.3s 慢发牌一张白底描边药丸（0.2s 淡入 + 0.37s back.out(1.7) 落定，先实后稳），每张落定 0.3s 后其下说明行逐词加深并留住；文档内容全程 −18.75 px/s 极慢自动滚动\"正在被读\"；三张落齐是静态结论清单，6.6s 同收",
+   "category": "素材呈现",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/doc-park-left-pill-deal.tsx",
+   "inputs": [
+    {
+     "type": "截图",
+     "need": null
+    },
+    {
+     "type": "文",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "论点",
+    "引用"
+   ],
+   "material_shape": [
+    "长图"
+   ],
+   "position": "中段",
+   "props": [
+    "docTitle",
+    "pills",
+    "notes",
+    "hint",
+    "docSrc",
+    "accent"
+   ],
+   "hardcoded": false
+  },
+  {
+   "slug": "douyin-follow-card",
+   "title": "抖音主页关注卡",
+   "oneliner": "抖音用户主页卡整体 spring 弹入 → 头像/昵称/抖音号/数据/简介按阅读顺序错峰 blur-in → 光标弧线移入点\"＋关注\"，同帧按钮两态交叉 + 涟漪 + 副位图标→\"发私信\"；粉丝数静态（同原版 X，不做 +1）",
+   "category": "人物互动",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/douyin-follow-card.tsx",
+   "inputs": [
+    {
+     "type": "界",
+     "need": null
+    },
+    {
+     "type": "图",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "引用",
+    "介绍他人"
+   ],
+   "material_shape": [
+    "界面"
+   ],
+   "position": "中段",
+   "props": [
+    "avatar"
+   ],
+   "hardcoded": false
+  },
+  {
+   "slug": "error-retype",
+   "title": "打字改口",
+   "oneliner": "句干\"口播做得好，靠的是\"先在，后半句以打字机节奏（0.09s/字，帧确定硬切）打出\"模型大小\"→ 停 0.55s、光标以 4 帧半周期闪两下（犹豫）→ 以更快的 0.06s/字退掉 → 零犹豫同速重打\"讲述方法\"→ 完稿光标闪两下后摘除，整句静置 ≥2.6s 再同收。三档速度差是戏的全部，光标是演员的脸",
+   "category": "字幕花字",
+   "energy": "低",
+   "priority": "P1",
+   "code": "template/cards/error-retype.tsx",
+   "inputs": [
+    {
+     "type": "文",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "转折"
+   ],
+   "material_shape": [],
+   "position": "任意",
+   "props": [
+    "prefix",
+    "first",
+    "second",
+    "accent"
+   ],
+   "hardcoded": false
+  },
+  {
+   "slug": "evidence-scroll-tour",
+   "title": "证据长页慢滚",
+   "oneliner": "超出屏高的长截图页作为画面唯一动元素匀速上滚（约 10% 页高/s），预标注的红框/高亮随页滚动，讲到关键条目提前减速、停 1~2s 再滚完——滚速就是讲述节奏",
+   "category": "素材呈现",
+   "energy": "低",
+   "priority": "P0",
+   "code": "template/cards/evidence-scroll-tour.tsx",
+   "inputs": [
+    {
+     "type": "截图",
+     "need": null
+    },
+    {
+     "type": "人",
+     "need": "可选"
+    }
+   ],
+   "semantics": [
+    "例证",
+    "引用",
+    "强调"
+   ],
+   "material_shape": [
+    "长图"
+   ],
+   "position": "中段",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "filmstrip-conveyor",
+   "title": "传送带列举 + 减速停靠",
+   "oneliner": "六格 240×160 白边卡接成一条传送带匀速左行 176px/s，经过中线的格按\"离中线的距离\"每帧连续放大到 1.08 并提亮（不是到点触发）；讲到第四格时按位置-时间分段积分减速（匀速 → 0.5s 减速 → 0.25× 慢速 1.4s → 0.6s 加速 → 匀速），减速结束点正好是\"第四格居中\"；六格全部过完中线后整体退场",
+   "category": "素材呈现",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/filmstrip-conveyor.tsx",
+   "inputs": [
+    {
+     "type": "图",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "例证",
+    "列举"
+   ],
+   "material_shape": [
+    "横屏",
+    "多图"
+   ],
+   "position": "任意",
+   "props": [
+    "srcs",
+    "labels",
+    "title",
+    "note"
+   ],
+   "hardcoded": false
+  },
+  {
+   "slug": "flying-words",
+   "title": "关键词隧道",
+   "oneliner": "深底上 22 个名词按黄金角铺在扁椭圆截面（半径 82~247）上，沿 z 轴从 −1750 匀速飞到 +800 穿过相机平面擦身而过，每词相位 i/N 均分、跑满 2 整圈首尾无缝；生命曲线 [0,1,.5,.2,0]——前 1/4 猛亮、中段压到半透给前景让位、末段拖尾消失；越近越往画外散（drift .5→1.85），冲到眼前（u>.86）加运动模糊；中心一枚静态光晕钉住\"隧道尽头\"。它是幕底级背景层，前景放人物或标题",
+   "category": "字幕花字",
+   "energy": "中",
+   "priority": "P2",
+   "code": "template/cards/flying-words.tsx",
+   "inputs": [
+    {
+     "type": "文",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "氛围",
+    "钩子"
+   ],
+   "material_shape": [],
+   "position": "开场",
+   "props": [
+    "words"
+   ],
+   "hardcoded": false
+  },
+  {
+   "slug": "focus-dim-spotlight",
+   "title": "聚焦压暗切换",
+   "oneliner": "讲到哪里哪里亮——目标行/卡片保持原亮并点亮发光描边，其余整屏压暗 40%，焦点随口播 0.2s 滑到下一目标，讲完整体 0.4s 恢复",
+   "category": "强调标注",
+   "energy": "低",
+   "priority": "P0",
+   "code": "template/cards/focus-dim-spotlight.tsx",
+   "inputs": [
+    {
+     "type": "截图",
+     "need": null
+    },
+    {
+     "type": "人",
+     "need": "可选"
+    }
+   ],
+   "semantics": [
+    "强调",
+    "数据"
+   ],
+   "material_shape": [],
+   "position": "中段",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "gallery-wall-dolly",
+   "title": "照片墙推轨",
+   "oneliner": "三张平级案例（430×290）挂在 rotateY −12° 的 3D 墙上（深灰径向幕底 + 地面反光），相机全景 z .61 → 逐张推近停靠 z 1.15（移 1.0s + 停 0.9s；缩放绕当前图发生，其余压暗 .5 + blur 3px，当前图内部 1→1.03 微推）→ 拉回全景与字同收",
+   "category": "素材呈现",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/gallery-wall-dolly.tsx",
+   "inputs": [
+    {
+     "type": "图",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "例证",
+    "对比",
+    "列举"
+   ],
+   "material_shape": [
+    "横屏",
+    "多图"
+   ],
+   "position": "中段",
+   "props": [
+    "srcs",
+    "labels"
+   ],
+   "hardcoded": false
+  },
+  {
+   "slug": "glass-code-walk",
+   "title": "玻璃代码走读",
+   "oneliner": "玻璃质感代码块弹入、10 行代码逐行落位，相机推到 1.68x 后按「读一行 → 滑到下一行」逐句走读（浮点行号 linePosition 同时驱动相机与高亮带，行间是滑过去的不是跳格），非当前行压暗到 0.30，读完 0.85s 拉回全景解除压暗",
+   "category": "素材呈现",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/glass-code-walk.tsx",
+   "inputs": [
+    {
+     "type": "界",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "例证",
+    "强调"
+   ],
+   "material_shape": [
+    "界面"
+   ],
+   "position": "中段",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "gooey-morph",
+   "title": "图块拼入",
+   "oneliner": "n 张图各自走 L 形路径从画外飞来——先横向滑到自己的列、再纵向落进行位，起飞时刻故意不按左右顺序，几张图几乎相接地拼成一条横排，拼完即落点",
+   "category": "素材呈现",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/gooey-morph.tsx",
+   "inputs": [
+    {
+     "type": "图",
+     "need": null
+    },
+    {
+     "type": "人",
+     "need": "可选"
+    }
+   ],
+   "semantics": [
+    "例证"
+   ],
+   "material_shape": [
+    "多图"
+   ],
+   "position": "中段",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "grid-to-hero",
+   "title": "网格收成主角",
+   "oneliner": "2×2 网格错峰 120ms 落位先并列，讲到那一格时它 0.8s 长成 620×444 主图、其余三格同一条曲线收成右侧一列 220×132 小图（不消失），停 2s 后回到网格，再一起退场",
+   "category": "素材呈现",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/grid-to-hero.tsx",
+   "inputs": [
+    {
+     "type": "图",
+     "need": null
+    },
+    {
+     "type": "V",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "对比",
+    "列举",
+    "选择"
+   ],
+   "material_shape": [
+    "横屏",
+    "多图"
+   ],
+   "position": "中段",
+   "props": [
+    "labels",
+    "srcs",
+    "heroIdx"
+   ],
+   "hardcoded": false
+  },
+  {
+   "slug": "hand-drawn-ellipse",
+   "title": "手绘圈重点",
+   "oneliner": "一笔逆时针画出的歪椭圆圈住关键短语——0.5s 画到 1.08 圈让尾巴过头 8% 与起笔交叉，圈画完之后短语才 punch 1.06→1 一拍，然后静置 1.8s",
+   "category": "强调标注",
+   "energy": "中",
+   "priority": "P0",
+   "code": "template/cards/hand-drawn-ellipse.tsx",
+   "inputs": [
+    {
+     "type": "文",
+     "need": null
+    },
+    {
+     "type": "人",
+     "need": "可选"
+    }
+   ],
+   "semantics": [
+    "强调",
+    "金句"
+   ],
+   "material_shape": [],
+   "position": "任意",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "highlighter-sweep",
+   "title": "荧光笔高亮扫过",
+   "oneliner": "半透明黄色荧光笔从左到右 0.4~0.8s 扫过引用文段的关键句，同帧其余文字压暗，扫完整句轻微浮起，读者视线被押着走",
+   "category": "强调标注",
+   "energy": "低",
+   "priority": "P0",
+   "code": "template/cards/highlighter-sweep.tsx",
+   "inputs": [
+    {
+     "type": "文",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "引用",
+    "强调"
+   ],
+   "material_shape": [],
+   "position": "中段",
+   "props": [
+    "hostSrc（声明未使用）"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "host-card-glass-board",
+   "title": "人物竖卡玻璃台",
+   "oneliner": "左 1/3 口播人物装 250×444 的 9:16 竖卡常驻（圆角 22、2px 半透白描边、演播室底），右 2/3 一块 570×408 的玻璃道具台以左缘为轴 rotateY −18° → −10° 显影、sheen 扫一次；板头期数小字 → 大标题逐字解糊 → 英文字距行，板内道具按口播接力：三步 tile 逐个 back.out pop、连接线从左长出带箭头、结果胶囊最后落定；6.1s 板、人、装饰同收",
+   "category": "人物互动",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/host-card-glass-board.tsx",
+   "inputs": [
+    {
+     "type": "人",
+     "need": "必需"
+    },
+    {
+     "type": "文",
+     "need": null
+    },
+    {
+     "type": "界",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "步骤"
+   ],
+   "material_shape": [
+    "竖屏",
+    "人脸",
+    "透明通道"
+   ],
+   "position": "中段",
+   "props": [
+    "hostSrc",
+    "tag",
+    "title",
+    "en",
+    "steps",
+    "result"
+   ],
+   "hardcoded": false
+  },
+  {
+   "slug": "host-shrink-to-chip",
+   "title": "人物缩位让台",
+   "oneliner": "图形要上台时讲者从全屏 0.4s 缩进角落的圆形头像章继续口播，图形从对侧错峰 0.15s 入场接位——让台是单程的，主角让位但人不消失",
+   "category": "人物互动",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/host-shrink-to-chip.tsx",
+   "inputs": [
+    {
+     "type": "人",
+     "need": "必需"
+    },
+    {
+     "type": "文",
+     "need": null
+    },
+    {
+     "type": "图",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "例证"
+   ],
+   "material_shape": [
+    "人脸",
+    "透明通道"
+   ],
+   "position": "中段",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "impact-open-title",
+   "title": "冲击开场",
+   "oneliner": "整句一次砸出（scale 1.08→1 + opacity，0.2s power4.out），末词延后 3 帧单独换成强调色并再 punch 一次；四角 L 取景框与整句**同帧**起但走 0.3s 更慢地向内收 12px，点阵网格最后错峰淡入 0.4s 且只到 0.5 不透明度，副题收尾上浮——一屏只砸一次，其余全是衬",
+   "category": "字幕花字",
+   "energy": "高",
+   "priority": "P0",
+   "code": "template/cards/impact-open-title.tsx",
+   "inputs": [
+    {
+     "type": "文",
+     "need": null
+    },
+    {
+     "type": "人",
+     "need": "可选"
+    }
+   ],
+   "semantics": [
+    "钩子",
+    "章节",
+    "标题"
+   ],
+   "material_shape": [],
+   "position": "开场",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "info-card-assemble",
+   "title": "信息卡逐字段自建",
+   "oneliner": "一张信息卡（书 / 工具 / 人物）像被结构化抽取一样自己长出来：封面 rise → 标题 rise → 三枚标签 pop → 价格行 rise → 三行要点逐行 rise、其中两行被马克底块 5 帧从左刷过 → 三块色卡 pop；相邻字段只隔 2 帧（配方帧）、单字段行程 0.5s 远大于间隔所以画面是\"涌\"不是\"点\"，整卡全程极慢前推 1→1.06",
+   "category": "素材呈现",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/info-card-assemble.tsx",
+   "inputs": [
+    {
+     "type": "图",
+     "need": null
+    },
+    {
+     "type": "文",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "例证"
+   ],
+   "material_shape": [],
+   "position": "中段",
+   "props": [
+    "src",
+    "caption",
+    "title",
+    "pills",
+    "price",
+    "lines",
+    "highlightLines",
+    "swatches"
+   ],
+   "hardcoded": false
+  },
+  {
+   "slug": "info-term-card",
+   "title": "名词解释悬浮卡",
+   "oneliner": "说到专业名词的瞬间，圆角信息卡（图标+词条+两行释义）从人物对侧屏外 0.35s 滑入带 3% 过冲，停留期间 ±6px 正弦浮动像悬浮着，念完原路滑出",
+   "category": "数据信息图",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/info-term-card.tsx",
+   "inputs": [
+    {
+     "type": "文",
+     "need": null
+    },
+    {
+     "type": "人",
+     "need": "可选"
+    }
+   ],
+   "semantics": [
+    "定义"
+   ],
+   "material_shape": [],
+   "position": "中段",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "ink-underline",
+   "title": "墨迹下划线",
+   "oneliner": "一条起笔压满、收笔提细的墨色缎带沿关键词下方 0.4~0.5s 生长出来——变宽不是描边粗细而是路径自己的两条边算出来的，笔尖走过那一刻的宽度就是它的终宽，画完静置",
+   "category": "强调标注",
+   "energy": "低",
+   "priority": "P1",
+   "code": "template/cards/ink-underline.tsx",
+   "inputs": [
+    {
+     "type": "文",
+     "need": null
+    },
+    {
+     "type": "人",
+     "need": "可选"
+    }
+   ],
+   "semantics": [
+    "强调",
+    "对比"
+   ],
+   "material_shape": [],
+   "position": "中段",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "keyword-pop-highlight",
+   "title": "关键词弹出强调",
+   "oneliner": "字幕念到关键词的瞬间，该词带色块底从 0 弹到 1.65 倍再回落定格 1.15 倍，画面跟着微震一下",
+   "category": "字幕花字",
+   "energy": "高",
+   "priority": "P0",
+   "code": "template/cards/keyword-pop-highlight.tsx",
+   "inputs": [
+    {
+     "type": "文",
+     "need": null
+    },
+    {
+     "type": "人",
+     "need": "可选"
+    }
+   ],
+   "semantics": [
+    "强调",
+    "数据"
+   ],
+   "material_shape": [],
+   "position": "任意",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "lead-word-zoom-assemble",
+   "title": "首词占满补句",
+   "oneliner": "首词\"效率\"以 2.3 倍字号独占画面正中、hold 0.4s 期间继续推近 6%；随后一条 power3.inOut 曲线同时完成\"缩回终字号\"（0.4s）与\"整行左滑归位\"（0.8s，同起同曲线时长两倍），后续词各自从槽位右侧 28px 被推进来（0.4s power4.out，淡入只 2 帧），结论词落位即强调色；整行落定后上移 28px、副行同一时窗浮出，静置 3s 后同收",
+   "category": "字幕花字",
+   "energy": "高",
+   "priority": "P1",
+   "code": "template/cards/lead-word-zoom-assemble.tsx",
+   "inputs": [
+    {
+     "type": "文",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "论点",
+    "金句",
+    "转折",
+    "标题"
+   ],
+   "material_shape": [],
+   "position": "任意",
+   "props": [
+    "words",
+    "subline",
+    "accentIndex",
+    "accent"
+   ],
+   "hardcoded": false
+  },
+  {
+   "slug": "line-by-line-slide",
+   "title": "逐行滑入",
+   "oneliner": "多行要点一行一行从左侧（字号 78%）外滑进来（位移 0.47s / 淡入 0.90s，行间错峰 0.13s），读完整叠再从同一侧往右穿出去——进从左、出向右不是倒放，出场错峰只有入场的一半、横向位移还要迟 0.27s 才起",
+   "category": "字幕花字",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/line-by-line-slide.tsx",
+   "inputs": [
+    {
+     "type": "文",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "步骤",
+    "论点",
+    "列举"
+   ],
+   "material_shape": [],
+   "position": "任意",
+   "props": [],
+   "hardcoded": true
+  },
+  {
+   "slug": "line-carry-transition",
+   "title": "线条接力转场",
+   "oneliner": "A 镜标题下先画出一条强调色下划线，停一拍后它继续向右冲出画面，镜头跟着线横移 960px（2s power2.inOut；横移段线的生长量 = 镜头位移量，笔头钉在画面 x≈640 永不出画也永不落后），线到位后拐直角向上、向右、向下、向左围出一个 560×330 的画框，框闭合那一帧笔头消失、B 镜内容在框内淡入——全程无剪切，一条线把两镜缝在一起",
+   "category": "转场结构",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/line-carry-transition.tsx",
+   "inputs": [
+    {
+     "type": "场",
+     "need": null
+    },
+    {
+     "type": "图",
+     "need": null
+    },
+    {
+     "type": "文",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "转场",
+    "章节"
+   ],
+   "material_shape": [
+    "横屏"
+   ],
+   "position": "中段",
+   "props": [
+    "titleA",
+    "subA",
+    "titleB",
+    "subB",
+    "srcB"
+   ],
+   "hardcoded": false
+  },
+  {
+   "slug": "line-chart-story-draw",
+   "title": "折线分段推演",
+   "oneliner": "历史段一开始就在场，讲到假设时新线段从拐点向右 0.4~0.8s stroke 生长、段完成瞬间 ▲5% 标签+弧线箭头弹出，对比虚线再从同一拐点岔出第二种未来，最后竖向色带逐个罩住相关区间",
+   "category": "数据信息图",
+   "energy": "中",
+   "priority": "P0",
+   "code": "template/cards/line-chart-story-draw.tsx",
+   "inputs": [
+    {
+     "type": "文",
+     "need": null
+    },
+    {
+     "type": "人",
+     "need": "可选"
+    }
+   ],
+   "semantics": [
+    "数据",
+    "对比"
+   ],
+   "material_shape": [],
+   "position": "中段",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "logo-enter",
+   "title": "Logo 登场",
+   "oneliner": "品牌圆牌用 spring 从 0.5 倍弹到位（唯一带过冲的一拍），错峰 0.233s 后字标从圆牌一侧推出、副行再错峰一拍，同时一圈描线绕着圆牌合拢——三拍收尾，落定即终帧",
+   "category": "素材呈现",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/logo-enter.tsx",
+   "inputs": [
+    {
+     "type": "文",
+     "need": null
+    },
+    {
+     "type": "图",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "自我介绍",
+    "结尾"
+   ],
+   "material_shape": [
+    "矢量"
+   ],
+   "position": "任意",
+   "props": [
+    "hostSrc(未使用void)"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "long-take-world",
+   "title": "长镜头世界画布",
+   "oneliner": "全部内容钉在一张大画布的不同位置，一台相机随讲述连续运镜过去，新内容在镜头快到时才成形——没有切镜，空间本身就是叙事结构",
+   "category": "转场结构",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/long-take-world.tsx",
+   "inputs": [
+    {
+     "type": "文",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "转场",
+    "步骤",
+    "空间叙事"
+   ],
+   "material_shape": [],
+   "position": "任意",
+   "props": [],
+   "hardcoded": true
+  },
+  {
+   "slug": "lower-third-nameplate",
+   "title": "人名条展示牌",
+   "oneliner": "画面左下色条先横向展开 0.3s，姓名随后从左遮罩揭示，头衔行再延迟 0.15s 跟进；停留后按反向顺序收回",
+   "category": "人物互动",
+   "energy": "低",
+   "priority": "P0",
+   "code": "template/cards/lower-third-nameplate.tsx",
+   "inputs": [
+    {
+     "type": "人",
+     "need": "可选"
+    },
+    {
+     "type": "文",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "自我介绍",
+    "引用",
+    "介绍他人"
+   ],
+   "material_shape": [],
+   "position": "任意",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "magnifier-detail",
+   "title": "局部放大镜",
+   "oneliner": "截图目标处 0.3s 弹出一个圆形放大镜（1.8 倍，深灰 2px 细描边、不加投影）落到旁边空白区，本体同步压暗留一圈细描边框，连接线随后描回出处",
+   "category": "强调标注",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/magnifier-detail.tsx",
+   "inputs": [
+    {
+     "type": "图",
+     "need": null
+    },
+    {
+     "type": "截图",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "强调"
+   ],
+   "material_shape": [],
+   "position": "任意",
+   "props": [
+    "hostSrc(未使用_props)"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "map-route-pin",
+   "title": "地图路线图钉",
+   "oneliner": "地图上虚线从 A 城生长到 B 城，到达瞬间图钉从上方砸下带一次压扁回弹，地名标签侧滑而出",
+   "category": "数据信息图",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/map-route-pin.tsx",
+   "inputs": [
+    {
+     "type": "文",
+     "need": null
+    },
+    {
+     "type": "人",
+     "need": "可选"
+    }
+   ],
+   "semantics": [
+    "时间地点",
+    "步骤",
+    "空间叙事"
+   ],
+   "material_shape": [],
+   "position": "任意",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "media-pop-in",
+   "title": "素材弹入堆叠",
+   "oneliner": "截图/照片带白边投影从 80% 弹到 100% 带回弹，随机歪 5~10°，多张以 100~150ms 错峰依次\"拍\"上来压角堆叠",
+   "category": "素材呈现",
+   "energy": "中",
+   "priority": "P0",
+   "code": "template/cards/media-pop-in.tsx",
+   "inputs": [
+    {
+     "type": "图",
+     "need": null
+    },
+    {
+     "type": "截图",
+     "need": null
+    },
+    {
+     "type": "人",
+     "need": "可选"
+    }
+   ],
+   "semantics": [
+    "例证",
+    "列举"
+   ],
+   "material_shape": [
+    "多图"
+   ],
+   "position": "任意",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "metric-with-sparkline",
+   "title": "数字带趋势",
+   "oneliner": "小标签先淡入，大数字 0→67 滚 0.9s，下方小折线在同一刻起跑用 0.6s 画完、四个数据点跟着线端依次弹出；数字停住那一帧「%」和上箭头才出现——结论比过程晚半拍",
+   "category": "数据信息图",
+   "energy": "中",
+   "priority": "P0",
+   "code": "template/cards/metric-with-sparkline.tsx",
+   "inputs": [
+    {
+     "type": "文",
+     "need": null
+    },
+    {
+     "type": "人",
+     "need": "可选"
+    }
+   ],
+   "semantics": [
+    "数据"
+   ],
+   "material_shape": [],
+   "position": "任意",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "motion-blur-slam-in",
+   "title": "模糊甩入急停",
+   "oneliner": "配合数字人的一卡——素材卡带横向运动模糊从人物旁的画外高速飞入，0.2s 内急停落位，模糊量跟着速度由重到清、停住那一帧归零，落位再 2~3px 过冲回正",
+   "category": "素材呈现",
+   "energy": "高",
+   "priority": "P1",
+   "code": "template/cards/motion-blur-slam-in.tsx",
+   "inputs": [
+    {
+     "type": "图",
+     "need": null
+    },
+    {
+     "type": "截图",
+     "need": null
+    },
+    {
+     "type": "人",
+     "need": "可选"
+    }
+   ],
+   "semantics": [
+    "例证"
+   ],
+   "material_shape": [],
+   "position": "任意",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "news-card-desk",
+   "title": "新闻卡片划重点",
+   "oneliner": "新闻截图包成白色圆角卡片、带 1~2° 歪度从下方 0.4s 滑上桌，1s 后红色下划线 0.3s 扫过标题关键句，第二张卡再从右侧压叠上来，卡片全程 8s 极缓 Ken Burns",
+   "category": "素材呈现",
+   "energy": "中",
+   "priority": "P0",
+   "code": "template/cards/news-card-desk.tsx",
+   "inputs": [
+    {
+     "type": "图",
+     "need": null
+    },
+    {
+     "type": "截图",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "引用",
+    "例证"
+   ],
+   "material_shape": [],
+   "position": "任意",
+   "props": [
+    "hostSrc(未使用_props)"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "number-counter",
+   "title": "数字滚动计数",
+   "oneliner": "大号数字从 0 滚到目标值，1~1.5s 先快后慢，落定瞬间轻放大一拍、涨跌箭头随后淡入；变体是逐位滚轮高位先停",
+   "category": "数据信息图",
+   "energy": "中",
+   "priority": "P0",
+   "code": "template/cards/number-counter.tsx",
+   "inputs": [
+    {
+     "type": "文",
+     "need": null
+    },
+    {
+     "type": "人",
+     "need": "可选"
+    }
+   ],
+   "semantics": [
+    "数据"
+   ],
+   "material_shape": [],
+   "position": "任意",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "number-slab-pop",
+   "title": "数字弹出",
+   "oneliner": "实色块先从上方落定 0.24s（数字此刻还不在场），块稳住后巨大整数一次弹出 scale 0.72→1（back.out 1.7），小数与单位延后 6 帧单独淡入，说明行最后淡入上浮 6px",
+   "category": "数据信息图",
+   "energy": "中",
+   "priority": "P0",
+   "code": "template/cards/number-slab-pop.tsx",
+   "inputs": [
+    {
+     "type": "文",
+     "need": null
+    },
+    {
+     "type": "人",
+     "need": "可选"
+    }
+   ],
+   "semantics": [
+    "数据",
+    "钩子"
+   ],
+   "material_shape": [],
+   "position": "任意",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "numbered-step-stack",
+   "title": "编号步骤堆入",
+   "oneliner": "四枚带编号方块的横条从右侧以严格均匀的 0.11s 错峰依次堆进来，每枚落定的同一帧它的编号块 punch 一下（1.12→1，4 帧）当作\"落地确认\"，四枚都到位后整组轻微上浮 4px 把它们收成一件事",
+   "category": "数据信息图",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/numbered-step-stack.tsx",
+   "inputs": [
+    {
+     "type": "文",
+     "need": null
+    },
+    {
+     "type": "人",
+     "need": "可选"
+    }
+   ],
+   "semantics": [
+    "步骤",
+    "列举"
+   ],
+   "material_shape": [],
+   "position": "任意",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "orbit-drift",
+   "title": "环绕微漂",
+   "oneliner": "3D 空间里绕静态页面做小幅环绕——rotateY 与 rotateX 两条正弦相位错开 90°，合成一条闭合椭圆轨迹（幅度 ±6°/±3.4°），叠一层前后呼吸与反向跟随的投影，无始无终、整段都是 hold",
+   "category": "运镜",
+   "energy": "低",
+   "priority": "P1",
+   "code": "template/cards/orbit-drift.tsx",
+   "inputs": [
+    {
+     "type": "图",
+     "need": null
+    },
+    {
+     "type": "截图",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "氛围"
+   ],
+   "material_shape": [],
+   "position": "任意",
+   "props": [
+    "hostSrc(未使用)"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "outline-box-title",
+   "title": "描边框标题",
+   "oneliner": "圆角描边框沿路径**一笔画完一圈**（0.42s 近匀速，精确闭合不过头），框闭合后实心 chip 从左 scaleX 展开 0.2s、chip 内白字滞后淡入，最后三枚 chevron 依次点亮",
+   "category": "字幕花字",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/outline-box-title.tsx",
+   "inputs": [
+    {
+     "type": "文",
+     "need": null
+    },
+    {
+     "type": "人",
+     "need": "可选"
+    }
+   ],
+   "semantics": [
+    "论点",
+    "定义",
+    "标题"
+   ],
+   "material_shape": [],
+   "position": "任意",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "overexpose-flip-transition",
+   "title": "过曝翻页转场",
+   "oneliner": "出场相机推向证据物直到 1.5x 占满画面，同帧一层重音（深底=白色径向过曝／白底=全场压暗）以切点为锚冲顶再回落，入场镜头从那个亮心里被拉出来",
+   "category": "转场结构",
+   "energy": "高",
+   "priority": "P0",
+   "code": "template/cards/overexpose-flip-transition.tsx",
+   "inputs": [
+    {
+     "type": "场",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "转场",
+    "章节"
+   ],
+   "material_shape": [],
+   "position": "中段",
+   "props": [
+    "hostSrc(未使用)"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "parallel-items-with-host",
+   "title": "并列句排版（人物在场）",
+   "oneliner": "口播讲\"A、B、C\"三件并列的事而人还在画面里时，三项按口播逐个弹出（0.6s 一项）、标签压图且大，七种版式一卡切换——头顶横排 / 三横条灰转彩 / 竖列虚化底 / 顶部卡堆 / 竖切三分 / 斜切三分 / 背景轮换大字",
+   "category": "人物互动",
+   "energy": "中",
+   "priority": "P0",
+   "code": "template/cards/parallel-items-with-host.tsx",
+   "inputs": [
+    {
+     "type": "人",
+     "need": "必需"
+    },
+    {
+     "type": "图",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "步骤",
+    "例证",
+    "列举"
+   ],
+   "material_shape": [
+    "人脸",
+    "透明通道",
+    "多图"
+   ],
+   "position": "任意",
+   "props": [
+    "layout",
+    "items",
+    "srcs",
+    "hostSrc"
+   ],
+   "hardcoded": false
+  },
+  {
+   "slug": "particle-weld-transition",
+   "title": "粒子溶接转场",
+   "oneliner": "出场镜头主体轻升失焦碎成一批粒子向上漂散，入场镜头用**同一个 seed** 再放一次同方向的粒子——它们从下方继续上升、在新主体位置收拢，主体在粒子聚拢的末段成形",
+   "category": "转场结构",
+   "energy": "中",
+   "priority": "P0",
+   "code": "template/cards/particle-weld-transition.tsx",
+   "inputs": [
+    {
+     "type": "场",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "转场"
+   ],
+   "material_shape": [],
+   "position": "中段",
+   "props": [
+    "hostSrc(未使用)"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "pencil-sketch-draw",
+   "title": "铅笔手绘揭示",
+   "oneliner": "一只手握着铅笔沿真实笔迹把卡片/图形当场画出来，笔尖走到哪线到哪，画完抬笔、线保持干净静置",
+   "category": "素材呈现",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/pencil-sketch-draw.tsx",
+   "inputs": [
+    {
+     "type": "图",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "定义",
+    "步骤"
+   ],
+   "material_shape": [
+    "矢量",
+    "透明通道"
+   ],
+   "position": "任意",
+   "props": [
+    "hostSrc(未使用)",
+    "handSrc"
+   ],
+   "hardcoded": false
+  },
+  {
+   "slug": "per-character-rise",
+   "title": "逐字升起",
+   "oneliner": "每个汉字从自己位置下方（字号 44%）升到位，位移 0.33s、淡入 0.70s 走两条不同缓动，逐字错峰仅 1 帧（0.033s）——整句读作\"一股气顶上来\"而不是一个个蹦，全程零模糊零缩放",
+   "category": "字幕花字",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/per-character-rise.tsx",
+   "inputs": [
+    {
+     "type": "文",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "论点",
+    "金句"
+   ],
+   "material_shape": [],
+   "position": "任意",
+   "props": [],
+   "hardcoded": true
+  },
+  {
+   "slug": "pip-zoom-box",
+   "title": "画中画放大",
+   "oneliner": "细描边取景框先在人物脸上出现停一拍，然后带着框里的画面 0.5s 平移放大到右侧空位定居，落位那刻换成白边卡 + 唯一投影，箭头随后从人物划向它",
+   "category": "运镜",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/pip-zoom-box.tsx",
+   "inputs": [
+    {
+     "type": "人",
+     "need": "可选"
+    },
+    {
+     "type": "V",
+     "need": null
+    },
+    {
+     "type": "图",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "强调"
+   ],
+   "material_shape": [],
+   "position": "任意",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "pullback-cool-transition",
+   "title": "后拉冷却转场",
+   "oneliner": "出场镜头相机收住不推不拉，靠内容自己褪暗失焦交出画面；入场镜头从 scale 0.90 起步——全片唯一 scale<1 的后拉——用 0.90s 缓慢拉到 0.99 落定，节奏是六式里最慢的",
+   "category": "转场结构",
+   "energy": "低",
+   "priority": "P0",
+   "code": "template/cards/pullback-cool-transition.tsx",
+   "inputs": [
+    {
+     "type": "场",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "转场"
+   ],
+   "material_shape": [],
+   "position": "中段",
+   "props": [
+    "hostSrc(未使用)"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "push-through-transition",
+   "title": "推穿转场",
+   "oneliner": "出场镜头相机加速推到 1.35x 同时升起失焦，切点后入场镜头从模糊的 1.16 高位反向沉降落位——两侧都在\"推\"这一条轴上，观众被推着穿过镜头边界",
+   "category": "转场结构",
+   "energy": "中",
+   "priority": "P0",
+   "code": "template/cards/push-through-transition.tsx",
+   "inputs": [
+    {
+     "type": "场",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "转场"
+   ],
+   "material_shape": [],
+   "position": "中段",
+   "props": [
+    "hostSrc(未使用)"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "quote-bracket-pull",
+   "title": "引号夹句",
+   "oneliner": "两枚压过正文三倍的大引号从画外对角**同帧**向内推入把一片空白夹成\"引文区\"，引号走过一半时三行金句才开始错峰 0.09s 淡入上浮，末行关键短语最后被荧光笔扫过 0.26s",
+   "category": "字幕花字",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/quote-bracket-pull.tsx",
+   "inputs": [
+    {
+     "type": "文",
+     "need": null
+    },
+    {
+     "type": "人",
+     "need": "可选"
+    }
+   ],
+   "semantics": [
+    "引用",
+    "金句"
+   ],
+   "material_shape": [],
+   "position": "任意",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "quote-card",
+   "title": "金句大字卡",
+   "oneliner": "说到金句时底板 0.25s 盖住人物，3~5 行大字自上而下逐行错峰弹出，关键词换色放大，停 2~4s 后整卡下滑退场",
+   "category": "字幕花字",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/quote-card.tsx",
+   "inputs": [
+    {
+     "type": "文",
+     "need": null
+    },
+    {
+     "type": "人",
+     "need": "可选"
+    }
+   ],
+   "semantics": [
+    "金句",
+    "论点",
+    "结尾"
+   ],
+   "material_shape": [],
+   "position": "任意",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "quote-hold-arrow",
+   "title": "金句停留",
+   "oneliner": "三行金句先全部以普通样式错峰淡入、末行原地平淡地停 0.34s，然后才**升级**——黄色高亮框从末行文字中心 scaleX 铺开 0.24s、框到位后文字 punch 一下，然后停住",
+   "category": "强调标注",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/quote-hold-arrow.tsx",
+   "inputs": [
+    {
+     "type": "人",
+     "need": "可选"
+    },
+    {
+     "type": "文",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "金句",
+    "转折"
+   ],
+   "material_shape": [],
+   "position": "任意",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "rack-focus-pair",
+   "title": "焦点接力",
+   "oneliner": "两张白边卡前后叠放、永远一清一糊：讲到哪张，焦点 0.7s power2.inOut 转移过去（前张 blur 0→8 / brightness 1→.6 / scale 1.02→.97，后张反向），4.6s 再转回，6.4s 两张同收——像镜头在两张素材之间对焦",
+   "category": "素材呈现",
+   "energy": "低",
+   "priority": "P1",
+   "code": "template/cards/rack-focus-pair.tsx",
+   "inputs": [
+    {
+     "type": "图",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "对比"
+   ],
+   "material_shape": [
+    "横屏",
+    "多图"
+   ],
+   "position": "中段",
+   "props": [
+    "labels",
+    "srcs"
+   ],
+   "hardcoded": false
+  },
+  {
+   "slug": "reticle-lock-on",
+   "title": "准星咬合",
+   "oneliner": "四个 L 角从四个画外方向（±700, ±500）10 帧扑向截图上的目标，到位时框仍是目标 bbox 的 2.2 倍，随即 6 帧收缩过头到 0.94 再 back.out 回弹到 1——\"咔\"的咬合感来自超调；咬合那一帧目标白闪 .55→.28 常驻微亮、标签同帧 back 弹出在目标右侧，之后全部钉死",
+   "category": "强调标注",
+   "energy": "高",
+   "priority": "P2",
+   "code": "template/cards/reticle-lock-on.tsx",
+   "inputs": [
+    {
+     "type": "截图",
+     "need": null
+    },
+    {
+     "type": "图",
+     "need": null
+    },
+    {
+     "type": "V",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "强调"
+   ],
+   "material_shape": [
+    "横屏"
+   ],
+   "position": "中段",
+   "props": [
+    "src",
+    "target",
+    "label",
+    "buttonText"
+   ],
+   "hardcoded": false
+  },
+  {
+   "slug": "scanline-annotate",
+   "title": "扫描线逐处点名",
+   "oneliner": "一条强调色扫描线匀速（零缓动）自上而下掠过截图，越过每个目标下缘那一刻取景框从 1.75 倍收拢对准（back.out）+ 7% 对焦确认闪，滞后 5 帧右侧标注淡入并常驻；右上状态行实时数 0/4 → 4/4 → \"分析完成\"——一次扫描点出 N 处，节奏由扫描线统一驱动",
+   "category": "强调标注",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/scanline-annotate.tsx",
+   "inputs": [
+    {
+     "type": "截图",
+     "need": null
+    },
+    {
+     "type": "图",
+     "need": null
+    },
+    {
+     "type": "V",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "强调"
+   ],
+   "material_shape": [
+    "横屏"
+   ],
+   "position": "中段",
+   "props": [
+    "src",
+    "targets",
+    "labels"
+   ],
+   "hardcoded": false
+  },
+  {
+   "slug": "scribble-annotation",
+   "title": "手绘圈注箭头",
+   "oneliner": "马克笔质感的圈/下划线/箭头按真实笔顺现场画出，画完保持干净静置",
+   "category": "强调标注",
+   "energy": "中",
+   "priority": "P0",
+   "code": "template/cards/scribble-annotation.tsx",
+   "inputs": [
+    {
+     "type": "截图",
+     "need": null
+    },
+    {
+     "type": "图",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "强调"
+   ],
+   "material_shape": [],
+   "position": "中段",
+   "props": [
+    "hostSrc(声明未用)"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "shape-wipe-transition",
+   "title": "色块扫屏转场",
+   "oneliner": "两三层同色系色块以 50~80ms 错峰从同一方向扫过全屏，最后一层扫走时画面已换成下一场景",
+   "category": "转场结构",
+   "energy": "高",
+   "priority": "P0",
+   "code": "template/cards/shape-wipe-transition.tsx",
+   "inputs": [
+    {
+     "type": "场",
+     "need": null
+    },
+    {
+     "type": "人",
+     "need": "可选"
+    }
+   ],
+   "semantics": [
+    "转场",
+    "章节"
+   ],
+   "material_shape": [],
+   "position": "任意",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "slab-punch-title",
+   "title": "重点放大",
+   "oneliner": "两行标题里第二行的重点词坐在斜切色块上——第一行整块硬现 0.18s，色块从中心 scaleX 撑开 0.22s，**块撑到位那一帧**白字才硬切出现并从 1.12 倍 punch 落定（5 帧）",
+   "category": "字幕花字",
+   "energy": "高",
+   "priority": "P0",
+   "code": "template/cards/slab-punch-title.tsx",
+   "inputs": [
+    {
+     "type": "人",
+     "need": "可选"
+    },
+    {
+     "type": "文",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "论点",
+    "转折",
+    "章节",
+    "标题"
+   ],
+   "material_shape": [],
+   "position": "任意",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "slow-pull-reveal",
+   "title": "缓拉全貌",
+   "oneliner": "镜头起手咬在页面某处细节上（scale 1.26 + 偏移把它顶到画心），8~15s 匀速拉远回正到素材原样满画幅，观众在\"原来这是一整张看板\"的瞬间接到规模信息",
+   "category": "运镜",
+   "energy": "低",
+   "priority": "P0",
+   "code": "template/cards/slow-pull-reveal.tsx",
+   "inputs": [
+    {
+     "type": "图",
+     "need": null
+    },
+    {
+     "type": "截图",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "钩子"
+   ],
+   "material_shape": [
+    "横屏"
+   ],
+   "position": "任意",
+   "props": [],
+   "hardcoded": true
+  },
+  {
+   "slug": "slow-push-in",
+   "title": "缓推特写",
+   "oneliner": "静态页面（截图/文档/图片）以匀速或极缓减速缓慢推进 scale 1→1.08~1.15，transform-origin 咬在兴趣点上、画幅同时微移把它让向构图位，8~15s 里读不出\"某一帧在动\"却始终没停",
+   "category": "运镜",
+   "energy": "低",
+   "priority": "P0",
+   "code": "template/cards/slow-push-in.tsx",
+   "inputs": [
+    {
+     "type": "图",
+     "need": null
+    },
+    {
+     "type": "截图",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "例证"
+   ],
+   "material_shape": [
+    "横屏"
+   ],
+   "position": "任意",
+   "props": [],
+   "hardcoded": true
+  },
+  {
+   "slug": "soft-blur-in",
+   "title": "柔焦淡入",
+   "oneliner": "一句话像被镜头对焦出来——整块文字从 blur（字号 1/6）起、边解糊边淡入走满 0.9s，同时字号 22% 的下沉位移只占前 0.3s，逐字错峰仅 1 帧（0.033s）留下一道几乎读不出的左→右扫过感",
+   "category": "字幕花字",
+   "energy": "低",
+   "priority": "P1",
+   "code": "template/cards/soft-blur-in.tsx",
+   "inputs": [
+    {
+     "type": "文",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "论点"
+   ],
+   "material_shape": [],
+   "position": "任意",
+   "props": [],
+   "hardcoded": true
+  },
+  {
+   "slug": "source-converge",
+   "title": "多源汇聚",
+   "oneliner": "四条细贝塞尔曲线错峰 0.15s 由左向右逐路接通，四个来源胶囊沿各自真实曲线 1.5s 滑向右侧汇聚点并三段式缩小（前 75% 1→.34 慢慢瘦身、后 25% 掉光——\"被吸进去\"），强调色数据包全程沿线滑行两个整周期；吞并瞬间\"一张表\"脉冲 +12%，曲线从起点方向擦除，结果胶囊 + 说明行 0.6s 滑到画面正中静置",
+   "category": "数据信息图",
+   "energy": "中",
+   "priority": "P2",
+   "code": "template/cards/source-converge.tsx",
+   "inputs": [
+    {
+     "type": "文",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "论点",
+    "机制"
+   ],
+   "material_shape": [
+    "矢量"
+   ],
+   "position": "中段",
+   "props": [
+    "title",
+    "sources",
+    "hub",
+    "caption"
+   ],
+   "hardcoded": false
+  },
+  {
+   "slug": "speed-slab-title",
+   "title": "速度块标题",
+   "oneliner": "主标题硬现后，副题的斜切色块从**画面外左侧**（起点 −580px，起始帧完全不可见）冲入到位（0.28s power4.out），到位那一帧块左缘一次性张开三道长度不等的速度线（42/30/22px，错峰 2 帧）随后 0.2s 内淡尽——块内的字用 40px 反向补偿被裁一截，读作\"字比块慢半拍在追\"",
+   "category": "字幕花字",
+   "energy": "高",
+   "priority": "P1",
+   "code": "template/cards/speed-slab-title.tsx",
+   "inputs": [
+    {
+     "type": "人",
+     "need": "可选"
+    },
+    {
+     "type": "文",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "论点",
+    "钩子",
+    "标题"
+   ],
+   "material_shape": [],
+   "position": "任意",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "split-60-40-story",
+   "title": "60/40 主从分屏",
+   "oneliner": "左 60%（576px）一条素材缓推 1→1.06 做主（时长 = 镜头），3px 白中缝，右 40% 标题 30px 两行 + 三枚 pastel chip（24px 粗）按口播 1.0 / 1.6 / 2.2s 逐枚 back.out 弹出；6.8s 素材、中缝、字全部同帧收齐",
+   "category": "素材呈现",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/split-60-40-story.tsx",
+   "inputs": [
+    {
+     "type": "人",
+     "need": "可选"
+    },
+    {
+     "type": "V",
+     "need": null
+    },
+    {
+     "type": "文",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "论点",
+    "步骤",
+    "列举"
+   ],
+   "material_shape": [
+    "单条视频",
+    "透明通道"
+   ],
+   "position": "任意",
+   "props": [
+    "src",
+    "hostSrc",
+    "title",
+    "chips",
+    "chipBg"
+   ],
+   "hardcoded": false
+  },
+  {
+   "slug": "split-compare-slider",
+   "title": "对比双分屏（滑动揭示）",
+   "oneliner": "两张同构图的图叠放，上层用 clip-path 裁掉右侧，一条 3px 白分割线（带圆钮）与裁切边由同一个进度值驱动——左图整屏起手 0.6s → 1.4s 滑到中线 → 停 1.5s → nudge 到 42% 再回中 → 滑到 8% 几乎全露右图 → 回中停 1s → 与两图同收；两图共用一条 1→1.04 的极慢推",
+   "category": "素材呈现",
+   "energy": "中",
+   "priority": "P0",
+   "code": "template/cards/split-compare-slider.tsx",
+   "inputs": [
+    {
+     "type": "图",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "对比"
+   ],
+   "material_shape": [
+    "横屏",
+    "多图"
+   ],
+   "position": "任意",
+   "props": [
+    "srcBefore",
+    "srcAfter",
+    "labelBefore",
+    "labelAfter"
+   ],
+   "hardcoded": false
+  },
+  {
+   "slug": "split-text-stagger",
+   "title": "逐字裂升",
+   "oneliner": "标题\"把复杂的事，讲简单\"9 个字各在自己的裁切盒（高 = 行高 78）里从下方 115% 升起、back.out(1.2) 带约 5% 过冲回落（极值 ≈1.053），字间错峰 2 帧（0.067s）、每字行程 0.5s；同时一条 3px 基线从左向右 scaleX 长到整行宽，生长时长 = 字的总错峰时长，长满与末字落定同帧——字像从一条线里长出来；1.4s 副标淡入，4.4s 整组同收",
+   "category": "字幕花字",
+   "energy": "中",
+   "priority": "P2",
+   "code": "template/cards/split-text-stagger.tsx",
+   "inputs": [
+    {
+     "type": "文",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "金句",
+    "标题"
+   ],
+   "material_shape": [],
+   "position": "任意",
+   "props": [
+    "text",
+    "sub"
+   ],
+   "hardcoded": false
+  },
+  {
+   "slug": "stack-fan-out",
+   "title": "卡堆扇形展开",
+   "oneliner": "五张 220×150 卡叠成一叠（微错位）→ 0.7s 绕卡堆下方 R=520 的弧心扇开成 −24°…+24° → 停 0.8s → 0.6s 铺平成一行等距五格（150 宽、间距 16、整行居中、旋转归零）→ 一起退场——\"这一叠\"变成\"这五个\"",
+   "category": "素材呈现",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/stack-fan-out.tsx",
+   "inputs": [
+    {
+     "type": "图",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "例证",
+    "列举"
+   ],
+   "material_shape": [
+    "横屏",
+    "多图"
+   ],
+   "position": "任意",
+   "props": [
+    "title",
+    "srcs"
+   ],
+   "hardcoded": false
+  },
+  {
+   "slug": "stage-keyframe-tour",
+   "title": "长页兴趣点巡游",
+   "oneliner": "一张超出画幅的长落地页躺在 3D 透视舞台上（perspective 900 + rotateX 14° + rotateY −20° + scale 0.86 + 接触阴影），相机沿一条多关键帧路径依次停靠 3 个兴趣点（每点 hold 0.8~1s）再拉开离场；每段都把目标兴趣点设为 transform-origin 并平移到画面正中，所以 zoom 与 roll 绕的是\"当前在讲的那一块\"而不是长页的几何中心",
+   "category": "运镜",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/stage-keyframe-tour.tsx",
+   "inputs": [
+    {
+     "type": "图",
+     "need": null
+    },
+    {
+     "type": "截图",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "例证",
+    "强调",
+    "空间叙事"
+   ],
+   "material_shape": [
+    "长图"
+   ],
+   "position": "任意",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "step-timeline-vertical",
+   "title": "竖向步骤线",
+   "oneliner": "一条竖线从上往下 0.6s 画下去，线推到哪个位置那个圆节点就弹出来、2 帧后右侧两行字跟着左移淡入（三个节点每 0.18s 一个，是解线的缓动反函数算出来的）——三组全部到位后第一个节点升级成强调色空心环并放大 1.25 倍，标出\"你现在在这一步\"",
+   "category": "数据信息图",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/step-timeline-vertical.tsx",
+   "inputs": [
+    {
+     "type": "人",
+     "need": "可选"
+    },
+    {
+     "type": "文",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "步骤"
+   ],
+   "material_shape": [
+    "透明通道"
+   ],
+   "position": "任意",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "still-layout-relay",
+   "title": "多图排版 + 焦点接力",
+   "oneliner": "口播一句里要同时给几张图时，主图（首图）先落、其余同向错峰 80~150ms 入场，讲到谁谁亮（其余 brightness .6 / scale .985，主角 1.03~1.04 + 描边环）0.4s 接力，讲完全部回位再一起退场——两种版式一卡切换：一主两辅 / 三联竖图",
+   "category": "素材呈现",
+   "energy": "低",
+   "priority": "P0",
+   "code": "template/cards/still-layout-relay.tsx",
+   "inputs": [
+    {
+     "type": "图",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "例证",
+    "强调",
+    "列举"
+   ],
+   "material_shape": [
+    "多图"
+   ],
+   "position": "任意",
+   "props": [
+    "layout",
+    "captions",
+    "srcs",
+    "accent"
+   ],
+   "hardcoded": false
+  },
+  {
+   "slug": "strike-and-replace",
+   "title": "划线纠错替换",
+   "oneliner": "一条语义色横线 0.15s 快斩划穿旧值（power3.out），隔 0.1s 旧值淡出、新值从同一位置下方 8px 升起顶上来（0.25s），随后划线 + 新值同屏定格 2s——替换感来自\"占了同一个位置\"，容器宽度由隐形尺子撑住，句子其余部分零位移",
+   "category": "强调标注",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/strike-and-replace.tsx",
+   "inputs": [
+    {
+     "type": "人",
+     "need": "可选"
+    },
+    {
+     "type": "文",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "转折"
+   ],
+   "material_shape": [
+    "透明通道"
+   ],
+   "position": "任意",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "subscribe-cta",
+   "title": "多平台关注 CTA",
+   "oneliner": "控件 0.35s 弹入 → 光标 0.8s 弧线移入交互 → 状态翻转 + 确认动效（YouTube 变灰\"已订阅\"+铃铛 ±16° 衰减摇摆 / B站长按 0.55s 进度环走满后三图标 0.2s 间隔依次点亮 / 通用胶囊变\"已关注\"+对勾 0.36s 划入），单式样 3s 内完成后自动淡出",
+   "category": "人物互动",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/subscribe-cta.tsx",
+   "inputs": [
+    {
+     "type": "人",
+     "need": "可选"
+    },
+    {
+     "type": "界",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "号召"
+   ],
+   "material_shape": [
+    "透明通道"
+   ],
+   "position": "收尾",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "sway-parallax",
+   "title": "左右摇移",
+   "oneliner": "镜头在一张比画幅宽近一倍的长页面前横向匀速平移扫过（150~170px/s），极轻 rotateY 3~4° 跟随倾斜，起摇缓入 0.55s、到位极缓收住但不停死，hold 期继续以末速漂",
+   "category": "运镜",
+   "energy": "低",
+   "priority": "P1",
+   "code": "template/cards/sway-parallax.tsx",
+   "inputs": [
+    {
+     "type": "图",
+     "need": null
+    },
+    {
+     "type": "截图",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "例证",
+    "氛围"
+   ],
+   "material_shape": [
+    "横屏"
+   ],
+   "position": "任意",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "terminal-typing-log",
+   "title": "终端逐行推进",
+   "oneliner": "终端窗里命令逐字符敲出、日志成 4 字一簇地\"蹦\"出来，写满 8 行后缓冲区整跳一个行高（零插值），以 `...` 结尾的行打完自动冻结 0.6s 制造悬念，末尾成功行是全片唯一的语义色",
+   "category": "素材呈现",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/terminal-typing-log.tsx",
+   "inputs": [
+    {
+     "type": "人",
+     "need": "可选"
+    },
+    {
+     "type": "界",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "例证",
+    "过程演示"
+   ],
+   "material_shape": [
+    "透明通道"
+   ],
+   "position": "任意",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "tilt-3d-page",
+   "title": "3D 立面展示",
+   "oneliner": "静态页面先正视静置一拍让人读清，再用 1.2~1.8s 从平面倾斜成 3D 立面（perspective 1000px + rotateY 12~25° 配一点 rotateX），投影同步加深并往倾斜反侧偏移，立起后保持微透视慢漂",
+   "category": "运镜",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/tilt-3d-page.tsx",
+   "inputs": [
+    {
+     "type": "图",
+     "need": null
+    },
+    {
+     "type": "截图",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "例证",
+    "氛围"
+   ],
+   "material_shape": [
+    "横屏",
+    "界面"
+   ],
+   "position": "任意",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "timeline-photo-strip",
+   "title": "时间线照片带",
+   "oneliner": "有先后的几站（默认四张 240×160）沿一条时间线上下交替，日期 caption 靠线一侧；相机横移逐站停靠（移 0.9s + 停 1.0s，停靠 z 1.05 让邻站明确出画，当前站 1.03 亮 / 其余 .7）→ 拉开 z .62 看全条、有意停 1.2s → 与字同收",
+   "category": "素材呈现",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/timeline-photo-strip.tsx",
+   "inputs": [
+    {
+     "type": "图",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "时间地点",
+    "步骤"
+   ],
+   "material_shape": [
+    "横屏",
+    "多图"
+   ],
+   "position": "中段",
+   "props": [
+    "srcs",
+    "labels"
+   ],
+   "hardcoded": false
+  },
+  {
+   "slug": "title-demote-to-label",
+   "title": "标题降格成标签",
+   "oneliner": "章节标题\"第二步 · 拆解需求\"56px 居中解糊显影（blur 12→0，0.4s）、站稳 0.7s，然后一条 power2.inOut 曲线 0.67s 同时完成\"缩到 0.4 倍 + 飞到左上角 (80,72)\"落成 22px 小节标签（居中修正量随补间同步归零）；降格进行到 0.4s 时三条内容块已开始在其下方按口播逐条生长（clip 从 35% 宽展开 + 上移 28px，0.55s 一条）——标题不消失，变成常驻路标；末条落定后静置 2.7s 同收",
+   "category": "字幕花字",
+   "energy": "中",
+   "priority": "P0",
+   "code": "template/cards/title-demote-to-label.tsx",
+   "inputs": [
+    {
+     "type": "文",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "章节",
+    "步骤",
+    "列举",
+    "标题"
+   ],
+   "material_shape": [],
+   "position": "中段",
+   "props": [
+    "title",
+    "items",
+    "itemBg",
+    "accent"
+   ],
+   "hardcoded": false
+  },
+  {
+   "slug": "tracking-in",
+   "title": "字距收拢",
+   "oneliner": "一行大标题的字距从 0.5em 极松收拢到 −0.03em，同一条 spring 同时把 9px 模糊解开——散开的字一边聚拢一边聚焦成一块，起手 0.3s 走掉 80%、剩下 0.5s 极慢地咬到位，全程零回弹",
+   "category": "字幕花字",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/tracking-in.tsx",
+   "inputs": [
+    {
+     "type": "文",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "金句",
+    "标题"
+   ],
+   "material_shape": [],
+   "position": "任意",
+   "props": [],
+   "hardcoded": true
+  },
+  {
+   "slug": "type-contrast-emphasis",
+   "title": "字体对比重音",
+   "oneliner": "字幕逐词追加、普通词一律无衬线小字轻 pop，念到重音词的瞬间该词换成衬线斜体放大 1.5~2 倍（或换唯一强调色），强调完全靠字体气质的落差砸出来，运动本身刻意做轻、不弹不过冲",
+   "category": "字幕花字",
+   "energy": "低",
+   "priority": "P0",
+   "code": "template/cards/type-contrast-emphasis.tsx",
+   "inputs": [
+    {
+     "type": "人",
+     "need": "可选"
+    },
+    {
+     "type": "文",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "论点",
+    "对比",
+    "转折",
+    "强调"
+   ],
+   "material_shape": [],
+   "position": "任意",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "typewriter-reveal",
+   "title": "打字机档案戳",
+   "oneliner": "等宽字体逐字符敲出时间地点戳，速度带随机抖动，末尾方块光标以 500ms 周期闪烁，句尾闪 3 次后副信息行再延迟 0.4s 跟进",
+   "category": "字幕花字",
+   "energy": "低",
+   "priority": "P1",
+   "code": "template/cards/typewriter-reveal.tsx",
+   "inputs": [
+    {
+     "type": "人",
+     "need": "可选"
+    },
+    {
+     "type": "文",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "时间地点"
+   ],
+   "material_shape": [],
+   "position": "任意",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "ui-flow-theater",
+   "title": "界面流程剧场",
+   "oneliner": "整套灰阶假设置面板按一条 STEPS 时刻表自演一遍完整流程——光标走位（路点弧线 + 按压涟漪）与控件换态（开关滑、分段切、滑杆拖、按钮转成功）共享同一批 at 常量同拍发生，最后一记成功 toast 滑入收尾：不是\"贴一段录屏\"，是界面按脚本演给你看",
+   "category": "素材呈现",
+   "energy": "中",
+   "priority": "P0",
+   "code": "template/cards/ui-flow-theater.tsx",
+   "inputs": [
+    {
+     "type": "界",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "过程演示",
+    "步骤"
+   ],
+   "material_shape": [
+    "界面"
+   ],
+   "position": "中段",
+   "props": [],
+   "hardcoded": true
+  },
+  {
+   "slug": "ui-prop-theater",
+   "title": "界面道具剧场",
+   "oneliner": "拟物 UI 道具（进度条/任务清单）的状态按语音节拍逐步变化：进度 17%→96% 分段跳进、状态文案同帧换字、清单逐项打勾，收尾 100% 时完成勾唯一一次过冲——界面自己演戏，不是在跑 loading",
+   "category": "数据信息图",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/ui-prop-theater.tsx",
+   "inputs": [
+    {
+     "type": "界",
+     "need": null
+    },
+    {
+     "type": "人",
+     "need": "可选"
+    }
+   ],
+   "semantics": [
+    "过程演示",
+    "步骤"
+   ],
+   "material_shape": [
+    "界面"
+   ],
+   "position": "中段",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "unit-grid-proportion",
+   "title": "点阵比例图",
+   "oneliner": "100 个小方格从网格中心分环长出（每环 4 帧 + ≤3 帧确定性抖动，1.1s 铺满；只做 opacity + scale .8→1，无位移），然后从左上起按阅读顺序逐格染成强调色（0.035s 一格），右侧 128px 大数字与染色同一时钟 0→37，图例最后浮出——把\"37%\"摊成 37 个可数的个体",
+   "category": "数据信息图",
+   "energy": "低",
+   "priority": "P0",
+   "code": "template/cards/unit-grid-proportion.tsx",
+   "inputs": [
+    {
+     "type": "文",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "数据"
+   ],
+   "material_shape": [],
+   "position": "中段",
+   "props": [
+    "target",
+    "unit",
+    "label",
+    "legend",
+    "accent"
+   ],
+   "hardcoded": false
+  },
+  {
+   "slug": "whip-pan-transition",
+   "title": "横甩转场",
+   "oneliner": "出场镜头沿横轴甩出画外并带 8px 模糊（CSS `blur()`，各向同性）+ 1.4° 微旋，入场镜头从**同一方向的对侧**滑回画心、0.35s 刹住，再用二段回稳收掉旋转",
+   "category": "转场结构",
+   "energy": "高",
+   "priority": "P0",
+   "code": "template/cards/whip-pan-transition.tsx",
+   "inputs": [
+    {
+     "type": "场",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "转场"
+   ],
+   "material_shape": [],
+   "position": "中段",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  },
+  {
+   "slug": "word-relay-filmstrip",
+   "title": "动词接力胶片",
+   "oneliner": "左列 360 宽的等高截图卡纵向排成胶片、深浅边框相间，右侧衬线两行——名词\"一个 AI，能\"恒定、动词原位接力：每 1.4s 旧词 0.18s 灰化淡出、胶片同起 0.4s power2.inOut 滚动恰好一卡高（212）、新词 +0.2s 起 0.25s 落位（先出后进不叠影），词块垂直中心钉在当前卡中点 y=264；末词换强调色，静置 0.9s 后胶片与词块同收——每切一个词，证据跟着翻一页",
+   "category": "素材呈现",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/word-relay-filmstrip.tsx",
+   "inputs": [
+    {
+     "type": "图",
+     "need": null
+    },
+    {
+     "type": "截图",
+     "need": null
+    },
+    {
+     "type": "文",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "例证",
+    "列举"
+   ],
+   "material_shape": [
+    "横屏",
+    "多图"
+   ],
+   "position": "中段",
+   "props": [
+    "noun",
+    "verbs",
+    "labels",
+    "srcs",
+    "accent"
+   ],
+   "hardcoded": false
+  },
+  {
+   "slug": "word-slot-cycle",
+   "title": "词槽轮换",
+   "oneliner": "句干\"一个 AI，帮你\"左端锚死不动，句尾深色胶囊每 0.7s 向上翻一格换一个短语（前 8 帧换位 power2.inOut + 运动模糊、后 13 帧静置读词），胶囊宽度随词长帧内插值伸缩，胶囊外上下露两行 13% 的幽灵项暗示\"还有一串\"；换完 4 个词胶囊 0.23s 上飞逃走，结论\"搞定所有事\"从下 90px 带 back.out(1.4) 过冲落进同一位置——全卡唯一一次过冲留给结论，之后静置 ≥1.5s 再与句干同收",
+   "category": "字幕花字",
+   "energy": "中",
+   "priority": "P0",
+   "code": "template/cards/word-slot-cycle.tsx",
+   "inputs": [
+    {
+     "type": "文",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "论点",
+    "转折",
+    "列举"
+   ],
+   "material_shape": [],
+   "position": "任意",
+   "props": [
+    "stem",
+    "words",
+    "final",
+    "accent"
+   ],
+   "hardcoded": false
+  },
+  {
+   "slug": "x-follow-card",
+   "title": "关注卡弹出",
+   "oneliner": "X 资料卡整体 spring 弹入（0.62s 微过冲），十层内容随后按阅读顺序 0.07s 错峰 blur-in 逐层落位，光标弧线移入点击\"关注\"，同帧三件事一起发生——按钮两态交叉翻转 + 胶囊涟漪 + 粉丝数纸带上推 +1",
+   "category": "人物互动",
+   "energy": "中",
+   "priority": "P1",
+   "code": "template/cards/x-follow-card.tsx",
+   "inputs": [
+    {
+     "type": "界",
+     "need": null
+    }
+   ],
+   "semantics": [
+    "引用",
+    "介绍他人"
+   ],
+   "material_shape": [
+    "界面"
+   ],
+   "position": "中段",
+   "props": [
+    "hostSrc"
+   ],
+   "hardcoded": true
+  }
+ ]
+}

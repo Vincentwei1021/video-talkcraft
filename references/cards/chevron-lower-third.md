@@ -6,6 +6,11 @@ name: chevron-lower-third
 时长: 起手静置 0.4s → 姓名推出 0.26s → chip 展开 0.22s（错峰 0.1s，内字滞后 0.067s）→ chevron ×3 错峰 0.07s → hold 2.0s → 整条收回 0.2s；共约 3.2s
 能量: 低
 类别: 人物互动
+输入: 人(可选), 文
+语义: 自我介绍, 引用, 介绍他人
+素材形态: 无
+位置: 任意
+props: hostSrc
 优先级: P1
 代码: template/cards/chevron-lower-third.tsx
 ---

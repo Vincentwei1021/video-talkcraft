@@ -6,6 +6,11 @@ name: crash-zoom-punch
 时长: 4.4s（0～1.0 全景静置 → 1.0 急推 6 帧 → 1.2 回收 5 帧落定 → 钉死 → 4.0 退场 0.4s）；成片 hold 与落定后的静置按口播句长伸缩，急推那 11 帧不变
 能量: 高
 类别: 强调标注
+输入: 图, 截图, V
+语义: 强调, 例证
+素材形态: 横屏
+位置: 中段
+props: src, target, label, sub
 优先级: P1
 代码: template/cards/crash-zoom-punch.tsx
 ---

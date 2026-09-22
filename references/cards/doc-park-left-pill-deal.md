@@ -6,6 +6,11 @@ name: doc-park-left-pill-deal
 时长: 7.0s（0.9 满幅读 → 0.9–1.7 驻留 → 1.9 / 3.2 / 4.5 三次发牌，各带说明行逐词加深 → 6.6 同收 0.4s）；成片把三次发牌对到口播念出每条结论的时刻
 能量: 中
 类别: 素材呈现
+输入: 截图, 文
+语义: 论点, 引用
+素材形态: 长图
+位置: 中段
+props: docTitle, pills, notes, hint, docSrc, accent
 优先级: P1
 代码: template/cards/doc-park-left-pill-deal.tsx
 ---

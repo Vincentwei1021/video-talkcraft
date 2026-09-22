@@ -6,6 +6,11 @@ name: outline-box-title
 时长: 起手静置 0.4s → 框画一圈 0.42s → chip 展开 0.2s（内字滞后 0.1s）→ chevron ×3 错峰 0.08s → 收尾 hold 1.6s；共约 3.0s
 能量: 中
 类别: 字幕花字
+输入: 文, 人(可选)
+语义: 论点, 定义, 标题
+素材形态: 无
+位置: 任意
+props: hostSrc
 优先级: P1
 代码: template/cards/outline-box-title.tsx
 ---

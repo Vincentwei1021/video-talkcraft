@@ -6,6 +6,11 @@ name: lead-word-zoom-assemble
 时长: 4.8s（0.1 首词现 → 0.5 缩回 + 左滑 → 0.7 / 0.83 / 0.96 后续词推入 → 1.4 上移 + 副行 → 4.4 同收 0.4s）；成片按口播念出首词的时刻起手，念到后续词时它们正好推入
 能量: 高
 类别: 字幕花字
+输入: 文
+语义: 论点, 金句, 转折, 标题
+素材形态: 无
+位置: 任意
+props: words, subline, accentIndex, accent
 优先级: P1
 代码: template/cards/lead-word-zoom-assemble.tsx
 ---
