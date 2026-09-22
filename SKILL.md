@@ -88,7 +88,21 @@ python3 scripts/tts_fishaudio.py script.json audio/full.wav audio/timestamps.jso
 - make_timing.py：转成 timing.json（chars 与文本逐字符 1:1，标点零时长），供 `tSay/msSay` 锚点查询
 - 配音自查（耳听）：无爆音/截断/误读；句间留 ~0.3s 气口，时间锚点更稳
 
+### ②-1 语义标注（2026-09-22 起必做，正主 `references/semantic-annotation.md`）
+口播稿逐句标「这句在做什么」，落成工程根 `semantics.json`——**这是选卡的需求侧产物**，没有它，选卡只剩输入类型一道过滤、剩下几十张卡靠印象挑（2026-09-21 那支片的「我是万里」就这样拿到了全库能量最低的文字卡，库里 P0 的人名条没人查到）。
+```bash
+python3 <skill根>/scripts/semantic_annotate.py --init     # 从 timestamps.json 出骨架（带词法提示 hint）
+#   逐句填 sem（26 词封闭词表，见 taxonomy.md「语义索引」）/ weight（main 主句 = 允许进新元素、sub 陪衬句）/ entities / need
+python3 <skill根>/scripts/semantic_annotate.py --stats    # 校验：与时间戳逐字一致 · 词表封闭 · 词法硬规（我是X→自我介绍、点赞订阅→号召、数量词→数据）· 每镜至少一个 main
+```
+标注是**派生物**：预剪 → 时间戳 → 标注 → 其后一切；改稿或重剪后 `text` 对不上就是标注失效，重新 `--init`。
+**②-1 早于分镜，所以 `shot` 字段此时是空的**（SHOTBOOK 还没写）：④ 写完后必须回填一次，否则下游的镜头级覆盖核不到任何东西——
+```bash
+python3 <skill根>/scripts/semantic_annotate.py --sync-shots   # ④ 之后：按 SHOTBOOK 标题的起止秒（或 shots.json）回填 shot，只动 shot，标注不丢
+```
+
 ## ③ 素材
+- **素材清单从 ②-1 的语义标注生成，不靠拍脑袋**：`need` 是 `证据` 的句去截真页 / 找出处，`身份` 要头像与账号信息，`量化` 要图表或数据源，`entities` 里的人名 / 品牌 / 地点 / URL 就是检索词。
 - **先给每个镜头标素材模式（多选，可组合）**：`B-roll`（实拍视频）/ `图片`（照片 / 海报 / 插图）/ `截图`（网页 / 界面证据画面）/
   `纯动效`——如"B-roll 打底 + 截图证据卡"。新闻/信息类话题证据优先：Playwright 实时截图比泛用 B-roll 更有信息量。
   四档对应 taxonomy.md 输入类型代号 **V / 图 / 截图 / 文**，SHOTBOOK 每镜写一行 `素材：V（路径）· 图（路径）· 文`（格式见 ④）
@@ -173,6 +187,15 @@ SHOTBOOK 每镜写**版式行**（栏跨度 + 组包围盒 + 对齐基准 + 字�
 （`| 镜 | 人物形态·方位 | 素材容器 | 主卡 |`，格式 cinematography.md §4）——同一张呈现卡（素材呈现 / 数据 / 运镜类）不连用 3 镜、全片 ≤1/3（≥6 镜的片）；人物形态（半身 / 角标左下 / 角标右下 / 分屏格内 / 抠人贴角 / 短暂离场）
 与素材容器（出血全屏 / 装框 / 分屏格 / 底床 / 多图编排 / 3D 墙 / 长页）连续 3 镜至少换其一；同一条 B-roll 不进相邻两镜。单条 B-roll 按 shot-design.md §2⑦ 七式选、相邻镜不同式，
 多素材按 §2④′ 关系表；preflight 按节奏表 + 蒙皮行核（连用 / 占比 FAIL）。轮换是换构图不是加运动——每式内部仍只有相机极缓推拉。
+**每镜必写「选卡行」**（②-1 的语义 → 卡；候选由机器给）：
+```bash
+python3 <skill根>/scripts/card_match.py --out qa/card-candidates.md   # 语义 × 素材行 × 卡索引 → 每镜每个主句语义的可行候选 + 排序理由 + 落选理由
+```
+跑之前先 `semantic_annotate.py --sync-shots` 回填 shot（②-1 时还没有分镜）。候选表除按语义列候选，还会给声明了素材的镜单列一行
+**素材承接候选**——声明了 V / 图 / 截图 却没有呈现 / 运镜类卡承接 = 素材裸贴，preflight 判 FAIL。
+SHOTBOOK 每镜写 `- 选卡行：<语义> → <卡>、<语义> → <卡>`（选卡行里的卡要真的落进蒙皮行，preflight 对账）；
+**选候选之外的卡**要在该镜写一行 `- 语义偏离：自我介绍 ← 开场已报身份，s11 不再重复`（理由 ≥4 字，preflight 认这行放行）。
+层矩阵的节拍行加一列**语义**（值取自 semantics.json，不另造词），这样「这一拍在做什么」在分镜里就是机器可读的。
 **选卡必读卡经验**：每张选中的卡，把 `references/cards/<slug>.md` 的「已知坑」与「落位自检」**逐条抄进该镜层矩阵的自检列**，
 实现后按条核（例：取景框 / 圈注 / 下划线类卡必核标注是否套住目标；`gooey-morph` 只用于图不用于字且无人物时居中；`chapter-title-card` **每章一套主题色 + 一个与本章内容相关的线稿 motif**，SHOTBOOK 写章节主题行——四张同色同纹样的章节卡是"又来了"不是"翻页"）——
 卡经验不进 SHOTBOOK 就等于没读。
@@ -198,7 +221,7 @@ demo 库的 0.65 上限是试听口径不是成片口径）。实现时按 ⑤ �
 
 **④→⑤ 闸：SHOTBOOK 写完先过 preflight 全量，再进实现**（③ 的素材体检 + SHOTBOOK 对账，任一 FAIL 挡住 ⑤）：
 ```bash
-python3 scripts/preflight.py --shotbook SHOTBOOK.md --host remotion/public/dh/host.webm --fps 30 --voice audio/full.wav --shots remotion/shots.json
+python3 scripts/preflight.py --shotbook SHOTBOOK.md --host remotion/public/dh/host.webm --fps 30 --voice audio/full.wav --shots remotion/shots.json --semantics semantics.json
 # SHOTBOOK 对账：每镜有「素材：」行 · V/图/截图 的文件都在盘上 · 零 V/图 镜头 FAIL · 占比 <1/3 WARN · 「未完成 / 未采集清单」节在册 · shots.json 与镜头 id 一致
 #           · 版式轮换：同卡连用 ≥3 镜 / 呈现卡 >1/3 / 节奏表连续 3 镜同形态同容器 FAIL；版式行复制 / 素材相邻复用 / 缺节奏表 WARN
 ```
@@ -397,7 +420,7 @@ python3 scripts/contact_sheet.py /tmp/qa_vN /tmp/qa_vN_sheets
 （fork 出来的评审继承制作者视角，对照物又是制作者自己写的 SHOTBOOK，形成自证闭环）。
 派发 / 等待 / 判活 / 重派按 review-protocol §1.6 的 **harness 无关原语表**（PACKET / DISPATCH / FAN-OUT / WAIT / LIVENESS / RE-DISPATCH，Claude Code · Codex · headless 各一列）；**WAIT 以落盘 `REVIEW.md` 的结束行为准，不以子代理完成通知为准**。
 制作者自己的首轮版式过目也委托子代理（只回文字缺陷清单，几十张图的图像 token 不进主上下文）。
-备齐协议 §1.2 的材料四件套，评审按 rubric 出 P0/P1/P2 清单，**修完 P0 + P1 才算过关**；返修按协议 §3 给量测数字、只渲受影响段。
+备齐协议 §1.2 的材料五件套，评审按 rubric 出 P0/P1/P2 清单，**修完 P0 + P1 才算过关**；返修按协议 §3 给量测数字、只渲受影响段。
 **关卡 3 规则合规**：cinematography.md §5 八条逐镜核 + 交付前终检（调试 overlay 关、成片缩到 390px 宽可读），条目见 review-protocol.md §2。
 **审片循环**：机器闸全过后只做 **1 轮**独立审片 → 修 P0/P1 → **即交付**，同时问用户是否续审（自动轮次封顶 3 轮）
 并打开动效工作台（⑧）；遗留 P2 清单随交付物。细则 review-protocol.md §4。
@@ -451,11 +474,12 @@ X [`@VincentWei93`](https://x.com/VincentWei93) ·
 | 排版：放哪 / 多大 / 怎么对齐（栅格 · 间距令牌 · 居中 · 字阶 · 碰撞 · 校验九项） | `references/layout.md` |
 | 给镜头做背景/主体/文字分层设计 | `references/shot-design.md`（三面工作单 + 七型预设） |
 | 镜头方法论/反PPT/SHOTBOOK格式/验收 | `references/cinematography.md`（+ shotbook-example.md） |
-| 审片：关卡 2 材料四件套 / rubric / 缺陷分级 · 关卡 3 · 返修纪律 · 审片循环 | `references/review-protocol.md`（评审 subagent 必读） |
+| 审片：关卡 2 材料五件套 / rubric / 缺陷分级 · 关卡 3 · 返修纪律 · 审片循环 | `references/review-protocol.md`（评审 subagent 必读） |
 | 转场（六式代码）/ 长镜头 | `template/motion-systems/transitions.tsx` / `longtake.tsx`（cinematography.md §3、§3.5） |
 | 纯文字镜配线稿示意图（G5：词汇 · 语义图形词典 · 节拍纪律 · 落位自检）| `references/schematic.md` → `template/motion-systems/schematic.tsx` + `icons.ts`（`scripts/fetch_icons.py` 抓 Iconify lucide） |
 | 视频容器边框八式（单视频镜不裸贴、不装假播放器；任何卡的视频区可包） | `template/components/theme-frame.tsx`（规则与选式：design-language §1.3） |
-| 选动效/查参数和坑 | `references/taxonomy.md` → `references/cards/` → `template/cards/`（tsx 源码）+ `demos/`/`gallery/`（预览） |
+| 选动效/查参数和坑 | `references/taxonomy.md`（两道生成索引：输入类型 / 语义）→ `references/cards/` → `template/cards/`（tsx 源码）+ `demos/`/`gallery/`（预览） |
+| 口播稿逐句语义标注（②-1）· 选卡候选表 · 卡索引生成 | `references/semantic-annotation.md` · `scripts/semantic_annotate.py` · `scripts/card_match.py` · `scripts/cards_index.py` |
 | 找素材 · 配图采集 · 网页拍摄素材采集（全页 2× 长图 + DOM 坐标 JSON） | `references/broll-sources.md` |
 | 开工体检（③ 素材期 `--media-only` / ④→⑤ 闸全量：人物素材帧率·重复帧·时长·比例 + SHOTBOOK 素材对账·未完成清单） | `scripts/preflight.py` |
 | 静止探针（母版前用真实合成帧差预判 freezedetect） | `scripts/freeze_probe.py` |
