@@ -195,7 +195,7 @@ SHOT_HEAD = re.compile(r"^#{2,4}\s+([SsVv]\d+[A-Za-z0-9_']*)\b")
 HEADING = re.compile(r"^(#{1,6})\s")          # 任意 markdown 标题：与镜头标题同级或更高的非镜头标题 = 该镜正文结束
 MEDIA_LINE = re.compile(r"^\s*[-*]?\s*\**素材\**\s*[:：]\s*(.+)$")
 UNFINISHED_HEAD = re.compile(r"^#{2,4}\s+.*未完成")
-TOKEN = re.compile(r"(B-roll|b-roll|V|图片|图|截图|页|界|文|人|纯动效)\s*(?:[（(]([^）)]*)[）)])?")
+from shotbook_parse import TOKEN  # noqa: E402  与 card_match 共用一份代号表（含 B-roll / 图片 / 页 别名）
 FOOTAGE_MODES = {"V", "B-roll", "b-roll", "图", "图片"}
 PATH_MODES = FOOTAGE_MODES | {"截图", "页"}
 
@@ -236,9 +236,8 @@ def resolve_path(root: str, p: str) -> str | None:
 
 # ---- 版式轮换（cinematography.md §4.5 第 9 条；2026-09-21 用户反馈"排版太固定"：11 镜 8 镜同一张 60/40 卡 + 左下圆章）----
 # 列表行 `- 蒙皮行：…` 与表格行 `| 蒙皮行 | … |` 都认（cinematography §4 层矩阵是表格，蒙皮行常与版式行并列写进表里）
-SKIN_LINE = re.compile(r"^\s*(?:[-*]\s*)?\|?\s*\**蒙皮行\**\s*(?:[:：]|\|)\s*(.+?)\s*\|?\s*$")
+from shotbook_parse import SKIN_LINE, SLUG  # noqa: E402  蒙皮行 / 卡名正则同源
 LAYOUT_LINE = re.compile(r"^\s*(?:[-*]\s*)?\|?\s*\**版式行\**\s*(?:[:：]|\|)\s*(.+?)\s*\|?\s*$")
-SLUG = re.compile(r"\b[a-z][a-z0-9]*(?:-[a-z0-9]+)+\b")          # 库内卡名全带连字符
 PRESENT_CATS = {"素材呈现", "数据信息图", "运镜"}               # 呈现类：决定"这一镜长什么样"，连用 / 占比 FAIL
 # 人物互动不在内：角标（host-shrink-to-chip）是 host-footage §5 的默认路，满片都有是正常的——人物形态由 G0 节奏表核；字卡 / 标注类复用得多一点只 WARN
 _cat_cache: dict[str, str | None] = {}
@@ -540,8 +539,11 @@ def check_semantics(root: str, shots: list[dict], sem_path: str | None, script_p
         ok_dev, bad = sb_deviations(s)
         bad_dev += [f"{s['id']}: {b[:40]}" for b in bad]
         if not has_skin:
-            if (sem_all & HARD_SEM) - set(ok_dev):
-                hard_miss.append(f"{s['id']} 缺蒙皮行却有 {'/'.join(sorted((sem_all & HARD_SEM) - set(ok_dev)))} 语义")
+            gap = sorted((sem_all & HARD_SEM) - set(ok_dev))
+            if data_quant and "数据" not in ok_dev:
+                gap.append("数据(need 量化)")
+            if gap:
+                hard_miss.append(f"{s['id']} 缺蒙皮行却有 {'/'.join(gap)} 语义")
             continue
         checked += 1
         card_sem: set[str] = set()
