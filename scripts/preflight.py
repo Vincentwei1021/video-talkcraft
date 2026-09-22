@@ -27,7 +27,8 @@ SHOTBOOK 机器可读约定（cinematography.md §4）：
   SHOTBOOK   缺「素材：」行 / 声明了 V·图·截图却无路径 / 路径不存在 → FAIL；全片零 V·图 → FAIL（只有动效 + 口播 = PPT 感，SKILL.md ③ 硬规）；
              V·图 镜头占比 < --min-footage-ratio → WARN；缺「未完成 / 未采集清单」节 → FAIL；sources.md 不存在 → FAIL
              纯文字镜（素材只有 文）层矩阵里没有 G5 线稿示意图行 → WARN（章节卡除外；references/schematic.md）
-  语义覆盖   主句语义（semantics.json，②-1）里 自我介绍 / 介绍他人 / 号召 在该镜蒙皮行里没有对应语义的卡 → FAIL（这三类有专设卡族、无替代物）；
+  语义覆盖   semantics.json（②-1）里每一句都必须归到本 SHOTBOOK 的镜头（空 / 未知 shot → FAIL，否则那些句被静默跳过）；
+             语义里 自我介绍 / 介绍他人 / 号召 在该镜蒙皮行里没有对应语义的卡 → FAIL（这三类有专设卡族、无替代物）；
              数据 / 引用 / 对比 / 定义 / 步骤 / 列举 / 时间地点 / 机制 / 选择 / 过程演示 / 空间叙事 / 设问 / 金句 / 章节 → WARN；
              该镜写了 `- 语义偏离：<语义> ← 理由` 的放行。素材行声明了 V/图/截图 却没有一张吃素材的卡（呈现 / 运镜类，素材裸贴）→ FAIL。
              没有 semantics.json 时只对 --script 做词法兜底（我是 X / 点赞订阅 → 全片无对应语义卡 → WARN）。
@@ -411,10 +412,8 @@ from shotbook_parse import has_frame, is_carrier, skin_head  # noqa: E402
 from shotbook_parse import FAMILY as SEM_FAMILY  # noqa: E402
 from shotbook_parse import deviations as sb_deviations  # noqa: E402
 from shotbook_parse import media_kinds, shot_cards as sb_shot_cards, shot_picks  # noqa: E402
-from semantic_annotate import CTA_RE, is_self_intro  # noqa: E402  词法规则只有一份
+from semantic_annotate import CTA_RE, HARD_SEM, SOFT_SEM, is_self_intro  # noqa: E402  词法规则与语义分档只有一份
 
-HARD_SEM = {"自我介绍", "介绍他人", "号召"}   # 有专设卡族、无替代物：不论 main / sub 都核（评审 P1-3：标成 sub 就能绕过）
-SOFT_SEM = {"数据", "引用", "对比", "定义", "步骤", "列举", "时间地点", "机制", "选择", "过程演示", "空间叙事", "设问", "金句", "章节"}
 LONG_SHAPES = {"长图", "界面"}
 
 
@@ -519,6 +518,16 @@ def check_semantics(root: str, shots: list[dict], sem_path: str | None, script_p
 
     ids = {s["id"].lower() for s in shots}
     matched = ids & set(by_shot)
+    # 逐句核归属：空 shot 或不认识的 shot 都会被跳过核查——只要有一句这样，本段结论就不可信（2026-09-22 用户复查 #1）
+    orphan = [str(x.get("i")) for x in sents if not str(x.get("shot") or "").strip()]
+    unknown = [f"{x.get('i')}:{x.get('shot')}" for x in sents
+               if str(x.get("shot") or "").strip() and str(x["shot"]).lower() not in ids]
+    if orphan:
+        rec("FAIL", sec, f"{len(orphan)} 句的 shot 为空，这些句不会被核到：i={' '.join(orphan[:10])}"
+                         f"{' …' if len(orphan) > 10 else ''}——跑 `scripts/semantic_annotate.py --sync-shots` 回填")
+    if unknown:
+        rec("FAIL", sec, f"{len(unknown)} 句的 shot 不是本 SHOTBOOK 的镜头，这些句不会被核到：{' '.join(unknown[:10])}"
+                         f"{' …' if len(unknown) > 10 else ''}——镜号写错或分镜改过；跑 `--sync-shots` 重算")
     hard_miss, soft_miss, data_miss, waived, bad_dev, stray_dev, checked = [], [], [], [], [], [], 0
     for s in shots:
         rows = by_shot.get(s["id"].lower(), [])

@@ -25,6 +25,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from cards_index import VOCAB  # noqa: E402
+from semantic_annotate import HARD_SEM  # noqa: E402  与 preflight 同一份分档：硬语义不分 main / sub
 from shotbook_parse import FAMILY, deviations, is_carrier, parse_shots, shot_cards, shot_picks  # noqa: E402
 
 SKILL_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -125,6 +126,11 @@ def main() -> int:
             for w in s.get("sem") or []:
                 if w not in sems:
                     sems.append(w)
+        # 硬语义（自我介绍 / 介绍他人 / 号召）不分主次都要配卡，覆盖闸也这么核——
+        # 只列主句会出现「候选表说未覆盖 0 条、preflight 却报缺卡」（2026-09-22 用户复查 #3）
+        sems += [w for w in dict.fromkeys(
+            w for s in sents if s.get("weight") != "main" for w in (s.get("sem") or []) if w in HARD_SEM
+        ) if w not in sems]
         sems.sort(key=lambda w: VOCAB_ORDER.get(w, 99))
         if sems:
             shots_with_main += 1
@@ -132,7 +138,7 @@ def main() -> int:
         # 轮换历史：优先读 SHOTBOOK 里已经写下的选卡（蒙皮行 / 选卡行），没有才用本脚本自己的首选
         used_recent = set().union(*hist[-2:]) if hist else set()
         fam_needed = sh["kinds"] & FAMILY
-        head = f"## {sh['id']} · 素材：{sh['media'] or '（缺素材行）'} · 主句语义：{'、'.join(sems) or '（无 main 句——②-1 的 shot 回填了吗？跑 semantic_annotate.py --sync-shots）'}"
+        head = f"## {sh['id']} · 素材：{sh['media'] or '（缺素材行）'} · 语义（主句 + 不分主次的硬语义）：{'、'.join(sems) or '（无 main 句——②-1 的 shot 回填了吗？跑 semantic_annotate.py --sync-shots）'}"
         lines += [head, "", "| 语义 | 候选（分 · 能量 · 输入） | 为什么 | 落选一例 |", "|---|---|---|---|"]
         picks: set[str] = set()
         shot_json: dict[str, list[dict]] = {}

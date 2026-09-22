@@ -26,7 +26,7 @@
 校验项：
   结构    每句都在（i 与 timestamps 逐句对应、不多不少）· text 与 timestamps 逐字一致（改稿 / 重剪后标注即失效）·
           t 与 timestamps start 差 ≤0.05s · sem 非空且在词表内 · need 在词表内 · weight ∈ {main, sub}
-  镜头    有分镜来源（shots.json 或 SHOTBOOK 标题带起止秒）时：shot 不能为空、必须是已知镜头 id → FAIL（跑 --sync-shots 回填）
+  镜头    有分镜来源（shots.json 或 SHOTBOOK 标题带起止秒）时：shot 不能为空、必须是已知镜头 id、且必须与该句时间落点一致 → FAIL（跑 --sync-shots 回填 / 重算）
           每镜至少一个 main → WARN；整镜只有 main / 只有 sub → WARN
   词法    硬规（FAIL，除非 exempt + 理由 ≥4 字）：我是/我叫 <人名> → 自我介绍 · 点赞/订阅/三连 → 号召 · 数量词 → 数据
           软规（WARN）：引号/某某说 → 引用 · 但是/其实 → 转折 · 比如 → 例证 · 什么是/所谓 → 定义 ·
@@ -44,6 +44,11 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from cards_index import VOCAB_SET  # noqa: E402  语义词表唯一来源
 from shotbook_parse import parse_shots, shot_times  # noqa: E402
+
+# 覆盖闸的语义分档（preflight / card_match 共用这一份）：
+# HARD = 有专设卡族、无替代物，**不分 main / sub** 都要有卡；SOFT = 常被别的卡顺带承担，只提醒
+HARD_SEM = {"自我介绍", "介绍他人", "号召"}
+SOFT_SEM = {"数据", "引用", "对比", "定义", "步骤", "列举", "时间地点", "机制", "选择", "过程演示", "空间叙事", "设问", "金句", "章节"}
 
 NEEDS = {"证据", "身份", "量化", "对比", "结构", "强调", "无"}
 WEIGHTS = {"main", "sub"}
@@ -214,7 +219,7 @@ def cmd_check(ts: dict, ranges: list, src_name: str, sem_path: str, stats: bool)
 
     known = {sid.lower() for sid, _, _ in ranges}   # 大小写无关：④ 从 SHOTBOOK 得到 S01、⑤ 的 shots.json 是 s01（复核 P1-R3）
     drift, tdrift, bad_sem, bad_need, bad_w, hard_miss, soft_miss, need_ev = [], [], [], [], [], [], [], []
-    no_shot, bad_shot, exempts = [], [], []
+    no_shot, bad_shot, mis_shot, exempts = [], [], [], []
     per_shot: dict[str, dict[str, int]] = {}
     sem_count: dict[str, int] = {}
     for i, s in sorted(by_i.items()):
@@ -244,6 +249,10 @@ def cmd_check(ts: dict, ranges: list, src_name: str, sem_path: str, stats: bool)
                 no_shot.append(str(i))
             elif sid.lower() not in known:
                 bad_shot.append(f"{i}:{sid}")
+            else:
+                want = assign(float(s.get("t", -1)), ranges)
+                if want and want.lower() != sid.lower():
+                    mis_shot.append(f"i={i}({s.get('t')}s 落在 {want}，却标了 {sid})")
         d = per_shot.setdefault(sid.lower(), {"main": 0, "sub": 0})
         if w in WEIGHTS:
             d[w] += 1
@@ -279,6 +288,9 @@ def cmd_check(ts: dict, ranges: list, src_name: str, sem_path: str, stats: bool)
                     f"不回填的话 card_match 每镜都是「无 main 句」、preflight 的语义覆盖核不到任何东西")
     if bad_shot:
         rec("FAIL", f"shot 不是 {src_name} 里的镜头 id：{' '.join(bad_shot[:10])}——id 对不上，覆盖闸会整段空转")
+    if mis_shot:
+        rec("FAIL", f"{len(mis_shot)} 句的 shot 与它的时间落点不符：" + "；".join(mis_shot[:6])
+                    + f"——{src_name} 改过分镜边界后标注就过期了（覆盖闸会拿错镜头的卡来核这句）；跑 `--sync-shots` 重算")
     if hard_miss:
         rec("FAIL", f"{len(hard_miss)} 句漏标硬规语义：" + "；".join(hard_miss[:6])
                     + "（确实不是的话在该句写 exempt:{\"<语义>\":\"理由\"}，理由 ≥4 字）")
