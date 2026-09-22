@@ -266,8 +266,8 @@ def shot_cards(shot: dict) -> tuple[list[str], bool]:
     for line in shot["body"]:
         m = SKIN_LINE.match(line)
         if m:
-            head = re.split(r"→|->|\|", m.group(1), maxsplit=1)[0]
-            slugs = [x for x in SLUG.findall(head) if card_category(x)]
+            # 先剥括号再切箭头：括号里的「（半身→右下角标）」会把后面的卡整段截断（2026-09-22 复核 P1-R2）
+            slugs = [x for x in SLUG.findall(skin_head(m.group(1))) if card_category(x)]
             return list(dict.fromkeys(slugs)), True
     return [], False
 
@@ -408,7 +408,7 @@ def check_variety(shots: list[dict], text: str) -> None:
 
 # ---- 语义 / 素材覆盖（2026-09-22 用户指出的通用缺陷：稿子的语义从不被标注，所以"该摆的卡在不在"没人查）----
 # 解析口径与 card_match 共用 shotbook_parse（评审 P1-1：两份正则对 `素材：B-roll（…）` 解析不一致，裸贴闸静默失效）
-from shotbook_parse import FRAME_RE, is_carrier  # noqa: E402
+from shotbook_parse import FRAME_RE, is_carrier, skin_head  # noqa: E402
 from shotbook_parse import FAMILY as SEM_FAMILY  # noqa: E402
 from shotbook_parse import deviations as sb_deviations  # noqa: E402
 from shotbook_parse import media_kinds, shot_cards as sb_shot_cards, shot_picks  # noqa: E402
@@ -470,7 +470,7 @@ def check_semantics(root: str, shots: list[dict], sem_path: str | None, script_p
                          f"（design-language §1.3：单视频镜要包 ThemeFrame，图 / 截图 要进呈现卡或运镜卡）；"
                          f"候选看 `scripts/card_match.py` 的「素材承接」行")
     if framed:
-        rec("WARN", sec, f"{len(framed)} 镜没有呈现 / 运镜类卡，但正文提到了主题边框：{' '.join(framed)}——"
+        rec("WARN", sec, f"{len(framed)} 镜没有承接卡，但正文提到了主题边框（ThemeFrame / 杂志框…）：{' '.join(framed)}——"
                          f"当作「已包框的单视频镜」放行，请确认画面不是裸贴")
     if long_warn:
         rec("WARN", sec, f"{len(long_warn)} 镜声明了截图 / 长图，但承接卡的素材形态里没有 长图 / 界面：{' '.join(long_warn)}——"
@@ -519,7 +519,7 @@ def check_semantics(root: str, shots: list[dict], sem_path: str | None, script_p
 
     ids = {s["id"].lower() for s in shots}
     matched = ids & set(by_shot)
-    hard_miss, soft_miss, data_miss, waived, bad_dev, checked = [], [], [], [], [], 0
+    hard_miss, soft_miss, data_miss, waived, bad_dev, stray_dev, checked = [], [], [], [], [], [], 0
     for s in shots:
         rows = by_shot.get(s["id"].lower(), [])
         if not rows:
@@ -554,10 +554,13 @@ def check_semantics(root: str, shots: list[dict], sem_path: str | None, script_p
         mh = sorted((sem_all & HARD_SEM) - card_sem - excused)          # 硬语义：不分 main / sub
         ms = sorted((sem_main & SOFT_SEM) - card_sem - excused)         # 软语义：只看主句
         waived += [f"{s['id']}:{w}" for w in sorted((sem_all & (HARD_SEM | SOFT_SEM)) & excused)]
+        stray = sorted(excused - sem_all)
+        if stray:
+            stray_dev.append(f"{s['id']}:{'/'.join(stray)}")
         if mh:
             hard_miss.append(f"{s['id']} 缺 {'/'.join(mh)}（本镜卡：{' '.join(slugs) or '无'}）")
         # 数据主句且 need 含 量化 → 必须有数据类卡或强调卡（评审建议：让 need 字段有机器用途）
-        if data_quant and "数据" not in excused and not (card_sem & {"数据", "强调"}) and "数据信息图" not in cats:
+        if data_quant and "数据" not in excused and not (card_sem & {"数据", "强调", "列举", "对比"}) and "数据信息图" not in cats:
             data_miss.append(f"{s['id']}（本镜卡：{' '.join(slugs) or '无'}）")
         if ms:
             soft_miss.append(f"{s['id']} 缺 {'/'.join(ms)}")
@@ -585,7 +588,7 @@ def check_semantics(root: str, shots: list[dict], sem_path: str | None, script_p
                          + "——在 taxonomy「语义索引」里挑该语义的卡（候选表：scripts/card_match.py）；"
                            "确实不配卡的话在该镜写一行 `- 语义偏离：<语义> ← 理由`（理由 ≥4 字）")
     if data_miss:
-        rec("FAIL", sec, f"{len(data_miss)} 镜有「数据」主句且 need 标了「量化」，却没有数据信息图类 / 数据·强调语义的卡："
+        rec("FAIL", sec, f"{len(data_miss)} 镜有「数据」主句且 need 标了「量化」，却没有能承载数字的卡（数据信息图类，或 数据 / 强调 / 列举 / 对比 语义）："
                          + "；".join(data_miss) + "——要量化就得有承载它的图形（number-counter / chart-grow / unit-grid-proportion…），"
                                                   "不是把数字当普通标题；不需要量化的把该句 need 里的「量化」去掉")
     if soft_miss:
@@ -593,6 +596,9 @@ def check_semantics(root: str, shots: list[dict], sem_path: str | None, script_p
     if bad_dev:
         rec("WARN", sec, f"{len(bad_dev)} 行「语义偏离」格式不对、未放行：" + "；".join(bad_dev[:5])
                          + "——格式 `- 语义偏离：自我介绍 ← 开场已报身份，s11 不再重复`（理由 ≥4 字）")
+    if stray_dev:
+        rec("WARN", sec, f"「语义偏离」写的语义本镜没有（写错镜了？）：{' '.join(stray_dev[:8])}——偏离只对本镜生效，"
+                         f"放在别的镜或清单节里都不放行")
     if waived:
         rec("INFO", sec, f"按「语义偏离」放行：{' '.join(waived)}")
     if exempted:

@@ -20,8 +20,8 @@ TOKEN = re.compile(r"(B-roll|b-roll|V|图片|图|截图|页|界|文|人|纯动�
 SLUG = re.compile(r"\b[a-z][a-z0-9]*(?:-[a-z0-9]+)+\b")
 # 语义偏离：`- 语义偏离：自我介绍 ← 开场已报身份，s11 不再重复`
 # 必须是列表项（正文里提一嘴不放行）、必须给理由（去空白后 ≥4 字，与 semantic_annotate 的 exempt 同口径）
-DEVIATE = re.compile(r"^\s*[-*]\s*\**语义偏离\**\s*[:：]\s*([一-龥]{2,6})\s*(?:←|<-|<=|—+|→|,|，|:|：)\s*(\S.*)$")
-DEVIATE_LOOSE = re.compile(r"^\s*[-*]\s*\**语义偏离\**\s*[:：]\s*(.+)$")
+DEVIATE = re.compile(r"^\s*(?:[-*]\s*|\|\s*)\**语义偏离\**\s*(?:[:：]|\|)\s*([一-龥]{2,6})\s*(?:←|<-|<=|—+|→|,|，|:|：|\|)\s*(\S.*?)\s*\|?\s*$")
+DEVIATE_LOOSE = re.compile(r"^\s*(?:[-*]\s*|\|\s*)\**语义偏离\**\s*(?:[:：]|\|)\s*(.+)$")
 FRAME_RE = re.compile(r"ThemeFrame|theme-frame|杂志框|胶片|拍立得|复古浏览器|工程图纸|笔记本|邮票|发丝线|相框")
 
 ALIAS = {"B-roll": "V", "b-roll": "V", "图片": "图", "页": "截图", "纯动效": "文"}
@@ -31,8 +31,25 @@ FAMILY = {"V", "图", "截图"}                                  # 吃外部素�
 NON_CARRIER_CATS = {"转场结构", "字幕花字"}
 
 
+# 只承载"人物自己"的卡不算承接素材：形态非空且 ⊆ {人脸, 透明通道}（host-shrink-to-chip 的角标窗里装的是讲者，
+# 不是 B-roll；它是 host-footage §5 的默认路、几乎每镜都有，算承接的话裸贴闸就只剩"连角标都没有"才触发——2026-09-22 复核 P1-R1）
+HOST_ONLY_SHAPES = {"人脸", "透明通道"}
+
+
 def is_carrier(card: dict) -> bool:
-    return bool({i["type"] for i in card["inputs"]} & FAMILY) and card.get("category") not in NON_CARRIER_CATS
+    if not ({i["type"] for i in card["inputs"]} & FAMILY) or card.get("category") in NON_CARRIER_CATS:
+        return False
+    shapes = set(card.get("material_shape") or [])
+    return not (shapes and shapes <= HOST_ONLY_SHAPES)
+
+
+PARENS = re.compile(r"[（(][^（()）]*[)）]")
+
+
+def skin_head(line: str) -> str:
+    """蒙皮行 `卡A（括号里可能有箭头）, 卡B → 改了什么皮` → 箭头前的卡名段。
+    先剥括号再切箭头：括号里的「（半身→右下角标）」曾把后面的卡整段截断（复核 P1-R2，版式轮换也少算卡）。"""
+    return re.split(r"→|->|\|", PARENS.sub("", line), maxsplit=1)[0]
 
 PLACEHOLDER = {"待采", "TBD", "tbd", "待补", "待定"}
 
@@ -79,8 +96,7 @@ def shot_cards(shot: dict) -> tuple[list[str], bool]:
     for line in shot["body"]:
         m = SKIN_LINE.match(line)
         if m:
-            head = re.split(r"→|->|\|", m.group(1), maxsplit=1)[0]
-            return list(dict.fromkeys(SLUG.findall(head))), True
+            return list(dict.fromkeys(SLUG.findall(skin_head(m.group(1))))), True
     return [], False
 
 

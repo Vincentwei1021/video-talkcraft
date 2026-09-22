@@ -90,6 +90,7 @@ SOFT = [
     ({"时间地点"}, re.compile(r"[0-9]{4}\s*年|去年|今年|前年|昨天|上周|上个月")),
     ({"介绍他人"}, re.compile(r"(?:他|她)(?:是|叫)|这个(?:人|账号|博主|作者)|推荐(?:一个|大家)")),
     ({"号召"}, re.compile(r"关注|收藏|转发")),
+    ({"自我介绍", "介绍他人"}, re.compile(r"我(?:是|叫)|(?:他|她)(?:是|叫)")),   # 硬规收紧后的兜底提示（复核 P2）
 ]
 EVIDENCE_RE = re.compile(r"https?://|www\.|\.com|\.cn|官网|网址|页面")
 
@@ -210,7 +211,7 @@ def cmd_check(ts: dict, ranges: list, src_name: str, sem_path: str, stats: bool)
     if extra:
         rec("FAIL", f"标了不存在的句：i={extra}")
 
-    known = {sid for sid, _, _ in ranges}
+    known = {sid.lower() for sid, _, _ in ranges}   # 大小写无关：④ 从 SHOTBOOK 得到 S01、⑤ 的 shots.json 是 s01（复核 P1-R3）
     drift, tdrift, bad_sem, bad_need, bad_w, hard_miss, soft_miss, need_ev = [], [], [], [], [], [], [], []
     no_shot, bad_shot, exempts = [], [], []
     per_shot: dict[str, dict[str, int]] = {}
@@ -240,9 +241,9 @@ def cmd_check(ts: dict, ranges: list, src_name: str, sem_path: str, stats: bool)
         if ranges:
             if not sid:
                 no_shot.append(str(i))
-            elif sid not in known:
+            elif sid.lower() not in known:
                 bad_shot.append(f"{i}:{sid}")
-        d = per_shot.setdefault(sid, {"main": 0, "sub": 0})
+        d = per_shot.setdefault(sid.lower(), {"main": 0, "sub": 0})
         if w in WEIGHTS:
             d[w] += 1
         text = t0["text"]
@@ -285,10 +286,10 @@ def cmd_check(ts: dict, ranges: list, src_name: str, sem_path: str, stats: bool)
     if need_ev:
         rec("WARN", f"提到网址 / 页面但 need 没写 证据：i={' '.join(need_ev[:10])}（③ 素材要按这个去采真图）")
     if ranges:
-        no_main = [sid for sid, _, _ in ranges if per_shot.get(sid, {}).get("main", 0) == 0]
+        no_main = [sid for sid, _, _ in ranges if per_shot.get(sid.lower(), {}).get("main", 0) == 0]
         if no_main:
             rec("WARN", f"{len(no_main)} 镜没有 main 句：{' '.join(no_main)}——一镜至少一个主句，否则新元素没有挂点（cinematography §4.5）")
-        all_main = [sid for sid, _, _ in ranges if per_shot.get(sid, {}).get("sub", 0) == 0 and per_shot.get(sid, {}).get("main", 0) > 2]
+        all_main = [sid for sid, _, _ in ranges if per_shot.get(sid.lower(), {}).get("sub", 0) == 0 and per_shot.get(sid.lower(), {}).get("main", 0) > 2]
         if all_main:
             rec("WARN", f"{len(all_main)} 镜整镜都是 main：{' '.join(all_main)}——"
                         f"「一句一个新元素」是堆积型凌乱的制度根源（SKILL 开头），陪衬句标 sub")
@@ -296,6 +297,11 @@ def cmd_check(ts: dict, ranges: list, src_name: str, sem_path: str, stats: bool)
     if sem_count.get("论点", 0) / total_sem > 0.5:
         rec("WARN", f"论点 占 {sem_count['论点']}/{total_sem} = {sem_count['论点'] / total_sem:.0%}——"
                     f"论点是兜底档不是垃圾桶（把什么都标成论点，覆盖闸就全部失效了）；数据 / 对比 / 列举 / 引用 / 定义 / 步骤 能落的先落")
+    quant_gap = [str(i) for i, x in sorted(by_i.items())
+                 if "数据" in (x.get("sem") or []) and "量化" not in (x.get("need") or [])]
+    if quant_gap:
+        rec("INFO", f"{len(quant_gap)} 句标了「数据」但 need 没写「量化」：i={' '.join(quant_gap[:10])}——"
+                    f"需要画面承载数字就补 量化（preflight 才会按 FAIL 级核这一镜有没有承载数字的卡）")
     if exempts:
         rec("INFO", f"按 exempt 放行的词法硬规：{' '.join(exempts[:10])}")
     if not [lv for lv, _ in results if lv in ("FAIL", "WARN")]:
@@ -307,7 +313,7 @@ def cmd_check(ts: dict, ranges: list, src_name: str, sem_path: str, stats: bool)
         for w, n in sorted(sem_count.items(), key=lambda x: -x[1]):
             print(f"  {w:<6} {n}")
         if ranges:
-            print("main/sub 每镜：" + " ".join(f"{sid}:{per_shot.get(sid, {}).get('main', 0)}/{per_shot.get(sid, {}).get('sub', 0)}" for sid, _, _ in ranges))
+            print("main/sub 每镜：" + " ".join(f"{sid}:{per_shot.get(sid.lower(), {}).get('main', 0)}/{per_shot.get(sid.lower(), {}).get('sub', 0)}" for sid, _, _ in ranges))
 
     fails = [m for lv, m in results if lv == "FAIL"]
     warns = [m for lv, m in results if lv == "WARN"]
