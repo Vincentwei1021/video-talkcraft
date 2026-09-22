@@ -407,7 +407,7 @@ def check_variety(shots: list[dict], text: str) -> None:
 
 # ---- 语义 / 素材覆盖（2026-09-22 用户指出的通用缺陷：稿子的语义从不被标注，所以"该摆的卡在不在"没人查）----
 # 解析口径与 card_match 共用 shotbook_parse（评审 P1-1：两份正则对 `素材：B-roll（…）` 解析不一致，裸贴闸静默失效）
-from shotbook_parse import FRAME_RE, is_carrier, skin_head  # noqa: E402
+from shotbook_parse import has_frame, is_carrier, skin_head  # noqa: E402
 from shotbook_parse import FAMILY as SEM_FAMILY  # noqa: E402
 from shotbook_parse import deviations as sb_deviations  # noqa: E402
 from shotbook_parse import media_kinds, shot_cards as sb_shot_cards, shot_picks  # noqa: E402
@@ -451,13 +451,12 @@ def check_semantics(root: str, shots: list[dict], sem_path: str | None, script_p
             continue
         declared += 1
         slugs, has_skin = sb_shot_cards(s)
-        body = "\n".join(s.get("body", []))
         if not has_skin:
             no_skin.append(f"{s['id']}({'/'.join(sorted(fam))})")
             continue
         carriers = [g for g in slugs if g in idx and is_carrier(idx[g])]
         if not carriers:
-            (framed if FRAME_RE.search(body) else bare).append(f"{s['id']}({'/'.join(sorted(fam))})")
+            (framed if has_frame(s.get("body", [])) else bare).append(f"{s['id']}({'/'.join(sorted(fam))})")
             continue
         if "截图" in fam and not any(set(idx[g].get("material_shape") or []) & LONG_SHAPES for g in carriers):
             long_warn.append(s["id"])
@@ -474,8 +473,10 @@ def check_semantics(root: str, shots: list[dict], sem_path: str | None, script_p
     if long_warn:
         rec("WARN", sec, f"{len(long_warn)} 镜声明了截图 / 长图，但承接卡的素材形态里没有 长图 / 界面：{' '.join(long_warn)}——"
                          f"长页要「滚 / 巡 / 放大」地拍（SKILL ③），一屏装不下的静态贴屏是缺陷")
+    passed = declared - len(bare) - len(no_skin) - len(framed)
     if declared and not bare and not no_skin:
-        rec("PASS", sec, f"{declared} 镜声明的实拍 / 图片 / 截图都有卡承接")
+        rec("PASS", sec, f"声明了实拍 / 图片 / 截图的 {declared} 镜里，{passed} 镜有呈现 / 运镜类卡承接"
+                         + (f"，其余 {len(framed)} 镜按「已包边框」放行（见上条 WARN）" if framed else ""))
 
     # ② 语义覆盖
     if not sem_path or not os.path.exists(sem_path):
@@ -564,6 +565,8 @@ def check_semantics(root: str, shots: list[dict], sem_path: str | None, script_p
         # 数据主句且 need 含 量化 → 必须有数据类卡或强调卡（评审建议：让 need 字段有机器用途）
         if data_quant and "数据" not in excused and not (card_sem & {"数据", "强调", "列举", "对比"}) and "数据信息图" not in cats:
             data_miss.append(f"{s['id']}（本镜卡：{' '.join(slugs) or '无'}）")
+        if data_quant and "数据" in ms and (card_sem & {"数据", "强调", "列举", "对比"} or "数据信息图" in cats):
+            ms.remove("数据")      # 已按 need:量化 的硬判据核过并通过，不再用软规重复报（复核 P2-T3）
         if ms:
             soft_miss.append(f"{s['id']} 缺 {'/'.join(ms)}")
     # 「选卡行」与蒙皮行对账：写了选卡行却没落进蒙皮行 = 这行没人核（评审 P2-7）

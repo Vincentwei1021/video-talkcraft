@@ -53,7 +53,8 @@ PUNCT = re.compile(r"[\s，。、！？：；…—·「」『』\"\"''（）()�
 # 自我介绍：我是/我叫 + 像人名的 2~4 字（或拉丁名），且整句短——「我是做内容的 / 我是一个普通人 / 我叫它复利」不算（评审 P2-1）
 SELF_RE = re.compile(r"我(?:是|叫)\s*(?:([一-龥]{2,4})|([A-Za-z][A-Za-z·\s]{1,12}))(?![一-龥])")
 SELF_BAD = re.compile(r"[的了个们它他她这那什么谁很不在会要想觉为因怎如]")
-CTA_RE = re.compile(r"点赞|订阅|一键三连|三连|求个|点个")
+# 号召硬规：只收明确的祈使 / 动作，避免「这件事值得关注 / 大家很关注房价」误伤（三轮复核建议）
+CTA_RE = re.compile(r"点赞|订阅|一键三连|三连|求个|点个|记得关注|点个关注|关注我|关注一下|求关注|收藏起来|转发给")
 # 数量：先抹掉「一年 / 这一天 / 一个月」这类时间用法，再判（评审 P2-1）
 TIMEY = re.compile(r"(?:这|那|上|下|前|后|每|头)?一(?:年|天|个月|会儿|下|点|些|直|定|旦|般|样|起|同|边|块)")
 NUM_RES = [
@@ -152,7 +153,7 @@ def assign(t: float, ranges: list[tuple[str, float, float]]) -> str:
 def cmd_init(ts: dict, ranges: list, out_path: str, ts_rel: str, src_name: str) -> int:
     sents = [{
         "i": s["i"], "t": round(float(s["start"]), 3), "text": s["text"],
-        "shot": assign(float(s["start"]), ranges),
+        "shot": assign(float(s["start"]), ranges).lower(),
         "sem": [], "entities": [], "need": [], "weight": "", "hint": hints(s["text"]),
     } for s in ts["sentences"]]
     doc = {"version": 1, "source": {"timestamps": ts_rel, **({"shots": src_name} if src_name else {})}, "sentences": sents}
@@ -176,7 +177,7 @@ def cmd_sync(sem_path: str, ranges: list, src_name: str) -> int:
         return 1
     changed = 0
     for s in sents:
-        new = assign(float(s.get("t", -1)), ranges)
+        new = assign(float(s.get("t", -1)), ranges).lower()   # 统一小写：换来源时不再整表改写大小写
         if new and s.get("shot") != new:
             s["shot"] = new
             changed += 1

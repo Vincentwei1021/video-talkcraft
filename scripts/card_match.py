@@ -163,12 +163,13 @@ def main() -> int:
         carrier_pick: str | None = None
         if fam_needed:
             idx_by_slug = {c["slug"]: c for c in cards}
-            already = [g for g in picks if g in idx_by_slug and is_carrier(idx_by_slug[g])]
+            existing_skin = set(shot_cards(sh)[0]) | {g for v in shot_picks(sh).values() for g in v}
+            already = [g for g in (picks | existing_skin) if g in idx_by_slug and is_carrier(idx_by_slug[g])]
             pool = [c for c in cards if is_carrier(c) and feasible(c, sh["kinds"])[0]]
             ranked = sorted(((c, *score(c, sh["kinds"], pos, used_recent, len(sh["paths"]))) for c in pool),
                             key=lambda x: (-(len(set(x[0]["semantics"]) & set(sems)) > 0), -x[1], x[0]["slug"]))
             if already:
-                lines.append(f"| **素材承接** | {' · '.join(already)}（已在上面的首选里） | 素材有卡承接 | — |")
+                lines.append(f"| **素材承接** | {' · '.join(sorted(already))}（已在首选或该镜蒙皮行里） | 素材有卡承接 | — |")
             elif ranked:
                 top = ranked[: a.top]
                 carrier_pick = top[0][0]["slug"]

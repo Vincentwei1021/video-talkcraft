@@ -22,7 +22,20 @@ SLUG = re.compile(r"\b[a-z][a-z0-9]*(?:-[a-z0-9]+)+\b")
 # 必须是列表项（正文里提一嘴不放行）、必须给理由（去空白后 ≥4 字，与 semantic_annotate 的 exempt 同口径）
 DEVIATE = re.compile(r"^\s*(?:[-*]\s*|\|\s*)\**语义偏离\**\s*(?:[:：]|\|)\s*([一-龥]{2,6})\s*(?:←|<-|<=|—+|→|,|，|:|：|\|)\s*(\S.*?)\s*\|?\s*$")
 DEVIATE_LOOSE = re.compile(r"^\s*(?:[-*]\s*|\|\s*)\**语义偏离\**\s*(?:[:：]|\|)\s*(.+)$")
-FRAME_RE = re.compile(r"ThemeFrame|theme-frame|杂志框|胶片|拍立得|复古浏览器|工程图纸|笔记本|邮票|发丝线|相框")
+# 单视频镜「已包主题边框」的判据：认组件名，或**框词与素材词同行**——
+# 光有框词不行：杂志框 / 相框 / 胶片 也是 G0 给**人物容器**起的名字，正文里提一句就能把裸贴 FAIL 降成 WARN（2026-09-22 三轮复核 P1-T1）
+FRAME_COMPONENT = re.compile(r"ThemeFrame|theme-frame", re.I)
+FRAME_WORD = re.compile(r"杂志框|胶片|拍立得|复古浏览器|工程图纸|笔记本|邮票齿边|发丝线|相框")
+MEDIA_WORD = re.compile(r"视频|录屏|实拍|B-roll|b-roll|素材|截图|长图|影像")
+
+
+def has_frame(body: list[str]) -> bool:
+    for line in body:
+        if FRAME_COMPONENT.search(line):
+            return True
+        if FRAME_WORD.search(line) and MEDIA_WORD.search(line):
+            return True
+    return False
 
 ALIAS = {"B-roll": "V", "b-roll": "V", "图片": "图", "页": "截图", "纯动效": "文"}
 FAMILY = {"V", "图", "截图"}                                  # 吃外部素材的三档（归一后）
@@ -49,7 +62,10 @@ PARENS = re.compile(r"[（(][^（()）]*[)）]")
 def skin_head(line: str) -> str:
     """蒙皮行 `卡A（括号里可能有箭头）, 卡B → 改了什么皮` → 箭头前的卡名段。
     先剥括号再切箭头：括号里的「（半身→右下角标）」曾把后面的卡整段截断（复核 P1-R2，版式轮换也少算卡）。"""
-    return re.split(r"→|->|\|", PARENS.sub("", line), maxsplit=1)[0]
+    prev = None
+    while prev != line:            # 嵌套括号剥到不变（复核 P2-T4）
+        prev, line = line, PARENS.sub("", line)
+    return re.split(r"→|->|\|", line, maxsplit=1)[0]
 
 PLACEHOLDER = {"待采", "TBD", "tbd", "待补", "待定"}
 
