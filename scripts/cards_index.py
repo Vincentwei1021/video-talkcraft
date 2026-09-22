@@ -12,7 +12,7 @@ frontmatter 新增字段（2026-09-22，全部必填，逗号分隔）：
   语义: 见 VOCAB                                                    这张卡专门为哪几种口播语义而设（别打满）
   素材形态: 竖屏 | 横屏 | 长图 | 多图 | 界面 | 人脸 | 单条视频 | 矢量 | 透明通道   可空（写 无）
   位置: 开场 | 中段 | 收尾 | 任意
-  props: 逗号分隔的真实 props，写法 name 或 name(必需|可选|未使用)；无 = 内容全部写死在 CONFIG / JSX，换内容需改源码
+  props: 逗号分隔的真实 props，写法 name 或 name(必需|可选|未使用)；没有可换内容的 prop（或只有资源 / 皮肤类）= 内容写死，索引标 ◦
 """
 from __future__ import annotations
 
@@ -61,6 +61,13 @@ VOCAB: list[tuple[str, str]] = [
     ("结尾", "收束 / 谢幕 / 落幕"),
 ]
 VOCAB_SET = {w for w, _ in VOCAB}
+# 「内容写死」判据（hardcoded / 索引里的 ◦）：只看有没有**可换内容**的 prop。
+# 资源类（换素材不等于换内容）与皮肤 / 版式类（换颜色、版式变体、序号）都不算——
+# 抖音卡只暴露 avatar、章节卡只暴露 themes、铅笔卡只暴露 handSrc，账号资料 / 章节标题 / 笔画内容仍写死在 CONFIG（2026-09-22 用户复查）。
+ASSET_PROPS = {"hostSrc", "src", "srcs", "srcB", "srcBefore", "srcAfter", "docSrc", "handSrc", "avatar", "echoSrc"}
+SKIN_PROPS = {"accent", "themes", "chipBg", "itemBg", "swatches", "layout", "heroIdx", "accentIndex", "selected", "pick"}
+NON_CONTENT_PROPS = ASSET_PROPS | SKIN_PROPS
+
 SHAPES = {"竖屏", "横屏", "长图", "多图", "界面", "人脸", "单条视频", "矢量", "透明通道"}
 POSITIONS = {"开场", "中段", "收尾", "任意"}
 GRADES = {"低", "中", "高"}
@@ -133,7 +140,7 @@ def parse_card(md: Path, errors: list[str]) -> dict | None:
         "slug": md.stem, "title": fm.get("标题", ""), "oneliner": fm.get("一句话", ""), "category": fm.get("类别", ""),
         "energy": fm.get("能量", ""), "priority": fm.get("优先级", ""), "code": code,
         "inputs": inputs, "semantics": sem, "material_shape": shapes, "position": fm.get("位置", "任意"),
-        "props": props, "hardcoded": all(re.sub(r"[(（].*", "", p).strip() == "hostSrc" for p in props),
+        "props": props, "hardcoded": all(re.sub(r"[(（].*", "", p).strip() in NON_CONTENT_PROPS for p in props),
     }
 
 
@@ -148,7 +155,7 @@ def render_input_table(cards: list[dict]) -> str:
     for c in cards:
         groups.setdefault(input_key(c), []).append(c)
     lines = [
-        "| 输入组合 | 卡（◦ = 内容 / 素材写死在源码里，换内容需改 tsx，见各卡复用指引的 props 行） |",
+        "| 输入组合 | 卡（◦ = 没有可换内容的 prop，改文案 / 数据要动 tsx；资源与皮肤类 prop 不算可换内容，见各卡复用指引的 props 行） |",
         "|---|---|",
     ]
     def gk(k: str):
@@ -163,7 +170,7 @@ def render_input_table(cards: list[dict]) -> str:
 
 def render_semantic_tables(cards: list[dict]) -> str:
     grade = {"低": 0, "中": 1, "高": 2}
-    lines = ["| 语义 | 定义 | 卡（按能量 低→高；◦ = 内容写死需改源码） |", "|---|---|---|"]
+    lines = ["| 语义 | 定义 | 卡（按能量 低→高；◦ = 内容写死，改文案 / 数据需动 tsx） |", "|---|---|---|"]
     for w, d in VOCAB:
         hits = sorted((c for c in cards if w in c["semantics"]), key=lambda c: (grade.get(c["energy"], 9), c["slug"]))
         names = " · ".join(("◦" if c["hardcoded"] else "") + f"{c['slug']}({c['energy']})" for c in hits) or "（暂无卡）"

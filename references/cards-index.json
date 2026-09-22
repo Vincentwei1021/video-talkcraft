@@ -371,7 +371,7 @@
     "hostSrc",
     "themes"
    ],
-   "hardcoded": false
+   "hardcoded": true
   },
   {
    "slug": "chart-grow",
@@ -882,7 +882,7 @@
    "props": [
     "avatar"
    ],
-   "hardcoded": false
+   "hardcoded": true
   },
   {
    "slug": "error-retype",
@@ -2073,7 +2073,7 @@
     "hostSrc(未使用)",
     "handSrc"
    ],
-   "hardcoded": false
+   "hardcoded": true
   },
   {
    "slug": "per-character-rise",
