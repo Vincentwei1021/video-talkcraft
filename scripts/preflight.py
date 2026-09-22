@@ -27,6 +27,10 @@ SHOTBOOK 机器可读约定（cinematography.md §4）：
   SHOTBOOK   缺「素材：」行 / 声明了 V·图·截图却无路径 / 路径不存在 → FAIL；全片零 V·图 → FAIL（只有动效 + 口播 = PPT 感，SKILL.md ③ 硬规）；
              V·图 镜头占比 < --min-footage-ratio → WARN；缺「未完成 / 未采集清单」节 → FAIL；sources.md 不存在 → FAIL
              纯文字镜（素材只有 文）层矩阵里没有 G5 线稿示意图行 → WARN（章节卡除外；references/schematic.md）
+  语义覆盖   主句语义（semantics.json，②-1）里 自我介绍 / 介绍他人 / 号召 在该镜蒙皮行里没有对应语义的卡 → FAIL（这三类有专设卡族、无替代物）；
+             数据 / 引用 / 对比 / 定义 / 步骤 / 列举 / 时间地点 / 机制 / 选择 / 过程演示 / 空间叙事 / 设问 / 金句 / 章节 → WARN；
+             该镜写了 `- 语义偏离：<语义> ← 理由` 的放行。素材行声明了 V/图/截图 却没有一张吃素材的卡（呈现 / 运镜类，素材裸贴）→ FAIL。
+             没有 semantics.json 时只对 --script 做词法兜底（我是 X / 点赞订阅 → 全片无对应语义卡 → WARN）。
   版式轮换   只按各镜「蒙皮行」（列表行或表格行）里的卡名核，没有蒙皮行的镜 WARN 且不计入（正文抄进来的"已知坑"卡名不算）：
              呈现类卡（素材呈现 / 数据信息图 / 运镜）连用 ≥3 镜 → FAIL、全片占比 > 1/3 → FAIL（≥6 镜的片）；
              其它类别（字幕花字 / 强调标注 / 人物互动）连用 ≥3 镜 → WARN、占比 > 1/2 → WARN；转场结构类不核；人物形态只由节奏表核（角标是默认路）；
@@ -37,6 +41,7 @@ SHOTBOOK 机器可读约定（cinematography.md §4）：
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import sys
@@ -49,8 +54,11 @@ IMAGE_EXT = (".jpg", ".jpeg", ".png", ".webp", ".avif", ".gif")
 STD_FPS = (23.976, 24, 25, 29.97, 30, 50, 59.94, 60)
 
 results: list[tuple[str, str, str]] = []  # (level, section, message)
+SEM_PATH: list[str | None] = [None]      # --semantics（②-1 语义标注）
+SCRIPT_PATH: list[str | None] = [None]   # --script（没有语义标注时的词法兜底）
 SKILL_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CARDS_DIR = os.path.join(SKILL_ROOT, "references", "cards")   # 卡的「类别:」从这里读（版式轮换按类别分档）
+CARDS_INDEX = os.path.join(SKILL_ROOT, "references", "cards-index.json")  # 卡的「语义 / 输入」从这里读（scripts/cards_index.py 生成）
 
 
 def rec(level: str, section: str, msg: str) -> None:
@@ -398,6 +406,125 @@ def check_variety(shots: list[dict], text: str) -> None:
         rec("PASS", sec, f"版式轮换：{len(all_slugs)} 张卡 · {len(containers)} 种素材容器 · 无 ≥3 镜连用")
 
 
+# ---- 语义 / 素材覆盖（2026-09-22 用户指出的通用缺陷：稿子的语义从不被标注，所以"该有的卡在不在"没人查）----
+# HARD：库里有专设卡族、没有替代物的语义——漏了就是 2026-09-21 那类漏选（自我介绍没上人名条）
+HARD_SEM = {"自我介绍", "介绍他人", "号召"}
+# SOFT：常被别的卡顺带承担（数字可以是任意卡的 hero、对比可以靠版式），只提醒
+SOFT_SEM = {"数据", "引用", "对比", "定义", "步骤", "列举", "时间地点", "机制", "选择", "过程演示", "空间叙事", "设问", "金句", "章节"}
+FAMILY = {"V", "图", "截图"}
+DEVIATE = re.compile(r"语义偏离\s*[:：]\s*([^\s←<-]+)")
+SELF_RE = re.compile(r"我(?:是|叫)(?!不|很|这|那|在|会|要|想|觉|为|因|怎|如|谁|什|个|从|把|被|跟|和|对|可|能|已|正)[一-龥A-Za-z·]{1,8}")
+CTA_RE = re.compile(r"点赞|订阅|一键三连|三连")
+
+
+def load_card_index() -> dict[str, dict] | None:
+    if not os.path.exists(CARDS_INDEX):
+        return None
+    try:
+        return {c["slug"]: c for c in json.load(open(CARDS_INDEX, encoding="utf-8"))["cards"]}
+    except Exception:
+        return None
+
+
+def check_semantics(root: str, shots: list[dict], sem_path: str | None, script_path: str | None) -> None:
+    """主句语义 → 该镜蒙皮行里必须有一张语义包含它的卡；素材行声明的 V/图/截图 必须有卡承接（裸贴 = FAIL）。
+    没有 semantics.json 时退化成对口播稿的词法兜底（只 WARN）。"""
+    sec = "语义覆盖"
+    idx = load_card_index()
+    if idx is None:
+        rec("WARN", sec, f"读不到 {os.path.relpath(CARDS_INDEX, SKILL_ROOT)}——先在 skill 仓库跑 scripts/cards_index.py --write")
+        return
+
+    # 素材承接：本镜声明了实拍 / 图片 / 截图，就得有一张吃这类输入的卡（否则素材只能裸贴）
+    bare = []
+    for s in shots:
+        if not s["media"]:
+            continue
+        kinds = {("文" if m == "纯动效" else m) for m, _ in TOKEN.findall(s["media"])}
+        fam = kinds & FAMILY
+        if not fam:
+            continue
+        slugs, has_skin = shot_cards(s)
+        if not has_skin:
+            continue
+        # 家族整体判定：吃 图 / 截图 的卡按各卡 md 的换法（<Img> ↔ <OffthreadVideo>）也能承接实拍，
+        # 这里只拦"声明了素材却没有任何呈现 / 运镜类卡"的裸贴，不做输入代号的严格相等
+        carriers = [g for g in slugs if g in idx and ({i["type"] for i in idx[g]["inputs"]} & FAMILY)]
+        if not carriers:
+            bare.append(f"{s['id']}({'/'.join(sorted(fam))})")
+    if bare:
+        rec("FAIL", sec, f"{len(bare)} 镜的素材没有任何卡承接：{' '.join(bare)}——素材只能裸贴（design-language §1.3：单视频镜要包 ThemeFrame，"
+                         f"图 / 截图 要进呈现卡或运镜卡）；蒙皮行里加一张吃这类输入的卡（候选看 scripts/card_match.py）")
+    elif any(s["media"] and (({("文" if m == "纯动效" else m) for m, _ in TOKEN.findall(s["media"])}) & FAMILY) for s in shots):
+        rec("PASS", sec, "每镜声明的实拍 / 图片 / 截图都有卡承接")
+
+    if not sem_path or not os.path.exists(sem_path):
+        # 词法兜底：稿子里有自称 / 号召，全片却没有一张对应语义的卡
+        if not script_path or not os.path.exists(script_path):
+            rec("WARN", sec, "没有 semantics.json（②-1 语义标注）也没有 --script：语义覆盖只能跳过——"
+                             "选卡回到凭印象挑，2026-09-21 那支片的自我介绍就是这样漏掉人名条的")
+            return
+        text = open(script_path, encoding="utf-8").read()
+        all_sem: set[str] = set()
+        for s in shots:
+            for g in shot_cards(s)[0]:
+                if g in idx:
+                    all_sem |= set(idx[g]["semantics"])
+        for w, pat, what in (("自我介绍", SELF_RE, "「我是 / 我叫 X」"), ("号召", CTA_RE, "「点赞 / 订阅 / 三连」")):
+            if pat.search(text) and w not in all_sem:
+                rec("WARN", sec, f"口播稿里有{what}，全片却没有一张「{w}」语义的卡（taxonomy 语义索引里挑）——"
+                                 f"做 ②-1 语义标注后这条会升级成逐镜 FAIL")
+        rec("INFO", sec, "只做了词法兜底；semantics.json 在册才能逐镜核覆盖")
+        return
+
+    try:
+        doc = json.load(open(sem_path, encoding="utf-8"))
+        sents = doc["sentences"]
+    except Exception as e:
+        rec("FAIL", sec, f"semantics.json 读不出来：{e}（跑 scripts/semantic_annotate.py 校验）")
+        return
+    by_shot: dict[str, list[dict]] = {}
+    for x in sents:
+        by_shot.setdefault(str(x.get("shot", "")).lower(), []).append(x)
+
+    hard_miss, soft_miss, waived, ok_shots = [], [], [], 0
+    for s in shots:
+        mains = [x for x in by_shot.get(s["id"].lower(), []) if x.get("weight") == "main"]
+        sems: set[str] = set()
+        for x in mains:
+            sems |= set(x.get("sem") or [])
+        if not sems:
+            continue
+        slugs, has_skin = shot_cards(s)
+        if not has_skin:
+            continue
+        card_sem: set[str] = set()
+        for g in slugs:
+            if g in idx:
+                card_sem |= set(idx[g]["semantics"])
+        body = "\n".join(s.get("body", []))
+        excused = set(DEVIATE.findall(body))
+        miss_hard = sorted((sems & HARD_SEM) - card_sem - excused)
+        miss_soft = sorted((sems & SOFT_SEM) - card_sem - excused)
+        waived += [f"{s['id']}:{w}" for w in sorted((sems & (HARD_SEM | SOFT_SEM)) & excused)]
+        if miss_hard:
+            hard_miss.append(f"{s['id']} 缺 {'/'.join(miss_hard)}（本镜卡：{' '.join(slugs) or '无'}）")
+        if miss_soft:
+            soft_miss.append(f"{s['id']} 缺 {'/'.join(miss_soft)}")
+        if not miss_hard and not miss_soft:
+            ok_shots += 1
+    if hard_miss:
+        rec("FAIL", sec, f"{len(hard_miss)} 镜主句语义没有对应的卡：" + "；".join(hard_miss)
+                         + "——在 taxonomy「语义索引」里挑该语义的卡（候选表：scripts/card_match.py）；"
+                           "确实不配卡的话在该镜写一行 `- 语义偏离：<语义> ← 理由`")
+    if soft_miss:
+        rec("WARN", sec, f"{len(soft_miss)} 镜主句语义没有对应的卡（软规）：" + "；".join(soft_miss[:8]))
+    if waived:
+        rec("INFO", sec, f"按「语义偏离」放行：{' '.join(waived)}")
+    if not hard_miss and not soft_miss:
+        rec("PASS", sec, f"{ok_shots} 镜主句语义都有对应语义的卡")
+
+
 def check_shotbook(root: str, shotbook: str, shots_json: str | None, min_ratio: float) -> None:
     sec = "SHOTBOOK"
     path = os.path.join(root, shotbook) if not os.path.isabs(shotbook) else shotbook
@@ -477,6 +604,7 @@ def check_shotbook(root: str, shotbook: str, shots_json: str | None, min_ratio: 
         rec("FAIL", sec, "缺「未完成 / 未采集清单」节（## 未完成 / 未采集清单；内容可以是「无」，节不能没有）——"
                          "任何「本片不做 X」必须二选一：设计决定 + 依据，或 未完成 + 阻塞原因 + 兜底源是否试过")
     check_variety(shots, text)
+    check_semantics(root, shots, SEM_PATH[0], SCRIPT_PATH[0])
     if shots_json:
         sj = os.path.join(root, shots_json) if not os.path.isabs(shots_json) else shots_json
         if os.path.exists(sj):
@@ -500,9 +628,13 @@ def main() -> int:
     ap.add_argument("--voice", default=None, help="配音文件（查时长逐帧对齐）")
     ap.add_argument("--host-box", default=None, help="人物层容器 W:H——只在素材**整体装入**容器（contain/fill）时给；裁切窗（chip 圆窗 / half 取景）不适用，别传")
     ap.add_argument("--min-footage-ratio", type=float, default=0.34)
+    ap.add_argument("--semantics", default="semantics.json", help="②-1 语义标注（scripts/semantic_annotate.py 产出）；不存在则退化成对 --script 的词法兜底")
+    ap.add_argument("--script", default="script.txt", help="口播稿，只在没有语义标注时做词法兜底")
     a = ap.parse_args()
     root = os.path.abspath(a.project)
     os.chdir(root)
+    SEM_PATH[0] = a.semantics if os.path.isabs(a.semantics) else os.path.join(root, a.semantics)
+    SCRIPT_PATH[0] = a.script if os.path.isabs(a.script) else os.path.join(root, a.script)
 
     print(f"== preflight · {root} · {'media-only（③）' if a.media_only else '全量（④→⑤ 闸）'} ==")
     if a.host:
