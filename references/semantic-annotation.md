@@ -13,10 +13,14 @@
 ## 产物：工程根 `semantics.json`
 
 ```bash
-python3 <skill>/scripts/semantic_annotate.py --init      # 从 audio/timestamps.json 生成骨架（含词法提示 hint）
+python3 <skill>/scripts/semantic_annotate.py --init          # ② 之后：从 audio/timestamps.json 生成骨架（含词法提示 hint）
 #   逐句填 sem / weight / entities / need
-python3 <skill>/scripts/semantic_annotate.py --stats     # 校验 + 分布
+python3 <skill>/scripts/semantic_annotate.py --stats         # 校验 + 分布
+python3 <skill>/scripts/semantic_annotate.py --sync-shots    # ④ SHOTBOOK 写完后：回填 shot（只动 shot，标注不丢）
 ```
+
+**顺序是硬的**：② 时间戳 → ②-1 标注（此时还没有分镜，`shot` 允许为空）→ ④ SHOTBOOK → `--sync-shots` 回填 → card_match / preflight。
+漏了回填，`card_match` 每镜都是「无 main 句」、preflight 的语义覆盖整段空转（2026-09-22 独立评审 P0-1；现在两处都会直接 FAIL 并点名这一步）。
 
 ```json
 {"version": 1, "source": {"timestamps": "audio/timestamps.json", "shots": "remotion/shots.json"},
@@ -29,7 +33,7 @@ python3 <skill>/scripts/semantic_annotate.py --stats     # 校验 + 分布
 | 字段 | 含义 | 词表 |
 |---|---|---|
 | `i` / `t` / `text` | 与 `timestamps.json` 逐句对应（脚本逐字核；改稿或重剪后标注即失效，要重新 `--init`） | — |
-| `shot` | 归哪一镜（有 `shots.json` 时 `--init` 自动填） | shots.json 的 id |
+| `shot` | 归哪一镜。`--init` 时若已有分镜来源就自动填，否则留空，**④ 之后用 `--sync-shots` 回填**（按 SHOTBOOK 标题的起止秒，或 `shots.json`） | SHOTBOOK / shots.json 的镜头 id |
 | `sem` | **这句在做什么**，可多选 | 26 词封闭词表，见 `taxonomy.md`「语义索引」（源头 `scripts/cards_index.py` 的 `VOCAB`） |
 | `entities` | 数字带单位 / 人名 / 品牌 / URL / 地点——③ 采素材按这个去找 | 自由文本 |
 | `need` | 画面需求 | 证据 / 身份 / 量化 / 对比 / 结构 / 强调 / 无 |
@@ -46,6 +50,9 @@ python3 <skill>/scripts/semantic_annotate.py --stats     # 校验 + 分布
 2. **词法粗筛不是判断**。脚本的硬规只有三条（我是/我叫 X → 自我介绍；点赞/订阅/三连 → 号召；数量词 → 数据），
    拦的是系统性漏标；其余十条是 WARN 提示。真正的判断在人。
 3. **标注是派生物**。`text` 与时间戳逐字一致是硬规：预剪 → 时间戳 → 标注 → 其后一切，顺序不能反。
+4. **`论点` 有占比闸**：超过一半句子标成论点 → WARN。把什么都标成论点等于让覆盖闸全部失效（论点既不在硬规也不在软规里）。
+5. **豁免与偏离都要理由**（都是 ≥4 字，两套口径对齐）：句级用 `exempt`（词法硬规误伤时），镜级用 SHOTBOOK 里的
+   `- 语义偏离：自我介绍 ← 开场已报身份，s11 不再重复`（必须是列表项、必须有理由；空理由或写成 `<语义>` 占位都不放行，preflight 会 WARN 提示格式）。
 
 ## 下游怎么用
 
@@ -53,7 +60,7 @@ python3 <skill>/scripts/semantic_annotate.py --stats     # 校验 + 分布
 |---|---|
 | ③ 素材 | 素材购物清单按 `need` / `entities` 生成：`证据` 去截真页、`身份` 要头像 / 账号信息、`量化` 要图表或数据源 |
 | ④ SHOTBOOK | `python3 <skill>/scripts/card_match.py --out qa/card-candidates.md` 出每镜候选（语义 × 素材 × 卡索引），每镜写一行 `- 选卡行：<语义> → <卡>、…`；选候选之外的卡，写一行 `- 语义偏离：<语义> ← 理由` |
-| ④→⑤ 闸 | `preflight.py` 的「语义覆盖」段：主句里 **自我介绍 / 介绍他人 / 号召** 没有对应语义的卡 → FAIL（这三类有专设卡族、无替代物）；其余语义 → WARN；素材行声明了 V / 图 / 截图 却没有任何呈现 / 运镜类卡承接（裸贴）→ FAIL；写了「语义偏离」的放行 |
+| ④→⑤ 闸 | `preflight.py`「语义覆盖」段，四条：① **自我介绍 / 介绍他人 / 号召** 没有对应语义的卡 → FAIL（这三类有专设卡族、无替代物；**不分 main / sub**，标成 sub 也算）；② `数据` 主句且 `need` 含 `量化`，却没有数据信息图类 / `数据`·`强调` 语义的卡 → FAIL；③ 其余 13 个语义（引用 / 对比 / 定义 / 步骤 / 列举 / 时间地点 / 机制 / 选择 / 过程演示 / 空间叙事 / 设问 / 金句 / 章节）→ WARN；④ 素材行声明了 V / 图 / 截图 却没有承接卡（吃素材家族、且类别不是转场结构 / 字幕花字）→ FAIL，正文提到主题边框的降为 WARN。缺「蒙皮行」的镜不豁免（有素材或硬语义就 FAIL）。写「语义偏离」的放行 |
 | ⑦ 审片 | 语义标注 + 候选表进评审材料（review-protocol §1.2 第五件），rubric 多两条 P1：语义事件未配卡、素材裸贴 |
 
 没有 `semantics.json` 时 preflight 退化成对 `script.txt` 的词法兜底（我是 X / 点赞订阅 → 全片无对应语义卡 → WARN），
@@ -64,6 +71,6 @@ python3 <skill>/scripts/semantic_annotate.py --stats     # 校验 + 分布
 - **设问**：只有 `title-demote-to-label`（问题降格成标签、答案在下方展开）勉强承担，没有专门的「抛出问题不立即回答」卡。
 - **号召**：只有 `subscribe-cta` 一张；两张关注卡（`x-follow-card` / `douyin-follow-card`）自己的 md 明写「证明而非号召」，
   它们是 `介绍他人`。抖音关注卡还需要真实账号信息（头像 / 昵称 / 抖音号 / 粉丝数），没有就不做、写进「未完成清单」，别伪造。
-- **机制**：只有 `source-converge` / `converging-arrows` 两张。
+- **机制**：只有 `source-converge` 一张（多对一汇聚）。
 
 这些是真实缺口，索引里如实显示「（暂无卡）」，不硬塞——要么补卡，要么在 SHOTBOOK 写偏离理由。

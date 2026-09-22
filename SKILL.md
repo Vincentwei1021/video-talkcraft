@@ -96,6 +96,10 @@ python3 <skill根>/scripts/semantic_annotate.py --init     # 从 timestamps.json
 python3 <skill根>/scripts/semantic_annotate.py --stats    # 校验：与时间戳逐字一致 · 词表封闭 · 词法硬规（我是X→自我介绍、点赞订阅→号召、数量词→数据）· 每镜至少一个 main
 ```
 标注是**派生物**：预剪 → 时间戳 → 标注 → 其后一切；改稿或重剪后 `text` 对不上就是标注失效，重新 `--init`。
+**②-1 早于分镜，所以 `shot` 字段此时是空的**（SHOTBOOK 还没写）：④ 写完后必须回填一次，否则下游的镜头级覆盖核不到任何东西——
+```bash
+python3 <skill根>/scripts/semantic_annotate.py --sync-shots   # ④ 之后：按 SHOTBOOK 标题的起止秒（或 shots.json）回填 shot，只动 shot，标注不丢
+```
 
 ## ③ 素材
 - **素材清单从 ②-1 的语义标注生成，不靠拍脑袋**：`need` 是 `证据` 的句去截真页 / 找出处，`身份` 要头像与账号信息，`量化` 要图表或数据源，`entities` 里的人名 / 品牌 / 地点 / URL 就是检索词。
@@ -187,7 +191,10 @@ SHOTBOOK 每镜写**版式行**（栏跨度 + 组包围盒 + 对齐基准 + 字�
 ```bash
 python3 <skill根>/scripts/card_match.py --out qa/card-candidates.md   # 语义 × 素材行 × 卡索引 → 每镜每个主句语义的可行候选 + 排序理由 + 落选理由
 ```
-SHOTBOOK 每镜写 `- 选卡行：<语义> → <卡>、<语义> → <卡>`；**选候选之外的卡**要在该镜写一行 `- 语义偏离：<语义> ← 理由`（preflight 认这行放行）。
+跑之前先 `semantic_annotate.py --sync-shots` 回填 shot（②-1 时还没有分镜）。候选表除按语义列候选，还会给声明了素材的镜单列一行
+**素材承接候选**——声明了 V / 图 / 截图 却没有呈现 / 运镜类卡承接 = 素材裸贴，preflight 判 FAIL。
+SHOTBOOK 每镜写 `- 选卡行：<语义> → <卡>、<语义> → <卡>`（选卡行里的卡要真的落进蒙皮行，preflight 对账）；
+**选候选之外的卡**要在该镜写一行 `- 语义偏离：自我介绍 ← 开场已报身份，s11 不再重复`（理由 ≥4 字，preflight 认这行放行）。
 层矩阵的节拍行加一列**语义**（值取自 semantics.json，不另造词），这样「这一拍在做什么」在分镜里就是机器可读的。
 **选卡必读卡经验**：每张选中的卡，把 `references/cards/<slug>.md` 的「已知坑」与「落位自检」**逐条抄进该镜层矩阵的自检列**，
 实现后按条核（例：取景框 / 圈注 / 下划线类卡必核标注是否套住目标；`gooey-morph` 只用于图不用于字且无人物时居中；`chapter-title-card` **每章一套主题色 + 一个与本章内容相关的线稿 motif**，SHOTBOOK 写章节主题行——四张同色同纹样的章节卡是"又来了"不是"翻页"）——
@@ -412,7 +419,7 @@ python3 scripts/contact_sheet.py /tmp/qa_vN /tmp/qa_vN_sheets
 （fork 出来的评审继承制作者视角，对照物又是制作者自己写的 SHOTBOOK，形成自证闭环）。
 派发 / 等待 / 判活 / 重派按 review-protocol §1.6 的 **harness 无关原语表**（PACKET / DISPATCH / FAN-OUT / WAIT / LIVENESS / RE-DISPATCH，Claude Code · Codex · headless 各一列）；**WAIT 以落盘 `REVIEW.md` 的结束行为准，不以子代理完成通知为准**。
 制作者自己的首轮版式过目也委托子代理（只回文字缺陷清单，几十张图的图像 token 不进主上下文）。
-备齐协议 §1.2 的材料四件套，评审按 rubric 出 P0/P1/P2 清单，**修完 P0 + P1 才算过关**；返修按协议 §3 给量测数字、只渲受影响段。
+备齐协议 §1.2 的材料五件套，评审按 rubric 出 P0/P1/P2 清单，**修完 P0 + P1 才算过关**；返修按协议 §3 给量测数字、只渲受影响段。
 **关卡 3 规则合规**：cinematography.md §5 八条逐镜核 + 交付前终检（调试 overlay 关、成片缩到 390px 宽可读），条目见 review-protocol.md §2。
 **审片循环**：机器闸全过后只做 **1 轮**独立审片 → 修 P0/P1 → **即交付**，同时问用户是否续审（自动轮次封顶 3 轮）
 并打开动效工作台（⑧）；遗留 P2 清单随交付物。细则 review-protocol.md §4。
@@ -466,7 +473,7 @@ X [`@VincentWei93`](https://x.com/VincentWei93) ·
 | 排版：放哪 / 多大 / 怎么对齐（栅格 · 间距令牌 · 居中 · 字阶 · 碰撞 · 校验九项） | `references/layout.md` |
 | 给镜头做背景/主体/文字分层设计 | `references/shot-design.md`（三面工作单 + 七型预设） |
 | 镜头方法论/反PPT/SHOTBOOK格式/验收 | `references/cinematography.md`（+ shotbook-example.md） |
-| 审片：关卡 2 材料四件套 / rubric / 缺陷分级 · 关卡 3 · 返修纪律 · 审片循环 | `references/review-protocol.md`（评审 subagent 必读） |
+| 审片：关卡 2 材料五件套 / rubric / 缺陷分级 · 关卡 3 · 返修纪律 · 审片循环 | `references/review-protocol.md`（评审 subagent 必读） |
 | 转场（六式代码）/ 长镜头 | `template/motion-systems/transitions.tsx` / `longtake.tsx`（cinematography.md §3、§3.5） |
 | 纯文字镜配线稿示意图（G5：词汇 · 语义图形词典 · 节拍纪律 · 落位自检）| `references/schematic.md` → `template/motion-systems/schematic.tsx` + `icons.ts`（`scripts/fetch_icons.py` 抓 Iconify lucide） |
 | 视频容器边框八式（单视频镜不裸贴、不装假播放器；任何卡的视频区可包） | `template/components/theme-frame.tsx`（规则与选式：design-language §1.3） |

@@ -7,26 +7,31 @@
 语义标注是需求侧的结构化产物：它让 card_match.py 能出候选、preflight 能查覆盖、评审能对账。
 
 用法（在工程根执行）：
-  python3 <skill>/scripts/semantic_annotate.py --init                    # 从 timestamps.json 生成骨架（含词法提示），agent 填 sem / weight
-  python3 <skill>/scripts/semantic_annotate.py                           # 校验（默认 --check）
-  python3 <skill>/scripts/semantic_annotate.py --stats                   # 校验 + 分布统计
+  python3 <skill>/scripts/semantic_annotate.py --init          # ② 之后：从 timestamps.json 出骨架（含词法提示），逐句填 sem / weight
+  python3 <skill>/scripts/semantic_annotate.py --sync-shots    # ④ 之后：按 SHOTBOOK / shots.json 的时间范围回填 shot（只动 shot，标注不丢）
+  python3 <skill>/scripts/semantic_annotate.py [--stats]       # 校验（默认）
+
+**顺序**：② 时间戳 → ②-1 标注（此时还没有分镜，shot 允许为空）→ ④ SHOTBOOK 写完 → `--sync-shots` 回填 shot → card_match / preflight。
+漏了回填这一步，下游的镜头级覆盖核不到任何东西（2026-09-22 独立评审 P0-1）。
 
 产物 semantics.json（ASCII 键，值用中文词表）：
   {"version":1, "source":{"timestamps":"audio/timestamps.json","shots":"remotion/shots.json"},
    "sentences":[{"i":0,"t":0.28,"text":"很多人听完每月定投三千","shot":"s01",
                  "sem":["钩子","数据"],          # 语义，封闭词表（taxonomy.md 语义索引同一份，源头 cards_index.py VOCAB）
                  "entities":["三千 元/月"],       # 实体：数字带单位 / 人名 / 品牌 / URL / 地点，给 ③ 素材清单用
-                 "need":["量化"],                # 画面需求：证据 / 身份 / 量化 / 对比 / 结构 / 强调 / 无
+                 "need":["量化"],                # 画面需求：证据 / 身份 / 量化 / 对比 / 结构 / 强调 / 无（need 含 量化 的数据主句，preflight 判 FAIL 级覆盖）
                  "weight":"main",               # main = 主句，允许进新元素；sub = 陪衬句，只允许已有元素变化
-                 "exempt":{"数据":"这里的三千是比喻"}}]}   # 可选：豁免某条词法硬规，必须写理由
+                 "exempt":{"数据":"这里的三千是比喻"}}]}   # 可选：豁免某条词法硬规，理由 ≥4 字
 
 校验项：
-  结构    每句都在（i 与 timestamps 逐句对应、不多不少）· text 与 timestamps 逐字一致（改过稿 / 重剪后标注就失效）·
+  结构    每句都在（i 与 timestamps 逐句对应、不多不少）· text 与 timestamps 逐字一致（改稿 / 重剪后标注即失效）·
           t 与 timestamps start 差 ≤0.05s · sem 非空且在词表内 · need 在词表内 · weight ∈ {main, sub}
-  词法    硬规（FAIL，除非 exempt + 理由）：我是/我叫 X → 自我介绍 · 点赞/订阅/一键三连 → 号召 · 数量词 → 数据
+  镜头    有分镜来源（shots.json 或 SHOTBOOK 标题带起止秒）时：shot 不能为空、必须是已知镜头 id → FAIL（跑 --sync-shots 回填）
+          每镜至少一个 main → WARN；整镜只有 main / 只有 sub → WARN
+  词法    硬规（FAIL，除非 exempt + 理由 ≥4 字）：我是/我叫 <人名> → 自我介绍 · 点赞/订阅/三连 → 号召 · 数量词 → 数据
           软规（WARN）：引号/某某说 → 引用 · 但是/其实 → 转折 · 比如 → 例证 · 什么是/所谓 → 定义 ·
-                       第一/首先 → 列举或步骤 · 句末问号 → 设问或钩子 · URL/官网 → need 含 证据 · 年份/地点 → 时间地点
-  镜头    每镜至少一个 main（没有 = 这一镜没有主句，新元素无处挂）——WARN
+                       第一/首先 → 列举或步骤 · 句末问号 → 设问或钩子 · URL/官网 → need 含 证据 · 年份 → 时间地点
+  兜底    论点 占比 >50% → WARN（论点是兜底档，不是垃圾桶：把什么都标成论点等于让覆盖闸全部失效）
 """
 from __future__ import annotations
 
@@ -38,17 +43,43 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from cards_index import VOCAB_SET  # noqa: E402  语义词表唯一来源
+from shotbook_parse import parse_shots, shot_times  # noqa: E402
 
 NEEDS = {"证据", "身份", "量化", "对比", "结构", "强调", "无"}
 WEIGHTS = {"main", "sub"}
 PUNCT = re.compile(r"[\s，。、！？：；…—·「」『』\"\"''（）()《》,.!?:;]+")
 
 # —— 词法粗筛：只兜底最硬的几条，目的不是替代判断，而是拦住"数据句被降级成论点"这类系统性漏标 ——
-HARD = [
-    ("自我介绍", re.compile(r"我(?:是|叫)(?!不|很|这|那|在|会|要|想|觉|为|因|怎|如|谁|什|个|从|把|被|跟|和|对|可|能|已|正)[一-龥A-Za-z·]{1,8}")),
-    ("号召", re.compile(r"点赞|订阅|一键三连|三连|求个|点个")),
-    ("数据", re.compile(r"[0-9０-９]{2,}|百分之|[0-9０-９]+\s*[%％]|[一二三四五六七八九十两]\s*[十百千万亿]|[一二三四五六七八九十百千万两]+\s*(?:元|块|倍|年|个月|万|亿|美元)")),
+# 自我介绍：我是/我叫 + 像人名的 2~4 字（或拉丁名），且整句短——「我是做内容的 / 我是一个普通人 / 我叫它复利」不算（评审 P2-1）
+SELF_RE = re.compile(r"我(?:是|叫)\s*(?:([一-龥]{2,4})|([A-Za-z][A-Za-z·\s]{1,12}))(?![一-龥])")
+SELF_BAD = re.compile(r"[的了个们它他她这那什么谁很不在会要想觉为因怎如]")
+CTA_RE = re.compile(r"点赞|订阅|一键三连|三连|求个|点个")
+# 数量：先抹掉「一年 / 这一天 / 一个月」这类时间用法，再判（评审 P2-1）
+TIMEY = re.compile(r"(?:这|那|上|下|前|后|每|头)?一(?:年|天|个月|会儿|下|点|些|直|定|旦|般|样|起|同|边|块)")
+NUM_RES = [
+    re.compile(r"[0-9０-９]{2,}"),
+    re.compile(r"百分之|[0-9０-９]+\s*[%％]|[0-9０-９]+\s*(?:倍|万|亿|元|块|年)"),
+    re.compile(r"[一二三四五六七八九十百千两]+\s*(?:元|块|倍|万|亿|美元|个点)"),
+    re.compile(r"[一二三四五六七八九十两]\s*[十百千]"),
 ]
+
+
+def is_self_intro(text: str) -> bool:
+    if len(text) > 14:
+        return False
+    m = SELF_RE.search(text)
+    if not m:
+        return False
+    name = (m.group(1) or m.group(2) or "").strip()
+    return bool(name) and not SELF_BAD.search(name)
+
+
+def has_number(text: str) -> bool:
+    t = TIMEY.sub("", text)
+    return any(p.search(t) for p in NUM_RES)
+
+
+HARD: list[tuple[str, object]] = [("自我介绍", is_self_intro), ("号召", lambda t: bool(CTA_RE.search(t))), ("数据", has_number)]
 SOFT = [
     ({"引用"}, re.compile(r"[「『“‘][^」』”’]{4,}[」』”’]|(?:他|她|某|专家|作者|老师|网友|书里)(?:说|讲|提到|写道)|据.{1,6}(?:报道|统计|显示)")),
     ({"转折"}, re.compile(r"^(?:但是|但|然而|其实|可是|不过|并不是|不是)")),
@@ -74,24 +105,10 @@ def norm(s: str) -> str:
     return PUNCT.sub("", s)
 
 
-def load_shots(path: str | None) -> list[dict]:
-    if not path or not os.path.exists(path):
-        return []
-    data = json.load(open(path, encoding="utf-8"))
-    return data if isinstance(data, list) else []
-
-
-def shot_of(t: float, shots: list[dict]) -> str | None:
-    for s in shots:
-        if s.get("start", 0) - 1e-9 <= t < s.get("end", 0):
-            return s.get("id")
-    return shots[-1].get("id") if shots and t >= shots[-1].get("start", 0) else None
-
-
 def hints(text: str) -> list[str]:
     out: list[str] = []
-    for w, pat in HARD:
-        if pat.search(text):
+    for w, fn in HARD:
+        if fn(text):
             out.append(w)
     for ws, pat in SOFT:
         if pat.search(text):
@@ -101,33 +118,86 @@ def hints(text: str) -> list[str]:
     return list(dict.fromkeys(out))
 
 
-def cmd_init(ts: dict, shots: list[dict], out_path: str, ts_rel: str, shots_rel: str | None) -> int:
-    sents = []
-    for s in ts["sentences"]:
-        sents.append({
-            "i": s["i"], "t": round(float(s["start"]), 3), "text": s["text"],
-            "shot": shot_of(float(s["start"]), shots) or "",
-            "sem": [], "entities": [], "need": [], "weight": "",
-            "hint": hints(s["text"]),
-        })
-    doc = {"version": 1, "source": {"timestamps": ts_rel, **({"shots": shots_rel} if shots_rel else {})}, "sentences": sents}
+def shot_ranges(shots_path: str, shotbook_path: str) -> tuple[list[tuple[str, float, float]], str]:
+    """分镜来源：优先 shots.json（⑤ 的产物），否则 SHOTBOOK 标题里的起止秒（④ 就有）。"""
+    if os.path.exists(shots_path):
+        try:
+            data = json.load(open(shots_path, encoding="utf-8"))
+            rs = [(str(x["id"]), float(x["start"]), float(x["end"])) for x in data if "id" in x]
+            if rs:
+                return rs, os.path.basename(shots_path)
+        except Exception:
+            pass
+    if os.path.exists(shotbook_path):
+        rs = []
+        for sh in parse_shots(open(shotbook_path, encoding="utf-8").read()):
+            tt = shot_times(sh)
+            if tt:
+                rs.append((sh["id"], tt[0], tt[1]))
+        if rs:
+            return rs, os.path.basename(shotbook_path)
+    return [], ""
+
+
+def assign(t: float, ranges: list[tuple[str, float, float]]) -> str:
+    for sid, a, b in ranges:
+        if a - 1e-9 <= t < b:
+            return sid
+    if ranges and t >= ranges[-1][1]:
+        return ranges[-1][0]
+    return ""
+
+
+def cmd_init(ts: dict, ranges: list, out_path: str, ts_rel: str, src_name: str) -> int:
+    sents = [{
+        "i": s["i"], "t": round(float(s["start"]), 3), "text": s["text"],
+        "shot": assign(float(s["start"]), ranges),
+        "sem": [], "entities": [], "need": [], "weight": "", "hint": hints(s["text"]),
+    } for s in ts["sentences"]]
+    doc = {"version": 1, "source": {"timestamps": ts_rel, **({"shots": src_name} if src_name else {})}, "sentences": sents}
     json.dump(doc, open(out_path, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
-    filled = sum(1 for s in sents if s["hint"])
-    print(f"写入骨架 {out_path}：{len(sents)} 句，其中 {filled} 句有词法提示（hint 只是提示，sem / weight 要人工填；填完删 hint 或留着都行）")
+    print(f"写入骨架 {os.path.basename(out_path)}：{len(sents)} 句，{sum(1 for s in sents if s['hint'])} 句有词法提示"
+          f"（hint 只是提示，sem / weight 要人工填）")
+    if not ranges:
+        print("还没有分镜（正常，②-1 早于 ④）：shot 先留空；**④ SHOTBOOK 写完后必须跑 --sync-shots 回填**，否则下游覆盖闸核不到东西")
     print(f"语义词表 {len(VOCAB_SET)} 词见 references/taxonomy.md「语义索引」；need 词表：{' / '.join(sorted(NEEDS))}")
     return 0
 
 
-def cmd_check(ts: dict, shots: list[dict], sem_path: str, stats: bool) -> int:
+def cmd_sync(sem_path: str, ranges: list, src_name: str) -> int:
+    if not ranges:
+        print("FAIL 没有分镜来源：既没有 remotion/shots.json，SHOTBOOK 的镜头标题也没写起止秒（`### S3 · 25.04–43.24 · …`）")
+        return 1
+    doc = json.load(open(sem_path, encoding="utf-8"))
+    sents = doc.get("sentences")
+    if not isinstance(sents, list):
+        print("FAIL semantics.json 的 sentences 不是数组")
+        return 1
+    changed = 0
+    for s in sents:
+        new = assign(float(s.get("t", -1)), ranges)
+        if new and s.get("shot") != new:
+            s["shot"] = new
+            changed += 1
+    doc.setdefault("source", {})["shots"] = src_name
+    json.dump(doc, open(sem_path, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    empty = [s["i"] for s in sents if not s.get("shot")]
+    print(f"按 {src_name} 回填 shot：改了 {changed} 句 / 共 {len(sents)}；只动 shot，sem / weight / entities / need / exempt 未动")
+    if empty:
+        print(f"WARN 仍有 {len(empty)} 句没归到任何镜头（i={empty[:10]}）：镜头时间范围没覆盖到，核对 SHOTBOOK 起止秒")
+    return 0
+
+
+def cmd_check(ts: dict, ranges: list, src_name: str, sem_path: str, stats: bool) -> int:
     doc = json.load(open(sem_path, encoding="utf-8"))
     sents = doc.get("sentences")
     if not isinstance(sents, list) or not sents:
-        rec("FAIL", f"{os.path.basename(sem_path)} 里没有 sentences 数组")
+        rec("FAIL", f"{os.path.basename(sem_path)} 的 sentences 不是非空数组（拿到 {type(sents).__name__}）")
         return 1
-    by_i = {}
+    by_i: dict[int, dict] = {}
     for s in sents:
-        if "i" not in s:
-            rec("FAIL", f"有句缺 i：{str(s)[:60]}")
+        if not isinstance(s, dict) or "i" not in s:
+            rec("FAIL", f"有句不是对象或缺 i：{str(s)[:60]}")
             continue
         if s["i"] in by_i:
             rec("FAIL", f"句 {s['i']} 重复出现")
@@ -140,8 +210,10 @@ def cmd_check(ts: dict, shots: list[dict], sem_path: str, stats: bool) -> int:
     if extra:
         rec("FAIL", f"标了不存在的句：i={extra}")
 
+    known = {sid for sid, _, _ in ranges}
     drift, tdrift, bad_sem, bad_need, bad_w, hard_miss, soft_miss, need_ev = [], [], [], [], [], [], [], []
-    per_shot_main: dict[str, int] = {}
+    no_shot, bad_shot, exempts = [], [], []
+    per_shot: dict[str, dict[str, int]] = {}
     sem_count: dict[str, int] = {}
     for i, s in sorted(by_i.items()):
         t0 = ts_by_i.get(i)
@@ -164,15 +236,25 @@ def cmd_check(ts: dict, shots: list[dict], sem_path: str, stats: bool) -> int:
         w = s.get("weight")
         if w not in WEIGHTS:
             bad_w.append(f"{i}:{w!r}")
-        if w == "main":
-            per_shot_main[s.get("shot") or "?"] = per_shot_main.get(s.get("shot") or "?", 0) + 1
+        sid = str(s.get("shot") or "")
+        if ranges:
+            if not sid:
+                no_shot.append(str(i))
+            elif sid not in known:
+                bad_shot.append(f"{i}:{sid}")
+        d = per_shot.setdefault(sid, {"main": 0, "sub": 0})
+        if w in WEIGHTS:
+            d[w] += 1
         text = t0["text"]
         exempt = s.get("exempt") or {}
-        for word, pat in HARD:
-            if pat.search(text) and word not in sem:
+        for word, fn in HARD:
+            if fn(text) and word not in sem:
                 why = str(exempt.get(word, "")).strip()
-                if len(why) >= 4:
+                if len(re.sub(r"\s", "", why)) >= 4:
+                    exempts.append(f"i={i}:{word}")
                     continue
+                if word in exempt:
+                    bad_sem.append(f"{i}:exempt[{word}] 理由不足 4 字")
                 hard_miss.append(f"i={i}「{text[:16]}」应含 {word}")
         for ws, pat in SOFT:
             if pat.search(text) and not (ws & set(sem)):
@@ -185,31 +267,47 @@ def cmd_check(ts: dict, shots: list[dict], sem_path: str, stats: bool) -> int:
     if tdrift:
         rec("FAIL", f"t 与 timestamps start 差 >0.05s：{' '.join(tdrift[:8])}")
     if bad_sem:
-        rec("FAIL", f"sem 为空或词表外：{' '.join(bad_sem[:12])}（词表见 taxonomy.md 语义索引）")
+        rec("FAIL", f"sem 为空 / 词表外 / 豁免理由不足：{' '.join(bad_sem[:12])}（词表见 taxonomy.md 语义索引）")
     if bad_need:
         rec("FAIL", f"need 词表外：{' '.join(bad_need[:12])}（只能是 {' / '.join(sorted(NEEDS))}）")
     if bad_w:
         rec("FAIL", f"weight 只能是 main / sub：{' '.join(bad_w[:12])}")
+    if no_shot:
+        rec("FAIL", f"{len(no_shot)} 句没有 shot（分镜来源 {src_name} 已在册）：i={no_shot[:10]}——跑 `--sync-shots` 回填；"
+                    f"不回填的话 card_match 每镜都是「无 main 句」、preflight 的语义覆盖核不到任何东西")
+    if bad_shot:
+        rec("FAIL", f"shot 不是 {src_name} 里的镜头 id：{' '.join(bad_shot[:10])}——id 对不上，覆盖闸会整段空转")
     if hard_miss:
         rec("FAIL", f"{len(hard_miss)} 句漏标硬规语义：" + "；".join(hard_miss[:6])
-                    + "（确实不是的话在该句写 exempt:{\"<语义>\":\"理由\"}）")
+                    + "（确实不是的话在该句写 exempt:{\"<语义>\":\"理由\"}，理由 ≥4 字）")
     if soft_miss:
         rec("WARN", f"{len(soft_miss)} 句疑似漏标：" + "；".join(soft_miss[:8]))
     if need_ev:
         rec("WARN", f"提到网址 / 页面但 need 没写 证据：i={' '.join(need_ev[:10])}（③ 素材要按这个去采真图）")
-    if shots:
-        no_main = [s["id"] for s in shots if per_shot_main.get(s["id"], 0) == 0]
+    if ranges:
+        no_main = [sid for sid, _, _ in ranges if per_shot.get(sid, {}).get("main", 0) == 0]
         if no_main:
             rec("WARN", f"{len(no_main)} 镜没有 main 句：{' '.join(no_main)}——一镜至少一个主句，否则新元素没有挂点（cinematography §4.5）")
+        all_main = [sid for sid, _, _ in ranges if per_shot.get(sid, {}).get("sub", 0) == 0 and per_shot.get(sid, {}).get("main", 0) > 2]
+        if all_main:
+            rec("WARN", f"{len(all_main)} 镜整镜都是 main：{' '.join(all_main)}——"
+                        f"「一句一个新元素」是堆积型凌乱的制度根源（SKILL 开头），陪衬句标 sub")
+    total_sem = sum(sem_count.values()) or 1
+    if sem_count.get("论点", 0) / total_sem > 0.5:
+        rec("WARN", f"论点 占 {sem_count['论点']}/{total_sem} = {sem_count['论点'] / total_sem:.0%}——"
+                    f"论点是兜底档不是垃圾桶（把什么都标成论点，覆盖闸就全部失效了）；数据 / 对比 / 列举 / 引用 / 定义 / 步骤 能落的先落")
+    if exempts:
+        rec("INFO", f"按 exempt 放行的词法硬规：{' '.join(exempts[:10])}")
     if not [lv for lv, _ in results if lv in ("FAIL", "WARN")]:
-        rec("PASS", f"{len(by_i)} 句语义标注齐全、词表封闭、与 timestamps 一致")
+        rec("PASS", f"{len(by_i)} 句语义标注齐全、词表封闭、与 timestamps 一致"
+                    + (f"、{len(known)} 镜都有 main 句" if ranges else "（还没有分镜，shot 待 --sync-shots 回填）"))
 
     if stats:
         print("\n语义分布（句数）：")
         for w, n in sorted(sem_count.items(), key=lambda x: -x[1]):
             print(f"  {w:<6} {n}")
-        if shots:
-            print("主句 / 镜：" + " ".join(f"{s['id']}:{per_shot_main.get(s['id'], 0)}" for s in shots))
+        if ranges:
+            print("main/sub 每镜：" + " ".join(f"{sid}:{per_shot.get(sid, {}).get('main', 0)}/{per_shot.get(sid, {}).get('sub', 0)}" for sid, _, _ in ranges))
 
     fails = [m for lv, m in results if lv == "FAIL"]
     warns = [m for lv, m in results if lv == "WARN"]
@@ -222,29 +320,35 @@ def main() -> int:
     ap.add_argument("--project", default=".")
     ap.add_argument("--timestamps", default="audio/timestamps.json")
     ap.add_argument("--shots", default="remotion/shots.json")
+    ap.add_argument("--shotbook", default="SHOTBOOK.md", help="没有 shots.json 时从镜头标题的起止秒取分镜范围")
     ap.add_argument("--semantics", default="semantics.json")
-    ap.add_argument("--init", action="store_true", help="生成骨架（不覆盖已有文件，除非 --force）")
+    ap.add_argument("--init", action="store_true", help="生成骨架（已存在则拒写，除非 --force）")
+    ap.add_argument("--sync-shots", action="store_true", help="④ 之后回填 shot（只动 shot，不碰标注内容）")
     ap.add_argument("--force", action="store_true")
     ap.add_argument("--stats", action="store_true")
     a = ap.parse_args()
     root = os.path.abspath(a.project)
-    ts_path = a.timestamps if os.path.isabs(a.timestamps) else os.path.join(root, a.timestamps)
-    sem_path = a.semantics if os.path.isabs(a.semantics) else os.path.join(root, a.semantics)
-    shots_path = a.shots if os.path.isabs(a.shots) else os.path.join(root, a.shots)
+    absp = lambda p: p if os.path.isabs(p) else os.path.join(root, p)  # noqa: E731
+    ts_path, sem_path = absp(a.timestamps), absp(a.semantics)
+    ranges, src = shot_ranges(absp(a.shots), absp(a.shotbook))
     if not os.path.exists(ts_path):
         print(f"FAIL 找不到 {a.timestamps}（先做 ② 字级时间戳）")
         return 1
     ts = json.load(open(ts_path, encoding="utf-8"))
-    shots = load_shots(shots_path)
+    if a.sync_shots:
+        if not os.path.exists(sem_path):
+            print(f"FAIL 找不到 {a.semantics}——先 --init 并标完")
+            return 1
+        return cmd_sync(sem_path, ranges, src)
     if a.init:
         if os.path.exists(sem_path) and not a.force:
-            print(f"FAIL {a.semantics} 已存在（--force 覆盖；覆盖会丢掉已标内容）")
+            print(f"FAIL {a.semantics} 已存在——要回填 shot 用 `--sync-shots`（保留标注）；`--init --force` 会覆盖并丢掉已标内容")
             return 1
-        return cmd_init(ts, shots, sem_path, a.timestamps, a.shots if shots else None)
+        return cmd_init(ts, ranges, sem_path, a.timestamps, src)
     if not os.path.exists(sem_path):
         print(f"FAIL 找不到 {a.semantics}——先跑 --init 生成骨架再逐句标（②-1）")
         return 1
-    return cmd_check(ts, shots, sem_path, a.stats)
+    return cmd_check(ts, ranges, src, sem_path, a.stats)
 
 
 if __name__ == "__main__":
