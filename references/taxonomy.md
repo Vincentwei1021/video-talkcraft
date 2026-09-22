@@ -47,9 +47,9 @@ SHOTBOOK 每镜先写清输入是哪几种，再在这里挑吃得下的卡。�
 下表由 `scripts/cards_index.py` 从各卡 frontmatter 的「输入」字段生成（`--write` 重写、`--check` 校验），手改无效；每张卡的真实 props 与图↔视频换法看卡 md「复用指引」。
 
 <!-- gen:by-input start -->
-| 输入组合 | 卡（◦ = 内容 / 素材写死在源码里，换内容需改 tsx，见各卡复用指引的 props 行） |
+| 输入组合 | 卡（◦ = 没有可换内容的 prop，改文案 / 数据要动 tsx；资源与皮肤类 prop 不算可换内容，见各卡复用指引的 props 行） |
 |---|---|
-| **图** | filmstrip-conveyor · gallery-wall-dolly · pencil-sketch-draw · rack-focus-pair · split-compare-slider · stack-fan-out · still-layout-relay · timeline-photo-strip |
+| **图** | filmstrip-conveyor · gallery-wall-dolly · ◦pencil-sketch-draw · rack-focus-pair · split-compare-slider · stack-fan-out · still-layout-relay · timeline-photo-strip |
 | **文** | countdown-arc-scatter · error-retype · flying-words · lead-word-zoom-assemble · ◦line-by-line-slide · ◦per-character-rise · ◦soft-blur-in · split-text-stagger · title-demote-to-label · ◦tracking-in · word-slot-cycle · ◦highlighter-sweep · ◦chart-grow · chip-grid-single-select · source-converge · unit-grid-proportion · ◦long-take-world |
 | **界** | ◦x-follow-card · ◦glass-code-walk · ◦ui-flow-theater · ◦cursor-locked-zoom |
 | **场** | ◦black-slam-transition · ◦caret-wipe-transition · ◦overexpose-flip-transition · ◦particle-weld-transition · ◦pullback-cool-transition · ◦push-through-transition · ◦whip-pan-transition |
@@ -57,14 +57,14 @@ SHOTBOOK 每镜先写清输入是哪几种，再在这里挑吃得下的卡。�
 | **人(可选) + 图** | ◦gooey-morph · ◦pip-zoom-box |
 | **人(必需) + 图** | parallel-items-with-host |
 | **人(可选) + 截图** | ◦focus-dim-spotlight · ◦evidence-scroll-tour |
-| **人(可选) + 文** | ◦chevron-lower-third · ◦danmu-bubble-praise · ◦lower-third-nameplate · ◦alt-block-lines · ◦count-badge-title · ◦impact-open-title · ◦keyword-pop-highlight · ◦outline-box-title · ◦quote-bracket-pull · ◦quote-card · ◦slab-punch-title · ◦speed-slab-title · ◦type-contrast-emphasis · ◦typewriter-reveal · ◦converging-arrows · ◦corner-bracket-frame · ◦hand-drawn-ellipse · ◦ink-underline · ◦quote-hold-arrow · ◦strike-and-replace · ◦bar-chart-growth · ◦info-term-card · ◦line-chart-story-draw · ◦map-route-pin · ◦metric-with-sparkline · ◦number-counter · ◦number-slab-pop · ◦numbered-step-stack · ◦step-timeline-vertical · ◦chapter-progress-list · chapter-title-card |
+| **人(可选) + 文** | ◦chevron-lower-third · ◦danmu-bubble-praise · ◦lower-third-nameplate · ◦alt-block-lines · ◦count-badge-title · ◦impact-open-title · ◦keyword-pop-highlight · ◦outline-box-title · ◦quote-bracket-pull · ◦quote-card · ◦slab-punch-title · ◦speed-slab-title · ◦type-contrast-emphasis · ◦typewriter-reveal · ◦converging-arrows · ◦corner-bracket-frame · ◦hand-drawn-ellipse · ◦ink-underline · ◦quote-hold-arrow · ◦strike-and-replace · ◦bar-chart-growth · ◦info-term-card · ◦line-chart-story-draw · ◦map-route-pin · ◦metric-with-sparkline · ◦number-counter · ◦number-slab-pop · ◦numbered-step-stack · ◦step-timeline-vertical · ◦chapter-progress-list · ◦chapter-title-card |
 | **人(必需) + 文** | ◦behind-text-title |
 | **人(可选) + 界** | ◦subscribe-cta · ◦ui-prop-theater · ◦chat-gpt · ◦chat-message-flow · ◦claude-code · ◦cursor-actor-demo · ◦terminal-typing-log |
 | **人(可选) + 场** | ◦shape-wipe-transition |
 | **V + 图** | grid-to-hero |
 | **图 + 截图** | crash-zoom-punch · ◦magnifier-detail · reticle-lock-on · scanline-annotate · ◦scribble-annotation · ◦news-card-desk · ◦orbit-drift · ◦slow-pull-reveal · ◦slow-push-in · ◦stage-keyframe-tour · ◦sway-parallax · ◦tilt-3d-page |
 | **图 + 文** | ◦callout-line-label · info-card-assemble · ◦logo-enter |
-| **图 + 界** | douyin-follow-card |
+| **图 + 界** | ◦douyin-follow-card |
 | **截图 + 文** | doc-park-left-pill-deal |
 | **人(可选) + V + 文** | split-60-40-story |
 | **人(可选) + 图 + 截图** | ◦media-pop-in · ◦motion-blur-slam-in |
@@ -89,7 +89,7 @@ SHOTBOOK 先逐句标语义（词表封闭，定义见下表），再在这里�
 由 `scripts/cards_index.py` 从各卡 frontmatter 的「语义」字段生成，手改无效；一张卡只打它专门服务的语义，不打「什么都能配」。
 
 <!-- gen:by-semantic start -->
-| 语义 | 定义 | 卡（按能量 低→高；◦ = 内容写死需改源码） |
+| 语义 | 定义 | 卡（按能量 低→高；◦ = 内容写死，改文案 / 数据需动 tsx） |
 |---|---|---|
 | **钩子** | 开场抓注意力的问题 / 反差 / 大数字 | ◦slow-pull-reveal(低) · ◦behind-text-title(中) · ◦count-badge-title(中) · flying-words(中) · ◦number-slab-pop(中) · countdown-arc-scatter(高) · ◦impact-open-title(高) · ◦speed-slab-title(高) |
 | **论点** | 一个主张或结论句（没有更具体的类型时归它） | ◦soft-blur-in(低) · ◦alt-block-lines(中) · ◦per-character-rise(中) |
@@ -97,23 +97,23 @@ SHOTBOOK 先逐句标语义（词表封闭，定义见下表），再在这里�
 | **数据** | 数字、比例、增长、金额出现 | ◦focus-dim-spotlight(低) · unit-grid-proportion(低) · ◦bar-chart-growth(中) · ◦chart-grow(中) · chip-grid-single-select(中) · ◦line-chart-story-draw(中) · ◦metric-with-sparkline(中) · ◦number-counter(中) · ◦number-slab-pop(中) · countdown-arc-scatter(高) · ◦keyword-pop-highlight(高) |
 | **对比** | A vs B、前后、优劣并置 | ◦ink-underline(低) · rack-focus-pair(低) · ◦type-contrast-emphasis(低) · ◦alt-block-lines(中) · ◦chart-grow(中) · chip-grid-single-select(中) · gallery-wall-dolly(中) · grid-to-hero(中) · ◦line-chart-story-draw(中) · split-compare-slider(中) |
 | **列举** | 并列几项（清单 / 要点 / 盘点），无先后 | still-layout-relay(低) · ◦alt-block-lines(中) · ◦count-badge-title(中) · filmstrip-conveyor(中) · gallery-wall-dolly(中) · grid-to-hero(中) · ◦line-by-line-slide(中) · ◦media-pop-in(中) · ◦numbered-step-stack(中) · parallel-items-with-host(中) · split-60-40-story(中) · stack-fan-out(中) · title-demote-to-label(中) · word-relay-filmstrip(中) · word-slot-cycle(中) |
-| **定义** | 解释一个术语 / 概念是什么 | ◦info-term-card(中) · ◦outline-box-title(中) · pencil-sketch-draw(中) |
-| **步骤** | 有先后顺序的流程 / 做法 | ◦cursor-actor-demo(中) · ◦cursor-locked-zoom(中) · host-card-glass-board(中) · ◦line-by-line-slide(中) · ◦long-take-world(中) · ◦map-route-pin(中) · ◦numbered-step-stack(中) · parallel-items-with-host(中) · pencil-sketch-draw(中) · split-60-40-story(中) · ◦step-timeline-vertical(中) · timeline-photo-strip(中) · title-demote-to-label(中) · ◦ui-flow-theater(中) · ◦ui-prop-theater(中) |
+| **定义** | 解释一个术语 / 概念是什么 | ◦info-term-card(中) · ◦outline-box-title(中) · ◦pencil-sketch-draw(中) |
+| **步骤** | 有先后顺序的流程 / 做法 | ◦cursor-actor-demo(中) · ◦cursor-locked-zoom(中) · host-card-glass-board(中) · ◦line-by-line-slide(中) · ◦long-take-world(中) · ◦map-route-pin(中) · ◦numbered-step-stack(中) · parallel-items-with-host(中) · ◦pencil-sketch-draw(中) · split-60-40-story(中) · ◦step-timeline-vertical(中) · timeline-photo-strip(中) · title-demote-to-label(中) · ◦ui-flow-theater(中) · ◦ui-prop-theater(中) |
 | **转折** | 但是 / 然而 / 其实——推翻或修正前文 | error-retype(低) · ◦type-contrast-emphasis(低) · ◦quote-hold-arrow(中) · ◦strike-and-replace(中) · word-slot-cycle(中) · ◦black-slam-transition(高) · lead-word-zoom-assemble(高) · ◦slab-punch-title(高) |
 | **设问** | 抛出问题不立即回答 | title-demote-to-label(中) |
 | **金句** | 可以单独摘出的总结句 / 名言 | ◦per-character-rise(中) · ◦quote-bracket-pull(中) · ◦quote-card(中) · ◦quote-hold-arrow(中) · split-text-stagger(中) · ◦tracking-in(中) · ◦color-slam-beat-card(高) · lead-word-zoom-assemble(高) |
 | **标题** | 片名 / 题眼 / 段落大标题（不是章节翻页） | ◦corner-bracket-frame(低) · ◦behind-text-title(中) · ◦count-badge-title(中) · ◦outline-box-title(中) · split-text-stagger(中) · title-demote-to-label(中) · ◦tracking-in(中) · ◦impact-open-title(高) · lead-word-zoom-assemble(高) · ◦slab-punch-title(高) · ◦speed-slab-title(高) |
-| **引用** | 引别人的话或给出处 | bed-echo-blur(低) · ◦chevron-lower-third(低) · ◦evidence-scroll-tour(低) · ◦highlighter-sweep(低) · ◦lower-third-nameplate(低) · ◦chat-message-flow(中) · ◦danmu-bubble-praise(中) · doc-park-left-pill-deal(中) · douyin-follow-card(中) · ◦news-card-desk(中) · ◦quote-bracket-pull(中) · ◦x-follow-card(中) |
+| **引用** | 引别人的话或给出处 | bed-echo-blur(低) · ◦chevron-lower-third(低) · ◦evidence-scroll-tour(低) · ◦highlighter-sweep(低) · ◦lower-third-nameplate(低) · ◦chat-message-flow(中) · ◦danmu-bubble-praise(中) · doc-park-left-pill-deal(中) · ◦douyin-follow-card(中) · ◦news-card-desk(中) · ◦quote-bracket-pull(中) · ◦x-follow-card(中) |
 | **自我介绍** | 讲者报自己的名字 / 身份 | ◦chevron-lower-third(低) · ◦lower-third-nameplate(低) · ◦logo-enter(中) |
-| **介绍他人** | 介绍某个人 / 账号 / 嘉宾 | ◦chevron-lower-third(低) · ◦lower-third-nameplate(低) · douyin-follow-card(中) · ◦x-follow-card(中) |
+| **介绍他人** | 介绍某个人 / 账号 / 嘉宾 | ◦chevron-lower-third(低) · ◦lower-third-nameplate(低) · ◦douyin-follow-card(中) · ◦x-follow-card(中) |
 | **号召** | 关注 / 点赞 / 订阅 / 去做某事 | ◦subscribe-cta(中) |
 | **时间地点** | 时间戳、地点、事件坐标 | ◦typewriter-reveal(低) · ◦map-route-pin(中) · timeline-photo-strip(中) |
 | **空间叙事** | 在一个连续空间 / 地图 / 长画布里移动讲述 | ◦long-take-world(中) · ◦map-route-pin(中) · ◦stage-keyframe-tour(中) |
 | **机制** | 多对一 / 因果 / 流程关系图（讲“怎么运作”） | source-converge(中) |
 | **选择** | N 选一、决策、排除 | chip-grid-single-select(中) · grid-to-hero(中) |
 | **过程演示** | 界面 / 操作按脚本自演 | ◦chat-gpt(中) · ◦chat-message-flow(中) · ◦claude-code(中) · ◦cursor-actor-demo(中) · ◦cursor-locked-zoom(中) · ◦terminal-typing-log(中) · ◦ui-flow-theater(中) · ◦ui-prop-theater(中) |
-| **章节** | 分章 / 翻页 / 进度 | ◦chapter-progress-list(中) · line-carry-transition(中) · title-demote-to-label(中) · chapter-title-card(高) · ◦impact-open-title(高) · ◦overexpose-flip-transition(高) · ◦shape-wipe-transition(高) |
-| **转场** | 镜头边界处置（作用于前后两镜） | ◦pullback-cool-transition(低) · ◦caret-wipe-transition(中) · line-carry-transition(中) · ◦long-take-world(中) · ◦particle-weld-transition(中) · ◦push-through-transition(中) · ◦black-slam-transition(高) · chapter-title-card(高) · ◦color-slam-beat-card(高) · ◦overexpose-flip-transition(高) · ◦shape-wipe-transition(高) · ◦whip-pan-transition(高) |
+| **章节** | 分章 / 翻页 / 进度 | ◦chapter-progress-list(中) · line-carry-transition(中) · title-demote-to-label(中) · ◦chapter-title-card(高) · ◦impact-open-title(高) · ◦overexpose-flip-transition(高) · ◦shape-wipe-transition(高) |
+| **转场** | 镜头边界处置（作用于前后两镜） | ◦pullback-cool-transition(低) · ◦caret-wipe-transition(中) · line-carry-transition(中) · ◦long-take-world(中) · ◦particle-weld-transition(中) · ◦push-through-transition(中) · ◦black-slam-transition(高) · ◦chapter-title-card(高) · ◦color-slam-beat-card(高) · ◦overexpose-flip-transition(高) · ◦shape-wipe-transition(高) · ◦whip-pan-transition(高) |
 | **强调** | 在素材或文字上指哪看哪 / 划重点 | ◦evidence-scroll-tour(低) · ◦focus-dim-spotlight(低) · ◦highlighter-sweep(低) · ◦ink-underline(低) · still-layout-relay(低) · ◦type-contrast-emphasis(低) · ◦callout-line-label(中) · ◦converging-arrows(中) · ◦glass-code-walk(中) · ◦hand-drawn-ellipse(中) · ◦magnifier-detail(中) · ◦pip-zoom-box(中) · scanline-annotate(中) · ◦scribble-annotation(中) · ◦stage-keyframe-tour(中) · crash-zoom-punch(高) · ◦keyword-pop-highlight(高) · reticle-lock-on(高) |
 | **氛围** | 素材当底床不当主体 | ◦orbit-drift(低) · ◦sway-parallax(低) · flying-words(中) · ◦tilt-3d-page(中) |
 | **结尾** | 收束 / 谢幕 / 落幕 | ◦logo-enter(中) · ◦quote-card(中) |
