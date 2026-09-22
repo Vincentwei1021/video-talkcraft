@@ -2,10 +2,15 @@
 name: split-compare-slider
 标题: 对比双分屏（滑动揭示）
 一句话: 两张同构图的图叠放，上层用 clip-path 裁掉右侧，一条 3px 白分割线（带圆钮）与裁切边由同一个进度值驱动——左图整屏起手 0.6s → 1.4s 滑到中线 → 停 1.5s → nudge 到 42% 再回中 → 滑到 8% 几乎全露右图 → 回中停 1s → 与两图同收；两图共用一条 1→1.04 的极慢推
-适用: "前 / 后""新 / 旧""A / B"两张同构图（或同机位两段视频）的对比时刻；修图调色、改造前后、界面改版、参数 A/B；冷静举证调性
+适用: "前 / 后""新 / 旧""A / B"两张同构图的对比时刻（同机位两段视频要按复用指引换组件）；修图调色、改造前后、界面改版、参数 A/B；冷静举证调性
 时长: 9.5s（起手 0.6 → 揭示 1.4 → 停 1.5 → nudge 0.45×2 → 近端 1.0 → 停 1.5 → 回中 1.0 → 停 1.0 → 退场 0.4）；成片两处停留按口播伸缩
-能量: 低
+能量: 中
 类别: 素材呈现
+输入: 图
+语义: 对比
+素材形态: 横屏, 多图
+位置: 任意
+props: srcBefore, srcAfter, labelBefore, labelAfter
 优先级: P0
 代码: template/cards/split-compare-slider.tsx
 ---
@@ -13,7 +18,7 @@ name: split-compare-slider
 ## 输入类型
 | 口播视频 | B-roll 视频 | 图片 |
 |---|---|---|
-| 不适用（人不需要"前后对比"，且人物会被分割线切开） | 可（两段**同机位**的视频，上下两层同帧对齐） | **默认输入**（两张**同构图**的图；demo 用同一张两套滤镜） |
+| 不适用（人不需要"前后对比"，且人物会被分割线切开） | 需改源码：tsx 仅 `<Img>`，两段**同机位**视频要把 `<Img>` 换成 `<OffthreadVideo>`（上下两层同帧对齐） | **默认输入**（两张**同构图**的图；demo 用同一张两套滤镜） |
 
 命门是两层素材 100% 同构图——机位、裁切、缩放全部一致，分割线扫过时被比较的才是"内容"。不同构图的两张图请用 `hero-duo-layout` 一主两辅或 `rack-focus-pair` 焦点接力。
 
@@ -63,7 +68,7 @@ name: split-compare-slider
 - 两图各自一条推镜——分割线处两边缩放不同步，缝里错位。
 
 ## 复用指引
-- Remotion/tsx（skill 首选）：template/cards/split-compare-slider.tsx——`srcBefore` / `srcAfter` 两张真图（`<Img>` cover），`labelBefore` / `labelAfter` 文案；只传一张（或两张相同）自动套"前 / 后"两套滤镜；时长 `meta.durationInFrames = 296`；两处 `hold` 要长就改 `CONFIG.hold` / `CONFIG.tailHold`（时间表由 CONFIG 推出，不用手改 T）。
+- Remotion/tsx（skill 首选）：template/cards/split-compare-slider.tsx——`srcBefore` / `srcAfter` 两张真图（`<Img>` cover；要放视频把两处 `<Img>` 换成 `<OffthreadVideo>`（Remotion 自带）、两层同帧，其余不动），`labelBefore` / `labelAfter` 文案；只传一张（或两张相同）自动套"前 / 后"两套滤镜；时长 `meta.durationInFrames = 296`；两处 `hold` 要长就改 `CONFIG.hold` / `CONFIG.tailHold`（时间表由 CONFIG 推出，不用手改 T）。
 - HTML/GSAP：demos/split-compare-slider/index.html——`.pane.r` / `.pane.l` 里的 `.ph` 整块换成 `<img>`（两张同尺寸），`.lbl` 换文案；节奏全在顶部 `CONFIG`；核心可摘走：`CONFIG` + `apply()`（由 p 写四个状态）+ 那条 timeline。
 - 与 layout.md 的接口：标签距边 48@960（=96@1080 安全边）、20px（=40 body 档）；分割线是全高元素，不算贴边。
 - 剪辑软件对应物：剪映 / CapCut "蒙版 → 线性"打关键帧（蒙版位置 = p，羽化 0），分割线是另一层 3px 白色矩形跟同一组关键帧；AE 是上层 `Linear Wipe` 的 Transition Completion 打关键帧 + 一根 Shape 线的 Position 用表达式跟它；Premiere 是 `Crop → Right` 关键帧。素材站里叫 "before / after slider / comparison wipe"。

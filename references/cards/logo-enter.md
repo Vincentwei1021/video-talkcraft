@@ -6,8 +6,13 @@ name: logo-enter
 一句话: 品牌圆牌用 spring 从 0.5 倍弹到位（唯一带过冲的一拍），错峰 0.233s 后字标从圆牌一侧推出、副行再错峰一拍，同时一圈描线绕着圆牌合拢——三拍收尾，落定即终帧
 适用: 片头的身份交代（"我是…"）与片尾的品牌收束；系列视频每期固定的开场/落幕；产品名/机构名的正式立牌。一片各用一次（开头一次、结尾一次）
 时长: 起手静置 0.35s → 圆牌弹入 0.60s → 字标推出 0.45s（错峰 0.233s / 0.466s）→ 描环合拢 0.70s → 收尾定格 1.30s；全程约 2.6s
-能量: 低
+能量: 中
 类别: 素材呈现
+输入: 文, 图
+语义: 自我介绍, 结尾
+素材形态: 矢量
+位置: 任意
+props: hostSrc(未使用)
 ---
 
 ## 意图
@@ -83,18 +88,19 @@ remocn 的 `logo-enter` 给出的做法很克制：一个 spring 同时驱动三
 - 一片里用 3 次以上——它是身份标识，开头一次、结尾一次足够；中间反复出现读作水印。
 
 ## 复用指引
+- props：仅 `hostSrc`（未使用）；品牌名 / 副行文案 / logo SVG 写死在 JSX 常量里，换内容需改源码。
 - Remotion/tsx（skill 首选）：template/cards/logo-enter.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/logo-enter/index.html。**替换成自己的 logo**：把 `.badge` 里那段
   `<svg viewBox="0 0 100 100">…</svg>` 整段换掉（demo 里是灰阶几何占位标：三角 + 挖圆）。
   换品牌文案改 `.brand` / `.tag` 两行；节奏全在顶部 `CONFIG`。
   三拍各自独立——不要描环就删第③拍（`ring` 那一段），不要副行就删 `tag` 那一 tween。
-- Remotion 移植：源码 `registry/remocn/logo-enter/index.tsx`。它的核心可直接用——
+- Remotion 移植：直接用 template/cards/logo-enter.tsx（tsx 以 `tw`/`backOut(1.1)` helper 等价 spring）。要还原原生 spring 手感——
   `spring({fps, frame: frame*speed − i*stagger, config:{damping:13, stiffness:130, mass:0.8}})`
   一个值驱动 `opacity: s` / `scale: interpolate(s,[0,1],[0.5,1])` / `offset: interpolate(s,[0,1],[22,0])`。
   秒↔帧（30fps）：静置 0.35s = 10.5 帧、圆牌 0.60s = 18 帧（spring 自然落定，不用给 duration）、
   拍距 0.233s = 7 帧、字标 0.45s = 13.5 帧、描环 0.70s = 21 帧。
-  **本库化要改三处**：环色 `#fff → #ececef`、投影 `rgba(0,0,0,0.5) → rgba(0,0,0,0.10)`、
-  源码的 `logos[]` 多牌重叠（`overlap 38`）不用——本卡是单牌 + 字标。
+  白底取值 tsx 已落实：环色 `#ececef`、投影 `rgba(0,0,0,0.10)`（深底改回 `#fff` / `rgba(0,0,0,0.5)`）；
+  单牌 + 字标，不做多牌重叠。
   描环在 Remotion 侧用 `strokeDasharray={len} strokeDashoffset={interpolate(frame,[a,b],[len,0])}`。
 - 剪辑软件对应物：剪映/CapCut——logo 素材用"弹入"入场动画（缩放 + 位移，把回弹调到最弱一档），
   字标另起一层用"向右滑入"，描环用圆形贴纸的"描边生长"或直接用一段圆环 MG 素材；

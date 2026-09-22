@@ -8,6 +8,11 @@ name: alt-block-lines
 时长: 起手静置 0.4s → 第一行块展开 0.26s（字滞后 2 帧跟随）→ 第二行错峰 0.12s 起、同样 0.26s → 收尾定格 1.8s；共约 2.58s
 能量: 中
 类别: 字幕花字
+输入: 文, 人(可选)
+语义: 对比, 论点, 列举
+素材形态: 无
+位置: 任意
+props: hostSrc
 ---
 
 ## 意图
@@ -83,6 +88,7 @@ clip 跟随保证字的显形边缘**永远落在块的右缘之后**，物理�
 - `rowStagger` 给到 0.3s 以上再配长 hold——两行之间空太久，观众读完第一行开始等，第二行来时已经不是"对句"而是"补充"。
 
 ## 复用指引
+- props：仅 `hostSrc`；两行文案在 JSX 常量 `ROWS` 里，换内容需改源码。
 - Remotion/tsx（skill 首选）：template/cards/alt-block-lines.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/alt-block-lines/index.html。**换文案改两处 HTML 文本**（两个 `.ab-t` 各 3~6 字）——
   块宽由字自动撑出，两行字数可以不等。

@@ -8,6 +8,11 @@ name: soft-blur-in
 时长: 起手静置 0.3s → 解糊淡入 0.9s（位移只占前 0.3s）→ 逐字错峰 0.033s（9 字整句在 1.47s 处全清晰）→ 收尾定格 1.2s；共约 2.67s
 能量: 低
 类别: 字幕花字
+输入: 文
+语义: 论点
+素材形态: 无
+位置: 任意
+props: hostSrc(未使用)
 ---
 
 ## 意图
@@ -69,6 +74,7 @@ name: soft-blur-in
 - 重播不重建 DOM 只重置 transform——换文案后字数变了，旧的 span 还在，错峰序列与实际字数对不上。
 
 ## 复用指引
+- props：无（`hostSrc` 声明未用）；文案在 `CONFIG.text`，换内容需改源码。
 - Remotion/tsx（skill 首选）：template/cards/soft-blur-in.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/soft-blur-in/index.html。**换内容只改 `CONFIG.text`** 这一个字符串（6~12 字），
   切字与错峰序列都是运行时算的。能量只调 `dur`（`travel` 要跟着保持约 33% 的比例，两者的比例才是手感）；
@@ -76,7 +82,7 @@ name: soft-blur-in
   整句的落位改 `.sb-line`（demo 是 `inset: 0` + flex 整屏居中——**纯文字卡**，不放主持人；
   要让人物留在画面里就把 `.sb-line` 收成一列白区，同时按新宽度把 `font-size` 收回去）。
   `cubicBezier()` 那个解算器是通用的，别的 demo 要 `cubic-bezier` 缓动可以直接抄走。
-- Remotion 移植：源码 `registry/remocn/soft-blur-in/index.tsx` 是逐帧查表写法（不建时间线，每帧算每个字该多糊），
+- Remotion 移植：`template/cards/soft-blur-in.tsx` 是逐帧查表写法（不建时间线，每帧算每个字该多糊），
   在 Remotion 里比搬 GSAP 时间线更直接，可以原样抄。**帧↔秒换算（源码 30fps）**：
   `charDurationFrames 27` ⇒ `dur 0.9s`、`charTravelFrames 9` ⇒ `travel 0.3s`、`staggerFrames 1` ⇒ `stagger 0.033s`。
   每字三个 `interpolate`，全部传 `easing: Easing.bezier(0.22, 1, 0.36, 1)` +

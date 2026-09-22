@@ -6,6 +6,11 @@ name: pullback-cool-transition
 时长: 出场沉暗 0.50s → 交叠 0.55s（≈16 帧 @30fps，全六式最长）→ 入场后拉 0.90s；单次转场约 1.35s
 能量: 低
 类别: 转场结构
+输入: 场
+语义: 转场
+素材形态: 无
+位置: 中段
+props: hostSrc(未使用)
 优先级: P0
 代码: template/cards/pullback-cool-transition.tsx
 ---
@@ -76,6 +81,7 @@ Remotion 对应写法（`template/motion-systems/transitions.tsx`）：
 - 用在信息推进段：整片节奏塌一次，观众以为要结束了。
 
 ## 复用指引
+- props：仅 `hostSrc`（声明未使用）；两个镜头为 JSX 写死的 tile，换内容需改源码。
 - Remotion/tsx（skill 首选）：template/cards/pullback-cool-transition.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：`demos/pullback-cool-transition/index.html`。摘 `pullBack(出场镜头, 入场镜头, 起始秒) → 结束秒`
   一个函数 + `CONFIG.pull` 一组参数。**注意函数内部取了 `out.querySelector(".big")`**——

@@ -6,6 +6,11 @@ name: outline-box-title
 时长: 起手静置 0.4s → 框画一圈 0.42s → chip 展开 0.2s（内字滞后 0.1s）→ chevron ×3 错峰 0.08s → 收尾 hold 1.6s；共约 3.0s
 能量: 中
 类别: 字幕花字
+输入: 文, 人(可选)
+语义: 定义, 标题
+素材形态: 无
+位置: 任意
+props: hostSrc
 优先级: P1
 代码: template/cards/outline-box-title.tsx
 ---
@@ -79,6 +84,7 @@ name: outline-box-title
 - hold 期给框加呼吸/漂移——机器画的框动起来就成了"没对准"。
 
 ## 复用指引
+- props：仅 `hostSrc`；文案「核心观点 / 在这里」在 JSX 常量里，换内容需改源码。
 - Remotion/tsx（skill 首选）：template/cards/outline-box-title.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/outline-box-title/index.html。换文案改 `.ob-row1 .txt` 与 `.ob-chip-txt`，
   **同时**要改 `.ob-row1` / `#obBox` 的 `width` 与 `#obBoxPath` 的 `d`（框是写死尺寸的

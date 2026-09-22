@@ -6,6 +6,11 @@ name: bar-chart-growth
 时长: 静置 0.3s → 基线 0.24s → 七柱 0.06s×6 + 0.28s = 0.64s → chip 0.2s → hold 1.8s；共约 3.2s
 能量: 中
 类别: 数据信息图
+输入: 文, 人(可选)
+语义: 数据
+素材形态: 无
+位置: 任意
+props: hostSrc
 优先级: P0
 代码: template/cards/bar-chart-growth.tsx
 ---
@@ -34,7 +39,7 @@ name: bar-chart-growth
 - **层级**（自下而上）：白舞台 → 标题（34px/600 黑）→ 柱组容器（`display:flex; align-items:flex-end;
   justify-content:space-between`，高度 = 量程）→ 基线（2px 灰，`transform-origin: 0% 50%`）→
   x 轴月份标签（灰 13px）→ 结论 chip（绝对定位，`right: 0`，`bottom` 由 JS 算）。
-  主持人占位在右侧 32%，图表块左对齐在 96px。
+  主持人占位在右侧 47%，图表块左对齐在 96px。
 - **① 标题**：`opacity 0→1`，0.2s `power2.out`，`t = 0.30`。
 - **② 基线**：`t = 0.42` 起，`scaleX 0→1`（`origin left`），0.24s `power2.out`。
   **先有地面柱子才能"长出来"**——没有基线的柱子读作"七个矩形淡入"。
@@ -84,6 +89,7 @@ name: bar-chart-growth
   连续微动在这里也不合语义）。
 
 ## 复用指引
+- props：仅 `hostSrc`；数据 / 月份 / 文案在 `BARS` / `MONTHS` 与 JSX 常量里，换内容需改源码。
 - Remotion/tsx（skill 首选）：template/cards/bar-chart-growth.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：`demos/bar-chart-growth/index.html`。**换数据只改 HTML 里七个 `.bar` 的 `data-v`**
   （0~`maxVal`），柱高、chip 落位都是运行时按容器高度算的；换文案改 `.title` / `.grow-chip` /
@@ -112,6 +118,6 @@ name: bar-chart-growth
 
 ## 动效范围
 - 属于本卡的：`barStagger 0.06s` 这个"密到读作一次连续动作"的错峰量级；柱子只走 `scaleY` + `transform-origin: 50% 100%`（拒绝动 height）这条实现纪律；「基线先画出、柱子后升起」这个顺序；七柱**同色无柱顶数值**这个"看形状不看单项"的减法；结论 chip 押在最后一根到顶那一帧弹出、`back.out(1.4)` 的压抑回弹量；chip 落位由**最高柱实际高度**算出（`maxH + chipGap`）这个自适应要求；量程全程固定；hold 期完全静置。
-- 不属于本卡的：「数据说话 / 增长 42% / 1月~7月」这套具体文案与那组递增数据、`#e8720c` 这个橙（换 accent 蓝或 negative 红都成立）、44px 柱宽与 6px 圆角、240px 的量程高度、chip 的 12px 圆角与 22px 字号、右侧主持人（数字人）占位、以及"图表左对齐在 96px、贴底 96px"这个落位。
+- 不属于本卡的：「数据说话 / 增长 42% / 1月~7月」这套具体文案与那组递增数据、`#e8720c` 这个橙（换 accent 蓝或 negative 红都成立）、44px 柱宽与 4px 圆角、240px 的量程高度、chip 的 12px 圆角与 22px 字号、右侧主持人（数字人）占位、以及"图表左对齐在 96px、贴底 96px"这个落位。
 - 迁移接口：HTML 里的 `data-v` 是唯一的内容入口；柱数变了要按"整组升起 ≤0.4s"反算 `barStagger`（`0.4 / (n-1)`）；柱宽按可用宽度 ÷ (柱数 × 1.9) 取（留出约等宽的间隙）；`chipGap` 按柱宽的 40% 缩放；量程高度按舞台高的 45% 取；换方向（下滑）只改数据与颜色，时序不动；竖屏把柱数减到 5 并把柱宽提到 56px（横向空间少，7 柱在竖屏里会压到 26px 以下）。
 - 底色要求：白底即可。深底成立（柱色换 `#ff9f0a` 一类的深底橙、基线换 `rgba(255,255,255,0.14)`、标题反白），唯一约束是**底不能有横向网格线**——柱子在长的过程中会与网格线反复交叠，读作"柱子在闪"。要网格就把它压到 3% 以下的对比度，或干脆不要（本卡靠基线给量级参照，不需要网格）。

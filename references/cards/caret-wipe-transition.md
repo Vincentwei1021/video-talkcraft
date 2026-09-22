@@ -8,6 +8,11 @@ name: caret-wipe-transition
 时长: 扫完全屏 1.33s（≈40 帧 @30fps）；配 hold A 0.8s + hold B 0.9s 的完整一拍约 3.0s
 能量: 中
 类别: 转场结构
+输入: 场
+语义: 转场
+素材形态: 无
+位置: 中段
+props: hostSrc(未使用)
 ---
 
 ## 意图
@@ -79,13 +84,14 @@ name: caret-wipe-transition
 - 场景内容是纯色块（没有满幅纹理）——中段之后未到之处是一片空白，看不出"这仍是旧场景"；两侧都要有铺满画幅的可辨识内容。
 
 ## 复用指引
+- props：仅 `hostSrc`（本卡未使用）；两个场景（纹理 tile + 认式标签）在 JSX 常量里，换内容需改源码。
 - Remotion/tsx（skill 首选）：template/cards/caret-wipe-transition.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/caret-wipe-transition/index.html。核心是 `caretWipe(out, inn, at)` 这个函数——
   把两个铺满画幅的场景层传进去就能用，返回擦除结束的时刻（便于接着排 hold）。
   换方向改 `CONFIG.dir`；`clipOld` / `clipNew` 两个函数已经把方向分支写好了。
   `cubicBezier()` 是通用的缓动解算器（GSAP core 不带 `CustomEase`），可以直接抄走。
-- Remotion 移植：原版就是 `@remotion/transitions` 的一个 `TransitionPresentation`
-  （`registry/remocn/caret-wipe/index.tsx`），`presentationProgress` 直接就是本卡的 `p.x/100`：
+- Remotion 移植：template/cards/caret-wipe-transition.tsx 已是帧驱动实现——一个进度量 `x` 同时驱动 `clipOld(x)` / `clipNew(x)` / 光标 `translateX`。
+  若要包成 `@remotion/transitions` 的 `TransitionPresentation`，`presentationProgress` 就是本卡的 `x/100`：
   `entering` 分支给新场景（`clipPath` + `translate` + `blur`），`!entering` 分支给旧场景，
   光标只画在 `entering` 分支里（否则会出现两根）。
   接进本库 `template/motion-systems/transitions.tsx` 的话，它与六式**不同族**——

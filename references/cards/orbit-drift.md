@@ -8,6 +8,11 @@ name: orbit-drift
 时长: 环绕一圈 = 实拍 9~14s（demo 压缩到 5.6s 一圈）；本卡没有入场也没有出场，随讲述长度无限续
 能量: 低
 类别: 运镜
+输入: 图, 截图
+语义: 氛围
+素材形态: 无
+位置: 任意
+props: hostSrc(未使用)
 ---
 
 ## 意图
@@ -62,6 +67,7 @@ name: orbit-drift
 - 拿本卡当入场——它没有入场也没有出场。素材的入场交给 media-pop-in，姿态的建立交给 [tilt-3d-page](tilt-3d-page.md)（可以先立面、再挂本卡当 hold 底噪，两卡串联是推荐组合）。
 
 ## 复用指引
+- props：仅 `hostSrc`（声明未使用）；页面素材为 JSX 写死的 `.page` DOM，换素材需改源码。
 - Remotion/tsx（skill 首选）：template/cards/orbit-drift.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：`demos/orbit-drift/index.html`。换素材改 `.page` 内整块 DOM（或换成铺满的 `<img>`）；轨迹全在顶部 `CONFIG`（`orbit` / `baseRotY` / `baseRotX` / `ampRotY` / `ampRotX` / `phaseX` / `ampZ` / `phaseZ` / `shadowShift` / `cycles` / `periodXRatio`）；透视改 `.world` 的 `perspective`。核心可摘走：`CONFIG` + `apply()` 那七行三角函数 + 驱动它的单条 tween。**长用改一个数**：`periodXRatio: 0.78`。
 - Remotion 移植：本卡是**最适合 Remotion 的一张**——纯 `frame` 的函数，天然 seek-safe、零状态：`const t = frame / fps;` 然后 `const ry = baseRotY + ampRotY * Math.sin(2*Math.PI * t/orbit);`、`const rx = baseRotX + ampRotX * Math.sin(2*Math.PI * (t/(orbit*ratio) + 0.25));`、`const z = ampZ * Math.sin(2*Math.PI * (t/orbit + 0.6));`——**不需要 interpolate**。套在外层 `perspective: 900` + 相机层 `transformStyle: 'preserve-3d'` + `transform: \`rotateY(${ry}deg) rotateX(${rx}deg) translateZ(${z}px)\``；投影层 `transform: \`translateZ(-40px) translate(${-sy*20}px, ${sx*10}px)\``。这套写法直接就是全局系统 G3 的 idle 微动的 3D 版（见 `template/motion-systems/`），可以整段并入 CameraRig 当 hold 期底噪。

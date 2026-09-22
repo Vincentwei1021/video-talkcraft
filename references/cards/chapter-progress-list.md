@@ -8,6 +8,11 @@ name: chapter-progress-list
 时长: 起手静置 0.35s → 四条错峰滑入 0.65s → 高亮 + 角框 0.3s → 收尾 hold 2.0s；共约 3.3s
 能量: 中
 类别: 转场结构
+输入: 文, 人(可选)
+语义: 章节
+素材形态: 无
+位置: 中段
+props: hostSrc
 ---
 
 ## 意图
@@ -67,6 +72,7 @@ name: chapter-progress-list
   第二遍播放时它一开场就是红的，"站定—点名"两拍全丢。
 
 ## 复用指引
+- props：仅 `hostSrc`；章节名与当前项（`current: true`）在 `ROWS` 常量里，换内容需改源码。
 - Remotion/tsx（skill 首选）：template/cards/chapter-progress-list.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/chapter-progress-list/index.html。**换内容改 `.ch-row` 的文案**，
   当前章节把 `current` 类挪到对应行（圆点 `<span class="ch-dot">` 跟着挪）。节奏全在 `CONFIG`：

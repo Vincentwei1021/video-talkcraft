@@ -8,6 +8,11 @@ name: line-by-line-slide
 时长: 起手静置 0.3s → 逐行入场 0.90s / 错峰 0.133s（3 行在 1.47s 处全实）→ 停留 1.4s → 逐行出场 0.60s / 错峰 0.067s → 共约 3.6s
 能量: 中
 类别: 字幕花字
+输入: 文
+语义: 步骤, 列举
+素材形态: 无
+位置: 任意
+props: 无
 ---
 
 ## 意图
@@ -36,13 +41,13 @@ name: line-by-line-slide
 - **出场：淡出立刻起、位移迟 0.27s 起、方向朝右**
   - 淡出轨：`opacity 1 → 0`，`exitDur = 0.60s`，**从出场时刻立刻开始**
   - 位移轨：`translateX 0 → +distance`，**延迟 `exitDelay = 0.267s` 才起**，时长 `0.60 − 0.267 = 0.333s`
-    （两轨同时收尾——源码把位移的输入区间写成 `[exitTravelFrom, exitDur]`，即同一条时钟上的后段）
+    （两轨同时收尾——tsx 把位移的输入区间写成 `[out + exitDelay, out + exitDur]`，即同一条时钟上的后段）
   - 缓动 `cubic-bezier(0.64, 0, 0.78, 0)`（**缓入**：先粘住再加速甩走，与入场的缓出方向相反）
   - 行间错峰 `exitStagger = 0.067s`（源码 2 帧）= 入场错峰的**一半**
-- **透明度是两段相乘**：源码写作 `opacity = enterP × (1 − exitP)`，横向位移是两段**相加** `x = xEnter + xExit`。
-  这个写法保证入场未完就进入出场时不会跳（demo 里用 GSAP 顺序 tween 实现，时序等价）
-- **出场时刻的下界**：源码 `exitStart = max(enterEnd, 总长 − exitDur − 错峰)`——
-  **出场永远不早于入场结束**。搬到 GSAP 里就是显式排在"最后一行入场结束 + hold"之后（等价）
+- **入场与出场顺序接力**：tsx 按 `t < out` 分段——出场前走入场轨、出场后走出场轨（demo 用 GSAP 顺序 tween），
+  两者时序等价；因为出场永不早于入场结束，不需要相乘 / 相加的叠加写法
+- **出场时刻**：tsx `exitStart = enterEnd + hold`（`enterEnd = lead + enterDur + (n−1)×enterStagger`）——
+  **出场永远不早于入场结束**；demo 的 GSAP 时间线同样排在"最后一行入场结束 + hold"之后
 - **左对齐是硬要求**（源码 `textAlign: left`）：逐行滑入靠**共享的左端**才读作"一叠"，
   居中对齐会让每行的左端各自不同、滑入的方向感散掉
 - **每行是 `display: block` + `transform-origin: 0% 50%`**（左端为轴），只走横向位移，不做竖向
@@ -79,6 +84,7 @@ name: line-by-line-slide
 - 重播不重建 DOM 只重置 transform——换文案后行数变了，旧的 span 还在，错峰序列与实际行数对不上。
 
 ## 复用指引
+- props：无；文案在 `CONFIG.lines`（3~4 行），换内容需改源码。
 - Remotion/tsx（skill 首选）：template/cards/line-by-line-slide.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/line-by-line-slide/index.html。**换内容只改 `CONFIG.lines`** 这个字符串数组（3~4 行），
   入场/出场的时刻表都是从行数算出来的。节奏只调 `enterStagger`（`enterTravel` 要跟着 `enterDur` 保持约 52%）；
@@ -90,17 +96,13 @@ name: line-by-line-slide
   **`text-align: left` 与 `inline-block` 都不要改**：改成 `center` 每行左端各自不同，滑入方向感就散了）。
   只要入场不要出场：把 `exitDur` 那两条 `tl.to` 删掉即可（`hold` 就成了定格）。
   `cubicBezier()` 那个解算器是通用的，别的 demo 要 `cubic-bezier` 缓动可以直接抄走。
-- Remotion 移植：源码 `registry/remocn/line-by-line-slide/index.tsx` 是逐帧查表写法，可以原样抄，
-  它比 GSAP 版更省事的地方是**出场时刻由 `durationInFrames` 反推**：
-  `exitStart = max(enterDur + (n−1)×enterStagger, durationInFrames − exitDur − (n−1)×exitStagger)`——
-  也就是"总长给多少，整叠就在末尾自动退场"，不用手填 hold。
-  **帧↔秒换算（源码 30fps）**：`enterDur 27` ⇒ 0.90s、`enterTravel 14` ⇒ 0.467s、`enterStagger 4` ⇒ 0.133s、
-  `exitDur 18` ⇒ 0.60s、`exitTravelFrom 8` ⇒ 0.267s、`exitStagger 2` ⇒ 0.067s。
-  照抄两个关键写法：`opacity = enterP * (1 - exitP)`（**相乘**，不是二选一）与 `x = xEnter + xExit`（**相加**）——
-  这两条保证入场未完就进出场时不跳；出场位移的输入区间是 `[exitTravelFrom, exitDur]`（同一条时钟的后段，不是新时钟）。
-  缓动 `Easing.bezier(0.22,1,0.36,1)`（入）/ `Easing.bezier(0.64,0,0.78,0)`（出），全部 `extrapolate: "clamp"`。
-  尺寸换算：源码 `fontSize 72` @1280 画幅；本库 demo 是**纯文字整屏**，960 舞台上三行中文取 60px、
-  `distance` 按字号 78% ⇒ 47、`lineHeight 1.1 ⇒ 1.35`（中文）。
+- Remotion 移植：直接用 template/cards/line-by-line-slide.tsx（逐帧查表写法，自带 `cubicBezier()` 解算器）。
+  出场时刻 `exitStart = enterEnd + hold`，不由 `durationInFrames` 反推；每行 `opacity` / `x` 按 `t < out` 顺序分段，
+  出场位移从 `out + exitDelay` 起、走 `exitDur − exitDelay`（同一条时钟的后段，不是新时钟）。
+  **帧↔秒换算（30fps）**：`enterDur 27` ⇒ 0.90s、`enterTravel 14` ⇒ 0.467s、`enterStagger 4` ⇒ 0.133s、
+  `exitDur 18` ⇒ 0.60s、`exitDelay 8` ⇒ 0.267s、`exitStagger 2` ⇒ 0.067s。
+  缓动 `cubic-bezier(0.22,1,0.36,1)`（入）/ `cubic-bezier(0.64,0,0.78,0)`（出），进度全部 clamp。
+  尺寸：960 舞台上三行中文取 60px、`distance` 按字号 78% ⇒ 47、`lineHeight 1.35`（中文；1.1 是拉丁值会粘行）。
 - 剪辑软件对应物：剪映/CapCut——**每行一个独立文本层**（不要用一个多行文本层，那样做不出错峰），
   每层入场打两组键：位置（左 `distance` → 0，0.47s）+ 不透明度（0 → 100，0.90s），
   层与层的起点各差 4 帧；出场每层打不透明度（100 → 0，0.60s）+ 位置（0 → 右 `distance`，**从出场后第 8 帧才开始**，0.33s），

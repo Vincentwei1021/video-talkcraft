@@ -3,9 +3,14 @@ name: media-pop-in
 标题: 素材弹入堆叠
 一句话: 截图/照片带白边投影从 80% 弹到 100% 带回弹，随机歪 5~10°，多张以 100~150ms 错峰依次"拍"上来压角堆叠
 适用: 口播甩证据的时刻（截图、聊天记录、转账单、报道）；"一张一张给你看"的列举语感；爆料、辟谣、盘点调性
-时长: 单张 0.25~0.35s；三张错峰 100~150ms，全组 0.6s 内拍完；退场 0.15s 缩小消失
+时长: 起手 0.45s；单张 0.3s（0.25~0.35）；三张错峰 150ms（100~150），全组 0.6s 内拍完；落位后整组 ±0.8% 呼吸 idle（1.6s 半程）
 能量: 中
 类别: 素材呈现
+输入: 图, 截图, 人(可选)
+语义: 例证, 列举
+素材形态: 多图
+位置: 任意
+props: hostSrc
 优先级: P0
 代码: template/cards/media-pop-in.tsx
 ---
@@ -24,7 +29,6 @@ name: media-pop-in
 - transform-origin 设 50% 60%（略低于中心，像被手按下去）
 - 多张 stagger 100~150ms，位置手工错开、后来者层级更高压住前者一角
 - 全部落位后整组极轻呼吸（scale ±0.8%，2~3s 周期，可选）防止画面死掉
-- 退场：整组或逐张 0.15s scale→0.9 + opacity→0，比入场快（入场比出场用力是通则）
 
 ## 参数表
 | 参数 | 典型值 | 调节手感 |
@@ -44,6 +48,7 @@ name: media-pop-in
 - 投影太小或没有——素材贴死在背景上，"拍上来"的空间层次消失。
 
 ## 复用指引
+- props：仅 `hostSrc`；三张素材是写死在 JSX 的 CSS 假截图（无 images[]），换真素材需改源码替换为 `<Img>`。
 - Remotion/tsx（skill 首选）：template/cards/media-pop-in.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/media-pop-in/index.html。三张假截图是纯 CSS（`.shot-browser/.shot-chat/.shot-pay`），整块换成 `<img>` 即可用真素材；每张的落位角度在 `data-rot`，节奏在 `CONFIG.stagger/popDur`。
 - Remotion 移植：每张一个 `spring({frame: frame - i*4, config: {damping: 12, stiffness: 200}})` 驱动 scale，opacity 用同 spring 的前半段 clamp；旋转 interpolate 从 rot-6 到 rot。
@@ -52,7 +57,7 @@ name: media-pop-in
 - 剪辑软件对应物：剪映"入场动画→弹入/甩入"逐张错帧摆放；AE 是 scale + rotation 关键帧套 Overshoot 表达式；CapCut "Bounce In"。
 
 ## 动效范围
-- 属于本卡的：单张素材 scale 0.8→1 带 back.out(1.7) 过冲落位（0.25~0.35s）、opacity 在前半程完成；rotation 从"落位角度再多歪 6°"收正到落位角度（旋转跟着收正才有"拍"的手感）；transform-origin 50% 60%（略低于中心，像被手按下去）；多张 stagger 100~150ms 的密度感与"后来者压前者一角"的层级堆叠；白边 + 投影这层"实体素材"语义（离开背景一层才叫"拍上来"）；全部落位后整组 ±0.8% 极轻呼吸；退场比入场快（0.15s scale→0.9 + 淡出）。
+- 属于本卡的：单张素材 scale 0.8→1 带 back.out(1.7) 过冲落位（0.25~0.35s）、opacity 在前半程完成；rotation 从"落位角度再多歪 6°"收正到落位角度（旋转跟着收正才有"拍"的手感）；transform-origin 50% 60%（略低于中心，像被手按下去）；多张 stagger 100~150ms 的密度感与"后来者压前者一角"的层级堆叠；白边 + 投影这层"实体素材"语义（离开背景一层才叫"拍上来"）；全部落位后整组 ±0.8% 极轻呼吸。
 - 不属于本卡的：三张假截图的内容与灰条排版、素材的具体位置与落位角度值、字幕文案、主持人占位。
 - 迁移接口：换真素材把 `.shot-*` 内部整块替换成 `<img>`，保留 `.shot` 的白边 + 投影与 `data-rot`；`popDur` / `stagger` 按"甩证据"的语速缩放（stagger 别超 300ms 否则丢密度）；`overshoot` 调拍击力度、`fromScale` 调行程、`preTilt` 调收正幅度；白边宽度与投影强度随输出尺寸等比缩放。
 - 底色要求：白底即可，但**素材的白边与投影必须保留**——白底上靠这一层投影把素材与舞台分开；若目标是纯白极简风，把投影调弱到 8%~10% 黑即可，不要归零。

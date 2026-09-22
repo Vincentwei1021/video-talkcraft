@@ -6,6 +6,11 @@ name: subscribe-cta
 时长: 单式样 2.6~3.6s（控件 0.35s + 光标 0.8s + 状态翻转 0.3s + 确认动效 0.4~0.8s + hold 0.5s；三连多一段 0.55s 长按最长）；demo 三式串演约 9.7s（A 0.1→3.25 / B 3.4→6.95 / C 7.1→9.7）
 能量: 中
 类别: 人物互动
+输入: 人(可选), 界
+语义: 号召
+素材形态: 透明通道
+位置: 收尾
+props: hostSrc
 优先级: P1
 代码: template/cards/subscribe-cta.tsx
 ---
@@ -48,7 +53,7 @@ name: subscribe-cta
 - 确认动效：对勾按笔序划入——`stroke-dasharray` 27 / dashoffset 27→0，0.36s `power2.out`
 - 同时一圈胶囊形涟漪（inset −8、border-radius 999）scale 0.9→1.28 + opacity 0.6→0
 
-**收场**：每段做完 hold 0.5s 让观众读结果，随后整段 opacity→0（0.4s）。
+**收场**：每段做完 hold 0.5s 让观众读结果，随后整段 opacity→0（0.3s，`segFade`）。
 **音效位**：点击帧标注"啵"、铃铛首摆"叮"、三连每次点亮各一声"叮"（逐次升调）、对勾划入"嗒"（demo 无声，成片补）。
 
 ## 参数表
@@ -77,14 +82,12 @@ name: subscribe-cta
 - `fromTo` 忘了 `immediateRender: false`——涟漪环建表时就把 from 态刷上去，控件"还没被点"时红环已经挂在外圈（实测三连三个环全部提前显形）。
 
 ## 复用指引
-- Remotion/tsx（skill 首选）：template/cards/subscribe-cta.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
+- Remotion/tsx（skill 首选）：template/cards/subscribe-cta.tsx——props：仅 `hostSrc`；三式串演写死在 JSX 与 `B_A / B_B / B_C` 时间常量里，光标落点是 `CONFIG.P_SUB / P_LIKE / P_FL` 写死坐标，无 variant prop，换式样 / 文案 / 布局需改源码。自包含单文件，复制进工程即可用；节奏参数在顶部 CONFIG，时长由 `TOTAL` 推出、尺寸在 meta。
 - HTML/GSAP：demos/subscribe-cta/index.html。三段各是一个独立函数（`segYouTube` / `segTriple` / `segFollow`），
   落地时**只留你要的那一段**——把 `[segYouTube, segTriple, segFollow]` 数组裁成一个即可，共用的
   `moveTo/down/up/cursorOut/P` 四个辅助函数不用改。换文案改 `.sub-btn` / `.ftxt` 与 `.call(...)` 里的"已订阅/已关注"；
   换配色改 `CONFIG.accent`。
-- Remotion 移植：每段一个 Sequence；铃铛用 `16*Math.exp(-t*4)*Math.cos(t*14)` 衰减余弦替代关键帧序列；
-  长按环用 `interpolate(frame, [holdStart, holdEnd], [282.7, 0])` 驱动 strokeDashoffset；
-  三连点亮用 `frame >= lightFrame + i*stepFrames` 逐个条件切样式；对勾同样是 dashoffset 插值。
+- Remotion：已落地为 template/cards/subscribe-cta.tsx——三式内联、不用 Sequence；铃铛按 `bellSwings` 关键帧逐段 lerp（L285-292）；长按环 `arcOffset` 282.7→0 线性（L319）；三连按 `T_LIGHT + i×triStep` 逐个点亮（L301-314）；对勾 dashoffset 27→0（L333）。
 - 剪辑软件对应物：LottieFiles 搜 "subscribe button bell" / "like coin favorite"，有大量现成 JSON 可直接挂；
   剪映"贴纸→订阅按钮/一键三连"动图；AE 用 Bounce/Overshoot 表达式 + 铃铛父子链摆动 + Trim Paths 画对勾。
 - （实测变体）评论引导：不做按钮+光标+确认三件套，而是把 CTA 关键词（如 comment 的触发词）以蓝色/荧光高亮**常驻**在人物胸前，小字词流继续滚、大字关键词锚定不动——引导目标从"点按钮"换成"记住这个词去评论"，全程零光标、也不占收尾时段。见 TheAIScaler（u8OWXXTcu3Q / a2iG5GkM8KE）。
@@ -92,5 +95,5 @@ name: subscribe-cta
 ## 动效范围
 - 属于本卡的：**三种平台式样共有的三段严格串行因果链**——控件 scale 0→1.06→1 弹入（0.35s）→ 光标从屏外**弧线**移入（0.8s，x 用 `power2.inOut`、y 用 `sine.inOut` 异速叠出弧线，锚点在箭头尖）→ 交互帧的反馈链（光标 scale→0.9 + 控件下压至 0.94 一拍 0.08s `power2.in` + **在按下那一刻**换状态 + `back.out(3)` 回弹 + 光标顺势滑出淡出）。三式各自的确认动效也属于本卡：铃铛 `transform-origin: 50% 8%`、按 16→−12→8→−5→2→0 **衰减**序列摆 0.8s + 一圈涟漪 scale 0.6→1.9；三连的**长按进度环** 0.55s `ease:"none"` 走满一圈 + **从左到右 0.2s 间隔依次点亮**（底盘换色 0.16s + scale 1→1.22→1 `back.out(2.4)` 弹跳 + 逐个涟漪 0.85→1.75）；关注的对勾 `stroke-dasharray` 划入 0.36s `power2.out` + 胶囊形涟漪 0.9→1.28。段落淡出淡入 0.3s / 段间留白 0.15s / 用完即走也属于本卡。
 - 不属于本卡的：主持人占位（数字人）、平台名小字标签的文案与措辞、控件圆角与字号、三个图标的具体图形（拇指/圆币/星星只是"三个可点亮目标"的中性画法）、涟漪与铃铛的颜色、光标 SVG 的具体形状、为压实拍加的白底盘/白描边（属于对比度落地，见底色要求）。
-- 迁移接口：**平台式样切换 = 只保留对应那一个段落函数**（`segYouTube` / `segTriple` / `segFollow`），三者共用 `moveTo/down/up/cursorOut/P`，删掉另两个不影响其余代码；demo 把三段串起来只是为了一次看全三种机制。所有时序在 `CONFIG`：共有段用 `btnIn`/`cursorMove`/`clickDip`，A 段用 `bellSwings` 数组/`bellTime`，B 段用 `triStagger`/`holdPress`/`triStep`/`triPop`，C 段用 `checkDraw`，段落切换用 `segFade`/`segGap`/`segHold`。换尺寸时改 `CONFIG.START`（光标起点，按舞台宽重算），落点由 `P(el, fx, fy)` 从元素实际位置反算，换布局不用改坐标数字。文案改 `.sub-btn` / `.ftxt` 与 `.call(...)` 里的翻转文案；`triStep` 与三连图标数量解耦（forEach 按 index 排期，加减图标自动顺延）。
+- 迁移接口：**平台式样切换 = 只留一式**——HTML demo 保留 `segYouTube` / `segTriple` / `segFollow` 之一（三者共用 `moveTo/down/up/cursorOut/P`，删掉另两个不影响其余代码）；tsx 里三式内联，要留一式需删掉另两式的 JSX 块并把保留式的起点常量（`B_A` / `B_B` / `B_C`）改到 0.1 起。demo 把三段串起来只是为了一次看全三种机制。所有时序在 `CONFIG`：共有段用 `btnIn`/`cursorMove`/`clickDip`，A 段用 `bellSwings` 数组/`bellTime`，B 段用 `triStagger`/`holdPress`/`triStep`/`triPop`，C 段用 `checkDraw`，段落切换用 `segFade`/`segGap`/`segHold`。换尺寸时改 `CONFIG.START`（光标起点，按舞台宽重算）；落点 HTML 由 `P(el, fx, fy)` 从元素实际位置反算、换布局不用改数字，tsx 则是写死坐标 `CONFIG.P_SUB / P_LIKE / P_FL`，换布局要重新量并改这三组数字。文案改 `.sub-btn` / `.ftxt` 与 `.call(...)` 里的翻转文案（tsx 在 JSX 的"订阅 / 已订阅""关注 / 已关注"字面）；`triStep` 与三连图标数量解耦（按 index 排期，加减图标自动顺延）。
 - 底色要求：白底即可。**`CONFIG.accent` = #e62117 是"这是那个按钮/已被点亮"的语义色，本卡保留**——它承担"这是那个控件"与"这一下生效了"的识别功能，换平台改成对应平台的按钮色（B 站粉、抖音红等），但不要灰阶化；未点亮态、已完成态、铃铛、涟漪一律走灰阶/墨色。落地时 overlay 压在实拍画面上，控件需自带足够对比：红底白字与白底盘天然成立；**黑胶囊要加白描边（`box-shadow: 0 0 0 3px #fff`）、深色铃铛要坐白色圆底盘、图标名走白底小胶囊**——实测不加这三样时它们会直接糊进人物的深色衣服。灰阶的"已订阅/已关注"态在深色背景上要提亮一档。

@@ -4,10 +4,15 @@ name: cursor-locked-zoom
 优先级: P1
 代码: template/cards/cursor-locked-zoom.tsx
 一句话: 一条长命令在灰阶终端窗里逐字打出，相机 2.6~2.8x 锁死在光标上跟拍（tx = W/2 − zoom·cursorX 反解 + transform-origin 0 0），字符从画面右侧被"喂"进来、光标恒在正中；打完停 0.75s 让人读完，再用 0.8s inOut 把 zoom 拉回 1 收在全景居中
-适用: 竖屏/小屏里念一条长命令、长路径、长配置、长代码行——"你要跑的是这一条"；也用于任何"目标在移动、镜头必须跟着"的段落（光标、进度点、正在被填的表单字段）
+适用: 竖屏/小屏里念一条长命令、长路径、长配置、长代码行——"你要跑的是这一条"；tsx 只实现终端打字光标这一种锚点，要跟拍进度点 / 正在被填的表单字段等其他移动目标，按复用指引改锚点函数
 时长: 实拍：起手 0.4~0.6s → 打字段（长度 ÷ 15 char/s，一条 50 字符命令约 3.4s）→ 读完 hold 0.6~0.9s → 拉回全景 0.8s → 尾 0.5s；合计 5.5~7s。demo：全程 6.0s
 能量: 中
 类别: 运镜
+输入: 界
+语义: 过程演示, 步骤
+素材形态: 界面
+位置: 中段
+props: hostSrc(未使用)
 ---
 
 ## 意图
@@ -69,11 +74,12 @@ name: cursor-locked-zoom
 - 一屏里同时跟拍**两个**移动目标（光标 + 进度条）——镜头只能锁一个。要讲两个就拆两拍。
 
 ## 复用指引
+- props：`hostSrc` 声明但未使用（本卡无主持人层）；命令文案与终端几何在 `CONFIG`（`cmd / winL / winT / winW / winH / pad / chromeH`），换内容需改源码。
 - Remotion/tsx（skill 首选）：template/cards/cursor-locked-zoom.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：`demos/cursor-locked-zoom/index.html`。换命令改 `CONFIG.cmd`（同时按新长度检查窗宽）；速率与焦距在 `CONFIG.rate` / `CONFIG.zoom`；素材换成别的窗口时改 `CONFIG.winL/winT/winW/winH/pad/chromeH` 这组几何（它们既用来推锚点，也当相机的钳制边界）。核心可摘走：`CONFIG` + `apply()`（反解 + 钳制那七八行）。
 - 换素材的最小流程：① 把素材在世界坐标里的四边填进 `winL/winT/winW/winH`；② 锚点公式换成"素材里那个移动目标的中心坐标"（不一定是字符光标——进度点、被填的表单字段、正在被高亮的行都行）；③ 其余不动。**只要能写出"目标中心的世界坐标"这一个函数，本卡就能跟拍它。**
 - **多行代码跟拍**（源头的 `glass-code-walk` 变体）：把 `cmdRow` 从整数换成浮点行号，`cursorY = 窗顶 + 窗栏 + 内边距 + linePosition × lineH + lineH/2`，`linePosition` 在相邻行之间插值（扫读第 3 行到第 4 行时它是 3.0 → 4.0）⇒ 镜头在行间平滑滑过而不是整跳。横向可以只锁 x 到行首（读代码是整行读，不是逐字读），或对整行取中点。
-- Remotion 移植（这就是源头）：`registry/remocn/terminal-cursor-zoom/index.tsx`（143 行，最短最干净）。它用 `interpolate(localFrame, [0, len/charsPerFrame], [0, len])` 出 `revealed`，然后同一条反解；`chunkSize` 参数做分块突进（本卡命令行用 1 = 逐字符，日志才用 4，见 [terminal-typing-log](terminal-typing-log.md)）。移植时补上边界钳制。
+- Remotion 移植：本卡 tsx 即成品——`CONFIG` + 组件内那十行可整段摘走：`revealed = lerp(0, N, clamp01((t − leadIn) / (N / rate)))` 线性揭示 → `cx = textX + floor(revealed) · charW` 反解 → 半宽 `W/(2z)` 钳制 → 收尾只 tween `z`。命令行逐字符揭示（不分块），日志才分块（见 [terminal-typing-log](terminal-typing-log.md)）。原型来自 remocn 的 terminal-cursor-zoom 组件（无边界钳制，移植到白底舞台必须补）。
 - 剪辑软件对应物：AE——把终端截图/录屏放进合成，加一个空对象（Null）当"光标锚点"、按打字节奏给它打位置关键帧，再把摄像机或图层的位置**表达式**绑到 `W/2 − zoom × null.position[0]`（表达式比手打关键帧准得多，也是唯一能保证不失步的做法）；缩放拉回用 `Scale` 的两个关键帧 + Easy Ease 双侧。剪映——只能手动逼近：把录屏放大后按打字节奏打一串"位置"关键帧（会失步，且长命令关键帧数量大），不推荐。Premiere——`Motion` 的 Position 关键帧同理，或用 After Effects 动态链接。**真实制作里更常见的做法是直接录屏 + 后期跟拍**，但录屏的打字速率不可控（人手不匀），本卡的价值恰恰是让速率与镜头都可编排。
 - 音效：`typekey` 稀疏连发——**不要逐字符给声**（50 个字符 50 记声音会糊成一片噪音）。按"词"分组，每个词起头给 2~3 记，`vol` 0.24~0.30 之间轮换、`rate` 0.94~1.24 之间轮换（同一音色反复出现必须变调，否则读作机械循环）；拉回全景那一下一记 `whoosh`（`vol` 0.26、`rate` 0.92）。hold 段无声。
 

@@ -3,9 +3,14 @@ name: quote-card
 标题: 金句大字卡
 一句话: 说到金句时底板 0.25s 盖住人物，3~5 行大字自上而下逐行错峰弹出，关键词换色放大，停 2~4s 后整卡下滑退场
 适用: 口播的观点峰值（金句、结论、暴论）；商业类/情感类竖屏口播的招牌收束动作，罗翔式纯黑白变体适合严肃调性
-时长: 底板 0.25s + 逐行入场约 1s（行错峰 120~180ms）+ hold 2~4s + 出场 0.3s
+时长: 底板 0.25s（0.15s 起）+ 四行逐行入场 0.35→1.20s（行错峰 0.15s、单行 0.4s）+ hold ≈2.2s（退场起点 `outAt` 写死 3.40s；真实口播 2~4s）+ 出场 0.3s；共约 3.7s
 能量: 中
 类别: 字幕花字
+输入: 文, 人(可选)
+语义: 金句, 结尾
+素材形态: 无
+位置: 任意
+props: hostSrc
 优先级: P1
 代码: template/cards/quote-card.tsx
 ---
@@ -20,7 +25,7 @@ name: quote-card
 ## 动效核心
 - 层级：人物层在底，`.quote-panel` 整屏底板（实底，demo 用灰阶 #1d1d1f）盖上
 - 入场：底板 opacity 0→1，0.25s power2.out；同时人物被盖即"压暗"
-- 正文：3~5 行大字，每行 y 30px→0 + opacity 0→1，0.4s power3.out，行间 stagger 120~180ms
+- 正文：3~5 行大字（demo 4 行），每行 y 30px→0 + opacity 0→1，0.4s power3.out，行间 stagger 0.15s（`lineStagger`，可调 120~180ms）
 - 关键词：行内 span 换高亮色（#ffd23e）且 font-size 1.2em——静态样式，不参与动画
 - 出处小字延迟最后一行约 0.2s 淡入
 - 出场：整卡 opacity→0 + y +40px，0.3s power2.in，直接回到人物
@@ -33,7 +38,7 @@ name: quote-card
 | 行错峰 | 150ms | >250ms 像逐条列表不像一句话；<80ms 读作整段淡入 |
 | 单行入场 | 0.4s | >0.6s 拖沓；<0.25s 行与行的先后关系看不出来 |
 | 行数 | 3~5 行 | 超过 5 行就不是金句是段落，观众不读 |
-| hold | 2~4s | 跟着语速走：读完 +0.5s 就切，多留一秒都是空气 |
+| `outAt` 退场起点（= hold 长度） | 3.40s（末行 1.20s 落定 → hold ≈2.2s；真实口播 2~4s） | 跟着语速走：读完 +0.5s 就切，多留一秒都是空气。tsx 里 `outAt` 是组件内常量，`CONFIG.hold` 未接线 |
 | 出场 | 0.3s 下滑 | 出场比入场轻；用弹跳出场会抢金句本身的余味 |
 
 ## 已知坑
@@ -43,7 +48,8 @@ name: quote-card
 - 出场用花哨转场——金句的余味在静，出场越轻越高级。
 
 ## 复用指引
-- Remotion/tsx（skill 首选）：template/cards/quote-card.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
+- props：仅 `hostSrc`；金句四行、关键词 `.kw` 与出处在 JSX 常量里，换内容需改源码。
+- Remotion/tsx（skill 首选）：template/cards/quote-card.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。退场起点是组件内常量 `outAt = 3.40`（`CONFIG.hold` 未接线），改 hold 直接改 `outAt`。
 - HTML/GSAP：demos/quote-card/index.html，改 `.quote-line` 文案与 `.kw` 位置即可换句子；节奏全在 `CONFIG`（panelIn/lineStagger/hold）。罗翔变体：底板换纯黑、去掉 `.kw` 色彩、行入场只留 opacity。
 - Remotion 移植：每行一个 `<Sequence from={i*5}>` + `spring({damping:200})` 驱动 y/opacity；hold 用 Sequence duration 控制；出场 interpolate(frame, [out, out+9], [0, 40])。
 - 剪辑软件对应物：剪映"文字模板→大字报"；CapCut "quote card"; AE 里是文本层 position/opacity 关键帧 + 纯色层做底板。
@@ -51,7 +57,7 @@ name: quote-card
 ## 动效范围
 - 属于本卡的：底板 opacity 0→1 盖住人物层的**遮蔽动作**（0.25s、power2.out，必须是实底）；正文 3~5 行各 `y 30→0 + opacity 0→1`（0.4s、power3.out）、行间 stagger 120~180ms 的自上而下逐行错峰；出处小字延迟最后一行约 0.2s 淡入；hold 2~4s；整卡 `opacity→0 + y +40px` 下滑退场（0.3s、power2.in）。纪律部分同属本卡：**逐行不逐字**（行是节奏单位，行内关键词只做静态换色放大、不参与动画）。
 - 不属于本卡的：主持人剪影占位、示例金句与出处文案、字号 42px / 字重 800 / 字距、底板与关键词的具体色值（黑底白字 / 白底黑字 / 罗翔式纯黑白都成立）。
-- 迁移接口：`panelIn` 定盖板速度，`lineStagger`/`lineIn` 定逐行节奏，`hold` 跟语速走，`out`/`outDrop` 定退场；换风格只改底板 background + 行文字 color + `.kw` 高亮色三个值（反色变体：底板换 #ffffff、文字换 #1d1d1f）；换尺寸时字号与 `lineRise`/`outDrop` 按画幅短边等比缩放。
+- 迁移接口：`panelIn` 定盖板速度，`lineStagger`/`lineIn` 定逐行节奏，`outAt`（tsx 退场起点）跟语速走，`out`/`outDrop` 定退场；换风格只改底板 background + 行文字 color + `.kw` 高亮色三个值（反色变体：底板换 #ffffff、文字换 #1d1d1f）；换尺寸时字号与 `lineRise`/`outDrop` 按画幅短边等比缩放。
 - 底色要求：**需要与舞台底色有明度反差的实底板**（例外）。理由：本卡的核心动作是"底板盖住人物、字占全屏"的让位仪式——底板若与舞台同为白，遮蔽动作在画面上不可见，动效等于没发生。demo 取最中性的灰阶深底 #1d1d1f（无色相、不引入品牌色）。复用者反过来配也成立（白底板 + 深色人物层），关键是**反差本身**，不是深浅方向。
 
 

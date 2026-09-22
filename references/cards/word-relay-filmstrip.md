@@ -4,8 +4,13 @@ name: word-relay-filmstrip
 一句话: 左列 360 宽的等高截图卡纵向排成胶片、深浅边框相间，右侧衬线两行——名词"一个 AI，能"恒定、动词原位接力：每 1.4s 旧词 0.18s 灰化淡出、胶片同起 0.4s power2.inOut 滚动恰好一卡高（212）、新词 +0.2s 起 0.25s 落位（先出后进不叠影），词块垂直中心钉在当前卡中点 y=264；末词换强调色，静置 0.9s 后胶片与词块同收——每切一个词，证据跟着翻一页
 适用: "一个主体 × 多种能力"的枚举（AI 能写 / 画 / 剪 / 配，每个动词配一张截图）、作品集 / 案例流（每个案例一张图一个词）、产品多场景巡礼、"这些年我做过……"的个人经历列举；4~6 个词，每词一张图；无人物在场
 时长: 6.4s（0.4 首词 → 1.8 / 3.2 / 4.6 三次切词各带一次步进 → 5.95 同收 0.45s）；成片按口播念到每个动词的时刻摆切词点，词期 1.0~1.8s 不必均匀
-能量: 中低
+能量: 中
 类别: 素材呈现
+输入: 图, 截图, 文
+语义: 例证, 列举
+素材形态: 横屏, 多图
+位置: 中段
+props: noun, verbs, labels, srcs, accent
 优先级: P1
 代码: template/cards/word-relay-filmstrip.tsx
 ---
@@ -13,7 +18,7 @@ name: word-relay-filmstrip
 ## 输入类型
 | 口播视频 | B-roll 视频 | 图片 |
 |---|---|---|
-| ✗ 人物不参与（人在场的列举用 parallel-items-with-host） | ✓ 胶片卡可放视频（每卡一段，muted，落定即播） | ✓（默认输入）每个动词一张截图 / 照片 |
+| ✗ 人物不参与（人在场的列举用 parallel-items-with-host） | ✗（tsx 的 `srcs` 仅走 `<Img>`，不播视频；换法见复用指引） | ✓（默认输入）每个动词一张截图 / 照片 |
 
 一个动词对应一张卡；多给一张卡 = 露在视窗下方的"下一张"，暗示还有。
 
@@ -58,7 +63,7 @@ name: word-relay-filmstrip
 - 图与词不对应（图先换词后换或反之）——两个动画；胶片与词切换必须同起。
 
 ## 复用指引
-- Remotion/tsx（skill 首选）：template/cards/word-relay-filmstrip.tsx——`noun / verbs / labels / srcs / accent`；durationInFrames 204（4 词；词数变了按 `exitAt + exitDur` 重算）；胶片滚动与词接力全部由 t 算。
+- Remotion/tsx（skill 首选）：template/cards/word-relay-filmstrip.tsx——`noun / verbs / labels / srcs / accent`；durationInFrames 204（4 词；词数变了按 `exitAt + exitDur` 重算）；胶片滚动与词接力全部由 t 算。tsx 的 `srcs` 仅走 `<Img>`；要放视频把 `<Img>` 换成 `<OffthreadVideo muted>`（Remotion 自带；grid-to-hero.tsx 里有按后缀自动切换的现成写法），其余不动。
 - HTML/GSAP：demos/word-relay-filmstrip/index.html——改 `NOUN / VERBS / CARDS` 与 `CONFIG`；`.ph` 换 `<img>` / `<video>` 即真素材。
 - 母本：video-shotcraft `word-relay-filmstrip`（左列黑白页面卡步进 + 右侧 Didot 衬线名词恒定动词接力）。口播化改造：页面卡换证据截图、词期 45~60f → 1.4s、字号缩小、末词强调色收束。
 - 剪辑软件对应物：剪映两条轨——图片轨逐张"位置"关键帧（每次 12 帧滑一卡高）+ 文字轨逐词淡入淡出；AE 用 Position 表达式 `valueAtTime` 阶梯 + Text Animator Opacity。

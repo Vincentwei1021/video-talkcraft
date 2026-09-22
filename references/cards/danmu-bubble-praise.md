@@ -8,6 +8,11 @@ name: danmu-bubble-praise
 时长: 起手静置 0.4s → 四枚错峰 0.55s 依次进（每枚进 0.3s / 停 0.75s / 走 0.4s）→ 末枚走后留白 0.45s；共约 3.95s
 能量: 中
 类别: 人物互动
+输入: 文, 人(可选)
+语义: 引用, 例证
+素材形态: 无
+位置: 任意
+props: hostSrc
 ---
 
 ## 意图
@@ -42,7 +47,7 @@ name: danmu-bubble-praise
 - **气泡形制**：`border-radius: 999px` 纯圆角胶囊。**无尾巴三角**
   （用户 2026-08-25 定版删除——弹幕是飘过的浮层，尾巴是"谁在说"的对话框语义，
   会把它拉回 `chat-message-flow` 那张卡的语言）；无投影、无描边——
-  它不是"落在底上的实物"，是浮层。`side-l/side-r` 只决定**进场方向**，不再决定尾巴朝向
+  它不是"落在底上的实物"，是浮层。`side-l/side-r`（tsx 为 `BUBBLES[].dir` ±1）只决定**进场方向**，不再决定尾巴朝向
 - **色阶四级（唯一强调色 + 三级灰阶实色）**：强调枚 `#e0452c` 底 / 白字；
   其余三枚 `#e8e8ec`·`#f2f2f4`·`#e8e8ec` 底配 `#1d1d1f`·`#6e6e73`·`#545458` 字——
   **靠底色与字色的明度分层，不叠 opacity**（design-language §1 红线）
@@ -78,6 +83,7 @@ name: danmu-bubble-praise
 - 用 `Math.random()` 生成落位或错峰——重播两次不一样，卡库要求可复现（用固定数组）。
 
 ## 复用指引
+- props：仅 `hostSrc`；四句评论与进场方向在 `BUBBLES` 常量（`dir` ±1）、落位与配色在 CSS `#b1~#b4`、节奏在 `CONFIG`，换内容需改源码。
 - Remotion/tsx（skill 首选）：template/cards/danmu-bubble-praise.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/danmu-bubble-praise/index.html。换文案改四个 `.db-b` 的文本（每条 4~8 字，
   `white-space: nowrap` 是硬要求）；换落位改 `#b1~#b4` 的 `left/top`，同时把 `side-l/side-r`
@@ -105,5 +111,5 @@ name: danmu-bubble-praise
 ## 动效范围
 - 属于本卡的：单枚"进 0.3s / 停 0.75s / 走 0.4s"这个三拍模板；`stagger 0.55s` 与 `hold 0.75s` 这一对（以及 `inDur + hold ≤ 2×stagger` 这条交叠判据）；进场朝画面中心 `x ±26 → 0` + `scale 0.88→1`、出场只走 `y −18` + `opacity`（出场不动 scale）这条纪律；四枚纵向落位不等距 + 左右交替这个分布规则；落定后完全静置（不漂不呼吸）；静态倾斜 ±1.2~1.8° 作为形状属性；"四枚里恒有且仅有一枚强调色，其余靠底色/字色明度三级分层而非透明度"这条配色纪律。
 - 不属于本卡的：demo 那四句具体评论文案（说得太对了 / 干货满满 👍 / 收藏了 / 已经在用了）、`#e0452c` 这个具体强调色（参考图同色系任一个都成立）、21px 字号与 600 字重、`border-radius: 999px` 胶囊这个具体气泡形制（换成方角小卡、圆角矩形 chip 都不影响动效；**但尾巴三角不许加回来**——那是对话框语义，见已知坑）、四枚的具体 `left/top` 数值、白底舞台、以及铺满舞台的数字人主持人占位。
-- 迁移接口：内容入口 = 四个 `.db-b` 的文本 + `side-l/side-r`；落位入口 = 各枚 `left/top`；配色入口 = 各枚的 `--fill`/`--ink` 两个 CSS 变量（强调枚只有一枚）；能量入口 = `stagger` + `hold` 这一对（改完复核判据）；总时长 = `startDelay + (n−1)×stagger + inDur + hold + outDur + tailHold`，加枚数请延长总时长而不是加密错峰。竖屏：落位改成"上下各两枚"（竖屏两侧宽度不够放 6~8 字的气泡），`inX` 换成 `inY ±26`，其余时序不动。
+- 迁移接口：内容入口 = 四个 `.db-b` 的文本 + `side-l/side-r`；落位入口 = 各枚 `left/top`；配色入口 = tsx 里 `#b1~#b4` 四条规则的 `background / color`（HTML demo 是各枚 `--fill`/`--ink` 变量），强调枚只有一枚；能量入口 = `stagger` + `hold` 这一对（改完复核判据）；总时长 = `startDelay + (n−1)×stagger + inDur + hold + outDur + tailHold`，加枚数请延长总时长而不是加密错峰。竖屏：落位改成"上下各两枚"（竖屏两侧宽度不够放 6~8 字的气泡），`inX` 换成 `inY ±26`，其余时序不动。
 - 底色要求：白底即可。唯一约束是**底不能与气泡的灰阶三级撞明度**——灰阶枚靠底色明度分层，深底上必须整套反相（气泡底改深灰三级、字反白），不能只把字反白。

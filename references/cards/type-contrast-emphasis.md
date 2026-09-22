@@ -6,8 +6,13 @@ name: type-contrast-emphasis
 一句话: 字幕逐词追加、普通词一律无衬线小字轻 pop，念到重音词的瞬间该词换成衬线斜体放大 1.5~2 倍（或换唯一强调色），强调完全靠字体气质的落差砸出来，运动本身刻意做轻、不弹不过冲
 适用: 每段口播的判断句/反转句/结论词——尤其"不是 A，是 B"这种对照句式；克制、有编辑气质的知识区与个人观点口播，想要重音但不想要综艺弹跳的调性
 时长: 普通词轻 pop 0.1s（scale 0.95→1 无回弹）；重音词入场 0.15s（上滑 + 轻放大淡入）；词间距抄真实语速（0.2~0.7s 不等）；一句 5 词约 2s，追加式全句完成后定格
-能量: 中
+能量: 低
 类别: 字幕花字
+输入: 人(可选), 文
+语义: 对比, 转折, 强调
+素材形态: 无
+位置: 任意
+props: hostSrc
 ---
 
 ## 意图
@@ -30,8 +35,7 @@ name: type-contrast-emphasis
 - 重音词入场：`y +14px→0` 从基线下方上滑回落，同帧 `scale 0.92→1` + 淡入，0.15s `power3.out`——
   "顶上来"落定，不过冲
 - 两个通道是**替代关系**（同一个词二选一），不叠用：衬线斜体 + 强调色 + 放大三件套一起上读作贴纸花字
-- 两种模式：**追加式**（已说的词保留，全句完成后定格，适合对照句式）/
-  **接力式**（只保留当前词，前词硬切消失，适合快节奏短句）
+- 保留模式只有**追加式**（已说的词保留，全句完成后定格，适合对照句式）；tsx 的 `CONFIG.mode` 虽声明了 `"relay"` 但渲染逻辑未读取它，接力式（只留当前词、前词硬切）需自行实现
 - 层级：重音词可单独一行、压在素材或人物上——大字加白描边即可，其余词留在字幕行
 
 ## 参数表
@@ -58,14 +62,14 @@ name: type-contrast-emphasis
 - 强调色不止一个——本卡的色彩通道必须复用全片唯一 accent，多一个颜色就成花字。
 
 ## 复用指引
-- Remotion/tsx（skill 首选）：template/cards/type-contrast-emphasis.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
+- Remotion/tsx（skill 首选）：template/cards/type-contrast-emphasis.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。props：仅 `hostSrc`；分词 / 词级时刻 / 通道标记在 `CONFIG.words` 里，换内容需改源码。
 - 与 keyword-pop-highlight 的分工：那张卡的重音要"砸"（scale 1.65 过冲 + 色块 + 整屏震动），本卡的重音要"稳"（字形气质落差 + 0.15s 轻上滑，不过冲）。同一句里**只能选一张**——回弹强调与气质对比同屏混用一眼假；同一片子里可按段落调性分用（高能段落走 keyword-pop-highlight，判断句/结论句走本卡）。见 references/cards/keyword-pop-highlight.md。
 - HTML/GSAP：demos/type-contrast-emphasis/index.html。换文案改 `CONFIG.words`（`w` 分词 + `beat` 词级语音时刻 + `emph: "serif" | "color"` 指定通道，不填即普通词）；换尺寸只改 CSS 变量 `--tc-base`；落差量级在 `--tc-serif-scale` / `--tc-color-scale`；强调色在 `.tc-word.emph-color` 的 `color`；手感在 `accentIn` / `accentRise` / `obliqueDeg`。核心可摘走部分 = `CONFIG` + `DemoShell.register` 回调内部。
-- Remotion 移植：普通词 `opacity: interpolate(frame, [b, b+3], [0, 1])` + `scale: interpolate(frame, [b, b+3], [0.95, 1])`（b = 该词语音帧，`extrapolate*: 'clamp'`，`transformOrigin: '50% 100%'`）；重音词同区间取 `[b, b+5]`，`y: interpolate(..., [14, 0], {easing: Easing.out(Easing.cubic)})` + `scale [0.92, 1]`，`transform` 里把 `skewX(-7deg)` 写成静态项（别让它参与插值）；字族/字号落差全在 style 常量里，不进插值；`beat` 由 whisper/forced-alignment 词级时间戳换算帧直接填入。接力式把前词 opacity 在 `bNext` 帧阶跃到 0。
+- Remotion 移植：普通词 `opacity: interpolate(frame, [b, b+3], [0, 1])` + `scale: interpolate(frame, [b, b+3], [0.95, 1])`（b = 该词语音帧，`extrapolate*: 'clamp'`，`transformOrigin: '50% 100%'`）；重音词同区间取 `[b, b+5]`，`y: interpolate(..., [14, 0], {easing: Easing.out(Easing.cubic)})` + `scale [0.92, 1]`，`transform` 里把 `skewX(-7deg)` 写成静态项（别让它参与插值）；字族/字号落差全在 style 常量里，不进插值；`beat` 由 whisper/forced-alignment 词级时间戳换算帧直接填入。
 - 剪辑软件对应物：剪映/CapCut——把重音词拆成独立文本轨，字体换成"宋体/思源宋体"并开倾斜、字号调到 1.5~2 倍，入场用"渐显 + 向上滑入"（关掉所有弹跳/花字预设）；AE——同一段文字用两个 Text Animator（一个 Range Selector 只作用普通词做 scale 0.95→1，一个只作用重音词做 Position + Scale），字族落差用 Source Text 关键帧或直接分层，倾斜用 Skew 属性；剪映的"文字模板"类预设一律不能用（自带弹跳与花字，破坏本卡的克制感）。
 
 ## 动效范围
-- 属于本卡的：逐词追加的入场时序（词级语音时刻驱动，间距不均匀）；普通词轻 pop（opacity 0→1 + scale 0.95→1、0.1s、power2.out、origin 锚基线、**无回弹**）；重音词入场（y +14px→0 上滑回落 + scale 0.92→1 + 淡入、0.15s、power3.out、不过冲）；重音词的两个替代通道（① 换衬线族 + skewX 显式倾斜 + 字号 ×1.5~2；② 换唯一强调色 + 字号 ×1.4~1.6）与"二选一不叠用"的纪律；整句共一条基线且预占位不回流；一句只有一个重音；追加式 / 接力式两种保留模式。
+- 属于本卡的：逐词追加的入场时序（词级语音时刻驱动，间距不均匀）；普通词轻 pop（opacity 0→1 + scale 0.95→1、0.1s、power2.out、origin 锚基线、**无回弹**）；重音词入场（y +14px→0 上滑回落 + scale 0.92→1 + 淡入、0.15s、power3.out、不过冲）；重音词的两个替代通道（① 换衬线族 + skewX 显式倾斜 + 字号 ×1.5~2；② 换唯一强调色 + 字号 ×1.4~1.6）与"二选一不叠用"的纪律；整句共一条基线且预占位不回流；一句只有一个重音；追加式保留模式。
 - 不属于本卡的：主持人占位（数字人）、示例台词与分词、字幕落在右侧白区这个位置、`--tc-base` 32px 这个具体字号、宋体/PingFang 这两个具体字族（本卡要的是"衬线 vs 无衬线"的落差，不是某个字体）、`#0066cc` 这个具体强调色值、`#1d1d1f` 这个字色。
-- 迁移接口：`beat` 换成目标音轨的词级时间戳；`--tc-base` 一个数等比换尺寸（`accentRise` 按字号 30% 同步缩放）；字族落差换成目标风格里的"正文族 / 引用族"一对（衬线↔无衬线、常规↔重型手写皆可，只要气质差异在缩略图尺寸下可辨）；色彩通道的 `color` 换成该项目的唯一 accent；深底或实拍花底把字色反过来（普通词白、重音词 accent）并给重音大字加 2~3px 描边保可读；`mode` 切 `"relay"` 走接力式（前词在下一词语音帧硬切消失）。
+- 迁移接口：`beat` 换成目标音轨的词级时间戳；`--tc-base` 一个数等比换尺寸（`accentRise` 按字号 30% 同步缩放）；字族落差换成目标风格里的"正文族 / 引用族"一对（衬线↔无衬线、常规↔重型手写皆可，只要气质差异在缩略图尺寸下可辨）；色彩通道的 `color` 换成该项目的唯一 accent；深底或实拍花底把字色反过来（普通词白、重音词 accent）并给重音大字加 2~3px 描边保可读。
 - 底色要求：白底即可（字形/字号落差与底色无关，是本卡最容易迁移的性质）。唯一硬要求是"普通词与重音词的对比同时成立"——花底上需给重音大字补描边，别让强调色掉进背景明度里。

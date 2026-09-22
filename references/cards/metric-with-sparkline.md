@@ -3,9 +3,14 @@ name: metric-with-sparkline
 标题: 数字带趋势
 一句话: 小标签先淡入，大数字 0→67 滚 0.9s，下方小折线在同一刻起跑用 0.6s 画完、四个数据点跟着线端依次弹出；数字停住那一帧「%」和上箭头才出现——结论比过程晚半拍
 适用: 口播念一个带方向的指标时（"效率提升了 67%"、"退货率降到 3%"）；财经/评测/复盘类段落里"一个数 + 它怎么来的"这种双层信息；不适合只报一个孤立数字（那用 number-slab-pop）
-时长: 静置 0.3s → 标签 0.16s → 计数 0.9s ‖ 折线 0.6s（同刻起跑）→ 单位+箭头 0.2s → hold 1.8s；共约 3.2s
+时长: 静置 0.3s → 标签 0.16s → 0.5s 起计数 0.9s ‖ 折线 0.6s（同刻起跑）→ 1.4s 单位+箭头 0.2s → hold 1.8s；共约 3.4s
 能量: 中
 类别: 数据信息图
+输入: 文, 人(可选)
+语义: 数据
+素材形态: 无
+位置: 任意
+props: hostSrc
 优先级: P0
 代码: template/cards/metric-with-sparkline.tsx
 ---
@@ -32,7 +37,7 @@ name: metric-with-sparkline
 - **层级**（自下而上）：白舞台 → 小标签（灰 `#8a8a8a` / letter-spacing 3px）→
   大数字行（`display: flex; align-items: baseline`，整行 `white-space: nowrap` +
   `font-variant-numeric: tabular-nums`）→ 小折线 SVG（含一条静态灰基线）→ x 轴周次标签。
-  主持人占位在右侧 34%，指标块左对齐在 96px 安全边内。
+  主持人占位在右侧 47%，指标块左对齐在 96px 安全边内。
 - **① 标签**：`opacity 0→1`，0.16s `power2.out`，`t = 0.30`（起手静置）。
 - **② 计数**：`t = 0.50` 起，`{v:0} → {v:67}`，0.9s `power2.out`，
   `onUpdate` 里 `Math.round` 写进 textContent。**`tabular-nums` 是硬要求**——
@@ -81,6 +86,7 @@ name: metric-with-sparkline
   版式件（标签/刻度）一律灰阶。
 
 ## 复用指引
+- props：仅 `hostSrc`；数值 `target` / 点位 `pts` / 颜色在 CONFIG，标签与 x 轴文案写死在 JSX，换内容需改源码。
 - Remotion/tsx（skill 首选）：template/cards/metric-with-sparkline.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：`demos/metric-with-sparkline/index.html`。**换数据改两处**：`CONFIG.target`（计数终值）
   和 `CONFIG.pts`（折线点位，SVG 局部坐标 `viewBox 0 0 400 96`，y 越小越高）；换文案改 HTML 里的

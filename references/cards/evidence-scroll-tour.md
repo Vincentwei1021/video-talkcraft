@@ -5,9 +5,14 @@ name: evidence-scroll-tour
 代码: template/cards/evidence-scroll-tour.tsx
 一句话: 超出屏高的长截图页作为画面唯一动元素匀速上滚（约 10% 页高/s），预标注的红框/高亮随页滚动，讲到关键条目提前减速、停 1~2s 再滚完——滚速就是讲述节奏
 适用: 口播出示文档/协议/README/搜索结果等长页证据、需要"我们从头看一遍，重点在这一条"的时刻；财经拆解、测评对比、事件梳理等冷静举证的调性
-时长: 起滚缓入约 0.5s → 匀速慢滚 4~6s（随页高）→ 提前 ~1s 减速、关键条目停在视口中线 1~2s → 加速 ~0.6s 回匀速滚完；单页全程 8~14s
+时长: 起手静置 0.6s → 缓入起滚 0.69s → 匀速慢滚（demo 2.5s，随页高）→ 提前 1.38s 减速、关键条目停在视口中线 1.5s → 再启动 0.69s → 匀速 1.5s → 收尾减速 1.38s 停在页尾；demo 全程 10.28s（加减速段 = 2×距离/速度，随 accelDist / decelDist / scrollSpeed 变）
 能量: 低
 类别: 素材呈现
+输入: 截图, 人(可选)
+语义: 例证, 引用, 强调
+素材形态: 长图
+位置: 中段
+props: hostSrc
 ---
 
 ## 意图
@@ -19,14 +24,12 @@ name: evidence-scroll-tour
 
 ## 动效核心
 - 长页（2.5~4 屏高的文档/README/搜索结果截图）放进固定视口（可带极简窗口框示意"这是一份文件"），页面 `y` 是全卡唯一持续运动的属性
-- 起滚：`power2.in` 缓入约 0.5s 接上匀速（避免第 0 帧突然满速像 seek）
+- 起滚：先静置 `startDelay` 0.6s 等口播开场，再 `power2.in` 缓入约 0.7s（= 2×accelDist/v）接上匀速（避免第 0 帧突然满速像 seek）
 - 匀速段：`ease: none`，速度约 10% 页高/s（960×540 demo 里 130px/s；折算任何尺寸都以"观众能扫读小标题"为准）
 - 预置标注：红框/下划线/色块直接画在页面元素上（`position:relative` 包裹 + 绝对定位框），随页滚动，无自身入场动画
-- 减速停留：距停点提前 ~90px（约 1s）用 `power2.out` 减速，让目标条目停在**视口垂直中线**附近；停 1~2s 对齐台词"关键就在这条"
+- 减速停留：距停点提前 ~90px（约 1.4s = 2×decelDist/v）用 `power2.out` 减速，让目标条目停在**视口垂直中线**附近；停 1~2s 对齐台词"关键就在这条"
 - 停留防死：目标红框 scale 1→1.03→1 一次完整呼吸（`sine.inOut`、yoyo，时长≈停留时长），连续缓动不抖动
-- 再启动：`power2.in` 约 0.6s 加速回匀速，滚完剩余页面后自然停在页尾
-- 变体①（2.5D 斜置）：视口外层加 `perspective` + `rotateX 30~45°`，页面像铺在桌上被镜头掠过，滚动逻辑不变
-- 变体②（光标伴随）：叠一枚光标素材在停留时移向目标条目，指向与台词同步；光标只在停留段出现
+- 再启动：`power2.in` 约 0.7s 加速回匀速，滚完剩余页面后以同样的 `power2.out` 减速停在页尾
 
 ## 参数表
 | 参数 | 典型值 | 调节手感 |
@@ -37,6 +40,7 @@ name: evidence-scroll-tour
 | `decelDist` | 90px | 减速提前量；太短像急刹（程序 seek 感），太长观众提前知道要停、悬念没了 |
 | `accelDist` | 45px | 起滚/再启动的加速距离；0 会瞬间满速，读作跳变 |
 | `breathScale` | 1.03 | 停留期红框呼吸幅度；>1.06 像警报闪烁，1.0 整帧冻结画面死 |
+| `startDelay` | 0.6s | 起滚前静置一拍，等口播开场 |
 
 ## 已知坑
 - 停留时现场画红框/划线——那是 scribble-annotation 卡的事；本卡标注必须预置随页走，现场画会夺走"页面是唯一动元素"的巡览感。
@@ -47,13 +51,13 @@ name: evidence-scroll-tour
 - 关键条目停在视口边缘——观众不知道该看哪一行，停留白停。
 
 ## 复用指引
-- Remotion/tsx（skill 首选）：template/cards/evidence-scroll-tour.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
+- Remotion/tsx（skill 首选）：template/cards/evidence-scroll-tour.tsx——props：仅 `hostSrc`；长页内容与红框在 JSX 常量里，停点几何在 GEO 常量（vh 369 / pageH 1162 / boxTop 629.94 / boxH 30，demo 运行时测量后定值），换内容需改源码并重测 GEO。自包含单文件，复制进工程即可用；节奏参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/evidence-scroll-tour/index.html。换证据改 `.doc-page` 内文（红框停点是 `#stop-box`，任意换到别的句子上，停点位置运行时自动测量）；换标注色改 `.mark-box` 的 `border-color`；节奏全在顶部 `CONFIG`（`scrollSpeed` / `stopHold` / `stopAlign` / `decelDist` / `accelDist` / `breathScale`）。多个停点把"减速→呼吸→加速"三段照抄串联即可。
 - Remotion 移植：把"位移-时间"曲线拆成分段 `interpolate(frame, [t0,t1,t2,t3,t4,t5]*fps, [0, -accelDist, -(stopY-decelDist), -stopY, -stopY, -(stopY+accelDist), -total])`，各段 easing 依次 `Easing.in(Easing.quad)` / linear / `Easing.out(Easing.quad)` / 常值（hold）/ `Easing.in(Easing.quad)` / linear；段时长按 `距离/scrollSpeed`（加减速段 `2*dist/v`）；呼吸用 hold 区间内的 `Math.sin` 单周期映射 scale。
 - 剪辑软件对应物：剪映——长截图导入后打"位置"关键帧，匀速段两点线性、停点前后各加一个关键帧并对减速点右键"缓出"/启动点"缓入"；AE——Position 关键帧 + 停点两侧 Easy Ease（速度图里把停点速度拉到 0），红框呼吸用 scale 表达式 `1+0.03*Math.sin(...)`; CapCut 同剪映 keyframe 做法。
 
 ## 动效范围
 - 属于本卡的：长页 `y` 轴匀速上滚（≈10% 页高/s、ease none）及其"缓入起滚→匀速→提前减速（power2.out）→停 1~2s→加速再启动（power2.in）→滚完"的完整速度曲线；停留期目标标注一次连续呼吸（scale 1→1.03→1、sine.inOut）；"标注预置随页滚动、不现场画"的原则。一条速度曲线 + 一个防死呼吸是本卡的全部。
-- 不属于本卡的：页面内容与排版（demo 的假协议文档、灰阶占位条）、窗口框样式、字幕文案与切换、角标主持人；红框的绘制入场动画（现场画属 scribble-annotation）；2.5D 斜置姿态与光标素材本身（变体只定义接口，素材另配）。
-- 迁移接口：`scrollSpeed` 对齐讲述语速（换尺寸按页高比例折算）；停点=任意页内元素（运行时测 offset，内容随便换）；多停点串联"减速→呼吸→加速"三段；标注色是单一 semantic 色 token（深色截图换高对比色）；2.5D 变体只需在视口外层加 perspective/rotateX，速度曲线原样复用。
+- 不属于本卡的：页面内容与排版（demo 的假协议文档、灰阶占位条）、窗口框样式、字幕文案与切换、角标主持人；红框的绘制入场动画（现场画属 scribble-annotation）。
+- 迁移接口：`scrollSpeed` 对齐讲述语速（换尺寸按页高比例折算）；停点=页内任一元素的位置（demo 运行时测 offset；tsx 写在 GEO 常量，换页面重测 boxTop / pageH）；多停点串联"减速→呼吸→加速"三段；标注色是单一 semantic 色 token（深色截图换高对比色）。
 - 底色要求：白底即可（长页本身通常是浅色文档；深色终端/IDE 截图同样成立，仅需换标注色保证对比）。

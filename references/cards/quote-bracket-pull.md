@@ -8,6 +8,11 @@ name: quote-bracket-pull
 时长: 起手静置 0.35s → 双引号同帧推入 0.32s → 三行错峰淡入 0.48s → 荧光笔扫 0.26s → 收尾 hold 2.2s；共约 3.6s
 能量: 中
 类别: 字幕花字
+输入: 文, 人(可选)
+语义: 引用, 金句
+素材形态: 无
+位置: 任意
+props: hostSrc
 ---
 
 ## 意图
@@ -83,6 +88,7 @@ name: quote-bracket-pull
   hold 比它们的总和还长才对；砍掉 hold 等于砍掉金句本身。
 
 ## 复用指引
+- props：仅 `hostSrc`；三行金句与荧光笔关键短语在 JSX 常量里，换内容需改源码。
 - Remotion/tsx（skill 首选）：template/cards/quote-bracket-pull.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/quote-bracket-pull/index.html。**换内容改 `.qb-line` 的三行文案**
   （荧光笔的关键短语用 `.qb-mark-wrap` 包住即可，色块宽度自动贴合）；

@@ -6,6 +6,11 @@ name: still-layout-relay
 时长: 一主两辅 8.08s（0.3 主图落 → 0.8 / 0.95 佐证 → 2.4 / 4.2 接力 → 6.0 回位 → 7.6 退场）；三联 7.08s（0.3 起错峰 80ms → 1.4 / 2.8 / 4.2 接力 → 5.6 回位 → 6.6 退场）；demo 两式巡演 15.16s；成片一镜一式，站与站间隔随口播伸缩
 能量: 低
 类别: 素材呈现
+输入: 图
+语义: 例证, 强调, 列举
+素材形态: 多图
+位置: 任意
+props: layout, captions, srcs, accent
 优先级: P0
 代码: template/cards/still-layout-relay.tsx
 ---

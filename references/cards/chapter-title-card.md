@@ -4,8 +4,13 @@ name: chapter-title-card
 一句话: 段落切换时全屏色块 0.3s 压入盖屏，屏高 40% 的章节编号先落位，章节名随后从编号旁遮罩揭示，停 1.2s 后色块同向扫出切回口播；每章一套主题色 + 一个与本章内容相关的线稿 motif 在色块盖屏后于背景描出，章节名下一条 accent 短线接上
 适用: 长口播（5 分钟以上）的段落切换点；财经解读、事件复盘、纪录片式叙事等需要"翻页感"的调性
 时长: 单卡约 2.5s：扫入 0.3s + 编号 0.4s + 章节名 0.35s + hold 1.2s + 扫出 0.3s；两卡示范间隔 0.7s
-能量: 中
+能量: 高
 类别: 转场结构
+输入: 文, 人(可选)
+语义: 章节, 转场
+素材形态: 无
+位置: 中段
+props: hostSrc, themes
 优先级: P0
 代码: template/cards/chapter-title-card.tsx
 ---
@@ -56,6 +61,7 @@ name: chapter-title-card
 - motif 与本章内容无关（随手放个几何装饰）——装饰性元素违反"内容即主角"；motif 必须能一句话说出它和本章的关系（讲速度 = 仪表 / 讲写作 = 笔迹 / 讲离场 = 门）。
 
 ## 复用指引
+- props：`hostSrc`、`themes`（`ChapterTheme[]`：每章 bg / ink / accent / motif）；编号 / 章节名 / 小字文案在 JSX 常量里，换内容需改源码。
 - Remotion/tsx（skill 首选）：template/cards/chapter-title-card.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/chapter-title-card/index.html。换文案改 `.chapter-num` / `.chapter-name` / `.chapter-sub` 内文本；换色改 `.chapter-card.c1` / `.c2` 的 `background`；节奏全部在顶部 `CONFIG`（`wipeIn`/`numIn`/`nameIn`/`subDelay`/`hold`/`driftPx`/`wipeOut`/`gapBetween`）。加第三章 = 复制一段 `.chapter-card` DOM + 在 register 里多调一次 `chapterBeat(tl, cards[2], at)`。核心节拍函数 `chapterBeat` 可整段摘走。
 - Remotion 移植：每章一个 `<Sequence>`；色块用 `interpolate(frame, [0, wipeIn*fps], [-100, 0], {easing: Easing.inOut(Easing.quart)})` 驱动 `translateX%`；编号 scale/opacity 与章节名 `clipPath` 的 inset 百分比同样用 interpolate（`Easing.out(Easing.cubic)`）；hold 漂移是一条贯穿的线性 interpolate；出场放同一 Sequence 尾部用 `Easing.in(Easing.quart)`。

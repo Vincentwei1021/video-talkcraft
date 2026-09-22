@@ -3,9 +3,14 @@ name: lower-third-nameplate
 标题: 人名条展示牌
 一句话: 画面左下色条先横向展开 0.3s，姓名随后从左遮罩揭示，头衔行再延迟 0.15s 跟进；停留后按反向顺序收回
 适用: 真人出镜/访谈嘉宾首次开口的 3~5 秒；也用于自我介绍、连线、引用他人观点时标注身份；新闻、评测、访谈调性
-时长: 入场三段共约 0.85s；hold 3~5s（demo 压到 2s）；出场反向收回 0.5s；变体 b 公司牌约 0.6s 入场
+时长: 入场三段接力重叠后共约 0.6s（色条 0.3s → 姓名在色条 70% 处起 0.25s → 头衔再延迟 0.15s）；hold 3~5s（demo 压到 2s）；出场反向收回 outDur 0.3s（文字段 ×0.7）、三段各错 0.08s 共约 0.45s
 能量: 低
 类别: 人物互动
+输入: 人(可选), 文
+语义: 自我介绍, 引用, 介绍他人
+素材形态: 无
+位置: 任意
+props: hostSrc
 优先级: P0
 代码: template/cards/lower-third-nameplate.tsx
 ---
@@ -23,7 +28,6 @@ name: lower-third-nameplate
 - 入场：色条 scaleX 0→1（origin left）0.3s `power4.out` → 姓名 `clip-path: inset(0 100% 0 0)`→`inset(0 0 0 0)` 从左揭示 0.25s（在色条走完 70% 时起步，接力不等待）→ 头衔同法延迟 0.15s
 - hold：2~5s，完全静止即可（元素小，不需要防呆滞漂移）
 - 出场反向：头衔先收 → 姓名 +0.08s → 色条最后 scaleX→0（`power4.in`）；总 0.5s 内
-- 变体 b（公司/品牌展示牌）：深色半透明圆角底整体 scale 0.9→1 淡入，圆 logo `back.out(2)` 弹入 0.25s，名称 + 副行从右侧 18px 处 stagger 0.1s 滑入；适合放右上角
 - 层级：实拍画面 → 人名条（最上），千万别被字幕压住
 
 ## 参数表
@@ -32,7 +36,8 @@ name: lower-third-nameplate
 | 色条时长 | 0.3s | 快了（0.15s）像故障闪现；慢了后面两段等不起 |
 | 姓名揭示时长 | 0.25s | clip 揭示要干脆；>0.4s 像窗帘拉开 |
 | 头衔延迟 | 0.15s | 层次感的最小单元；0 = 层次塌，>0.3s 像卡了 |
-| hold 时长 | 3~5s | 按"观众读完姓名+头衔两遍"计；超 8s 变成台标 |
+| hold 时长 | 3~5s（demo 2s） | 按"观众读完姓名+头衔两遍"计；超 8s 变成台标 |
+| 出场时长 outDur | 0.3s | 色条收回时长，文字段取 0.7 倍；头衔 → 姓名 → 色条各错 0.08s 反向收回 |
 | 接力起步点 | 色条走完 70% 处 | 等色条 100% 才出字会有可感知的空拍；50% 之前出字像抢跑 |
 | 色条颜色 | 品牌色/高饱和红 | 低饱和融进实拍背景；色条是视线锚点必须跳出来 |
 
@@ -45,15 +50,16 @@ name: lower-third-nameplate
 - 头衔写两行以上——读不完；一行 12 字内，多余身份删掉。
 
 ## 复用指引
+- props：仅 `hostSrc`；姓名 / 头衔文案写死在 JSX，换内容需改源码。
 - Remotion/tsx（skill 首选）：template/cards/lower-third-nameplate.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
-- HTML/GSAP：demos/lower-third-nameplate/index.html。改 `.name/.title` 文案、`.bar` 换品牌色；节奏都在 `CONFIG`（barDur/nameDur/titleLag/hold）；变体 b 在 `.plate`，改 logo 字和公司名即可。
+- HTML/GSAP：demos/lower-third-nameplate/index.html。改 `.name/.title` 文案、`.bar` 换品牌色；节奏都在 `CONFIG`（barDur/nameDur/titleLag/hold/outDur）。
 - Remotion 移植：三段用 `<Sequence from={...}>` 串接；clip 揭示 `clipPath: inset(0 ${interpolate(frame,[0,8],[100,0])}% 0 0)`；出场用总时长减帧数做反向 interpolate。
 - 剪辑软件对应物：剪映"文字模板→字幕条/人名条"分类；AE 是 Videohive "lower thirds" 品类（2.6 万商品直接套）；FCPX 内置 Lower Thirds 生成器；CapCut "Name tag" 贴纸。
 
 ## 动效范围
-- 属于本卡的：色条 `scaleX 0→1`（origin left，0.3s，`power4.out`）→ 姓名 `clip-path inset(0 100%→0)` 从左揭示（0.25s，在色条走完 70% 时起步，接力不等待）→ 头衔同法再延迟 0.15s 的三段接力；出场**反向收回**（头衔先收 → 姓名 +0.08s → 色条最后 `scaleX→0`，`power4.in`，总 0.5s 内）；文字与色条统一的"横向语言"（都从左侧展开，不用淡入）；变体 b 的整体 scale 0.9→1 + 圆 logo `back.out(2)` 弹入 + 名称/副行 18px 处 stagger 0.1s 滑入。hold 期完全静止即可（元素小，不需要防呆滞漂移）。
-- 不属于本卡的：色条颜色、姓名/头衔文案与字号、变体 b 的圆角与边框、实拍画面（demo 用灰阶主持人占位）、左下 56/64px 的具体安全区数值（按画幅重算）。原 demo 上的文字投影也不属于本卡——那是为压在实拍背景上加的可读性补丁，白底上不需要。
-- 迁移接口：**色条颜色 = 复用者的品牌色接口**——改 `.lt .bar` 的 `background`（demo 收敛为墨色 #1d1d1f；实拍场景建议换高饱和品牌色，低饱和会融进背景，色条是视线锚点必须跳出来），变体 b 的 `.plate .logo` 同理；节奏在 `CONFIG`（`barDur`/`nameDur`/`titleLag`/`hold`/`outDur`/`plateAt`）；换尺寸时字号与色条高度（7px @960 舞台）同比缩放；压在实拍上时给文字补投影或垫半透明底，这属于迁移时自加的可读性层。
+- 属于本卡的：色条 `scaleX 0→1`（origin left，0.3s，`power4.out`）→ 姓名 `clip-path inset(0 100%→0)` 从左揭示（0.25s，在色条走完 70% 时起步，接力不等待）→ 头衔同法再延迟 0.15s 的三段接力；出场**反向收回**（头衔先收 → 姓名 +0.08s → 色条最后 `scaleX→0`，`power4.in`，总 0.5s 内）；文字与色条统一的"横向语言"（都从左侧展开，不用淡入）。hold 期完全静止即可（元素小，不需要防呆滞漂移）。
+- 不属于本卡的：色条颜色、姓名/头衔文案与字号、实拍画面（demo 用灰阶主持人占位）、左下 56/64px 的具体安全区数值（按画幅重算）。原 demo 上的文字投影也不属于本卡——那是为压在实拍背景上加的可读性补丁，白底上不需要。
+- 迁移接口：**色条颜色 = 复用者的品牌色接口**——改 `.lt .bar` 的 `background`（demo 收敛为墨色 #1d1d1f；实拍场景建议换高饱和品牌色，低饱和会融进背景，色条是视线锚点必须跳出来）；节奏在 `CONFIG`（`barDur`/`nameDur`/`titleLag`/`hold`/`outDur`）；换尺寸时字号与色条高度（7px @960 舞台）同比缩放；压在实拍上时给文字补投影或垫半透明底，这属于迁移时自加的可读性层。
 - 底色要求：白底即可。实拍落地时底色是任意视频画面，因此**对比度要自证**——色条与文字必须在目标背景上读得出（这是迁移方的责任，不是本卡的动效内容）。
 
 

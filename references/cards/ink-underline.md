@@ -8,6 +8,11 @@ name: ink-underline
 时长: 起手静置 0.55s 等语音到位 → 单条描画 0.4~0.5s（随词长）→ 条间隔 0.75s（口播逐个点名的节拍）→ 收尾定格 1.0s
 能量: 低
 类别: 强调标注
+输入: 文, 人(可选)
+语义: 强调, 对比
+素材形态: 无
+位置: 中段
+props: hostSrc
 ---
 
 ## 意图
@@ -50,9 +55,9 @@ name: ink-underline
   位移量 `thickness × 0.5 × grain`。**seed 固定、不随时间变**——毛边是形状的一部分，不是沸腾。
   `grain 0.5` 是本库取值（源码 1.0）：1.0 在 10px 的线上会把收笔那一端咬断成几点墨
 - **墨的透水度 `opacity 0.85`**：1.0 读作矢量色块，<0.7 读作没蘸够墨
-- **坐标不写死**：每条线绑定 `data-ink="…"` 目标，运行时用 canvas `measureText` 的
-  `fontBoundingBoxAscent` 求真实 **baseline**（行盒下沿有字体留白，照行盒画线会飘在下面一截），
-  线心落在 `baseline + baselineGap`。改文案/改字号，线自动跟着走
+- **坐标（tsx 硬编码）**：每条线的 `target` 指向 `BOXES` 里一个「左右缘 + 真实 baseline」盒（demo 运行时用 canvas `measureText` 的
+  `fontBoundingBoxAscent` 实测、按 960×540 设计坐标写死；行盒下沿有字体留白，照行盒画线会飘在下面一截），
+  线心落在 `baseline + baselineGap`。tsx 改文案/改字号必须重量 `BOXES`；demo 版绑 `data-ink` 运行时自动跟
 - **层级**：文字层 → 墨迹 SVG 层（`pointer-events:none`，盖在字上但因为线在 baseline 下方不压字）
 
 ## 参数表
@@ -82,18 +87,14 @@ name: ink-underline
 - 在 `onUpdate` 里用 `gsap.set` 改 `d`——被排到下一 tick，描画比 scratch 音效晚一帧。
 
 ## 复用指引
-- Remotion/tsx（skill 首选）：template/cards/ink-underline.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
+- props：仅 `hostSrc`；台词在 JSX 常量、墨迹盒坐标在 `BOXES` 里，换内容需改源码并重量坐标。
+- Remotion/tsx（skill 首选）：template/cards/ink-underline.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG（`marks` 每项一条线），坐标在 `BOXES`，时长/尺寸在 meta。
 - HTML/GSAP：demos/ink-underline/index.html。核心是三个函数——`spineOf()`（脊线）、
   `ribbon(spine, o, progress)`（变宽缎带，**这个函数可以整段抄走**，它与本卡的其他部分无耦合）、
   `baselineOf()`（量真实 baseline）。加一条线就在 `CONFIG.marks` 里加一项并给目标元素打 `data-ink`。
-- Remotion 移植：源码在 `registry/remocn/ink-underline/index.tsx`，缎带生成器在
-  `registry/remocn/brush/index.tsx`（`brushRibbon` / `brushHalfWidth` / `sampleCubic` / `BrushGrain` 可直接用）。
+- Remotion 移植：直接用 template/cards/ink-underline.tsx——`sampleCubic` / `spineOf` / `halfWidth` / `ribbon` 四个纯函数可整段抄走（与其余部分无耦合）；
+  生长是连续的 `power1Out`（`tw(t, at, dur, power1Out)`），不做定格抖动，`wobble` 为常量，`grain` 0.5。
   秒↔帧（30fps）：描画 0.5s = 15 帧、静置 0.55s = 16.5 帧、间隔 0.75s = 22.5 帧。
-  **要改的一处**：源码用 `steppedRamp(frame, delay, delay + durationSteps × step, {step: 3})`
-  做 5 个定格姿态（3 帧一格），换成连续的
-  `interpolate(frame, [d, d + 15], [0, 1], {easing: Easing.out(Easing.quad), extrapolateRight: 'clamp'})`
-  即符合本库"不做定格"纪律；同时把 `hashRange` 的逐格重掷去掉（wobble 取一个常量）。
-  `grain` 传 0.5 而不是默认 1。
 - 剪辑软件对应物：AE——用 Shape Layer 的 Stroke + **Taper**（AE 2020+ 内置起收笔收细，
   正是本卡的 taper）+ Trim Paths 的 End 关键帧做生长，Roughen Edges 给颗粒；
   剪映/CapCut——没有真正的变宽笔触，退而用"手写字/笔刷"贴纸的描出动画（形状固定、只能选预设），
@@ -106,7 +107,7 @@ name: ink-underline
 ## 动效范围
 - 属于本卡的：变宽缎带的生成机制（脊线 → 逐点法线 → taper 半宽 → 左岸正走右岸倒走闭合成填充路径）；`pressure 1 → release 0.15` 的起笔压满收笔提细；截断脊线做生长且 **taper 的 t 按整条脊线算**这条纪律；脊线两控制点上下反偏 ±1px 的浅 S 弯、两条线取反号；静态 `feTurbulence + feDisplacementMap` 边缘颗粒（seed 固定不随时间变）；`opacity 0.85` 的墨透水度；线心落在真实 baseline + 6px；描画 `power1.out` 0.4~0.5s、条间隔 0.75s 的节拍；画完静置不抖这条取舍；`onUpdate` 里直写 `setAttribute` 以免晚一帧。
 - 不属于本卡的：demo 的两行示例台词与"成本上涨/渠道结构"这组对比文案、字号 30px 与行高 1.95、墨色 `#6f7f35`（换成任何深色都成立，它只需与底色有对比）、被划词只加字重不加颜色这个排版选择、主持人占位（演示语境素材）、右侧 70% 布局。
-- 迁移接口：`CONFIG.marks` 的每一项 = 一条线，`target` 指向 `data-ink` 元素；`color` 换墨色（深底改浅色墨，其余参数不变）；`thickness` 按字号等比给（30px 字号用 10px 线 ≈ 字号的 1/3，1080p 上 60px 字号给 20px）；`dur` 按词长给；`baselineGap` / `overhang` 是**手感常量**，随字号等比缩；`grain` 随 `thickness` 反向调（线越细颗粒要越小，否则咬断收笔端）。
+- 迁移接口：`CONFIG.marks` 的每一项 = 一条线，`target` 指向 `BOXES` 的键（demo 里是 `data-ink` 元素）；`color` 换墨色（深底改浅色墨，其余参数不变）；`thickness` 按字号等比给（30px 字号用 10px 线 ≈ 字号的 1/3，1080p 上 60px 字号给 20px）；`dur` 按词长给；`baselineGap` / `overhang` 是**手感常量**，随字号等比缩；`grain` 随 `thickness` 反向调（线越细颗粒要越小，否则咬断收笔端）。
 - 底色要求：白底/浅底最佳（墨是深色，靠对比成立）。深底把 `color` 换成浅色墨即可，`inkOpacity` 可提到 0.9（浅色墨在深底上透太多会显灰）。
 
 ## 落位自检（2026-09-05 用户定版，选卡时抄进 SHOTBOOK 该镜自检列）

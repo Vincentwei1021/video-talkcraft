@@ -3,9 +3,14 @@ name: chevron-lower-third
 标题: 动态人名条
 一句话: 姓名行从左推出（x -26→0，0.26s），职称 chip 错峰 0.1s 从左 scaleX 展开 0.22s、chip 内字滞后 2 帧淡入，三枚 chevron 再依次扫过点亮当"条子还在延伸"的收尾；hold 2.0s 后整条从左收回
 适用: 真人出镜嘉宾首次开口的 3~5 秒；也用于连线、自我介绍、引用他人观点时标注身份；比 lower-third-nameplate 多一档"节目感/动态感"（vlog、播客、体育/科技节目）；正式访谈与纪录片建议用那张更克制的
-时长: 起手静置 0.4s → 姓名推出 0.26s → chip 展开 0.22s（错峰 0.1s，内字滞后 0.067s）→ chevron ×3 错峰 0.07s → hold 2.0s → 整条收回 0.2s；共约 3.5s
+时长: 起手静置 0.4s → 姓名推出 0.26s → chip 展开 0.22s（错峰 0.1s，内字滞后 0.067s）→ chevron ×3 错峰 0.07s → hold 2.0s → 整条收回 0.2s；共约 3.2s
 能量: 低
 类别: 人物互动
+输入: 人(可选), 文
+语义: 自我介绍, 引用, 介绍他人
+素材形态: 无
+位置: 任意
+props: hostSrc
 优先级: P1
 代码: template/cards/chevron-lower-third.tsx
 ---
@@ -80,7 +85,8 @@ chip 先成形、字后落，才有"发牌"的两拍。
 - 忘了给 `.clt` 设 `transform-origin: left center`——退场时整条从中心收，读作"被吸走"而不是"收回左边"。
 
 ## 复用指引
-- Remotion/tsx（skill 首选）：template/cards/chevron-lower-third.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
+- props：仅 `hostSrc`；姓名 / 头衔文案在 JSX 常量里（`.clt-name` / `.clt-chip span`），换内容需改源码。
+- Remotion/tsx（skill 首选）：template/cards/chevron-lower-third.tsx——自包含单文件，复制进工程即可用；节奏参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/chevron-lower-third/index.html。换文案改 `.clt-name` 与
   `.clt-chip span`（头衔 ≤12 字），chip 宽度自动跟着文字走（`padding: 0 18px`）；
   改强调色只动 `:root --acc`（chip + chevron 共用，姓名保持墨色）；
@@ -111,5 +117,5 @@ chip 先成形、字后落，才有"发牌"的两拍。
 ## 动效范围
 - 属于本卡的：姓名 `x -26→0 + opacity`（0.26s `power3.out`）推出；chip 背景 `scaleX 0→1`（origin left，0.22s）错峰 `0.1s` 跟上、**chip 内字滞后 2 帧（0.067s）淡入且不参与 scaleX**（本卡第一命门）；三枚 chevron 在 chip 落定**之后** `opacity 0→1 + x+5→0`、错峰 `0.07s` 密到读作一道扫过（收尾语义："条子还在延伸"）；hold **2.0s**（人名条专属的长 hold）；退场整条 `scaleX→0 + opacity`（0.2s `power2.in`，**必须快于入场**）且 `transform-origin: left center`；"chip（实心标签）+ chevron（延伸）"这个与三段接力式人名条相区别的组合关系。
 - 不属于本卡的：demo 那个「陈知远 / 供应链咨询顾问 · 12 年」的具体人名头衔、44px 与 21px 的字号、蓝色 `#0066cc` 这个具体取值、chip 高 40 与圆角 12 的绝对数值、chevron 的具体形状（`>` 折线可换三角/箭头）、左 72 / 下 96 的具体安全区数值（按画幅重算）、人物画面（demo 用数字人占位）、实拍落地时补的投影或半透明底板（那是可读性层，迁移方自加）。
-- 迁移接口：强调色一个变量 `--acc`（chip + chevron 共用，姓名走墨色，同屏不允许第二个）；字号与 chip 高度按画幅等比（44px/40px @540 舞台高 ⇒ ×2 @1080）；落位按目标画幅的 action-safe 重算，且必须**高于字幕安全区**（横屏字幕 bottom 100px ⇒ 人名条 bottom ≥ 170px；竖屏字幕 bottom 350px ⇒ 人名条要么更高要么改到上方）；节奏在 `CONFIG`，`chipTxtLag`（2 帧）与 `chevStagger`（0.07s）是**手感常量**，换尺寸换语速都不要动；`hold` 按"姓名 + 头衔读两遍"给（实拍建议 3~5s，demo 压到 2.0s）；`outDur` 必须短于 `nameDur`。
+- 迁移接口：强调色 `#0066cc` 在 tsx 里写在 `.clt-chip-bg` 的 background 与 `.clt-chev path` 的 stroke 两处（chip + chevron 共用，姓名走墨色，同屏不允许第二个），换色两处同改（HTML demo 是 `:root --acc` 一个变量）；字号与 chip 高度按画幅等比（44px/40px @540 舞台高 ⇒ ×2 @1080）；落位按目标画幅的 action-safe 重算，且必须**高于字幕安全区**（横屏字幕 bottom 100px ⇒ 人名条 bottom ≥ 170px；竖屏字幕 bottom 350px ⇒ 人名条要么更高要么改到上方）；节奏在 `CONFIG`，`chipTxtLag`（2 帧）与 `chevStagger`（0.07s）是**手感常量**，换尺寸换语速都不要动；`hold` 按"姓名 + 头衔读两遍"给（实拍建议 3~5s，demo 压到 2.0s）；`outDur` 必须短于 `nameDur`。
 - 底色要求：白底即可。实拍落地时底色是任意视频画面，因此**对比度要自证**——chip 与姓名必须在目标背景上读得出（浅色背景上墨字姓名成立；深色/花色背景上要给姓名补描边或垫半透明底板）。这是迁移方的责任，不是本卡的动效内容。

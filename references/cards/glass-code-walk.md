@@ -5,9 +5,14 @@ name: glass-code-walk
 代码: template/cards/glass-code-walk.tsx
 一句话: 玻璃质感代码块弹入、10 行代码逐行落位，相机推到 1.68x 后按「读一行 → 滑到下一行」逐句走读（浮点行号 linePosition 同时驱动相机与高亮带，行间是滑过去的不是跳格），非当前行压暗到 0.30，读完 0.85s 拉回全景解除压暗
 适用: 口播里带观众读一小段真实代码/配置——技术教程、代码讲解、开源项目介绍、"这几行就是关键"的时刻；6~10 行、每行都值得念一句的量
-时长: 块弹入 0.55s → 逐行落位 1.0s → 推近 0.55s → 走读 9 句（每句 dwell 0.32s + 滑 0.26s）→ hold 0.30s → 拉回 0.85s → 尾 0.5s；demo 全程 8.26s。行数变化按「行数 × 0.58s」加减
-能量: 低
+时长: 块弹入 0.55s → 逐行落位 1.0s → 推近 0.55s → 走读 9 句（每句 dwell 0.32s + 滑 0.26s）→ hold 0.30s → 拉回 0.85s → 尾 0.5s；demo 全程 8.24s。行数变化按「行数 × 0.58s」加减
+能量: 中
 类别: 素材呈现
+输入: 界
+语义: 例证, 强调
+素材形态: 界面
+位置: 中段
+props: hostSrc
 ---
 
 ## 意图
@@ -39,7 +44,7 @@ backdrop blur 把背后的东西揉开、块内块外能看出同一片背景的
 - **`transform-origin: 0 0` 是反解式子成立的前提**。默认 `center` 会让 `scale` 绕元素中心发生，整条式子失效
 - **核心反解**：`tx = W/2 − zoom·cx`、`ty = H/2 − zoom·cy`、`scale = zoom`。含义是"把锚点的缩放后位置搬到画面正中"
 - **锚点纵向由浮点行号插值算出**：`linePosition` 在相邻行之间连续（`lo = floor(p)`、`hi = lo+1`、按 `p − lo` 线性混合两行的行心 y）。
-  行心从 DOM 现量（`rowTop[i] + rowH[i]/2`）——换字号/换行数/空行半高都自动跟上，不用手填坐标
+  行心由行高常量静态算出（正常行 26、空行 14、行距 4：`ROW_TOP[i] + ROW_H[i]/2`；demo 从 DOM 现量）——换行数/空行自动跟上；换字号要同步改这三个常量
 - **横向恒取块心，不跟字符**：读代码是**整行读**。这是与 [cursor-locked-zoom](cursor-locked-zoom.md) 的第一个分界（那张锁 x 到字符光标）
 - **高亮带与相机同源**：带子的 `top`/`height` 也由同一个 `linePosition` 插值出来（`trackedRow()` 一次返回 y / top / h 三个值）。
   同源 ⇒ 只有一条时间轴在推进，两者不可能失步。给带子单独排一条 tween 去"追"相机，任何时长改动都会错开
@@ -92,19 +97,18 @@ backdrop blur 把背后的东西揉开、块内块外能看出同一片背景的
 - 代码写 lorem 或伪代码——观众一眼看出是假的，"这是真代码"的说服力归零；写真实感短代码（能编译的那种）。
 
 ## 复用指引
-- Remotion/tsx（skill 首选）：template/cards/glass-code-walk.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
+- Remotion/tsx（skill 首选）：template/cards/glass-code-walk.tsx——props：签名收 `hostSrc` 但未使用（本卡无主持人占位）；代码在 `CONFIG.code` 常量里，换代码需改源码（分词 / 行心 / stops / 时刻表随之自动重算）。自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：`demos/glass-code-walk/index.html`。**换代码只改 `CONFIG.code`**——分词、建行、行心、`stops`（空行过滤）、走读句数全部自动跟着走，不用手补任何坐标或时刻。
   节奏在 `CONFIG.dwell` / `stepDur` / `pushDur` / `pullDur`；焦距 `CONFIG.zoom`（改了要按 `960/zoom` 复查块宽）；压暗深度 `CONFIG.dimFloor`；块几何 `blkL/blkT/blkW/blkH`（既推行心，也当相机钳制边界，CSS 的 `.ring` 要同步改）。
   核心可摘走：`CONFIG` + `trackedRow()` + `apply()`（反解 + 钳制 + 带子 + 压暗，共二十来行）。
 - 换素材的最小流程：① 把素材四边填进 `blkL/blkT/blkW/blkH`；② 把"当前项的 top / height / 行心 y"写成一个按浮点序号求值的函数（不一定是代码行——列表项、表格行、清单条目都行）；③ 其余不动。**只要能写出"第 p 项的世界坐标"这一个函数，本卡就能走读它。**
-- Remotion 移植（这就是源头）：`registry/remocn/glass-code-walk/index.tsx`（130 行）+ `registry/remocn/glass-code-block/index.tsx`（分词器 + 玻璃块视觉 + 逐行 `Sequence`）。
-  **视觉是 1:1 照抄的**（2026-08-25 用户定版：用源码原始视觉），连示例代码都是源码的 `DEFAULT_CODE`；
-  移植回 Remotion 时视觉部分直接用 `<GlassCodeBlock>`，只把走读那段换掉。
+- 与母本（remocn glass-code-walk + glass-code-block）的差异——template/cards/glass-code-walk.tsx 已是完整移植，视觉与分词器内联在文件里：
+  **视觉是 1:1 照抄的**（2026-08-25 用户定版：用源码原始视觉），连示例代码都是源码的 `DEFAULT_CODE`。
   源码的 `linePosition = interpolate(frame, [0, scanEnd], [0, lineCount − 1])` 是**匀速扫过所有行**（含空行），
   本卡改成"停顿式 + 只停有内容的行"——这是移植时最值得改的一处（匀速扫读的手感是机器在扫，不是人在读）。
   秒 ↔ 帧换算（30fps）：源码 `staggerFrames 10` = 0.33s/行（本卡收到 0.08s）、`PULL_BACK_FRAMES 24` = 0.80s（本卡 0.85s）、`durationInFrames 150` = 5.0s、默认 `zoom 2.6` 是 deep-zoom 档（本卡走读档取 1.68）。
   源码的 `ANCHOR_SCREEN_X 110` 把锚点钉在**画面左侧 110px** 而不是正中（配 deep-zoom 用），本卡走读档改成"横向恒取块心"。
-  源码用 `lineHeightOf(line)`（空行 `fontSize×0.8`、正常 `fontSize×1.55`）算行心，本卡等价地从 DOM 现量。
+  源码用 `lineHeightOf(line)`（空行 `fontSize×0.8`、正常 `fontSize×1.55`）算行心，tsx 按同一规则用常量静态算出（26 / 14 + 行距 4），demo 从 DOM 现量。
   相机层用 `translate` + `scale` + `transformOrigin: "0 0"`（源码写法一致），移植时补上边界钳制。
 - 剪辑软件对应物：AE——代码块做成一张图/预合成，加一个空对象（Null）当"当前行锚点"、按念稿节奏给它打**位置关键帧**（每行一个，Easy Ease 双侧），摄像机或图层位置绑表达式 `W/2 − zoom × null.position[1]`；高亮带是一个矩形形状图层、位置绑同一个 Null（这样它和镜头天然同源）；压暗用一个反向遮罩的黑色调整层，不透明度跟着 Null 走。
   剪映——只能手动逼近：代码块放大后按念稿节奏打一串"位置"关键帧 + 一个白色半透明色块当高亮带跟着打同样的关键帧（两串关键帧必须逐帧对齐，否则带子与镜头错开），压暗只能整体降亮度做不到逐行；**行数多时不推荐**。

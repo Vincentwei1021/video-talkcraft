@@ -8,6 +8,11 @@ name: numbered-step-stack
 时长: 起手静置 0.4s → 四枚错峰堆入 0.71s → 整组收束 0.28s → 收尾 hold 1.8s；共约 3.2s
 能量: 中
 类别: 数据信息图
+输入: 文, 人(可选)
+语义: 步骤, 列举
+素材形态: 无
+位置: 任意
+props: hostSrc
 ---
 
 ## 意图
@@ -78,6 +83,7 @@ name: numbered-step-stack
   上一轮的 1.0 会让第二遍 punch 无事发生（四枚安静落地，"确认感"消失）。
 
 ## 复用指引
+- props：仅 `hostSrc`；四条文案与编号在 `STEPS` 常量里，换内容需改源码。
 - Remotion/tsx（skill 首选）：template/cards/numbered-step-stack.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/numbered-step-stack/index.html。**换内容改 `.step-txt` 文案 + `.step-no` 编号**；
   加/减条数直接复制或删掉整个 `.step-bar`（时序是 `i * CONFIG.barStagger` 算的，**不用改任何 delay**），

@@ -3,9 +3,14 @@ name: long-take-world
 标题: 长镜头世界画布
 一句话: 全部内容钉在一张大画布的不同位置，一台相机随讲述连续运镜过去，新内容在镜头快到时才成形——没有切镜，空间本身就是叙事结构
 适用: 有空间/流程/地图隐喻的话题（管线、时间线、生态图景）；想要"一镜到底"的高级感段落
-时长: 一段 20s~全片；站点间运镜 1~2.5s，到站讲述 5~15s
-能量: 中（持续）
+时长: demo 三站共 6.7s（起点 hold 1.1s → 运镜 1.5s → 站 B hold 1.2s → 运镜 1.5s → 站 C hold 1.4s）；生产中一段 20s~全片，站间运镜 1~2.5s、到站讲述 5~15s
+能量: 中
 类别: 转场结构
+输入: 文
+语义: 转场, 步骤, 空间叙事
+素材形态: 无
+位置: 任意
+props: 无
 优先级: P1
 代码: template/cards/long-take-world.tsx
 ---
@@ -16,31 +21,34 @@ name: long-take-world
 做对的命门：① 相机永不瞬移（速度上限内的连续曲线）；② 内容在相机**快到时**开始成形，不是到站后才播动画；③ 到站后相机仍有微漂，让位规则照常执行。
 
 ## 动效核心
-`WorldRig` 持一条站点表 `stops: {t, x, y, zoom, rot}[]`（t = 字级时间戳锚点），
-逐字段稀疏关键帧 + inOutSine 插值出相机状态，叠双不可通约正弦微漂（±5px）和重音脉冲。
-`WorldPlane depth` 做视差（背景 0.5 跟一半）；`WorldItem x y` 把内容钉在世界坐标。
-揭示挂 `useArrive(x, y, radius)`：相机距离 < radius 时返回 0→1，内容的 opacity/位移/描画进度挂它，
-实现"镜头一转过去东西正在长出来"。讲完的区域可挂 `1-arrive` 做离场退焦。
+卡 tsx：`CONFIG.stops: {x, y, zoom, hold}[]` 站点表 + `travel`（站间 1.5s，sine.inOut 逐段插值 x/y/zoom），
+相机 = 世界层的反向 transform `scale(zoom) translate(-x,-y)`，叠双不可通约正弦微漂（`drift` ±5px，y 取 0.7 倍）。
+站点内容钉在世界坐标（`STATIONS` 绝对定位）；接近度揭示内联计算：相机到站点距离 < `arriveLead`（420px）
+起 opacity / 位移 26px / scale 0.94→1 随距离成形，实现"镜头一转过去东西正在长出来"。
+生产母本 `template/motion-systems/longtake.tsx` 在此之上提供 `WorldRig`（站点表带 t 字级锚点 + `impulses` 重音脉冲）、
+`WorldPlane depth` 视差、`WorldItem` 与 `useArrive(x, y, radius)` 钩子（讲完的区域可挂 `1-arrive` 做离场退焦）。
 
 ## 参数表
 | 参数 | 典型值 | 调节手感 |
 |---|---|---|
 | 运镜速度 | ≤1.5 屏宽/秒 | 更快就该改用 whip 转场；<0.3 屏/秒观众以为没动 |
+| `travel` | 1.5s | 站间运镜时长，配合站距守 ≤1.5 屏宽/s（demo 两段 0.83 / 0.67 屏/s） |
 | 站点 zoom | 0.9~1.15 | 移动中微拉远再推近（呼吸）；全程等 zoom 像平移扫描 |
-| arrive radius | 900px（约半屏） | 大=提前很久开始成形（从容）；小=擦到跟前才出（紧张） |
-| drift 微漂 | ±5px | 到站防静止的底线，关掉必挂 motion_check |
-| 世界布局 | 站点间距 1.2~2 屏 | 太近互相穿帮（上一站还在画面里），太远运镜时间全是空旷 |
+| `arriveLead` | 420px（约 0.44 屏；longtake.tsx 的 `useArrive` 默认 radius 900） | 接近半径，距离小于它内容开始成形；大=提前很久开始成形（从容）；小=擦到跟前才出（紧张） |
+| `drift` 微漂 | ±5px | 到站防静止的底线，关掉必挂 motion_check |
+| 世界布局 | 站点间距 1~2 屏（demo 1.25 / 1.0 屏） | 太近互相穿帮（上一站还在画面里），太远运镜时间全是空旷 |
 
 ## 已知坑
 - 站点布成一条水平直线=传送带 PPT；布局要用二维（右→下→斜上），路径带折返和 zoom 变化。
 - 相邻站点内容在运镜途中同框穿帮：布局时按 zoom 算可视范围，途中露出的半成品要么提前成形要么退焦。
 - 长镜头不豁免七层：世界画布只是把 L1 从"每镜一条曲线"换成"一条大曲线"，idle/让位/环境照旧。
 - 与多镜头混用时时间基要分清：WorldRig 的 t 与场景内动画锚点用同一时间源（绝对秒，经 time.ts 换算）。
-- （实战）世界网格自己铺盖满全站点的超大 div；GridField 等 AbsoluteFill 屏幕件放进 WorldPlane 的 0×0 容器会塌为零。
-- （实战）WorldItem 锚点=盒中心只对普通内容成立；绝对定位子元素铺开的站点，视觉中心会漂离锚点（实测 460px），内容要自证以 (0,0) 为视觉中心。
+- （实战·longtake.tsx）世界网格自己铺盖满全站点的超大 div；GridField 等 AbsoluteFill 屏幕件放进 WorldPlane 的 0×0 容器会塌为零。
+- （实战·longtake.tsx）WorldItem 锚点=盒中心只对普通内容成立；绝对定位子元素铺开的站点，视觉中心会漂离锚点（实测 460px），内容要自证以 (0,0) 为视觉中心。
 - （实战）运镜途中 ≥0.5s 的全空舞台=评审必挑；给途中路线放前景视差符号垫场（到站构图外、只在途中入画，按视锥验算位置）。
 
 ## 复用指引
+- props：无；站点文案 / 坐标在 `STATIONS` 与 `CONFIG.stops` 常量里，换内容需改源码。
 - Remotion/tsx（skill 首选）：template/cards/long-take-world.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - 生产母本：template/motion-systems/longtake.tsx
 - Remotion：`longtake.tsx`，站点表写在 shots.ts 旁做表驱动；组合范式见文件头注释。

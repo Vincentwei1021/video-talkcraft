@@ -8,6 +8,11 @@ name: impact-open-title
 时长: 起手静置 0.4s → 整句砸出 0.2s（角框同帧起、0.3s 收完）→ 末词换色 punch 0.167s → 点阵淡入 0.4s → 副题淡入 0.28s → 收尾定格 1.6s；共约 3.14s
 能量: 高
 类别: 字幕花字
+输入: 文, 人(可选)
+语义: 钩子, 章节, 标题
+素材形态: 无
+位置: 开场
+props: hostSrc
 ---
 
 ## 意图
@@ -86,6 +91,7 @@ name: impact-open-title
 - 全片用超过两次——开场钩子的力量来自稀缺，第三次出现观众就把它当栏目包装了（design-language §2：hero 字阶全片 1~2 次）。
 
 ## 复用指引
+- props：仅 `hostSrc`；标题 / 末词 / 副题文案在 JSX 常量里，换内容需改源码。
 - Remotion/tsx（skill 首选）：template/cards/impact-open-title.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/impact-open-title/index.html。**换文案改两处 HTML**：
   `#ioLine` 的前半句（3~5 字）+ `#ioLast` 里的末词（**必须是 2~3 字的独立 span**，它是唯一换色的元素），

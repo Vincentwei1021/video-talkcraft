@@ -8,6 +8,11 @@ name: stage-keyframe-tour
 时长: 实拍：落点 hold 0.6~1s → 每个兴趣点 1~1.3s 转场 + 0.8~1.2s hold → 离场拉开 1.2~1.6s；3 个兴趣点合计 8~11s。demo：0.8s 入场沉降 + 落点 hold 0.9s + 三段巡游 + 离场 1.4s，全程 8.75s
 能量: 中
 类别: 运镜
+输入: 图, 截图
+语义: 例证, 强调, 空间叙事
+素材形态: 长图
+位置: 任意
+props: hostSrc
 ---
 
 ## 意图
@@ -37,7 +42,7 @@ name: stage-keyframe-tour
 - 段间缓动固定 `cubic-bezier(0.16, 1, 0.3, 1)`（Apple 那条）：起步快、末段长距离减速 ⇒ 读作"相机已经知道目标在哪、过去了、稳稳停住"。GSAP core 不带 CustomEase，demo 里用 22 次二分自解一条曲线（比拿 `expo.out` 近似更准）
 - `roll`（机身倾角，±0.5~1°）：只给中段的兴趣点加，且**每段方向不同**。它的作用是让"停靠"看起来是手持找角度而不是机械滑轨对位
 - 入场沉降 0.8s（`power2.out` ≈ spring damping 26 / stiffness 90）：`scale×0.94` / `rotateX +8°` / `rotateY −5°` / `y +64px` → 到位；地面两层同步淡入且位移按 0.28 / 0.35 的比例跟一点（近处的影子比远处的反光挪得多）
-- 手持抖动（可选档）：三条不同频率正弦（0.19 / 0.13 / 0.047 rad·帧⁻¹）叠平滑噪声，幅度 x≈7px / y≈5px / roll≈0.28°，档位 0.08~0.2。**demo 设 0**——这是"摄影师手持呼吸"的低频运动，不是逐帧定格抖动；需要纪录片粗糙感时才开
+- 手持抖动：`CONFIG.shake` 在 tsx 与 demo 里都只是声明为 0 的占位（渲染未引用），本卡**没有**抖动实现；本库也不做定格抖动，需要时另起实现
 - 离场：`zoom` 拉到 0.6 给全貌。**长页巡游必须以全貌收尾**——观众刚看了三处细节，需要一眼知道它们在整体里的位置
 
 ## 参数表
@@ -54,7 +59,7 @@ name: stage-keyframe-tour
 | `roll` | ±0.5~1° | 机身倾角。0 = 机械滑轨；>2° 观众会以为画面歪了（不是"手持"是"没端平"） |
 | 段间缓动 | `cubic-bezier(0.16,1,0.3,1)` | 固定值，不建议换。`power2.out` 尾巴太短、读作"停得急"；`sine.inOut` 起步太软、读作"漂过去"而非"过去" |
 | `entry` | 0.80s | 入场沉降。这一段结束前不要开始巡游（demo 用 0.9s 的落点 hold 盖住它） |
-| `shake` | demo 0；实拍 0.08~0.2 | 手持档。>0.3 就不是呼吸而是抖了 |
+| `shake` | 0（占位） | tsx / demo 均未接线，改了没有效果 |
 
 ## 已知坑
 - **`willChange: transform` 加在相机层上**——相机层持续分数缩放时，强制合成层会让长页那圈 1px 边框在锐利与模糊之间脉动（比不提层更难看）。正确做法：`will-change` 只加在**文字容器**上（demo 里是 `.sec`），让每段缩放内的字形栅格稳定；相机层不加，也不要逐字加。
@@ -66,21 +71,20 @@ name: stage-keyframe-tour
 - 兴趣点排序违反页面的物理顺序（比如 py 0.11 → 0.85 → 0.5）——镜头来回折返，观众会以为漏看了什么。**兴趣点必须单调**（自上而下或自下而上走一趟）。
 - 忘了 `preserve-3d`，或把 `perspective` 写在被 transform 的元素自己身上——空间会散（与 [tilt-3d-page](tilt-3d-page.md) 同坑，细节见那张卡）。
 - 长页没有真的超出画幅（内容只有一屏半）——那就不需要巡游，`tilt-3d-page` 加一次缓推已经够了。本卡的成本只在长页上才划算。
-- 手持抖动开到 0.3 以上——从"摄影师呼吸"变成"手在抖"，且与本库"不做沸腾/定格抖动"的定版偏好冲突。
 - 兴趣点超过 4 个——观众记不住，巡游读作流水账；多了就拆成两镜。
 
 ## 复用指引
-- Remotion/tsx（skill 首选）：template/cards/stage-keyframe-tour.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
-- HTML/GSAP：`demos/stage-keyframe-tour/index.html`。换素材改 `.page` 内整块 DOM（或直接换成一张铺满的长截图 `<img>`），改 JS 里的 `planeH` 为素材真实高度；路径与节奏全在顶部 `CONFIG.moves`（每行一个关键帧 `{d, px, py, zoom, roll}`，相邻同姿态即 hold）；舞台姿态在 `CONFIG.rotX/rotY/scale`；手持档在 `CONFIG.shake`。核心可摘走：`CONFIG` + `bez()` + `DemoShell.register` 回调体里的 `apply()`，加上三层结构那几行 CSS。
+- Remotion/tsx（skill 首选）：template/cards/stage-keyframe-tour.tsx——props：仅 `hostSrc`（声明未使用）；长页内容在 JSX、`planeH`（2200）是函数内局部常量、兴趣点在 `CONFIG.moves`，换素材需改源码。自包含单文件，复制进工程即可用；舞台姿态与路径在顶部 CONFIG，时长/尺寸在 meta。
+- HTML/GSAP：`demos/stage-keyframe-tour/index.html`。换素材改 `.page` 内整块 DOM（或直接换成一张铺满的长截图 `<img>`），改 JS 里的 `planeH` 为素材真实高度；路径与节奏全在顶部 `CONFIG.moves`（每行一个关键帧 `{d, px, py, zoom, roll}`，相邻同姿态即 hold）；舞台姿态在 `CONFIG.rotX/rotY/scale`。核心可摘走：`CONFIG` + `bez()` + `DemoShell.register` 回调体里的 `apply()`，加上三层结构那几行 CSS。
 - 换素材的最小流程：① 量出长截图的原始宽高，`planeH = 806 × (原高 / 原宽)`；② 兴趣点的 `py` 直接用"该版块中心在长图里的像素 y ÷ 原高"；③ `px` 取 0.5；④ 每段 `d` 按口播稿这句话的时长给，hold 段按"读完这一处要几秒"给。
-- Remotion 移植（这就是源头）：`registry/remocn/stage/index.tsx`。`resolveStagePose(frame, moves)` 做关键帧插值（每个 key 给 `{at, x, y, zoom, rotate, easing}`，默认 EXPO）、`getStagePlaneGeometry` 算平面几何与 `translateX/Y`、`getStageTransform` 拼字符串、`getStageShake` 出手持抖动（用 Remotion 的 `random(seed)` 而非 `Math.random`，保证逐帧确定）。它的 `at` 是绝对帧号，本卡 demo 的 `d` 是段时长——移植时累加即可。
+- Remotion：已落地为 template/cards/stage-keyframe-tour.tsx——`CONFIG.moves` 每行 `{d, px, py, zoom, roll}`（d 为段时长，相邻同姿态即 hold），段间 `bez(0.16, 1, 0.3, 1)`，每帧把 `(px·planeW, py·planeH)` 设为 transform-origin 再平移到画面正中（L229-252）；入场沉降 `settle` 走 power2.out（L206, L223-228）。
 - 竖向长距离巡游（一段就跨几千像素）：换用 remocn 的 smooth-descent 三段方案——起 30 帧 `in(cubic)` 加速、中段 `linear`、末 30 帧 `out(cubic)` 减速。它成立的算术是：30 帧三次方斜坡的位移正好等于匀速段同时长位移的 1/3，两端速度才接得上、无跳速。用单条 EXPO 走 2000px 会在中段快到糊。
 - 剪辑软件对应物：AE——长图放进 3D 图层，加一台摄像机（Camera），给摄像机的 `Position` / `Zoom` 打关键帧，**每个兴趣点打两个相同的关键帧构成 hold**，关键帧插值用 `Easy Ease` 后进图表编辑器把手柄拉成"起步快末段长减速"；兴趣点绕点缩放靠调整图层的锚点（Anchor Point）或直接移动摄像机而非缩放图层。剪映——多段"位置+缩放"关键帧，缓动只有固定几档，hold 靠两个同值关键帧；透视舞台需要预先把长图做成带倾斜的图片（剪映的 3D 能力不足以实时给）。Premiere——`Motion` 的 Position/Scale 关键帧 + `Basic 3D`，同样用同值关键帧做 hold。**这就是各家素材站说的 "long page scroll showcase / website presentation" 品类**，但模板通常是"页面滚动"而非"相机巡游"，兴趣点寻址得自己搭。
 - 音效：每段起步一记轻 `whoosh`（`vol` 0.20~0.24，`dur` 0.55~0.75，离场那记 `rate` 压到 0.86 = 更沉更长），入场配一记 `lowpad`。**hold 段绝对不给声**——静止是它的全部作用。
 
 ## 动效范围
 - 属于本卡的：**多关键帧兴趣点巡游**这一整套——归一化兴趣点寻址（目标点设为 `transform-origin` 并平移到画面正中，使 zoom/roll 绕当前兴趣点发生）、"相邻同姿态即 hold"的路径表写法、段间固定 `cubic-bezier(0.16,1,0.3,1)`、每段不同方向的 ±0.5~1° `roll`、0.8s 沉降入场（`scale×0.94` / `rotateX+8°` / `rotateY−5°` / `y+64`）、以全貌收尾的纪律、兴趣点必须单调的排序纪律、"hold 才是信息载体、移动段只是连接"的时长分配、`will-change` 只提文字容器不提相机层这条踩坑纪律，以及超出画幅的长页 + 透视舞台（俯角 `rotateX` 是长页读作"躺着"的前提）+ 接触阴影 / 地面反光两层地面。
-- 不属于本卡的：demo 里那张灰阶线框长落地页的全部内容（导航 / Hero / logo 墙 / 三栏特性 / 三个大数字 / 宽图表 / 三张价格卡 / 页脚及其文案排版）、兴趣点选"主张 → 数据 → 价格"这一具体编排、三个兴趣点这个具体数量（3~4 都成立，5 个以上观众记不住）、舞台姿态取 14°/−20° 这组具体值、手持抖动的具体档位（demo 为 0）、地面两层的具体浓度与模糊半径（随底色调）、长页上叠加的任何字幕或高亮标注。
+- 不属于本卡的：demo 里那张灰阶线框长落地页的全部内容（导航 / Hero / logo 墙 / 三栏特性 / 三个大数字 / 宽图表 / 三张价格卡 / 页脚及其文案排版）、兴趣点选"主张 → 数据 → 价格"这一具体编排、三个兴趣点这个具体数量（3~4 都成立，5 个以上观众记不住）、舞台姿态取 14°/−20° 这组具体值、地面两层的具体浓度与模糊半径（随底色调）、长页上叠加的任何字幕或高亮标注。
 - 迁移接口：`perspective` 定空间强度，换画幅时按画幅宽等比缩放（本卡按 960 宽 / 806px 页宽设计）；`planeH` 按素材真实宽高比反算；兴趣点 `py` = 版块中心在原图的像素 y ÷ 原图高，`px` 整幅宽版块取 0.5；每段 `zoom` 按"这一处的最小字号在画面里够不够读"验收（不是按构图好不好看）；段时长与 hold 时长按口播稿逐句给（移动段 = 过渡词，hold = 讲这一处的那句话）；`rotX`/`rotY` 按"远端最小字号是否可读"验收；地面两层的浓度按底色反向调整（白底压淡、深底改亮边）。
 - 底色要求：白底成立（demo 已验证），但地面两层必须按白底重调（浓度压到 0.05 档、模糊加大）。深底舞台是原版语境，那时反光可以用亮色渐变、接触阴影加深，观感更"影棚"。
 - 与本库其他运镜卡的边界：[slow-push-in](slow-push-in.md) / [slow-pull-reveal](slow-pull-reveal.md) 是平面单段推拉；[tilt-3d-page](tilt-3d-page.md) 是"页面立起来成 3D 立面"（单屏、无兴趣点）；[sway-parallax](sway-parallax.md) 横摇、[orbit-drift](orbit-drift.md) 环绕微漂，都是**单段运动 + hold**；[long-take-world](long-take-world.md) 是世界坐标 2D 相机（无透视平面、无兴趣点寻址）；[evidence-scroll-tour](evidence-scroll-tour.md) 是页面自己上滚、相机不动。**本卡的差异化只有三样**：多关键帧路径、超出画幅的长页、归一化兴趣点寻址。若素材只有一屏、或只需要一次推近，用上面那几张，别付这张的成本。

@@ -5,9 +5,14 @@ name: host-shrink-to-chip
 代码: template/cards/host-shrink-to-chip.tsx
 一句话: 图形要上台时讲者从全屏 0.4s 缩进角落的圆形头像章继续口播，图形从对侧错峰 0.15s 入场接位——让台是单程的，主角让位但人不消失
 适用: 口播从"我说给你听"切到"我给你看图/数据/截图"的每一次交接；讲解、财经拆解、教程类需要反复在人与图之间来回的长口播
-时长: 缩位 0.35~0.5s（power2.inOut）+ 图形错峰 0.15s 后入场 0.45s；角标期随口播任意长（demo 2s）；单程让台，回归交给应用侧下一节拍（需要时反向放大 0.42s、图形先退）
+时长: 缩位 0.35~0.5s（power2.inOut）+ 图形错峰 0.15s 后入场 0.45s；角标期随口播任意长（demo 2s）；单程让台，回归交给应用侧下一节拍
 能量: 中
 类别: 人物互动
+输入: 人(必需), 文, 图
+语义: 例证
+素材形态: 人脸, 透明通道
+位置: 中段
+props: hostSrc
 ---
 
 ## 意图
@@ -28,12 +33,11 @@ name: host-shrink-to-chip
   略低于头部中心，取景才带上肩）；位移 = chip 圆心 − 锚点，缩放绕锚点做所以位移就是两点之差
 - 时长 0.42s（0.35~0.5），`power2.inOut`——起收都要缓；这是"让"不是"弹"
 - chip 直径 = 屏宽 18%，**落位必须在左下或右下角**（2026-08-27 用户定版：chip 圆心在画面下 1/3 带内、
-  下缘贴 action-safe 96px；v3 实测圆心放到 66% 高度被判"太靠上"）；内缩量取屏宽 4.2% / 屏高 6.3%；
+  下缘贴 action-safe 96px；v3 实测圆心放到 66% 高度被判"太靠上"）；内缩量取屏宽 4.2% / 屏高 8.9%（`chipInsetX` 0.042 / `chipInsetBottom` 0.089）；
   描边 1px #e0e0e0 在缩位 55% 处 0.2s 淡入
 - 图形主角：晚于缩位起点 0.15s，从**对侧**（人物 chip 在左 → 图形从右）滑入 90px + 淡入，0.45s `power3.out`
 - 角标期：位置全程锁定，画面里唯一在动的是 chip 里的人（口播）
-- 回归（可选，应用侧决定）：需要人物回归时图形先退（`power2.in` 比入场快），人物晚 0.12s 起、
-  t 1→0 同缓动反向放大；顺序反过来（人先放大）会把还没退场的图形压住。demo 不演回归，让台默认单程
+- 回归：tsx / demo 都不做（让台默认单程）。应用侧要做时图形先退、人物后反向放大；顺序反过来（人先放大）会把还没退场的图形压住
 
 ## 参数表
 | 参数 | 典型值 | 调节手感 |
@@ -43,9 +47,9 @@ name: host-shrink-to-chip
 | `chipScale` | 0.72 | 角标期人物层缩放，决定 chip 里的取景。调大变大头特写（脸溢出圆边），调小变全身缩略（脸太小） |
 | `anchorY` | 0.324 | 取景锚点高度 / 屏高。调小取景上移只剩头，调大会把脸推出 chip 上缘——换素材第一个要重调的值 |
 | `gfxLag` | 0.15s | 图形相对缩位起点的错峰。0 = 两个主角同帧打架读作卡顿；>0.4s 中间出现"空台"一拍 |
+| `gfxIn` / `gfxSlide` | 0.45s / 90px | 图形接位的入场时长与对侧滑入位移（power3.out） |
+| `startDelay` | 0.8s（demo） | 全屏口播先站一拍；成片 = 语音说到"我先把图摆出来"的时刻 |
 | `hold` | 2.0s（demo） | 实拍 = 讲完这张图的真实时长，可任意延长；<1.5s 观众还没看完图人就回来了，缩位白做 |
-| `gfxOut` / `restoreLag` | 0.28s / 0.12s | 图形先退、人后放大的顺序是本卡的收尾语法；`restoreLag` 归零 = 人把图形挤出去，读作抢戏 |
-| `restore` | 0.42s | 与 `shrink` 对称即可；刻意做慢（0.6s）有"重新接管"的郑重感 |
 
 ## 已知坑
 - **角标里换成静态头像/定格帧**——人不动等于人已经走了，比直接切走更假（口型停了但声音还在）。
@@ -58,7 +62,8 @@ name: host-shrink-to-chip
 - **chip 放在字幕区或图形要用的那一侧**——让位让到别人身上，等于没让。
 
 ## 复用指引
-- Remotion/tsx（skill 首选）：template/cards/host-shrink-to-chip.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
+- props：仅 `hostSrc`；图形卡内容在 JSX 常量里，换内容需改源码。
+- Remotion/tsx（skill 首选）：template/cards/host-shrink-to-chip.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。tsx 无 `src` 通道：图形位是 JSX 里的 `.gfx` 灰阶图表卡，要放截图 / 视频把 `.gfx` 内容换成 `<Img>` / `<OffthreadVideo muted>`（Remotion 自带），位置与入场 transform 不动。
 - HTML/GSAP：demos/host-shrink-to-chip/index.html。核心是 `setHost(t)` 这一个函数 + 顶部 `CONFIG`，
   连 `lerp` 一起复制即可摘走；换素材只需重调 `anchorY` / `chipScale` 让脸在 chip 里居中。
   chip 左下↔右下换边改 `chipInsetX`（并把图形 `gfxSlide` 取反保持对侧入场）；成片落位只许下角；
@@ -67,8 +72,7 @@ name: host-shrink-to-chip
 - Remotion 移植：`const t = interpolate(frame, [d, d+shrinkF], [0, 1], {easing: Easing.inOut(Easing.quad),
   extrapolateLeft: 'clamp', extrapolateRight: 'clamp'})`，同一个 `t` 同时算外层 `clipPath` 字符串与内层
   `transform`（`scale(lerp(1, chipScale, t)) translate(...)`）——帧驱动天然同步、seek 安全；
-  人物层用 `<OffthreadVideo>` 抠像素材，`muted={false}` 保持角标期口播继续；
-  （若应用侧要做回归）第二个 `interpolate` 从 `outAt+restoreLag` 反向到 0。
+  人物层用 `<OffthreadVideo>` 抠像素材（tsx 为 `muted transparent`，口播声走成片的配音轨）。
 - **分割抠人变体（B-roll 镜头专用，2026-08-27 用户定版）**：让台的对象是一段 B-roll 视频而不是图形卡时，
   角标可以不做圆窗——用 segmentation（绿幕走 `colorkey`，实拍走 RVM/SAM 系人像分割）取 alpha，
   **保留人物真实外形**直接贴在 B-roll 的左下或右下角，读作"人站在素材前面讲"。
@@ -86,5 +90,5 @@ name: host-shrink-to-chip
 - 属于本卡的：人物层从全屏到角标 chip 的**缩位**——裁切窗 `clip-path` 四边内缩 + 圆角同步长到 r，与内层 `scale 1→0.72` + 位移由**同一进度 t 驱动**（0.35~0.5s、`power2.inOut`、`transform-origin` 落在取景锚点）；图形主角晚 0.15s 从**对侧**滑入接位的错峰关系；角标期"位置死锁、人继续口播"这条硬约束。让台默认单程；回归属于应用侧的下一个节拍（要做时遵守"图形先退→人再放大"顺序）。
 - 不属于本卡的：图形卡的内容/排版/灰阶线框画法（柱子自己的生长动效属于 chart-grow 卡）、字幕文案、chip 描边的颜色粗细、主持人素材本身（demo 由 demo-shell 注入数字人，属演示语境）、chip 落在左下还是右下这个具体选边
 （但"必须是下角"属于硬约束，不是可迁移项）。
-- 迁移接口：几何全部是**比例**——`chipRatio`（直径/屏宽）、`chipInsetX/Y`（边距/屏宽·屏高）、`anchorX/Y`（取景锚点/屏宽·屏高），换画幅换尺寸不用改代码；换人物素材调 `anchorY` + `chipScale` 对齐取景；`hold` 按口播真实时长设；chip 方位改 `chipInsetX/Y` 后必须把 `gfxSlide` 取反保持"对侧入场"；底部圆角卡变体把 `round r` 换成固定圆角并改宽高比。
+- 迁移接口：几何全部是**比例**——`chipRatio`（直径/屏宽）、`chipInsetX / chipInsetBottom`（边距/屏宽·屏高）、`anchorX/Y`（取景锚点/屏宽·屏高），换画幅换尺寸不用改代码；换人物素材调 `anchorY` + `chipScale` 对齐取景；`hold` 按口播真实时长设；chip 方位改 `chipInsetX/Y` 后必须把 `gfxSlide` 取反保持"对侧入场"；底部圆角卡变体把 `round r` 换成固定圆角并改宽高比。
 - 底色要求：白底即可，但**chip 必须有可见边界**——白底 + 浅色服装时那根 1px #e0e0e0 描边是唯一的边界线，去掉就读不出"头像章"（深底上改为浅色描边或干脆靠明度差，可省描边）。

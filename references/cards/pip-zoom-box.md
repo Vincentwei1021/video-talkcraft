@@ -8,6 +8,11 @@ name: pip-zoom-box
 时长: 起手静置 0.4s → 取景框浮现 0.2s → 瞄准停 0.15s → 平移放大 0.5s（白边卡在末段交接）→ 箭头 0.18s → 定居 hold 1.8s；共约 3.3s
 能量: 中
 类别: 运镜
+输入: 人(可选), 图
+语义: 强调
+素材形态: 无
+位置: 任意
+props: hostSrc
 ---
 
 ## 意图
@@ -92,6 +97,7 @@ name: pip-zoom-box
 - 两层人物视频不对时——框内框外嘴形不一致，一眼看出是两层（demo 用 900ms 一次的 `currentTime` 对齐兜住；这是演示语境的工程细节，实拍里两层来自同一条素材没有这个问题）。
 
 ## 复用指引
+- props：仅 `hostSrc`；被放大的全景是 `.pz-scene` 内 JSX（两份同构），换素材需改源码并重校 `faceX/faceY`。
 - Remotion/tsx（skill 首选）：template/cards/pip-zoom-box.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
 - HTML/GSAP：demos/pip-zoom-box/index.html。**换素材只做两件事**：把 `.pz-scene` 的内容换掉
   （两份必须完全同结构——`.pz-win` 里那份是副本），然后重校 `CONFIG.faceX/faceY`

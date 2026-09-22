@@ -6,6 +6,11 @@ name: callout-line-label
 时长: 单个标注约 0.95s（圆点 0.2s + 折线 0.4s + 标签 0.25s、文字再滞后 0.1s）；多标注错峰 0.8s；停留 1.6s 后 0.5s 反向收回
 能量: 中
 类别: 强调标注
+输入: 图, 文
+语义: 强调
+素材形态: 无
+位置: 任意
+props: 无
 优先级: P1
 代码: template/cards/callout-line-label.tsx
 ---
@@ -34,7 +39,7 @@ name: callout-line-label
 | `out` | 0.5s | 反向收回总时长（标签/线/点按 0.4/0.4/0.3 比例分配）；>0.8s 退场喧宾夺主 |
 | `stagger` | 0.8s | 第二个标注的延迟；<0.5s 两个标注抢视线，必须错峰逐条出现 |
 | `color` | #d8383a | 点、涟漪、线同色的标注色（白底 demo 用红，深底可换高亮黄）；换品牌色时保持与底图高对比 |
-| `callouts[]` | target/points/label | target=圆点坐标；points=拐点+终点（只放 45°/水平位置）；label 的 x/y 贴线端、`from` 定展开方向（"right"=从右往左收拢的线） |
+| `callouts[]` | target/points/label | target=圆点坐标；points=拐点+终点（只放 45°/水平位置）；label 的 `lines` 两行（主句 / 补充）、x/y 贴线端、`from` 定展开方向（"right"=从右往左收拢的线） |
 
 ## 已知坑
 - 点、线、标签三段同时开始——没有"点→线→字"的因果链，眼睛不知道先看哪，一眼假。
@@ -44,9 +49,10 @@ name: callout-line-label
 - 用 opacity 渐显代替 clip-path 展开——标签失去"从线端长出来"的方向感，和线脱节。
 
 ## 复用指引
-- Remotion/tsx（skill 首选）：template/cards/callout-line-label.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。
+- props：无；被标注对象是 CSS `.phone` 占位，圆点 / 折线坐标与标签文字在 `CONFIG.callouts` 常量里，上真截图或换标注需改源码。
+- Remotion/tsx（skill 首选）：template/cards/callout-line-label.tsx——自包含单文件，复制进工程即可用；参数在顶部 CONFIG，时长/尺寸在 meta。上真截图把 `.phone` 那段 JSX 换成 `<Img src>`（视频截帧用 `<OffthreadVideo>`），再按真图重量 `CONFIG.callouts` 的坐标。
 - HTML/GSAP：demos/callout-line-label/index.html。换文案/换位置只改 `CONFIG.callouts`：`label.html` 换标签文字（`<b>`主句+`<small>`补充）、`target`/`points`/`label.x/y` 换坐标、`label.from` 换展开方向；`CONFIG.color` 换主题色；假手机是 `.phone` 一段纯 CSS，替换成自己的截图元素即可。入场基准延迟 0.6s 写死在 register 内的 `t0 = 0.6 + i * CONFIG.stagger`。核心动画即 `DemoShell.register` 回调整段，复制 CONFIG + 回调可直接摘走。
-- Remotion 移植：三拍用 `<Sequence>` 串接，`from` 按 `dotIn/lineDraw/labelIn × fps` 换算帧；折线描画用 `interpolate(frame, [0, lineDraw*fps], [len, 0])` 驱动 `strokeDashoffset`（`getTotalLength()` 需在 `useEffect`/`useLayoutEffect` 里量或预先算好写死）；圆点用 `spring({frame, config:{damping:10}})` 出 back.out 的过冲；标签用 `clipPath: inset(0 ${interpolate(...)}% 0 0)` 插值，文字 opacity 延迟 3 帧。
+- Remotion 移植：tsx 不用 `<Sequence>`，三拍按 `t0 = 0.6 + i×stagger`、`tLine = t0 + dotIn`、`tLabel = tLine + lineDraw` 逐帧 tween；折线总长用 `polyLen()` 按拐点算（不需要 `getTotalLength()`），`strokeDasharray = len`、`strokeDashoffset` 从 len→0；圆点 `back.out(2.2)` 过冲（opacity 封顶 1）；标签 `clipPath: inset()` 按 `label.from` 选左右哪一侧收缩，文字 opacity 延迟 0.1s（3 帧）。
 - 剪辑软件对应物：AE 里即 "Call-Out Titles" 类模板，自建 = 形状图层折线加"修剪路径"（Trim Paths）+ 文本层矩形蒙版位移揭示；剪映用贴纸搜"标注/指示线"或线条生长素材叠字幕入场"擦除"；CapCut 搜 callout/annotation 模板。
 
 ## 动效范围
