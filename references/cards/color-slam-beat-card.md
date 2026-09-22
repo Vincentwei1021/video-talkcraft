@@ -7,7 +7,7 @@ name: color-slam-beat-card
 能量: 高
 类别: 转场结构
 输入: 场, 文, 人(可选)
-语义: 论点, 金句, 转场
+语义: 金句, 转场
 素材形态: 无
 位置: 任意
 props: hostSrc

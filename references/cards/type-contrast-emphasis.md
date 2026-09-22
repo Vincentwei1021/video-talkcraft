@@ -9,7 +9,7 @@ name: type-contrast-emphasis
 能量: 低
 类别: 字幕花字
 输入: 人(可选), 文
-语义: 论点, 对比, 转折, 强调
+语义: 对比, 转折, 强调
 素材形态: 无
 位置: 任意
 props: hostSrc

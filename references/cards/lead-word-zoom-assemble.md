@@ -7,7 +7,7 @@ name: lead-word-zoom-assemble
 能量: 高
 类别: 字幕花字
 输入: 文
-语义: 论点, 金句, 转折, 标题
+语义: 金句, 转折, 标题
 素材形态: 无
 位置: 任意
 props: words, subline, accentIndex, accent

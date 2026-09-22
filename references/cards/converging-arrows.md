@@ -9,7 +9,7 @@ name: converging-arrows
 能量: 中
 类别: 强调标注
 输入: 文, 人(可选)
-语义: 强调, 机制
+语义: 强调
 素材形态: 无
 位置: 任意
 props: hostSrc

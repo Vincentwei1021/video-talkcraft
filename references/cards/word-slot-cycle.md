@@ -7,7 +7,7 @@ name: word-slot-cycle
 能量: 中
 类别: 字幕花字
 输入: 文
-语义: 论点, 转折, 列举
+语义: 转折, 列举
 素材形态: 无
 位置: 任意
 props: stem, words, final, accent

@@ -7,7 +7,7 @@ name: outline-box-title
 能量: 中
 类别: 字幕花字
 输入: 文, 人(可选)
-语义: 论点, 定义, 标题
+语义: 定义, 标题
 素材形态: 无
 位置: 任意
 props: hostSrc

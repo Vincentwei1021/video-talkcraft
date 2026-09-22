@@ -12,7 +12,7 @@ name: soft-blur-in
 语义: 论点
 素材形态: 无
 位置: 任意
-props: 无
+props: hostSrc(未使用)
 ---
 
 ## 意图

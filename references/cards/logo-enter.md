@@ -12,7 +12,7 @@ name: logo-enter
 语义: 自我介绍, 结尾
 素材形态: 矢量
 位置: 任意
-props: hostSrc(未使用void)
+props: hostSrc(未使用)
 ---
 
 ## 意图

@@ -12,7 +12,7 @@ frontmatter 新增字段（2026-09-22，全部必填，逗号分隔）：
   语义: 见 VOCAB                                                    这张卡专门为哪几种口播语义而设（别打满）
   素材形态: 竖屏 | 横屏 | 长图 | 多图 | 界面 | 人脸 | 单条视频 | 矢量 | 透明通道   可空（写 无）
   位置: 开场 | 中段 | 收尾 | 任意
-  props: 逗号分隔的真实 props；无 = 内容全部写死在 CONFIG / JSX，换内容需改源码
+  props: 逗号分隔的真实 props，写法 name 或 name(必需|可选|未使用)；无 = 内容全部写死在 CONFIG / JSX，换内容需改源码
 """
 from __future__ import annotations
 
@@ -65,7 +65,7 @@ SHAPES = {"竖屏", "横屏", "长图", "多图", "界面", "人脸", "单条视
 POSITIONS = {"开场", "中段", "收尾", "任意"}
 GRADES = {"低", "中", "高"}
 CATEGORIES = {"字幕花字", "强调标注", "数据信息图", "素材呈现", "转场结构", "人物互动", "运镜"}
-REQUIRED = ["name", "标题", "一句话", "适用", "时长", "能量", "类别", "输入", "语义", "位置", "props", "优先级", "代码"]
+REQUIRED = ["name", "标题", "一句话", "适用", "时长", "能量", "类别", "输入", "语义", "素材形态", "位置", "props", "优先级", "代码"]
 
 MARK_INPUT = ("<!-- gen:by-input start -->", "<!-- gen:by-input end -->")
 MARK_SEM = ("<!-- gen:by-semantic start -->", "<!-- gen:by-semantic end -->")
@@ -126,6 +126,9 @@ def parse_card(md: Path, errors: list[str]) -> dict | None:
     if bad:
         errors.append(f"{md.stem}: 素材形态词表外 {bad}")
     props = split_list(fm.get("props", ""))
+    for p_ in props:
+        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*(\((必需|可选|未使用)\))?", p_):
+            errors.append(f"{md.stem}: props 写法「{p_}」应为 name 或 name(必需|可选|未使用)")
     return {
         "slug": md.stem, "title": fm.get("标题", ""), "oneliner": fm.get("一句话", ""), "category": fm.get("类别", ""),
         "energy": fm.get("能量", ""), "priority": fm.get("优先级", ""), "code": code,

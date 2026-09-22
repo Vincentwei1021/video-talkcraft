@@ -7,7 +7,7 @@ name: split-60-40-story
 能量: 中
 类别: 素材呈现
 输入: 人(可选), V, 文
-语义: 论点, 步骤, 列举
+语义: 步骤, 列举
 素材形态: 单条视频, 透明通道
 位置: 任意
 props: src, hostSrc, title, chips, chipBg

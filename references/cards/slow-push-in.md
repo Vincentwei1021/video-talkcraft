@@ -12,7 +12,7 @@ name: slow-push-in
 语义: 例证
 素材形态: 横屏
 位置: 任意
-props: 无
+props: hostSrc(未使用)
 ---
 
 ## 意图

@@ -7,7 +7,7 @@ name: doc-park-left-pill-deal
 能量: 中
 类别: 素材呈现
 输入: 截图, 文
-语义: 论点, 引用
+语义: 引用
 素材形态: 长图
 位置: 中段
 props: docTitle, pills, notes, hint, docSrc, accent

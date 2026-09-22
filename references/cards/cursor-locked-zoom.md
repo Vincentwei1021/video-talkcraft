@@ -12,7 +12,7 @@ name: cursor-locked-zoom
 语义: 过程演示, 步骤
 素材形态: 界面
 位置: 中段
-props: 无
+props: hostSrc(未使用)
 ---
 
 ## 意图

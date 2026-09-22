@@ -10,7 +10,7 @@ name: chapter-title-card
 语义: 章节, 转场
 素材形态: 无
 位置: 中段
-props: hostSrc, themes[]
+props: hostSrc, themes
 优先级: P0
 代码: template/cards/chapter-title-card.tsx
 ---

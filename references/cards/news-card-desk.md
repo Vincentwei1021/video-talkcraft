@@ -10,7 +10,7 @@ name: news-card-desk
 语义: 引用, 例证
 素材形态: 无
 位置: 任意
-props: hostSrc(未使用_props)
+props: hostSrc(未使用)
 优先级: P0
 代码: template/cards/news-card-desk.tsx
 ---

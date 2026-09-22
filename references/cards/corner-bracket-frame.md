@@ -7,7 +7,7 @@ name: corner-bracket-frame
 能量: 低
 类别: 强调标注
 输入: 文, 人(可选)
-语义: 论点, 标题
+语义: 标题
 素材形态: 无
 位置: 任意
 props: hostSrc

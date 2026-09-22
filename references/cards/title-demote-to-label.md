@@ -7,7 +7,7 @@ name: title-demote-to-label
 能量: 中
 类别: 字幕花字
 输入: 文
-语义: 章节, 步骤, 列举, 标题
+语义: 章节, 步骤, 列举, 标题, 设问
 素材形态: 无
 位置: 中段
 props: title, items, itemBg, accent

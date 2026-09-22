@@ -12,7 +12,7 @@ name: magnifier-detail
 语义: 强调
 素材形态: 无
 位置: 任意
-props: hostSrc(未使用_props)
+props: hostSrc(未使用)
 ---
 
 ## 意图

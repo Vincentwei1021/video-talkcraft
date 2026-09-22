@@ -203,8 +203,8 @@
    "position": "任意",
    "props": [
     "src",
-    "title[]",
-    "note[]"
+    "title",
+    "note"
    ],
    "hardcoded": false
   },
@@ -369,7 +369,7 @@
    "position": "中段",
    "props": [
     "hostSrc",
-    "themes[]"
+    "themes"
    ],
    "hardcoded": false
   },
@@ -572,7 +572,6 @@
     }
    ],
    "semantics": [
-    "论点",
     "金句",
     "转场"
    ],
@@ -602,8 +601,7 @@
     }
    ],
    "semantics": [
-    "强调",
-    "机制"
+    "强调"
    ],
    "material_shape": [],
    "position": "任意",
@@ -631,7 +629,6 @@
     }
    ],
    "semantics": [
-    "论点",
     "标题"
    ],
    "material_shape": [],
@@ -661,7 +658,8 @@
    ],
    "semantics": [
     "钩子",
-    "列举"
+    "列举",
+    "标题"
    ],
    "material_shape": [],
    "position": "开场",
@@ -713,10 +711,6 @@
     },
     {
      "type": "截图",
-     "need": null
-    },
-    {
-     "type": "V",
      "need": null
     }
    ],
@@ -789,7 +783,9 @@
     "界面"
    ],
    "position": "中段",
-   "props": [],
+   "props": [
+    "hostSrc(未使用)"
+   ],
    "hardcoded": true
   },
   {
@@ -840,7 +836,6 @@
     }
    ],
    "semantics": [
-    "论点",
     "引用"
    ],
    "material_shape": [
@@ -1173,8 +1168,7 @@
     }
    ],
    "semantics": [
-    "强调",
-    "金句"
+    "强调"
    ],
    "material_shape": [],
    "position": "任意",
@@ -1204,7 +1198,7 @@
    "material_shape": [],
    "position": "中段",
    "props": [
-    "hostSrc（声明未使用）"
+    "hostSrc(未使用)"
    ],
    "hardcoded": true
   },
@@ -1450,7 +1444,6 @@
     }
    ],
    "semantics": [
-    "论点",
     "金句",
     "转折",
     "标题"
@@ -1481,7 +1474,6 @@
    ],
    "semantics": [
     "步骤",
-    "论点",
     "列举"
    ],
    "material_shape": [],
@@ -1584,7 +1576,7 @@
    ],
    "position": "任意",
    "props": [
-    "hostSrc(未使用void)"
+    "hostSrc(未使用)"
    ],
    "hardcoded": true
   },
@@ -1666,7 +1658,7 @@
    "material_shape": [],
    "position": "任意",
    "props": [
-    "hostSrc(未使用_props)"
+    "hostSrc(未使用)"
    ],
    "hardcoded": true
   },
@@ -1820,7 +1812,7 @@
    "material_shape": [],
    "position": "任意",
    "props": [
-    "hostSrc(未使用_props)"
+    "hostSrc(未使用)"
    ],
    "hardcoded": true
   },
@@ -1957,7 +1949,6 @@
     }
    ],
    "semantics": [
-    "论点",
     "定义",
     "标题"
    ],
@@ -2120,10 +2111,6 @@
      "need": "可选"
     },
     {
-     "type": "V",
-     "need": null
-    },
-    {
      "type": "图",
      "need": null
     }
@@ -2235,7 +2222,6 @@
    ],
    "semantics": [
     "金句",
-    "论点",
     "结尾"
    ],
    "material_shape": [],
@@ -2318,10 +2304,6 @@
     {
      "type": "图",
      "need": null
-    },
-    {
-     "type": "V",
-     "need": null
     }
    ],
    "semantics": [
@@ -2354,10 +2336,6 @@
     },
     {
      "type": "图",
-     "need": null
-    },
-    {
-     "type": "V",
      "need": null
     }
    ],
@@ -2399,7 +2377,7 @@
    "material_shape": [],
    "position": "中段",
    "props": [
-    "hostSrc(声明未用)"
+    "hostSrc(未使用)"
    ],
    "hardcoded": true
   },
@@ -2451,9 +2429,7 @@
     }
    ],
    "semantics": [
-    "论点",
     "转折",
-    "章节",
     "标题"
    ],
    "material_shape": [],
@@ -2488,7 +2464,9 @@
     "横屏"
    ],
    "position": "任意",
-   "props": [],
+   "props": [
+    "hostSrc(未使用)"
+   ],
    "hardcoded": true
   },
   {
@@ -2516,7 +2494,9 @@
     "横屏"
    ],
    "position": "任意",
-   "props": [],
+   "props": [
+    "hostSrc(未使用)"
+   ],
    "hardcoded": true
   },
   {
@@ -2538,7 +2518,9 @@
    ],
    "material_shape": [],
    "position": "任意",
-   "props": [],
+   "props": [
+    "hostSrc(未使用)"
+   ],
    "hardcoded": true
   },
   {
@@ -2556,7 +2538,6 @@
     }
    ],
    "semantics": [
-    "论点",
     "机制"
    ],
    "material_shape": [
@@ -2590,7 +2571,6 @@
     }
    ],
    "semantics": [
-    "论点",
     "钩子",
     "标题"
    ],
@@ -2624,7 +2604,6 @@
     }
    ],
    "semantics": [
-    "论点",
     "步骤",
     "列举"
    ],
@@ -3021,7 +3000,8 @@
     "章节",
     "步骤",
     "列举",
-    "标题"
+    "标题",
+    "设问"
    ],
    "material_shape": [],
    "position": "中段",
@@ -3075,7 +3055,6 @@
     }
    ],
    "semantics": [
-    "论点",
     "对比",
     "转折",
     "强调"
@@ -3278,7 +3257,6 @@
     }
    ],
    "semantics": [
-    "论点",
     "转折",
     "列举"
    ],

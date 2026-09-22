@@ -12,7 +12,7 @@ name: highlighter-sweep
 语义: 引用, 强调
 素材形态: 无
 位置: 中段
-props: hostSrc（声明未使用）
+props: hostSrc(未使用)
 ---
 
 ## 意图

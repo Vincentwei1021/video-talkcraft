@@ -10,7 +10,7 @@ name: bed-echo-blur
 语义: 例证, 引用
 素材形态: 竖屏, 单条视频
 位置: 任意
-props: src, title[], note[]
+props: src, title, note
 优先级: P0
 代码: template/cards/bed-echo-blur.tsx
 ---

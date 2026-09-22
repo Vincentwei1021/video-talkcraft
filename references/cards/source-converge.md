@@ -7,7 +7,7 @@ name: source-converge
 能量: 中
 类别: 数据信息图
 输入: 文
-语义: 论点, 机制
+语义: 机制
 素材形态: 矢量
 位置: 中段
 props: title, sources, hub, caption
