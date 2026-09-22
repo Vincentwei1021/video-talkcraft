@@ -210,9 +210,9 @@ test('overrides endpoint rejects stale clients and reports disk failures', t => 
 });
 
 // 2026-09-21 多轨自动跟盘：工程文件一变 → syncedIfChanged() 给出同步后的工程（没变就是 null）；cue 表已带 sfx/ 前缀不再叠成 sfx/sfx/，旧工程同步时修回
-function importerWithSfx(cues, meta = {}, media = [{file: 'narration.wav', kind: 'audio', label: '配音'}]) {
+function importerWithSfx(cues, meta = {}, media = [{file: 'narration.wav', kind: 'audio', label: '配音'}], sfxAll = []) {
   return load('workbench/src/kouboImport.ts', {
-    './hmr': hmrBag(), './mediaManifest': {MEDIA_ITEMS: media},
+    './hmr': hmrBag(), './mediaManifest': {MEDIA_ITEMS: media, SFX_ALL: sfxAll},
     './cards/registry': {CARDS: cards}, './cards/koubo-units': {},
     './kb/shots': {SHOTS: [shot], FPS: 30, TOTAL_FRAMES: 90}, './kb/sfx': {SFX_CUES: cues},
     './kb/Subtitles': {phrases: () => [{text: '字幕', start: .041, end: .081, dark: false}]},
@@ -299,4 +299,22 @@ test('voice track resolves the project narration file and migrates legacy full.w
   const b = importerWithSfx([], {}, [{file: 'full.wav', kind: 'audio', label: '配音'}]);
   assert.equal(b.VOICE_FILE, 'full.wav', 'projects that really ship full.wav keep it');
   assert.equal(voice(b.syncKouboProject(legacy)).props.file, 'full.wav');
+});
+
+// 2026-09-22 用户复查 #4：迁移只针对旧拆解写死的 full.wav，且存在性判断要认 sfx/（素材清单顶层跳过 sfx/，
+// 否则用户把配音指到 sfx/custom-voice.wav 这种有效文件会被同步换掉）
+test('voice migration only touches the legacy full.wav and never overwrites a user-chosen file that exists', () => {
+  const voice = p => p.tracks.find(t => t.id === 'kb-track-voice').clips[0];
+  const a = importerWithSfx([], {}, [{file: 'narration.wav', kind: 'audio', label: '配音'}], ['custom-voice.mp3']);
+  const base = a.buildKouboProject();
+  const withSfxVoice = plain(base); voice(withSfxVoice).props = {file: 'sfx/custom-voice.mp3', volume: .8};
+  assert.equal(voice(a.syncKouboProject(withSfxVoice)).props.file, 'sfx/custom-voice.mp3', 'a valid sfx/ voice survives sync');
+  const withTopVoice = plain(base); voice(withTopVoice).props = {file: 'narration.wav', volume: 1};
+  assert.equal(voice(a.syncKouboProject(withTopVoice)).props.file, 'narration.wav');
+  // 用户挑了个盘上没有的名字（打错字）：也不动——由 workbench_contract_lint 的配音检查去报，同步不替用户改决定
+  const withTypo = plain(base); voice(withTypo).props = {file: 'narraton.wav', volume: 1};
+  assert.equal(voice(a.syncKouboProject(withTypo)).props.file, 'narraton.wav', 'user-chosen names are never rewritten');
+  // 旧写死的 full.wav 仍照常迁移
+  const legacy = plain(base); voice(legacy).props = {file: 'full.wav', volume: .5};
+  assert.equal(voice(a.syncKouboProject(legacy)).props.file, 'narration.wav');
 });
