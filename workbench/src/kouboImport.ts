@@ -8,6 +8,7 @@ import { OVERRIDES } from "./kb/params";
 import { timing } from "./kb/timing";
 import { KSHOT_PREFIX, shotFrames } from "./cards/koubo-skill";
 import { KB_COMP, KB_DECOMPOSABLE, KB_FORM, KB_LINKED, KB_MODULES, KB_PROMO, KB_PROJECT_ROOT, KB_TRANSITIONS, WIPE_TIMES, WIPE_SOURCE } from "./kbMeta";
+import { MEDIA_ITEMS, SFX_ALL } from "./mediaManifest";
 import { setLatest } from "./hmr";
 
 /** 音效素材清单（去重 + 使用次数），素材库「音效」tab 用 */
@@ -66,6 +67,21 @@ const sfxTracks = (): { id: string; name: string; clips: ClipData[] }[] => {
   return lanes.map((lane, i) => ({ id: kbId("track", `sfx${i}`), name: `音效 ${i + 1}`, clips: lane.clips }));
 };
 
+/** 配音文件：按工程 public/ 里实际的根级音频解析（模板 MainVideo-example 与 skill 正式工程用 narration.wav，promo 时代叫 full.wav）——
+ *  以前写死 full.wav，接入用 narration.wav 的工程时配音块 404、多轨静音、导出也丢人声（2026-09-21 用户实测"原来口播的声音怎么没了"）。 */
+const VOICE_CANDIDATES = /^(narration|full|voice|vo)\.(wav|mp3|m4a|aac|flac)$/i;
+/** 修复前（≤2026-09-21）拆解把配音块写死成这个名字——迁移只针对它，用户自己挑的文件一律不动 */
+const LEGACY_VOICE_FILE = "full.wav";
+/** 文件在不在盘上：素材清单顶层跳过了 sfx/（SKIP_TOP），所以 sfx/ 下的要另查 SFX_ALL，
+ *  否则用户把配音指到 sfx/custom-voice.wav 这类有效文件会被误判成"不存在"而被同步改掉 */
+const mediaExists = (file: string): boolean =>
+  MEDIA_ITEMS.some((m) => m.file === file) ||
+  (file.startsWith("sfx/") && SFX_ALL.includes(file.slice(4)));
+export const VOICE_FILE: string = (() => {
+  const audio = MEDIA_ITEMS.filter((m) => m.kind === "audio" && !m.file.includes("/"));
+  const hit = audio.find((m) => VOICE_CANDIDATES.test(m.file)) ?? audio.find((m) => !/^sfx/i.test(m.file));
+  return hit?.file ?? "narration.wav";
+})();
 const voiceTrack = () => ({
   id: kbId("track", "voice"),
   name: "配音",
@@ -75,8 +91,8 @@ const voiceTrack = () => ({
     cardId: "audio-clip",
     start: 0,
     duration: TOTAL_FRAMES,
-    props: { file: "full.wav", volume: 1 },
-    label: "配音 full.wav",
+    props: { file: VOICE_FILE, volume: 1 },
+    label: `配音 ${VOICE_FILE}`,
   } as ClipData],
 });
 
@@ -282,6 +298,13 @@ export const syncKouboProject = (existing: ProjectData): ProjectData => {
         if (typeof next.props.file === "string" && next.props.file.startsWith("sfx/sfx/")) {
           next.props = { ...next.props, file: f.clip.props.file };
           if (next.label?.startsWith("sfx/")) next.label = f.clip.label;
+        }
+        // 旧拆解的配音块写死 full.wav：**只**在它仍是那个写死名字、且盘上确实没有这个文件时，才换成实际解析到的配音文件
+        // （音量等其余 props 留用户的）。用户自己挑过的配音（含 sfx/ 下的）一律不动——2026-09-22 用户复查 #4
+        if (c.id === kbId("full", "voice") && typeof next.props.file === "string" && next.props.file !== VOICE_FILE
+            && next.props.file === LEGACY_VOICE_FILE && !mediaExists(next.props.file)) {
+          next.props = { ...next.props, file: VOICE_FILE };
+          if (next.label?.startsWith("配音 ")) next.label = f.clip.label;
         }
         return next;
       }),
