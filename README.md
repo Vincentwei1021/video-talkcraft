@@ -10,7 +10,7 @@
 
 **口播视频的 agent skill：字级配音同步 · 108 张动效配方卡 · 七层反 PPT 镜头系统 · 三重验收**
 
-[中文](README.md) | [English](README_EN.md)
+[中文](README.md) | [English](README_EN.md) | [日本語](README_JA.md)
 
 </div>
 
