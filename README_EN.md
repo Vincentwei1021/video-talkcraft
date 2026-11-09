@@ -9,7 +9,7 @@
 
 **An agent skill for crafting high-quality voiceover-driven videos: word-level voiceover sync · 108 motion recipe cards · a 7-layer anti-slideshow shot system · triple-gate QA**
 
-[中文](README.md) | [English](README_EN.md)
+[中文](README.md) | [English](README_EN.md) | [日本語](README_JA.md)
 
 </div>
 
