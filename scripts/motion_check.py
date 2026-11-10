@@ -36,6 +36,15 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
+
+# Windows 控制台默认 cp1252/cp936，中文判定输出会 UnicodeEncodeError 直接崩；UTF-8 化（无 reconfigure 的环境忽略）
+for _stream in (sys.stdout, sys.stderr):
+    if getattr(_stream, "encoding", "").lower().replace("-", "") not in ("utf8", ""):
+        try:
+            _stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, OSError):
+            pass
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from frame_signature import dup_signature, frame_diffs, noise_floor  # noqa: E402
@@ -72,12 +81,12 @@ def probe_duration(src):
 
 
 def window_diffs(src, t, crop, np, iio):
-    tmp = "/tmp/motion_check_win"
+    tmp = os.path.join(tempfile.gettempdir(), "motion_check_win")
     os.makedirs(tmp, exist_ok=True)
     for f in glob.glob(f"{tmp}/*.png"):
         os.remove(f)
     subprocess.run(["ffmpeg", "-v", "error", "-ss", str(t), "-i", src, "-frames:v", str(FRAMES),
-                    "-vf", f"crop={crop}", "-vsync", "0", f"{tmp}/%03d.png"], check=True)
+                    "-vf", f"crop={crop}", "-fps_mode", "passthrough", f"{tmp}/%03d.png"], check=True)
     fr = [iio.imread(p).astype(np.float64) for p in sorted(glob.glob(f"{tmp}/*.png"))]
     if len(fr) < 10:
         return None
