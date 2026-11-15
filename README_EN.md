@@ -9,9 +9,9 @@
 
 **An agent skill for crafting high-quality voiceover-driven videos: word-level voiceover sync · 108 motion recipe cards · a 7-layer anti-slideshow shot system · triple-gate QA**
 
-[中文](README.md) | [English](README_EN.md) | [日本語](README_JA.md)
+<a href="#support"><img src="https://img.shields.io/badge/%E2%98%95%20Support%20author-16803C?style=for-the-badge" alt="☕ Support author" height="32"></a>
 
-[☕ Support this project](#support)
+[中文](README.md) | [English](README_EN.md) | [日本語](README_JA.md)
 
 </div>
 
