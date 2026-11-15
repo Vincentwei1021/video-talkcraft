@@ -224,6 +224,10 @@ const html = `<!DOCTYPE html>
   .tbtn svg { width:16px; height:16px; display:block; flex:none; }
   .tbtn.icon-only { padding:0 10px; }
   .follow-btn { border-color:var(--acc); }
+  .tbtn.support-btn { background:var(--acc); border-color:var(--acc); color:#fff; font-weight:700; }
+  .tbtn.support-btn:hover { background:#6a48e8; border-color:#6a48e8; color:#fff; }
+  .tbtn.support-btn:focus-visible { outline:2px solid var(--acc2); outline-offset:3px; }
+  .tbtn.support-btn:active { transform:translateY(1px); }
   .tbtn .cnt { display:none; font-size:11.5px; background:var(--chip); color:var(--chip-txt);
     border-radius:999px; padding:2px 8px; line-height:1.3; }
   .follow { position:relative; }
@@ -380,6 +384,24 @@ const html = `<!DOCTYPE html>
   #selbar button { font-size:13px; padding:7px 14px; border-radius:8px; border:1px solid var(--btn-line);
     background:var(--btn); color:var(--txt); cursor:pointer; font-family:inherit; }
   #selbar button.primary { background:var(--acc); border-color:var(--acc); color:#fff; }
+  @media (max-width:1100px) { .topbar h1 .sub { display:none; } }
+  @media (max-width:840px) {
+    .topbar { display:grid; grid-template-columns:minmax(0,1fr) auto auto; gap:8px; padding:12px 16px; }
+    .topbar h1 { grid-column:1; grid-row:1; font-size:18px; letter-spacing:0; overflow:hidden; text-overflow:ellipsis; }
+    .tb-spacer { display:none; }
+    .topbar .follow { grid-column:1; grid-row:2; justify-self:start; }
+    #supportBtn { grid-column:2; grid-row:2; }
+    #starBtn { grid-column:3; grid-row:2; }
+    #themeBtn { grid-column:2; grid-row:1; justify-self:end; }
+    #langBtn { grid-column:3; grid-row:1; }
+    .tabs { top:99px; }
+  }
+  @media (max-width:640px) {
+    .topbar { padding-inline:12px; gap:8px 6px; }
+    .topbar h1 { font-size:16px; }
+    .topbar .tbtn { font-size:12px; padding-inline:10px; gap:6px; }
+    .topbar .cnt, #langBtn svg { display:none !important; }
+  }
 </style>
 </head>
 <body>
@@ -403,6 +425,8 @@ const html = `<!DOCTYPE html>
         <span id="fXT">X</span><span class="arr">↗</span></a>
     </div></div>
   </div>
+  <a class="tbtn support-btn" id="supportBtn" href="${GITHUB}#support" target="_blank" rel="noopener noreferrer">
+    <span aria-hidden="true">☕</span><span id="supportTxt">支持作者</span></a>
   <a class="tbtn" id="starBtn" href="${GITHUB}" target="_blank" rel="noopener">
     <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
     <span>Star</span><span class="cnt" id="starCnt"></span></a>
@@ -454,7 +478,7 @@ const dlg = $("dlg");
 /* ── 主题 + 语言（右上角点击切换；默认深色 + 中文，localStorage 记忆） ── */
 const I18N = {
   zh: { sub: "· 口播动效库", search: "搜索动效名称或关键词", follow: "关注作者", menuH: "关注作者",
-    douyin: "抖音", xhs: "小红书", x: "X", langTxt: "English",
+    douyin: "抖音", xhs: "小红书", x: "X", langTxt: "English", support: "支持作者",
     card: "配方卡", source: "源码", pick: "选取", close: "关闭", copy: "复制名字", copied: "已复制 ✓",
     clear: "清空", selA: "已选 ", selB: " 张", all: "全部", viewAll: "查看全部 ›",
     empty: "没有匹配的卡片", p0: "P0 高频", energy: "能量·", usage: "适用场景：", scope: "动效范围",
@@ -462,7 +486,7 @@ const I18N = {
     clickPlay: "点击播放（有声）", newChip: "NEW · 本批新增",
     prevT: "上一个（←）", nextT: "下一个（→）", themeT: "切换深/浅色", langT: "Switch to English" },
   en: { sub: "· Motion Library", search: "Search motions by name or keyword", follow: "Follow me", menuH: "Follow me on",
-    douyin: "Douyin", xhs: "RedNote", x: "X", langTxt: "中文",
+    douyin: "Douyin", xhs: "RedNote", x: "X", langTxt: "中文", support: "Support author",
     card: "Recipe", source: "Source", pick: "Pick", close: "Close", copy: "Copy names", copied: "Copied ✓",
     clear: "Clear", selA: "", selB: " picked", all: "All", viewAll: "View all ›",
     empty: "No matching cards", p0: "P0 · Frequent", energy: "Energy · ", usage: "Best for: ", scope: "Scope",
@@ -490,6 +514,7 @@ function applyI18n() {
   $("h1sub").textContent = t.sub;
   $("q").placeholder = t.search;
   $("followTxt").textContent = t.follow;
+  $("supportTxt").textContent = t.support;
   $("menuH").textContent = t.menuH;
   $("fDouyinT").textContent = t.douyin; $("fXhsT").textContent = t.xhs; $("fXT").textContent = t.x;
   $("dlgClose").textContent = t.close;
