@@ -11,6 +11,8 @@
 
 [中文](README.md) | [English](README_EN.md) | [日本語](README_JA.md)
 
+[☕ Support this project](#support)
+
 </div>
 
 **video-talkcraft** is the voiceover-driven explainer installment of the
@@ -292,6 +294,18 @@ entirely optional.
 - **Pexels · Pixabay · NASA · Mixkit** — attribution-free asset sources.
 - **Claude Code** — this library was built, iterated, and QA'd with an AI
   coding agent, using the same review loops the skill teaches.
+
+<a id="support"></a>
+
+## ☕ Support this project
+
+If this project helped you, you're welcome to buy me a coffee and support its continued development and maintenance.
+
+<img src="assets/wechat-sponsor.jpg" alt="WeChat sponsorship QR code" width="280">
+
+Scan with WeChat; any amount is appreciated. On a phone, save the image and select it from your album in WeChat's Scan feature.
+
+Sponsorship is entirely optional. Stars, feedback, and sharing are just as welcome. Sponsorship does not change this project's license terms.
 
 ## Follow me
 

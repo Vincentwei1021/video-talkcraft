@@ -12,6 +12,8 @@
 
 [中文](README.md) | [English](README_EN.md) | [日本語](README_JA.md)
 
+[☕ 支持作者](#support)
+
 </div>
 
 **video-talkcraft** 是 [video-shotcraft](https://github.com/Vincentwei1021/video-shotcraft)
@@ -264,6 +266,18 @@ agent 读方法论、选动效配方卡、写 [Remotion](https://www.remotion.de
 - **OpenCV YuNet**——人脸安全区规则背后的检测器。
 - **Pexels · Pixabay · NASA · Mixkit**——免署名素材来源。
 - **Claude Code**——本库由 AI 编码 agent 构建、迭代与验收，用的正是 skill 自己教的那套评审循环。
+
+<a id="support"></a>
+
+## ☕ 支持作者
+
+如果这个项目帮到了你，欢迎请我喝杯咖啡，支持后续开发与维护。
+
+<img src="assets/wechat-sponsor.jpg" alt="微信赞助收款码" width="280">
+
+微信扫一扫，金额随意。手机查看时，可保存图片，再在微信「扫一扫」中从相册选择。
+
+赞助完全自愿，Star、反馈和分享同样感谢。赞助不改变本项目现有的许可条款。
 
 ## 关注作者
 
