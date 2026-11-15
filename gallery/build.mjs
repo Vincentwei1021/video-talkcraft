@@ -224,6 +224,10 @@ const html = `<!DOCTYPE html>
   .tbtn svg { width:16px; height:16px; display:block; flex:none; }
   .tbtn.icon-only { padding:0 10px; }
   .follow-btn { border-color:var(--acc); }
+  .tbtn.support-btn { background:var(--acc); border-color:var(--acc); color:#fff; font-weight:700; }
+  .tbtn.support-btn:hover { background:#6a48e8; border-color:#6a48e8; color:#fff; }
+  .tbtn.support-btn:focus-visible { outline:2px solid var(--acc2); outline-offset:3px; }
+  .tbtn.support-btn:active { transform:translateY(1px); }
   .tbtn .cnt { display:none; font-size:11.5px; background:var(--chip); color:var(--chip-txt);
     border-radius:999px; padding:2px 8px; line-height:1.3; }
   .follow { position:relative; }
@@ -380,6 +384,24 @@ const html = `<!DOCTYPE html>
   #selbar button { font-size:13px; padding:7px 14px; border-radius:8px; border:1px solid var(--btn-line);
     background:var(--btn); color:var(--txt); cursor:pointer; font-family:inherit; }
   #selbar button.primary { background:var(--acc); border-color:var(--acc); color:#fff; }
+  @media (max-width:1100px) { .topbar h1 .sub { display:none; } }
+  @media (max-width:840px) {
+    .topbar { display:grid; grid-template-columns:minmax(0,1fr) auto auto; gap:8px; padding:12px 16px; }
+    .topbar h1 { grid-column:1; grid-row:1; font-size:18px; letter-spacing:0; overflow:hidden; text-overflow:ellipsis; }
+    .tb-spacer { display:none; }
+    .topbar .follow { grid-column:1; grid-row:2; justify-self:start; }
+    #supportBtn { grid-column:2; grid-row:2; }
+    #starBtn { grid-column:3; grid-row:2; }
+    #themeBtn { grid-column:2; grid-row:1; justify-self:end; }
+    #langBtn { grid-column:3; grid-row:1; }
+    .tabs { top:99px; }
+  }
+  @media (max-width:640px) {
+    .topbar { padding-inline:12px; gap:8px 6px; }
+    .topbar h1 { font-size:16px; }
+    .topbar .tbtn { font-size:12px; padding-inline:10px; gap:6px; }
+    .topbar .cnt, #langBtn svg { display:none !important; }
+  }
 </style>
 </head>
 <body>
@@ -392,8 +414,6 @@ const html = `<!DOCTYPE html>
     </button>
     <div class="menu"><div class="menu-in">
       <div class="menu-h" id="menuH">关注作者</div>
-      <a href="${GITHUB}#support" target="_blank" rel="noopener noreferrer">
-        <span aria-hidden="true">☕</span><span id="supportTxt">支持作者</span><span class="arr">↗</span></a>
       <a href="https://www.douyin.com/user/MS4wLjABAAAAK1pkjBxilk2Oi_9h_vFyD-lTAu9CTlvhmOtkosDvvxg" target="_blank" rel="noopener">
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.53.02C13.84 0 15.14.01 16.44 0c.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg>
         <span id="fDouyinT">抖音</span><span class="arr">↗</span></a>
@@ -405,6 +425,8 @@ const html = `<!DOCTYPE html>
         <span id="fXT">X</span><span class="arr">↗</span></a>
     </div></div>
   </div>
+  <a class="tbtn support-btn" id="supportBtn" href="${GITHUB}#support" target="_blank" rel="noopener noreferrer">
+    <span aria-hidden="true">☕</span><span id="supportTxt">支持作者</span></a>
   <a class="tbtn" id="starBtn" href="${GITHUB}" target="_blank" rel="noopener">
     <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
     <span>Star</span><span class="cnt" id="starCnt"></span></a>
