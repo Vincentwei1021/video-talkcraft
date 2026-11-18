@@ -4,9 +4,7 @@
 
 <h1>video-talkcraft</h1>
 
-<a href="#wechat-community"><img src="https://img.shields.io/badge/WeChat%20%E3%82%B0%E3%83%AB%E3%83%BC%E3%83%97-07C160?style=for-the-badge&amp;logo=wechat&amp;logoColor=white" alt="WeChat グループ" height="32"></a>
-
-[![Gallery](https://img.shields.io/badge/Gallery-live%20previews-7A5AF8)](https://vincentwei1021.github.io/video-talkcraft/)
+[![Gallery](https://img.shields.io/badge/Gallery-live%20previews-7A5AF8)](https://vincentwei1021.github.io/video-talkcraft/) <a href="#wechat-community"><img src="https://img.shields.io/badge/WeChat%20%E3%82%B0%E3%83%AB%E3%83%BC%E3%83%97-07C160?style=flat&amp;logo=wechat&amp;logoColor=white" alt="WeChat グループ" height="20"></a>
 [![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial-blue)](LICENSE)
 
 **ナレーション主導の高品質な動画を作るためのエージェントスキル：単語単位のナレーション同期 · 108 のモーションレシピカード · スライドショー化を防ぐ 7 層のショットシステム · 3 重のゲートによる QA**

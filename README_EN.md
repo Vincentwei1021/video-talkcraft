@@ -4,9 +4,7 @@
 
 <h1>video-talkcraft</h1>
 
-<a href="#wechat-community"><img src="https://img.shields.io/badge/WeChat%20community-07C160?style=for-the-badge&amp;logo=wechat&amp;logoColor=white" alt="WeChat community" height="32"></a>
-
-[![Gallery](https://img.shields.io/badge/Gallery-live%20previews-7A5AF8)](https://vincentwei1021.github.io/video-talkcraft/)
+[![Gallery](https://img.shields.io/badge/Gallery-live%20previews-7A5AF8)](https://vincentwei1021.github.io/video-talkcraft/) <a href="#wechat-community"><img src="https://img.shields.io/badge/WeChat%20community-07C160?style=flat&amp;logo=wechat&amp;logoColor=white" alt="WeChat community" height="20"></a>
 [![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial-blue)](LICENSE)
 
 **An agent skill for crafting high-quality voiceover-driven videos: word-level voiceover sync · 108 motion recipe cards · a 7-layer anti-slideshow shot system · triple-gate QA**
