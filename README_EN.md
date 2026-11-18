@@ -4,6 +4,8 @@
 
 <h1>video-talkcraft</h1>
 
+<a href="#wechat-community"><img src="https://img.shields.io/badge/WeChat%20community-07C160?style=for-the-badge&amp;logo=wechat&amp;logoColor=white" alt="WeChat community" height="32"></a>
+
 [![Gallery](https://img.shields.io/badge/Gallery-live%20previews-7A5AF8)](https://vincentwei1021.github.io/video-talkcraft/)
 [![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial-blue)](LICENSE)
 
@@ -318,3 +320,15 @@ Sponsorship is entirely optional. Stars, feedback, and sharing are just as welco
   <a href="https://www.douyin.com/user/MS4wLjABAAAAK1pkjBxilk2Oi_9h_vFyD-lTAu9CTlvhmOtkosDvvxg"><img alt="Follow Vincent on Douyin" src="https://img.shields.io/badge/Douyin-Follow_Me-000000?style=for-the-badge&logo=tiktok&logoColor=white"></a>
   <a href="https://xhslink.cn/m/At9iP2d5C1V"><img alt="Follow Vincent on Red Note" src="https://img.shields.io/badge/Red_Note-Follow_Me-FF2442?style=for-the-badge&logo=xiaohongshu&logoColor=white"></a>
 </p>
+
+<a id="wechat-community"></a>
+
+## 💬 WeChat community
+
+Join “Vincent 的 AI 交流群 1” to chat about AI applications, coding, and video creation.
+
+<a href="assets/wechat-group.jpg"><img src="assets/wechat-group.jpg" alt="Vincent’s AI WeChat community QR code" width="400"></a>
+
+Scan with WeChat to join. On a phone, save the image, then open WeChat’s Scan feature and select it from your album.
+
+This QR code is valid before **2026-11-25**, subject to WeChat’s notice. If it has expired, [contact Vincent on X](https://x.com/VincentWei93) for the latest way to join.

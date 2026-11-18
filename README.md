@@ -6,7 +6,7 @@
 
 [![Gallery](https://img.shields.io/badge/Gallery-live%20previews-7A5AF8)](https://vincentwei1021.github.io/video-talkcraft/)
 [![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial-blue)](LICENSE)
-[![WeChat](https://img.shields.io/badge/WeChat-%E8%AE%A8%E8%AE%BA%E7%BE%A4-07C160?logo=wechat&logoColor=white)](assets/wechat-group.jpg)
+<a href="#wechat-community"><img src="https://img.shields.io/badge/%E5%BE%AE%E4%BF%A1%E7%BE%A4-07C160?style=for-the-badge&amp;logo=wechat&amp;logoColor=white" alt="微信群" height="32"></a>
 
 **口播视频的 agent skill：字级配音同步 · 108 张动效配方卡 · 七层反 PPT 镜头系统 · 三重验收**
 
@@ -291,10 +291,14 @@ agent 读方法论、选动效配方卡、写 [Remotion](https://www.remotion.de
   <a href="https://x.com/VincentWei93"><img alt="在 X 关注作者" src="https://img.shields.io/badge/X-%E5%85%B3%E6%B3%A8%E6%88%91-000000?style=for-the-badge&logo=x&logoColor=white"></a>
 </p>
 
-## 微信讨论群
+<a id="wechat-community"></a>
 
-有建议、反馈或使用问题？扫码加入 video-talkcraft 交流群（3 群）：
+## 💬 微信群
 
-<img src="assets/wechat-group.jpg" alt="video-talkcraft 微信交流群二维码" width="300">
+欢迎加入「Vincent 的 AI 交流群 1」，一起交流 AI 应用、编程和视频创作。
 
-二维码更新于 2026-10-12，2026-10-19 前有效；过期后会不定期更新，也可通过上方社媒直接联系作者。
+<a href="assets/wechat-group.jpg"><img src="assets/wechat-group.jpg" alt="Vincent 的 AI 交流群 1 微信入群二维码" width="400"></a>
+
+用微信扫一扫加入。手机查看时，可保存图片，再在微信「扫一扫」中从相册选择。
+
+此二维码在 **2026-11-25 前**有效，以微信提示为准。若已失效，可[通过 X 联系 Vincent](https://x.com/VincentWei93)获取最新入群方式。

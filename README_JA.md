@@ -4,6 +4,8 @@
 
 <h1>video-talkcraft</h1>
 
+<a href="#wechat-community"><img src="https://img.shields.io/badge/WeChat%20%E3%82%B0%E3%83%AB%E3%83%BC%E3%83%97-07C160?style=for-the-badge&amp;logo=wechat&amp;logoColor=white" alt="WeChat グループ" height="32"></a>
+
 [![Gallery](https://img.shields.io/badge/Gallery-live%20previews-7A5AF8)](https://vincentwei1021.github.io/video-talkcraft/)
 [![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial-blue)](LICENSE)
 
@@ -290,3 +292,15 @@ GitHub の Issue を作成してください。
   <a href="https://www.douyin.com/user/MS4wLjABAAAAK1pkjBxilk2Oi_9h_vFyD-lTAu9CTlvhmOtkosDvvxg"><img alt="Follow Vincent on Douyin" src="https://img.shields.io/badge/Douyin-Follow_Me-000000?style=for-the-badge&logo=tiktok&logoColor=white"></a>
   <a href="https://xhslink.cn/m/At9iP2d5C1V"><img alt="Follow Vincent on Red Note" src="https://img.shields.io/badge/Red_Note-Follow_Me-FF2442?style=for-the-badge&logo=xiaohongshu&logoColor=white"></a>
 </p>
+
+<a id="wechat-community"></a>
+
+## 💬 WeChat グループ
+
+「Vincent 的 AI 交流群 1」で、AI アプリ、プログラミング、動画制作について交流しましょう。
+
+<a href="assets/wechat-group.jpg"><img src="assets/wechat-group.jpg" alt="Vincent の AI WeChat グループ参加用 QR コード" width="400"></a>
+
+WeChat で QR コードを読み取って参加できます。スマートフォンでは画像を保存し、WeChat のスキャン機能でアルバムから選んでください。
+
+この QR コードは **2026-11-25 より前**まで有効です（WeChat の表示を優先）。期限切れの場合は、[X で Vincent に連絡](https://x.com/VincentWei93)して最新の参加方法を確認してください。
