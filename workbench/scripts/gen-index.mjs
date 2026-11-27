@@ -4,8 +4,8 @@
 // 之前用 import.meta.glob（Vite 专属），Remotion CLI（webpack）不认——渲染导出/Studio
 // 都要走 webpack 打包，所以改为落盘静态索引，两边共用一条代码路径。
 // 新增 gen 卡 / 模板卡后重跑：node scripts/gen-index.mjs（npm run dev/build/studio 已挂前置钩子）。
-import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
-import { basename, dirname, extname, join } from "node:path";
+import { existsSync, readFileSync, readdirSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import { basename, dirname, extname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { kbsrcMap } from "../kbsrc.map.mjs";
 
@@ -49,6 +49,15 @@ export const TPL_MODULES: Record<string, TplModule> = {
 // —— 素材清单：扫描 public/（口播工程素材经符号链接接入；cardpreviews/cardthumbs 是画廊资产、sfx 单列）——
 // 曾是手写清单（写死示例工程的 creator-*.mp4 / shots/github.png），换工程后素材库全 404（独立评审 P1）
 const publicDir = join(wb, "public");
+// 画廊 MP4 单独发布，有本地文件时才挂到工作台的预览路径。
+const galleryMedia = join(wb, "..", "gallery", "media");
+if (statSync(galleryMedia, { throwIfNoEntry: false })?.isDirectory()) {
+  try {
+    symlinkSync(relative(publicDir, galleryMedia), join(publicDir, "cardpreviews"), "dir");
+  } catch (error) {
+    if (error.code !== "EEXIST") throw error;
+  }
+}
 const KIND = {
   ".mp4": "video", ".webm": "video", ".mov": "video",
   ".png": "image", ".jpg": "image", ".jpeg": "image", ".webp": "image", ".gif": "image",
