@@ -9,7 +9,7 @@
 
 **ナレーション主導の高品質な動画を作るためのエージェントスキル：単語単位のナレーション同期 · 108 のモーションレシピカード · スライドショー化を防ぐ 7 層のショットシステム · 3 重のゲートによる QA**
 
-[中文](README.md) | [English](README_EN.md) | [日本語](README_JA.md)
+[中文](README.md) | [English](README_EN.md) | [日本語](README_JA.md) | [Türkçe](README_TR.md)
 
 </div>
 
