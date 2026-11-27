@@ -11,7 +11,7 @@
 
 <a href="#support"><img src="https://img.shields.io/badge/%E2%98%95%20Support%20author-16803C?style=for-the-badge" alt="☕ Support author" height="32"></a>
 
-[中文](README.md) | [English](README_EN.md) | [日本語](README_JA.md)
+[中文](README.md) | [English](README_EN.md) | [日本語](README_JA.md) | [Türkçe](README_TR.md)
 
 </div>
 
